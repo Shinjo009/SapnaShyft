@@ -63,10 +63,12 @@ const OTPPage = ({ phoneNumber, onSuccess, onBack }) => {
         </div>
       </div>
 
-      <Timer 
-        initialSeconds={30}
-        onResend={handleResendOTP}
-      />
+      <div style={{ marginTop: '10px' }}>
+        <Timer 
+          initialSeconds={30}
+          onResend={handleResendOTP}
+        />
+      </div>
     </div>
   );
 };

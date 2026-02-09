@@ -9,8 +9,9 @@ import Logo from '../../components/Logo';
  * 
  * Props:
  * - onSuccess: Called with phone number when Send OTP is clicked
+ * - onSignup: Called when Signup link is clicked
  */
-const LoginPage = ({ onSuccess }) => {
+const LoginPage = ({ onSuccess, onSignup }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
 
   const handleSendOTP = () => {
@@ -37,7 +38,10 @@ const LoginPage = ({ onSuccess }) => {
             type="tel"
             placeholder="Phone number"
             value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value.replace(/[^0-9]/g, '');
+              setPhoneNumber(value);
+            }}
           />
 
           <Button onClick={handleSendOTP}>
@@ -46,10 +50,13 @@ const LoginPage = ({ onSuccess }) => {
         </div>
       </div>
 
-      <div className="text-center space-y-4">
+      <div className="text-center" style={{ marginTop: '10px' }}>
         <span className="opacity-80 text-white text-center font-lato text-[10px] font-medium leading-normal tracking-[0.05px]">
           Don't have an account?{' '}
-          <span className="text-[12px] tracking-[0.06px] underline cursor-pointer">
+          <span 
+            className="text-[12px] tracking-[0.06px] underline cursor-pointer hover:opacity-80"
+            onClick={onSignup}
+          >
             Signup
           </span>
         </span>

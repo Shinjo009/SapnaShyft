@@ -2,10 +2,14 @@ import './App.css';
 import { useState } from 'react';
 import LoginPage from './pages/LoginPage';
 import OTPPage from './pages/OTPPage';
+import SignupPage from './pages/SignupPage';
+import HealthInsightsPage from './pages/HealthInsightsPage';
+import SplashScreen from './pages/SplashScreen';
+import HomePage from './pages/HomePage';
 import bgImage from './images/BG-1.png';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('login'); // 'login' or 'otp'
+  const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
   const [phoneNumber, setPhoneNumber] = useState('');
 
   return (
@@ -19,6 +23,17 @@ function App() {
             setPhoneNumber(phone);
             setCurrentPage('otp');
           }}
+          onSignup={() => setCurrentPage('signup')}
+        />
+      )}
+
+      {currentPage === 'signup' && (
+        <SignupPage 
+          onSuccess={(data) => {
+            setPhoneNumber(data.phone);
+            setCurrentPage('otp');
+          }}
+          onLogin={() => setCurrentPage('login')}
         />
       )}
 
@@ -28,7 +43,29 @@ function App() {
           onBack={() => setCurrentPage('login')}
           onSuccess={() => {
             console.log('OTP Verified!');
-            // Navigate to next screen (signup/dashboard)
+            setCurrentPage('health-insights');
+          }}
+        />
+      )}
+
+      {currentPage === 'health-insights' && (
+        <HealthInsightsPage 
+          onGetStarted={() => {
+            console.log('Get Started clicked');
+            setCurrentPage('home');
+          }}
+        />
+      )}
+
+      {currentPage === 'home' && (
+        <HomePage />
+      )}
+
+      {currentPage === 'splash' && (
+        <SplashScreen 
+          onComplete={() => {
+            console.log('Splash animation complete');
+            setCurrentPage('login');
           }}
         />
       )}
