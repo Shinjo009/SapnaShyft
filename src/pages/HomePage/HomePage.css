@@ -1,0 +1,78 @@
+/* Smooth scrolling */
+.home-page {
+  min-height: 100vh;
+  width: 100%;
+  margin: 0 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #000000;
+  position: relative;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.home-page__background {
+  width: 100%;
+  position: relative;
+  line-height: 0;
+  font-size: 0;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.home-page__image {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  vertical-align: top;
+  margin-bottom: -1px;
+}
+
+.home-page__image:last-child {
+  margin-bottom: 0;
+}
+
+/* Mobile: 360px - 480px */
+@media (max-width: 480px) {
+  .home-page {
+    max-width: 100%;
+  }
+}
+
+/* Tablet: 481px - 768px */
+@media (min-width: 481px) and (max-width: 768px) {
+  .home-page {
+    max-width: 100%;
+    padding: 0 20px;
+  }
+}
+
+/* Small Desktop: 769px - 1024px */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .home-page {
+    max-width: 800px;
+    padding: 0 30px;
+  }
+}
+
+/* Large Desktop: 1025px+ */
+@media (min-width: 1025px) {
+  .home-page {
+    max-width: 1200px;
+    padding: 0 50px;
+  }
+}
+
+/* Hide scrollbar for cleaner look while maintaining functionality */
+.home-page::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+.home-page {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
