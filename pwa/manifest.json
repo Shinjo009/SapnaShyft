@@ -1,0 +1,16 @@
+{
+  "name": "Health Assessment Demo",
+  "short_name": "HealthDemo",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e53e3e",
+  "description": "A health assessment demo progressive web app.",
+  "icons": [
+    {
+      "src": "/SuperShyft - Logo red.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

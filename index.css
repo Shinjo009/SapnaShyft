@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=DM+Sans:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 180 80% 5%;
+    --foreground: 0 0% 100%;
+    --card: 180 20% 8%;
+    --card-foreground: 0 0% 100%;
+    --popover: 180 20% 8%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 140 55% 72%;
+    --primary-foreground: 180 80% 5%;
+    --secondary: 0 0% 100%;
+    --secondary-foreground: 180 80% 5%;
+    --muted: 0 0% 77%;
+    --muted-foreground: 0 0% 73%;
+    --accent: 140 55% 72%;
+    --accent-foreground: 180 80% 5%;
+    --destructive: 350 70% 46%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 77%;
+    --input: 0 0% 77%;
+    --ring: 140 55% 72%;
+    --radius: 0.5rem;
+
+    /* Health Assessment specific tokens */
+    --ha-node-bg: 0 0% 100% / 0.15;
+    --ha-node-size: 88px;
+    --ha-pill-width: 264px;
+    --ha-pill-height: 88px;
+    --ha-pill-border: 140 55% 77%;
+    --ha-spine-color: 0 0% 77%;
+    --ha-glow-color: 136 65% 72%;
+    --ha-description-color: 0 0% 73%;
+    --ha-dot-size: 12px;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'DM Sans', sans-serif;
+  }
+}
+
+/* Health Assessment Background */
+.ha-background {
+  background:
+    linear-gradient(106deg, rgba(204, 32, 59, 0.15) 0%, rgba(6, 53, 51, 0.30) 22.49%, rgba(0, 0, 0, 0.00) 41.83%),
+    linear-gradient(283deg, rgba(204, 32, 59, 0.23) 0.91%, rgba(6, 53, 51, 0.30) 26.33%, rgba(7, 29, 28, 0.00) 40.59%),
+    url('/Background.png') lightgray center / cover no-repeat;
+}
+
+/* Node glow for active state */
+.ha-node-glow {
+  box-shadow: 0 0 20px 0 hsl(var(--ha-glow-color) / 0.4);
+}
+
+/* Spine glow for completed segments */
+.ha-spine-glow {
+  background: hsl(var(--ha-glow-color));
+  box-shadow: 0 0 8px 0 hsl(var(--ha-glow-color));
+}
+
+/* Spine default */
+.ha-spine-default {
+  background: hsl(var(--ha-spine-color));
+  box-shadow: 0 0 8px 0 hsl(var(--ha-spine-color));
+}
+
+/* Dot styles */
+.ha-dot {
+  width: var(--ha-dot-size);
+  height: var(--ha-dot-size);
+  border-radius: 100px;
+  background: #C4C4C4;
+  box-shadow: 0 0 8px 0 #C4C4C4;
+}
+
+.ha-dot-active {
+  background: hsl(var(--ha-glow-color));
+  box-shadow: 0 0 8px 0 hsl(var(--ha-glow-color));
+}
+
+/* Hide scrollbar utility */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
