@@ -8,7 +8,7 @@
   "description": "A health assessment demo progressive web app.",
   "icons": [
     {
-      "src": "/SuperShyft - Logo red.png",
+      "src": "/logo512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
