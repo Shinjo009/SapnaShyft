@@ -29,7 +29,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
   const yearColRef = useRef(null);
   const scrollTimeoutsRef = useRef({});
 
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const months = React.useMemo(() => ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], []);
   const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 83 }, (_, i) => String(currentYear - 18 - i));
@@ -63,6 +63,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
   };
 
   useEffect(() => {
+    const scrollTimeouts = scrollTimeoutsRef.current;
     const ITEM_HEIGHT = 126.853 / 3;
     const arrays = { month: months, day: days, year: years };
     const indices = { month: monthIndex, day: dayIndex, year: yearIndex };
@@ -110,7 +111,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
     ];
 
     return () => {
-      Object.values(scrollTimeoutsRef.current).forEach(timeoutId => clearTimeout(timeoutId));
+      Object.values(scrollTimeouts).forEach(timeoutId => clearTimeout(timeoutId));
       cleanups.forEach(cleanup => cleanup && cleanup());
     };
   }, [monthIndex, dayIndex, yearIndex, months, days, years]);

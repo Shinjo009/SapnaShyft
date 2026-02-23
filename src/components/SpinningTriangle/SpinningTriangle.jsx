@@ -52,7 +52,7 @@ const SpinningTriangle = ({ onWordIndex, totalWords, activeIndex, onAnimationCom
 
     animationRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationRef.current);
-  }, [onWordIndex, totalWords]);
+  }, [onWordIndex, totalWords, animationFinished, onAnimationComplete]);
 
   return (
     <div
