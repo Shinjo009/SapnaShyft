@@ -1,7 +1,7 @@
 import React from 'react';
 import './RiskAnalysisSection.css';
 import RiskAnalysisCard from '../RiskAnalysisCard';
-import oxidativeStressIcon from '../../../images/Oxidative Stress.png';
+import oxidativeStressIcon from '../../../images/Oxidative.png';
 import dyslipidemiaIcon from '../../../images/Dyslipidemia.png';
 import cardiacHealthIcon from '../../../images/Cardiac Health.png';
 
@@ -15,7 +15,7 @@ const RiskAnalysisSection = ({ data = [
   { value: 85, label: 'Oxidative Stress', icon: oxidativeStressIcon },
   { value: 55, label: 'Dyslipidemia', icon: dyslipidemiaIcon },
   { value: 65, label: 'Cardiac Health', icon: cardiacHealthIcon }
-]}) => {
+], onSeeMore }) => {
   const bloodMarkers = [
     { name: 'Albumin', value: '23.5 mg/dL', profile: 'Liver Profile', risk: 'High Risk' },
     { name: 'Albumin', value: '23.5 mg/dL', profile: 'Liver Profile', risk: 'High Risk' },
@@ -28,7 +28,7 @@ const RiskAnalysisSection = ({ data = [
         <div className="risk-analysis__text-group">
           <div className="risk-analysis__top-row">
             <p className="risk-analysis__subheading">Risk Analysis</p>
-            <a href="#" className="risk-analysis__see-more">See more</a>
+            <button onClick={onSeeMore} className="risk-analysis__see-more">See more</button>
           </div>
           <p className="risk-analysis__note">Tap the disease to know more</p>
         </div>
@@ -48,7 +48,7 @@ const RiskAnalysisSection = ({ data = [
       <div className="blood-markers__box">
         <div className="blood-markers__header">
           <p className="blood-markers__title">Blood Markers</p>
-          <a href="#" className="blood-markers__see-more">See more</a>
+          <button className="blood-markers__see-more">See more</button>
         </div>
         <p className="blood-markers__note">Tap the card to know more</p>
 

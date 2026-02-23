@@ -1,12 +1,9 @@
 .risk-analysis {
-  position: absolute;
-  top: 580px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
   width: 100%;
-  z-index: 40;
   padding: 0 16px;
   box-sizing: border-box;
+  margin-bottom: 16px;
 }
 
 .risk-analysis__see-more {

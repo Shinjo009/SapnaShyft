@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import SpinningTriangle from '../../components/SpinningTriangle';
 import WordList from '../../components/WordList';
-import bgImage from '../../images/bg.png';
 import './SplashScreen.css';
 
 const words = [
@@ -37,10 +36,6 @@ const SplashScreen = ({ onComplete }) => {
         height: '100vh',
         width: '100vw',
         overflow: 'hidden',
-        backgroundImage: `url(${bgImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center top',
-        backgroundRepeat: 'no-repeat',
       }}
     >
       <div style={{ position: 'relative', zIndex: 10, height: '100%', width: '100%' }}>

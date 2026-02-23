@@ -27,9 +27,9 @@
 
 .nav-item__circle {
   position: absolute;
-  width: 45.5px;
-  height: 45.5px;
-  border-radius: 45.5px;
+  width: 44.64px;
+  height: 44.64px;
+  border-radius: 44.64px;
   background: #FFF;
   box-shadow: 0 4px 4px 0 rgba(255, 255, 255, 0.25);
   top: 50%;

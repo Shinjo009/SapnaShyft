@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Health Scan",
+  "name": "Health Scan Pro - Medical Analysis",
+  "description": "Advanced health scanning and disease risk analysis application with offline support",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,16 +11,56 @@
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "scope": "/",
+  "theme_color": "#1a1a2e",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "categories": ["health", "medical"],
+  "screenshots": [
+    {
+      "src": "logo192.png",
+      "sizes": "192x192",
+      "form_factor": "narrow",
+      "type": "image/png"
+    },
+    {
+      "src": "logo512.png",
+      "sizes": "512x512",
+      "form_factor": "wide",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Health Insights",
+      "short_name": "Insights",
+      "description": "View your health insights and metrics",
+      "url": "/health-insights",
+      "icons": [
+        {
+          "src": "logo192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }

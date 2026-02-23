@@ -15,6 +15,7 @@ import Typography from '../Typography';
  */
 const Button = ({ 
   children,
+  icon = null,
   onClick,
   disabled = false,
   loading = false,
@@ -56,7 +57,10 @@ const Button = ({
       {loading ? (
         <Typography variant="button">Loading...</Typography>
       ) : (
-        <Typography variant="button">{children}</Typography>
+        <span className="flex items-center gap-2">
+          {icon ? <span aria-hidden="true">{icon}</span> : null}
+          <Typography variant="button">{children}</Typography>
+        </span>
       )}
     </button>
   );
@@ -73,6 +77,8 @@ Button.propTypes = {
   loading: PropTypes.bool,
   /** Additional CSS classes */
   className: PropTypes.string,
+  /** Optional icon element */
+  icon: PropTypes.node,
 };
 
 export default Button;

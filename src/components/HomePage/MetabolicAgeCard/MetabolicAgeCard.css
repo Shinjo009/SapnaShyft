@@ -1,12 +1,9 @@
 .metabolic-card {
-  position: absolute;
-  top: 140px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
   width: 100%;
-  z-index: 50;
   padding: 0 16px;
   box-sizing: border-box;
+  margin-bottom: 75px;
 }
 
 .metabolic-card__content {
