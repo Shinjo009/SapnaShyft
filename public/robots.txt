@@ -12,8 +12,3 @@ Allow: /
 
 User-agent: *
 Allow: /
-=======
-# https://www.robotstxt.org/robotstxt.html
-User-agent: *
-Disallow:
->>>>>>> origin/dev-nigel

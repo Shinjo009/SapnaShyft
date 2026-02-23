@@ -66,7 +66,6 @@ const HealthAssessment = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
 
-  // Handle returning from a form page with completion
   useEffect(() => {
     const completed = searchParams.get("completed");
     if (completed) {
@@ -89,26 +88,75 @@ const HealthAssessment = () => {
     if (route) {
       navigate(route);
     } else {
-      // For categories without a form yet, just mark complete
       setCompletedIds((prev) => new Set(prev).add(id));
       setActiveId(null);
     }
   }, [navigate]);
 
   return (
-    <MobileFrame>
-      <div className="flex flex-col h-full px-4 pt-12 pb-8">
-        <Header />
-        <div className="flex-1 flex flex-col justify-center mt-4">
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-center bg-background overflow-hidden">
+      {/* Responsive, blurred, Figma-style background with better scaling for PC */}
+      <div className="fixed inset-0 -z-10">
+        <img
+          src="/Background.png"
+          alt="Background"
+          className="w-full h-full object-cover object-center"
+          style={{
+            filter: 'blur(10px) brightness(0.92)',
+            position: 'absolute',
+            inset: 0,
+            zIndex: -1,
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(106deg, rgba(204, 32, 59, 0.15) 0%, rgba(6, 53, 51, 0.30) 22.49%, rgba(0, 0, 0, 0.00) 41.83%),' +
+              'linear-gradient(283deg, rgba(204, 32, 59, 0.23) 0.91%, rgba(6, 53, 51, 0.30) 26.33%, rgba(7, 29, 28, 0.00) 40.59%)',
+            zIndex: 0,
+          }}
+        />
+      </div>
+      <div
+        className="w-full flex flex-col h-full min-h-[90vh] px-2 sm:px-4 pt-8 pb-8 relative z-10"
+        style={{
+          maxWidth: '95vw',
+          margin: '0 auto',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <h1
+          className="text-white text-center font-lato font-normal tracking-[0.12px] mb-6 select-none"
+          style={{
+            fontSize: 'clamp(1.5rem, 2vw + 1rem, 2.5rem)',
+            lineHeight: 'normal',
+          }}
+        >
+          Health Assessment
+        </h1>
+        <div
+          className="flex-1 flex flex-col justify-center mt-2"
+          style={{
+            minHeight: '60vh',
+            width: '100%',
+            maxWidth: '1200px',
+            margin: '0 auto',
+          }}
+        >
+          {/* Responsive scaling: large icons for PC, default for mobile */}
           <Timeline
             categories={categories}
             activeId={activeId}
             onSelect={handleSelect}
             onNavigate={handleNavigate}
+            iconScale={typeof window !== 'undefined' && window.innerWidth >= 900 ? 2.2 : 1}
+            nodeScale={typeof window !== 'undefined' && window.innerWidth >= 900 ? 2.0 : 1}
           />
         </div>
       </div>
-    </MobileFrame>
+    </div>
   );
 };
 

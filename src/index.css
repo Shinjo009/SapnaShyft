@@ -1,7 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=DM+Sans:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 @layer base {
   :root {
     --background: 180 80% 5%;
@@ -49,11 +51,10 @@
 
 @layer base {
   * {
-    border-color: hsl(var(--border));
+    @apply border-border;
   }
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    @apply bg-background text-foreground;
     font-family: 'DM Sans', sans-serif;
   }
 }

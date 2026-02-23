@@ -14,9 +14,11 @@ interface TimelineProps {
   activeId: string | null;
   onSelect: (id: string) => void;
   onNavigate: (id: string) => void;
+  iconScale?: number;
+  nodeScale?: number;
 }
 
-const Timeline = ({ categories, activeId, onSelect, onNavigate }: TimelineProps) => {
+const Timeline = ({ categories, activeId, onSelect, onNavigate, iconScale = 1, nodeScale = 1 }: TimelineProps) => {
   return (
     <div className="relative flex flex-col items-center" style={{ gap: "0px" }}>
       {/* Vertical spine - runs the full height, including through top and bottom circles */}
@@ -87,6 +89,8 @@ const Timeline = ({ categories, activeId, onSelect, onNavigate }: TimelineProps)
             isCompleted={cat.isCompleted}
             onSelect={() => onSelect(cat.id)}
             onNavigate={() => onNavigate(cat.id)}
+            iconScale={iconScale}
+            nodeScale={nodeScale}
           />
         </div>
       ))}

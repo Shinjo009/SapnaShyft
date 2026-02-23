@@ -4,6 +4,7 @@ import PillButton from "@/components/buttons/PillButton";
 
 export type TimelinePosition = "left" | "center" | "right";
 
+
 interface TimelineItemProps {
   icon: React.ReactNode;
   label: string;
@@ -13,6 +14,8 @@ interface TimelineItemProps {
   isCompleted: boolean;
   onSelect: () => void;
   onNavigate: () => void;
+  iconScale?: number;
+  nodeScale?: number;
 }
 
 const TimelineItem = ({
@@ -24,6 +27,8 @@ const TimelineItem = ({
   isCompleted,
   onSelect,
   onNavigate,
+  iconScale = 1,
+  nodeScale = 1,
 }: TimelineItemProps) => {
   const getAlignment = (): string => {
     if (isActive && position !== "center") return "center";
@@ -34,13 +39,15 @@ const TimelineItem = ({
     }
   };
 
+  const iconSize = 60 * iconScale;
+  const nodeSize = 88 * nodeScale;
   return (
     <div
       className="relative flex items-center"
       style={{
         width: "100%",
         justifyContent: getAlignment(),
-        minHeight: "88px",
+        minHeight: nodeSize,
       }}
     >
       {/* Horizontal connector: only from circle edge to center spine, NOT past it */}
@@ -49,21 +56,20 @@ const TimelineItem = ({
           className="absolute"
           style={{
             top: "50%",
-            // Line goes from the circle edge to the center
+            // Dynamically calculate offset so line never overlaps the circle
             ...(position === "left"
               ? {
-                  // Circle is on the left; connector goes from right edge of circle to center
-                  left: "88px", // after the 88px circle
-                  width: "calc(50% - 88px)",
+                  left: `${nodeSize}px`,
+                  width: `calc(50% - ${nodeSize}px)`,
                 }
               : {
-                  // Circle is on the right; connector goes from center to left edge of circle
-                  right: "88px",
-                  width: "calc(50% - 88px)",
+                  right: `${nodeSize}px`,
+                  width: `calc(50% - ${nodeSize}px)`,
                 }),
-            height: "1px",
+            height: "2px",
             background: isCompleted ? "hsl(136, 65%, 72%)" : "#C4C4C4",
             transform: "translateY(-50%)",
+            zIndex: 0,
           }}
         />
       )}
@@ -82,6 +88,8 @@ const TimelineItem = ({
               label={label}
               description={description}
               onClick={onNavigate}
+              iconSize={iconSize}
+              nodeSize={nodeSize}
             />
           </motion.div>
         ) : (
@@ -97,6 +105,8 @@ const TimelineItem = ({
               isActive={isActive}
               isCompleted={isCompleted}
               onClick={onSelect}
+              iconSize={iconSize}
+              nodeSize={nodeSize}
             />
           </motion.div>
         )}
