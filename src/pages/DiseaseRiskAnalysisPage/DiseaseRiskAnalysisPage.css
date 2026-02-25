@@ -1,0 +1,350 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
+
+.disease-risk-analysis-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, rgba(10, 10, 10, 0.95) 0%, rgba(26, 11, 46, 0.95) 100%);
+  background-image: url('../../images/BG-1.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* Background Ellipses */
+.background-ellipses {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+
+.ellipse {
+  position: absolute;
+  opacity: 0.6;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  transform-origin: center;
+  max-width: none;
+  height: auto;
+}
+
+.ellipse.e1 {
+  right: calc(50% - 130px);
+  transform: translate(50%, -50%);
+}
+
+.ellipse.e2 {
+}
+
+.ellipse.e3 {
+}
+
+.ellipse.e4 {
+}
+
+.ellipse.e5 {
+}
+
+/* Header */
+.page-header {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 0;
+  padding-top: 32px;
+  margin-bottom: 30px;
+  box-sizing: border-box;
+}
+
+.back-button {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+  margin-top: 2px;
+  margin-left: 0;
+}
+
+.back-button:hover {
+  opacity: 0.8;
+}
+
+.back-button:active {
+  opacity: 0.5;
+}
+
+.back-button svg {
+  width: 100%;
+  height: 100%;
+}
+
+.header-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding-right: 0;
+}
+
+.header-spacer {
+  display: none;
+}
+
+.page-title {
+  color: #FFF;
+  text-align: left;
+  font-family: Lato, sans-serif;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+  margin: 0;
+  padding: 0;
+}
+
+.page-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  margin: 0;
+  padding: 0;
+}
+
+/* Carousel Container */
+.carousel-container {
+  position: relative;
+  width: 100%;
+  max-width: 375px;
+  height: 600px;
+  margin: 0 auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  z-index: 2;
+}
+
+.carousel-container:active {
+  cursor: grabbing;
+}
+
+/* Center Metabolic Score */
+.metabolic-score-center {
+  position: absolute;
+  top: calc(50% - 29px);
+  left: calc(50% + 160px);
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0px;
+}
+
+.metabolic-score-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.score-number {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 36px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+}
+
+.score-max-large {
+  color: #C4C4C4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  margin-top: -3px;
+}
+
+.metabolic-score-label {
+  display: none;
+}
+
+/* Disease Icon Container */
+.disease-icon-container {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+  z-index: 5;
+}
+
+.disease-icon-container:hover .disease-icon-badge {
+  transform: scale(1.1);
+}
+
+/* Disease Icon Badge */
+.disease-icon-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform 0.2s ease;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.disease-icon {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+/* Disease Info */
+.disease-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.disease-name {
+  color: #FFF;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.disease-name.multi-line {
+  white-space: pre-line;
+}
+
+.disease-score {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.score-value {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+}
+
+.score-max {
+  color: #C4C4C4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+/* Risk Legend */
+.risk-legend {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 40px;
+  padding: 0 20px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.legend-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .disease-risk-analysis-page {
+    padding: 15px;
+  }
+
+  .carousel-container {
+    width: 100%;
+    max-width: 375px;
+  }
+
+  .risk-legend {
+    gap: 12px;
+  }
+}
+
+/* Animation optimizations */
+@media (prefers-reduced-motion: reduce) {
+  .disease-icon-container,
+  .disease-icon-badge {
+    transition: none;
+  }
+}
+
+/* Ensure smooth 60fps animations */
+.disease-icon-container,
+.disease-icon-badge,
+.disease-icon {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
