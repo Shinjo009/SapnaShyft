@@ -52,7 +52,7 @@ const FamilyHistory = () => (
   <MCQQuestionnaire
     title="Family History"
     subtitle="Knowing your family's health patterns helps us predict risks more accurately."
-    icon={<img src={FamilyHistoryIcon} alt="Family History" className="w-8 h-8" />}
+    icon={<img src={FamilyHistoryIcon} alt="Family History" className="w-12 h-12 object-contain" />}
     questions={QUESTIONS}
     categoryId="family-history"
   />

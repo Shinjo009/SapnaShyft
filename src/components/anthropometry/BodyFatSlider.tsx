@@ -10,9 +10,9 @@ const BodyFatSlider = ({ value, onChange }: BodyFatSliderProps) => {
     <div
       className="relative mx-auto rounded-xl flex flex-col items-center gap-3"
       style={{
-        width: "280px",
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.1)",
+        width: "264px",
+        background: "rgba(0, 0, 0, 0.25)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
         padding: "16px 20px",
       }}
     >

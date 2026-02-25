@@ -10,6 +10,9 @@ const ITEM_WIDTH = 48;
 const MIN = 20;
 const MAX = 60;
 
+/** Matches AnthropometryFrame background so overlay blends seamlessly */
+const FRAME_BG = "rgba(0, 0, 0, 0.25)";
+
 const HorizontalScroller = ({ value, onChange, unit }: HorizontalScrollerProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isScrolling = useRef(false);
@@ -33,24 +36,33 @@ const HorizontalScroller = ({ value, onChange, unit }: HorizontalScrollerProps) 
 
   const items = Array.from({ length: MAX - MIN + 1 }, (_, i) => MIN + i);
 
-  // Container: 280px wide, 80px tall with arrows at top/bottom outside scroll area
   return (
     <div
       className="relative mx-auto rounded-xl overflow-hidden flex-shrink-0"
       style={{
-        width: "280px",
+        width: "264px",
         height: "80px",
         minHeight: "80px",
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.1)",
+        background: "transparent",
+        border: "none",
       }}
     >
-      {/* Unit badge - top right */}
+      {/* Overlay: gradient hides numbers under badge, blends with frame */}
       <div
-        className="absolute rounded-md px-2 py-0.5 flex items-center gap-1"
+        className="absolute top-0 bottom-0 right-0 pointer-events-none rounded-r-xl"
         style={{
-          top: "6px",
-          right: "10px",
+          width: "60px",
+          background: `linear-gradient(to right, transparent 0%, ${FRAME_BG} 100%)`,
+          zIndex: 2,
+        }}
+      />
+
+      {/* Unit badge - same position & style as HeightPicker Cm/Kg */}
+      <div
+        className="absolute rounded-md px-2 py-0.5 flex items-center gap-1 cursor-default"
+        style={{
+          top: "12px",
+          right: "12px",
           background: "rgba(255,255,255,0.1)",
           color: "#FFF",
           fontFamily: '"DM Sans", sans-serif',
@@ -65,40 +77,43 @@ const HorizontalScroller = ({ value, onChange, unit }: HorizontalScrollerProps) 
         </svg>
       </div>
 
-      {/* Up arrow: 20×14px, fill #CC203B */}
-      <div className="absolute left-1/2 -translate-x-1/2" style={{ top: "4px", zIndex: 2 }}>
+      {/* Up arrow */}
+      <button
+        type="button"
+        onClick={() => onChange(Math.min(MAX, value + 1))}
+        className="absolute left-1/2 -translate-x-1/2 cursor-pointer p-1 bg-transparent border-0"
+        style={{ top: "4px", zIndex: 2 }}
+        aria-label="Increase value"
+      >
         <svg width="20" height="14" viewBox="0 0 19 14" fill="none" style={{ transform: "rotate(180deg)" }}>
           <path d="M8.24486 12.8608C8.64368 13.4191 9.47351 13.4191 9.87233 12.8608L17.9291 1.58124C18.4019 0.919369 17.9288 0 17.1154 0L1.00178 0C0.188412 0 -0.284713 0.919368 0.188051 1.58124L8.24486 12.8608Z" fill="#CC203B"/>
         </svg>
-      </div>
+      </button>
       {/* Down arrow */}
-      <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: "4px", zIndex: 2 }}>
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(MIN, value - 1))}
+        className="absolute left-1/2 -translate-x-1/2 cursor-pointer p-1 bg-transparent border-0"
+        style={{ bottom: "4px", zIndex: 2 }}
+        aria-label="Decrease value"
+      >
         <svg width="20" height="14" viewBox="0 0 19 14" fill="none">
           <path d="M8.24486 12.8608C8.64368 13.4191 9.47351 13.4191 9.87233 12.8608L17.9291 1.58124C18.4019 0.919369 17.9288 0 17.1154 0L1.00178 0C0.188412 0 -0.284713 0.919368 0.188051 1.58124L8.24486 12.8608Z" fill="#CC203B"/>
         </svg>
-      </div>
+      </button>
 
-      {/* Vertical highlight lines on either side of center */}
+      {/* Box around selected value - centered like HeightPicker */}
       <div
-        className="absolute top-0 bottom-0 pointer-events-none"
+        className="absolute top-0 bottom-0 left-1/2 pointer-events-none rounded -translate-x-1/2"
         style={{
-          left: "calc(50% - 24px)",
-          width: "1px",
-          background: "rgba(255,255,255,0.15)",
-          zIndex: 1,
-        }}
-      />
-      <div
-        className="absolute top-0 bottom-0 pointer-events-none"
-        style={{
-          left: "calc(50% + 24px)",
-          width: "1px",
-          background: "rgba(255,255,255,0.15)",
+          width: "48px",
+          border: "1px solid rgba(255,255,255,0.2)",
+          borderRadius: "8px",
           zIndex: 1,
         }}
       />
 
-      {/* Scrollable row */}
+      {/* Scrollable row - full width, same centering as HeightPicker */}
       <div
         ref={scrollRef}
         onScroll={handleScroll}

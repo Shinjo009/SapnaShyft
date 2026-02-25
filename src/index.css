@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=DM+Sans:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=DM+Sans:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -59,17 +59,33 @@
   }
 }
 
-/* Health Assessment Background */
+/* Health Assessment Background - Figma specs (full gradient + image) */
 .ha-background {
   background:
     linear-gradient(106deg, rgba(204, 32, 59, 0.15) 0%, rgba(6, 53, 51, 0.30) 22.49%, rgba(0, 0, 0, 0.00) 41.83%),
     linear-gradient(283deg, rgba(204, 32, 59, 0.23) 0.91%, rgba(6, 53, 51, 0.30) 26.33%, rgba(7, 29, 28, 0.00) 40.59%),
-    url('/Background.png') lightgray center / cover no-repeat;
+    url('/Background.png') lightgray -77.048px -356.071px / 148.84% 184.288% no-repeat;
 }
 
-/* Node glow for active state */
+/* Home page: background image only (no gradient - gradient only behind capsule) */
+.ha-background-no-gradient {
+  background: url('/Background.png') lightgray -77.048px -356.071px / 148.84% 184.288% no-repeat;
+}
+
+/* Gradient only - used behind the capsule area (opaque base blocks spine from showing through) */
+.ha-capsule-gradient {
+  background:
+    linear-gradient(106deg, rgba(204, 32, 59, 0.15) 0%, rgba(6, 53, 51, 0.30) 22.49%, rgba(0, 0, 0, 0.00) 41.83%),
+    linear-gradient(283deg, rgba(204, 32, 59, 0.23) 0.91%, rgba(6, 53, 51, 0.30) 26.33%, rgba(7, 29, 28, 0.00) 40.59%),
+    hsl(var(--background));
+}
+
+/* Node glow for active state - strong bright green glow (selected capsule) */
 .ha-node-glow {
-  box-shadow: 0 0 20px 0 hsl(var(--ha-glow-color) / 0.4);
+  box-shadow:
+    0 0 12px 2px hsl(var(--ha-glow-color) / 0.6),
+    0 0 24px 4px hsl(var(--ha-glow-color) / 0.4),
+    0 0 36px 8px hsl(var(--ha-glow-color) / 0.25);
 }
 
 /* Spine glow for completed segments */

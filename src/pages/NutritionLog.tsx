@@ -135,7 +135,7 @@ const NutritionLog = () => (
   <MCQQuestionnaire
     title="Nutrition Log"
     subtitle="Your dietary data helps our system decode patterns that impact your metabolic health."
-    icon={<img src={NutritionLogIcon} alt="Nutrition Log" className="w-8 h-8" />}
+    icon={<img src={NutritionLogIcon} alt="Nutrition Log" className="w-12 h-12 object-contain" />}
     questions={QUESTIONS}
     categoryId="nutrition-log"
   />

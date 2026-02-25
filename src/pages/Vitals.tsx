@@ -18,40 +18,37 @@ const Vitals = () => {
       <div className="flex flex-col h-full px-4 pt-10 pb-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/")} className="text-white">
-              <ArrowLeft size={20} />
-            </button>
-            <span
-              style={{
-                color: "#FFF",
-                textAlign: "center",
-                fontFamily: '"Lato", sans-serif',
-                fontSize: "19px",
-                fontStyle: "normal",
-                fontWeight: 400,
-                lineHeight: "normal",
-                letterSpacing: "0.095px",
-              }}
-            >
-              Vitals
-            </span>
-          </div>
-          <img src={VitalsIcon} alt="Vitals" className="w-8 h-8" />
+          <button onClick={() => navigate("/")} className="text-white p-1 -ml-1">
+            <ArrowLeft size={20} />
+          </button>
+          <span
+            className="flex-1 text-center"
+            style={{
+              color: "#FFF",
+              fontFamily: '"Lato", sans-serif',
+              fontSize: "19px",
+              fontStyle: "normal",
+              fontWeight: 400,
+              lineHeight: "normal",
+              letterSpacing: "0.095px",
+            }}
+          >
+            Vitals
+          </span>
+          <img src={VitalsIcon} alt="Vitals" className="w-12 h-12 shrink-0 object-contain" />
         </div>
 
         {/* Subtitle */}
         <p
           style={{
-            width: "320px",
+            maxWidth: "320px",
             color: "#C4C4C4",
             fontFamily: '"DM Sans", sans-serif',
             fontSize: "11px",
             fontStyle: "normal",
             fontWeight: 400,
             lineHeight: "normal",
-            marginBottom: "30px",
-            paddingLeft: "32px",
+            marginBottom: "24px",
           }}
         >
           A healthy blood pressure range is typically around 120 mmHg systolic and 80 mmHg diastolic.
@@ -73,15 +70,15 @@ const Vitals = () => {
                 letterSpacing: "0.075px",
               }}
             >
-              Systolic Blood Pressure
+              1) Systolic Blood Pressure
             </p>
             <div
-              className="relative mx-auto rounded-xl flex items-center justify-center"
+              className="relative mx-auto rounded-xl flex items-center justify-center gap-2"
               style={{
                 width: "264px",
                 height: "80px",
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                background: "rgba(0, 0, 0, 0.25)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
               }}
             >
               <input
@@ -89,14 +86,14 @@ const Vitals = () => {
                 value={systolic}
                 onChange={(e) => setSystolic(e.target.value)}
                 placeholder="00"
-                className="bg-transparent outline-none text-center"
+                className="bg-transparent outline-none text-center [&::placeholder]:text-[#BBB]"
                 style={{
-                  color: systolic ? "#FFF" : "#BBB",
+                  color: "#BBB",
                   textAlign: "center",
                   fontFamily: '"DM Sans", sans-serif',
                   fontSize: "24px",
                   fontStyle: "normal",
-                  fontWeight: systolic ? 700 : 400,
+                  fontWeight: 400,
                   lineHeight: "25.38px",
                   width: "80px",
                   border: "none",
@@ -135,15 +132,15 @@ const Vitals = () => {
                 letterSpacing: "0.075px",
               }}
             >
-              Diastolic Blood Pressure
+              2) Diastolic Blood Pressure
             </p>
             <div
-              className="relative mx-auto rounded-xl flex items-center justify-center"
+              className="relative mx-auto rounded-xl flex items-center justify-center gap-2"
               style={{
                 width: "264px",
                 height: "80px",
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                background: "rgba(0, 0, 0, 0.25)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
               }}
             >
               <input
@@ -185,7 +182,7 @@ const Vitals = () => {
           {/* Skip */}
           <button
             onClick={handleDone}
-            className="mx-auto"
+            className="mx-auto cursor-pointer"
             style={{
               color: "#BBB",
               fontFamily: '"Lato", sans-serif',

@@ -97,7 +97,7 @@ const LifestyleHabits = () => (
   <MCQQuestionnaire
     title="Lifestyle & Habits"
     subtitle="Your routines help our system decode how your habits influence your health."
-    icon={<img src={LifestyleHabitsIcon} alt="Lifestyle & Habits" className="w-8 h-8" />}
+    icon={<img src={LifestyleHabitsIcon} alt="Lifestyle & Habits" className="w-12 h-12 object-contain" />}
     questions={QUESTIONS}
     categoryId="lifestyle-habits"
   />

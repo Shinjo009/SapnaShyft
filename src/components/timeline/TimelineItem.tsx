@@ -16,6 +16,8 @@ interface TimelineItemProps {
   onNavigate: () => void;
   iconScale?: number;
   nodeScale?: number;
+  isMobile?: boolean;
+  animateCapsule?: boolean;
 }
 
 const TimelineItem = ({
@@ -29,9 +31,18 @@ const TimelineItem = ({
   onNavigate,
   iconScale = 1,
   nodeScale = 1,
+  isMobile = false,
+  animateCapsule = false,
 }: TimelineItemProps) => {
   const getAlignment = (): string => {
-    if (isActive && position !== "center") return "center";
+    if (isActive) return "center";
+    if (isMobile) {
+      switch (position) {
+        case "left": return "flex-start";
+        case "right": return "flex-end";
+        case "center": return "center";
+      }
+    }
     switch (position) {
       case "left": return "flex-start";
       case "right": return "flex-end";
@@ -40,23 +51,25 @@ const TimelineItem = ({
   };
 
   const iconSize = 60 * iconScale;
-  const nodeSize = 88 * nodeScale;
+  const nodeSize = isMobile ? 80 : 88 * nodeScale;
+  const handleClick = () => (isActive ? onNavigate() : onSelect());
+
   return (
     <div
       className="relative flex items-center"
       style={{
         width: "100%",
         justifyContent: getAlignment(),
-        minHeight: nodeSize,
+        minHeight: nodeSize + (isMobile ? 28 : 0),
       }}
     >
-      {/* Horizontal connector: only from circle edge to center spine, NOT past it */}
+      {/* Horizontal connector: from circle to spine (hide when pill is shown) */}
       {position !== "center" && !isActive && (
         <div
           className="absolute"
           style={{
-            top: "50%",
-            // Dynamically calculate offset so line never overlaps the circle
+            top: `${nodeSize / 2}px`,
+            transform: "translateY(-50%)",
             ...(position === "left"
               ? {
                   left: `${nodeSize}px`,
@@ -68,7 +81,6 @@ const TimelineItem = ({
                 }),
             height: "2px",
             background: isCompleted ? "hsl(136, 65%, 72%)" : "#C4C4C4",
-            transform: "translateY(-50%)",
             zIndex: 0,
           }}
         />
@@ -78,9 +90,10 @@ const TimelineItem = ({
         {isActive ? (
           <motion.div
             key="pill"
-            initial={{ scale: 0.9, opacity: 0 }}
+            className="relative z-10 flex items-center justify-center ha-capsule-gradient rounded-[100px] p-[2px]"
+            initial={{ scale: 0.95, opacity: 1 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
+            exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", stiffness: 200, damping: 20 }}
           >
             <PillButton
@@ -88,8 +101,9 @@ const TimelineItem = ({
               label={label}
               description={description}
               onClick={onNavigate}
-              iconSize={iconSize}
+              iconSize={isMobile ? 44 : iconSize}
               nodeSize={nodeSize}
+              animateExpand={animateCapsule}
             />
           </motion.div>
         ) : (
@@ -104,9 +118,10 @@ const TimelineItem = ({
               label={label}
               isActive={isActive}
               isCompleted={isCompleted}
-              onClick={onSelect}
-              iconSize={iconSize}
+              onClick={handleClick}
+              iconSize={isMobile ? 44 : iconSize}
               nodeSize={nodeSize}
+              showLabel={isMobile}
             />
           </motion.div>
         )}

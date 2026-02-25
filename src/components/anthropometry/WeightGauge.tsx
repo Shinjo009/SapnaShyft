@@ -17,17 +17,19 @@ const WeightGauge = ({ value, onChange, unit, onToggleUnit, min, max }: WeightGa
     <div
       className="relative mx-auto rounded-xl flex flex-col items-center"
       style={{
-        width: "280px",
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.1)",
-        padding: "16px",
+        width: "264px",
+        background: "rgba(0, 0, 0, 0.25)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+        padding: "12px 16px 16px",
       }}
     >
       {/* Unit toggle */}
       <button
         onClick={onToggleUnit}
-        className="absolute top-2 right-3 rounded-md px-2 py-0.5 flex items-center gap-1"
+        className="absolute rounded-md px-2 py-0.5 flex items-center gap-1"
         style={{
+          top: "12px",
+          right: "12px",
           background: "rgba(255,255,255,0.1)",
           color: "#FFF",
           fontFamily: '"DM Sans", sans-serif',

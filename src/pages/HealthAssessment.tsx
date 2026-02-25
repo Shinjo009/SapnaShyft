@@ -1,8 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import MobileFrame from "@/components/layout/MobileFrame";
-import Header from "@/components/layout/Header";
 import Timeline from "@/components/timeline/Timeline";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { CategoryData } from "@/components/timeline/Timeline";
 import AnthropometryIcon from "@/images/Anthropometory.svg";
 import FamilyHistoryIcon from "@/images/FamilyHistory.svg";
@@ -62,9 +61,11 @@ const ROUTE_MAP: Record<string, string> = {
 
 const HealthAssessment = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+  const [animateCapsule, setAnimateCapsule] = useState(false);
 
   useEffect(() => {
     const completed = searchParams.get("completed");
@@ -73,6 +74,27 @@ const HealthAssessment = () => {
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  // Auto-expand Anthropometry capsule after 2 sec (only on first load/reload)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setActiveId((prev) => {
+        if (prev === null) {
+          setAnimateCapsule(true);
+          return "anthropometry";
+        }
+        return prev;
+      });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Reset capsule animation flag after expand completes (2s)
+  useEffect(() => {
+    if (!animateCapsule) return;
+    const t = setTimeout(() => setAnimateCapsule(false), 2000);
+    return () => clearTimeout(t);
+  }, [animateCapsule]);
 
   const categories: CategoryData[] = CATEGORIES_DATA.map((cat) => ({
     ...cat,
@@ -94,65 +116,46 @@ const HealthAssessment = () => {
   }, [navigate]);
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-center bg-background overflow-hidden">
-      {/* Responsive, blurred, Figma-style background with better scaling for PC */}
-      <div className="fixed inset-0 -z-10">
-        <img
-          src="/Background.png"
-          alt="Background"
-          className="w-full h-full object-cover object-center"
-          style={{
-            filter: 'blur(10px) brightness(0.92)',
-            position: 'absolute',
-            inset: 0,
-            zIndex: -1,
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'linear-gradient(106deg, rgba(204, 32, 59, 0.15) 0%, rgba(6, 53, 51, 0.30) 22.49%, rgba(0, 0, 0, 0.00) 41.83%),' +
-              'linear-gradient(283deg, rgba(204, 32, 59, 0.23) 0.91%, rgba(6, 53, 51, 0.30) 26.33%, rgba(7, 29, 28, 0.00) 40.59%)',
-            zIndex: 0,
-          }}
-        />
-      </div>
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden">
       <div
-        className="w-full flex flex-col h-full min-h-[90vh] px-2 sm:px-4 pt-8 pb-8 relative z-10"
+        className="fixed inset-0 -z-10 ha-background-no-gradient"
+        style={{ backgroundSize: "cover", backgroundPosition: "center" }}
+      />
+      <div
+        className={`w-full flex flex-col ${isMobile ? 'min-h-screen px-4 pt-6 pb-8' : 'h-full min-h-[90vh] px-2 sm:px-4 pt-8 pb-8'}`}
         style={{
-          maxWidth: '95vw',
+          maxWidth: isMobile ? '100%' : '95vw',
           margin: '0 auto',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
         <h1
-          className="text-white text-center font-lato font-normal tracking-[0.12px] mb-6 select-none"
+          className="text-white text-center font-lato font-normal tracking-[0.12px] mb-4 sm:mb-6 select-none"
           style={{
-            fontSize: 'clamp(1.5rem, 2vw + 1rem, 2.5rem)',
+            fontSize: isMobile ? '1.5rem' : 'clamp(1.5rem, 2vw + 1rem, 2.5rem)',
             lineHeight: 'normal',
           }}
         >
           Health Assessment
         </h1>
         <div
-          className="flex-1 flex flex-col justify-center mt-2"
+          className="flex-1 flex flex-col justify-center mt-2 w-full"
           style={{
-            minHeight: '60vh',
-            width: '100%',
-            maxWidth: '1200px',
+            minHeight: isMobile ? 'auto' : '60vh',
+            maxWidth: isMobile ? '360px' : '1200px',
             margin: '0 auto',
           }}
         >
-          {/* Responsive scaling: large icons for PC, default for mobile */}
           <Timeline
             categories={categories}
             activeId={activeId}
             onSelect={handleSelect}
             onNavigate={handleNavigate}
-            iconScale={typeof window !== 'undefined' && window.innerWidth >= 900 ? 2.2 : 1}
-            nodeScale={typeof window !== 'undefined' && window.innerWidth >= 900 ? 2.0 : 1}
+            iconScale={1}
+            nodeScale={1}
+            isMobile={isMobile}
+            animateCapsule={animateCapsule}
           />
         </div>
       </div>
