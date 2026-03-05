@@ -1,0 +1,495 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
+
+.disease-detail-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, rgba(10, 10, 10, 0.95) 0%, rgba(26, 11, 46, 0.95) 100%);
+  background-image: url('../../images/BG-1.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  position: relative;
+  overflow: hidden;
+  padding: 16px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.disease-detail-header {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding-top: 32px;
+  box-sizing: border-box;
+}
+
+.disease-detail-title-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.disease-detail-back-button {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+  margin-top: 2px;
+}
+
+.disease-detail-back-button:hover {
+  opacity: 0.8;
+}
+
+.disease-detail-back-button:active {
+  opacity: 0.5;
+}
+
+.disease-detail-back-button svg {
+  width: 100%;
+  height: 100%;
+}
+
+.disease-detail-title {
+  flex: 1;
+  min-width: 0;
+  color: #FFF;
+  text-align: left;
+  font-family: Lato, sans-serif;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+  margin: 0;
+}
+
+.disease-detail-description-toggle {
+  width: 100%;
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.disease-detail-description {
+  overflow: hidden;
+  color: #C4C4C4;
+  text-overflow: ellipsis;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 18px;
+  margin: 0;
+}
+
+.disease-detail-description.expanded {
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.disease-detail-risk-strip {
+  width: 100%;
+  margin-top: -18px;
+  margin-left: 0;
+  margin-right: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.disease-detail-risk-labels {
+  width: 100%;
+  position: relative;
+  height: 40px;
+  margin-bottom: 6px;
+}
+
+.disease-detail-risk-label-group {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #C4C4C4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  text-align: center;
+}
+
+.disease-detail-risk-range,
+.disease-detail-risk-label {
+  color: #C4C4C4;
+  white-space: nowrap;
+}
+
+.disease-detail-risk-track-area {
+  width: 100%;
+  height: 53px;
+  margin-top: 0;
+  position: relative;
+}
+
+.disease-detail-risk-separator {
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 52px;
+  border-left: 0.3px dotted #C4C4C4;
+  border-radius: 1px;
+  opacity: 0.7;
+  transform: translateX(-50%);
+}
+
+.disease-detail-risk-dots-track {
+  position: absolute;
+  left: 50%;
+  top: 19px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  transform: translateX(-50%);
+}
+
+.disease-detail-risk-dot {
+  display: inline-block;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  transform: scale(0.45);
+  opacity: 0.45;
+  transition: transform 320ms ease, opacity 320ms ease;
+}
+
+.disease-detail-risk-dot.animated {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.disease-detail-risk-scale-shell {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.disease-detail-risk-marker-zone {
+  width: 100%;
+  position: relative;
+  margin-top: -28px;
+  min-height: 80px;
+}
+
+.disease-detail-risk-marker {
+  position: absolute;
+  top: 4px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: left 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.disease-detail-risk-marker-line {
+  width: 0;
+  height: 21px;
+  border-left: 0.3px dotted #C4C4C4;
+  border-radius: 1px;
+}
+
+.disease-detail-risk-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.disease-detail-risk-score-value {
+  color: #FFF;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.disease-detail-risk-level-row {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.disease-detail-risk-level-text {
+  color: #C4C4C4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.disease-detail-lifestyle-section {
+  margin-top: 23px;
+  width: 100%;
+}
+
+.disease-detail-lifestyle-header-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.disease-detail-lifestyle-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.disease-detail-lifestyle-title {
+  margin: 0;
+  color: #FFF;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.disease-detail-lifestyle-status {
+  color: #C4C4C4;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 5%;
+  text-underline-offset: 25%;
+}
+
+.disease-detail-lifestyle-bar-wrap {
+  margin-top: 21px;
+  width: 100%;
+  position: relative;
+}
+
+.disease-detail-lifestyle-bar {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  opacity: 1;
+  background: linear-gradient(90deg, #0F7243 -0.48%, #D2B64E 30.15%, #F0A94A 66.13%, #D91F3D 100.65%);
+}
+
+.disease-detail-lifestyle-knob {
+  position: absolute;
+  left: 22%;
+  top: 50%;
+  width: 19.991px;
+  height: 19.915px;
+  transform: translate(-50%, -50%);
+}
+
+.disease-detail-lifestyle-bands {
+  margin-top: 6px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+}
+
+.disease-detail-lifestyle-band-item {
+  position: relative;
+  width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.disease-detail-lifestyle-band-item svg {
+}
+
+.disease-detail-lifestyle-band-item span {
+  color: #C4C4C4;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 6px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.disease-detail-lifestyle-band-item:first-child span {
+  transform: translateX(50%);
+}
+
+.disease-detail-lifestyle-band-item:last-child span {
+  transform: translateX(-50%);
+}
+
+.disease-detail-health-rank-section {
+  margin-top: 21px;
+  width: 100%;
+}
+
+.disease-detail-health-rank-header-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.disease-detail-health-rank-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.disease-detail-health-rank-title {
+  margin: 0;
+  color: #FFF;
+  font-family: Lato, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.disease-detail-health-rank-rank {
+  color: #C4C4C4;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 5%;
+  text-underline-offset: 25%;
+}
+
+.disease-detail-health-rank-score-row {
+  margin-top: 18px;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.disease-detail-health-rank-score-value {
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 26px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 32px;
+  letter-spacing: 0.52px;
+}
+
+.disease-detail-health-rank-score-max {
+  color: rgba(153, 153, 153, 0.60);
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 19px;
+  letter-spacing: 0.36px;
+}
+
+.disease-detail-info-section {
+  margin-top: 20px;
+  width: 100%;
+}
+
+.disease-detail-info-heading {
+  margin: 0;
+  color: #FFF;
+  font-family: Lato, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.disease-detail-chip-row {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.disease-detail-chip {
+  display: flex;
+  padding: 2px 8px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 30px;
+  border: 0.5px solid #C4C4C4;
+  color: #C4C4C4;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+}
+
+.disease-detail-effects-heading {
+  margin-top: 20px;
+}
+
+.disease-detail-effects-list {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.disease-detail-effect-text {
+  margin: 0;
+  color: #999;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.disease-detail-insights-heading {
+  margin-top: 20px;
+}
