@@ -147,6 +147,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
     const zoneMaxPercent = (scoreZoneIndex + 1) * 25;
 
     for (let iteration = 0; iteration < 2; iteration += 1) {
+      const currentLayout = layout;
       const eligibleIndexes = layout.dotCenterPercents
         .map((centerPercent, index) => ({ centerPercent, index }))
         .filter(({ centerPercent }) => {
@@ -159,12 +160,12 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
 
       const candidateIndexes = eligibleIndexes.length > 0
         ? eligibleIndexes
-        : layout.dotCenterPercents.map((_, index) => index);
+        : currentLayout.dotCenterPercents.map((_, index) => index);
 
       const nearestIndex = candidateIndexes.reduce((closestIndex, index) => {
-        const centerPercent = layout.dotCenterPercents[index];
+        const centerPercent = currentLayout.dotCenterPercents[index];
         const currentDistance = Math.abs(centerPercent - targetPercent);
-        const closestDistance = Math.abs(layout.dotCenterPercents[closestIndex] - targetPercent);
+        const closestDistance = Math.abs(currentLayout.dotCenterPercents[closestIndex] - targetPercent);
         return currentDistance < closestDistance ? index : closestIndex;
       }, candidateIndexes[0]);
 
@@ -185,7 +186,6 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   }, [initialMarkerIndex, riskStripWidth, scoreZoneIndex, targetPercent]);
 
   const {
-    markerIndex,
     markerLeftPercent,
     markerLineHeight,
     adjustedDotSizes,

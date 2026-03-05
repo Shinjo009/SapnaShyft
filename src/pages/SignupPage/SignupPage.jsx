@@ -5,6 +5,9 @@ import Button from '../../components/Button';
 import Logo from '../../components/Logo';
 import './SignupPage.css';
 
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
+
 /**
  * SignupPage - User registration with personal details
  * 
@@ -29,14 +32,12 @@ const SignupPage = ({ onSuccess, onLogin }) => {
   const yearColRef = useRef(null);
   const scrollTimeoutsRef = useRef({});
 
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 83 }, (_, i) => String(currentYear - 18 - i));
 
   // Get indices for current selections
-  const monthIndex = months.indexOf(formData.month);
-  const dayIndex = days.indexOf(formData.day);
+  const monthIndex = MONTHS.indexOf(formData.month);
+  const dayIndex = DAYS.indexOf(formData.day);
   const yearIndex = years.indexOf(formData.year);
 
   const handleInputChange = (e) => {
@@ -64,8 +65,9 @@ const SignupPage = ({ onSuccess, onLogin }) => {
 
   useEffect(() => {
     const ITEM_HEIGHT = 126.853 / 3;
-    const arrays = { month: months, day: days, year: years };
+    const arrays = { month: MONTHS, day: DAYS, year: years };
     const indices = { month: monthIndex, day: dayIndex, year: yearIndex };
+    const timeoutRegistry = scrollTimeoutsRef.current;
 
     const setColumnByIndex = (column, index) => {
       const currentArray = arrays[column];
@@ -84,11 +86,11 @@ const SignupPage = ({ onSuccess, onLogin }) => {
       if (!el) return () => {};
 
       const onScroll = () => {
-        if (scrollTimeoutsRef.current[column]) {
-          clearTimeout(scrollTimeoutsRef.current[column]);
+        if (timeoutRegistry[column]) {
+          clearTimeout(timeoutRegistry[column]);
         }
 
-        scrollTimeoutsRef.current[column] = setTimeout(() => {
+        timeoutRegistry[column] = setTimeout(() => {
           const newIndex = Math.round(el.scrollTop / ITEM_HEIGHT);
           el.scrollTo({ top: newIndex * ITEM_HEIGHT, behavior: 'smooth' });
           setColumnByIndex(column, newIndex);
@@ -110,10 +112,10 @@ const SignupPage = ({ onSuccess, onLogin }) => {
     ];
 
     return () => {
-      Object.values(scrollTimeoutsRef.current).forEach(timeoutId => clearTimeout(timeoutId));
+      Object.values(timeoutRegistry).forEach(timeoutId => clearTimeout(timeoutId));
       cleanups.forEach(cleanup => cleanup && cleanup());
     };
-  }, [monthIndex, dayIndex, yearIndex, months, days, years]);
+  }, [monthIndex, dayIndex, yearIndex, years]);
 
   const handleSendOTP = () => {
     const { firstName, lastName, email, phone, gender } = formData;
@@ -222,7 +224,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
                   className="date-column"
                 >
                   <div className="date-values">
-                    {months.map((month, idx) => (
+                    {MONTHS.map((month, idx) => (
                       <div key={month + idx} className={`date-value ${idx === monthIndex ? 'active' : ''}`}>
                         {month}
                       </div>
@@ -234,7 +236,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
                   className="date-column"
                 >
                   <div className="date-values">
-                    {days.map((day, idx) => (
+                    {DAYS.map((day, idx) => (
                       <div key={day + idx} className={`date-value ${idx === dayIndex ? 'active' : ''}`}>
                         {day}
                       </div>

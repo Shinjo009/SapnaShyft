@@ -4,10 +4,10 @@ import triangleImg from '../../images/triangle.png';
 const SpinningTriangle = ({ onWordIndex, totalWords, activeIndex, onAnimationComplete }) => {
   const [rotation, setRotation] = useState(0);
   const [smoothY, setSmoothY] = useState(0);
-  const [animationFinished, setAnimationFinished] = useState(false);
 
   const animationRef = useRef();
   const startTimeRef = useRef();
+  const animationFinishedRef = useRef(false);
 
   const ROTATION_DURATION = 2500;
   const WORD_HEIGHT = 57;
@@ -28,8 +28,8 @@ const SpinningTriangle = ({ onWordIndex, totalWords, activeIndex, onAnimationCom
         const lastY = lastIndex * WORD_HEIGHT;
         setSmoothY(lastY);
         setRotation(360);
-        if (!animationFinished) {
-          setAnimationFinished(true);
+        if (!animationFinishedRef.current) {
+          animationFinishedRef.current = true;
           onAnimationComplete?.();
         }
         return;
@@ -52,7 +52,7 @@ const SpinningTriangle = ({ onWordIndex, totalWords, activeIndex, onAnimationCom
 
     animationRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationRef.current);
-  }, [onWordIndex, totalWords]);
+  }, [onAnimationComplete, onWordIndex, totalWords]);
 
   return (
     <div

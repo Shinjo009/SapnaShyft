@@ -31,7 +31,7 @@ const HealthParametersSection = ({ data = [
         <div className="health-parameters__text-group">
           <div className="health-parameters__top-row">
             <p className="health-parameters__subheading">Health Scan Index</p>
-            <a href="#" onClick={handleSeeMore} className="health-parameters__see-more">See more</a>
+            <button type="button" onClick={handleSeeMore} className="health-parameters__see-more">See more</button>
           </div>
           <p className="health-parameters__note">Tap the card to know more</p>
         </div>
