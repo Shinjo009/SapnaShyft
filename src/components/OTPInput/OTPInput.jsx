@@ -103,22 +103,7 @@ const OTPInput = ({
           onChange={(e) => handleChange(index, e)}
           onKeyDown={(e) => handleKeyDown(index, e)}
           onPaste={handlePaste}
-          className="
-            w-12
-            h-12
-            text-center
-            text-white
-            text-xl
-            font-lato
-            font-semibold
-            rounded-lg
-            bg-input-bg
-            border
-            border-input-border
-            focus:outline-none
-            focus:border-input-focus
-            transition-colors
-          "
+          className="w-11 h-11 px-4 py-0 flex flex-col justify-center items-start rounded-lg border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.05)] text-white text-label font-lato focus:outline-none focus:ring-1 focus:ring-input-focus transition-all"
         />
       ))}
     </div>

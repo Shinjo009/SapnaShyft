@@ -210,7 +210,7 @@ Enter 6 digits → Click "Verify OTP" → Console logs "OTP Verified!"
 ### **Typography Component**
 ```jsx
 <Typography variant="heading" align="center">
-  Welcome to
+  Welcome To
 </Typography>
 ```
 **Variants:**

@@ -2,6 +2,7 @@ import React from 'react';
 import Typography from '../../components/Typography';
 import Logo from '../../components/Logo';
 import GetStartedArrow from '../../components/GetStartedArrow';
+import metfluxLogo from '../../images/metflux_logo.svg';
 import './HealthInsightsPage.css';
 
 /**
@@ -16,12 +17,8 @@ const HealthInsightsPage = ({ onGetStarted }) => {
       {/* Background image */}
       <div className="health-insights-bg" />
 
-      {/* Header: Welcome to + Logo */}
-      <div className="max-w-md mx-auto space-y-8 p-8 relative z-10">
-        <Typography variant="heading" align="center">
-          Welcome to
-        </Typography>
-
+      {/* Header: Logo */}
+      <div className="max-w-md mx-auto space-y-8 px-8 pt-[75px] pb-8 relative z-10">
         <Logo size="lg" />
       </div>
 
@@ -53,6 +50,15 @@ const HealthInsightsPage = ({ onGetStarted }) => {
             </div>
           </button>
         </div>
+      </div>
+
+      <div className="health-insights-powered">
+        <span className="health-insights-powered-text">Powered by</span>
+        <img
+          src={metfluxLogo}
+          alt="MetFlux Research"
+          className="health-insights-powered-logo"
+        />
       </div>
     </div>
   );

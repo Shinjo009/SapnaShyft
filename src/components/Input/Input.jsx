@@ -9,8 +9,7 @@ import Typography from '../Typography';
  * - Height: 40px
  * - Padding: 0 16px
  * - Border radius: 8px
- * - Border: 0.838px solid rgba(221, 219, 219, 0.20)
- * - Background: rgba(4, 251, 206, 0.10)
+ * - Background: rgba(255, 255, 255, 0.05)
  */
 const Input = ({ 
   label,
@@ -28,23 +27,24 @@ const Input = ({
     flex-col
     justify-center
     items-start
+    self-stretch
     w-full
     h-10
     px-4
+    py-0
     rounded-lg
     bg-input-bg
-    border
-    border-input-border
     font-lato
     text-white
-    text-sm
+    text-label
     placeholder:text-label-gray
     focus:outline-none
-    focus:border-input-focus
-    transition-colors
+    focus:ring-1
+    focus:ring-input-focus
+    transition-all
   `.trim().replace(/\s+/g, ' ');
   
-  const errorClasses = error ? 'border-red-500' : '';
+  const errorClasses = error ? 'border border-red-500' : '';
   
   return (
     <div className="w-full space-y-1">

@@ -55,7 +55,7 @@ npm start
 **Browser:** http://localhost:3000
 
 **Test Flow:**
-1. See Login page with "Welcome to" + Logo + Phone input + "Send OTP" button
+1. See Login page with "Welcome To" + Logo + Phone input + "Send OTP" button
 2. Enter any phone number → Click "Send OTP"
 3. See OTP page with 6-digit input boxes + "Verify OTP" button + Timer
 4. Type 6 digits (auto-focuses next box)
@@ -126,7 +126,7 @@ Based on Figma designs, the next screens are:
 - Button ("Get started" with arrow icon)
 
 **Content:**
-- "Welcome to" heading
+- "Welcome To" heading
 - Logo
 - "A few minutes' pause before the health insights unfold." text
 - "Get started" button with arrow icon

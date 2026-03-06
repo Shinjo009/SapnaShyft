@@ -136,7 +136,7 @@ import Typography from './components/Typography';
 
 // Heading
 <Typography variant="heading" align="center">
-  Welcome to
+  Welcome To
 </Typography>
 
 // Body text

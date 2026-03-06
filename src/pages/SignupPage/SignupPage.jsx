@@ -1,12 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import Typography from '../../components/Typography';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import Logo from '../../components/Logo';
-import './SignupPage.css';
+import metfluxLogo from '../../images/metflux_logo.svg';
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
+const MaleIcon = ({ active }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+    <path d="M12.0006 0H9.00064C8.86803 0 8.74085 0.0526785 8.64708 0.146447C8.55332 0.240215 8.50064 0.367392 8.50064 0.5C8.50064 0.632608 8.55332 0.759785 8.64708 0.853553C8.74085 0.947321 8.86803 1 9.00064 1H10.7938L8.16439 3.62937C7.17121 2.81754 5.904 2.41848 4.62485 2.51473C3.3457 2.61098 2.15248 3.19517 1.29196 4.14647C0.431439 5.09778 -0.0305406 6.34343 0.00156826 7.62579C0.0336771 8.90815 0.557418 10.1291 1.46447 11.0362C2.37152 11.9432 3.59249 12.467 4.87485 12.4991C6.15721 12.5312 7.40286 12.0692 8.35417 11.2087C9.30547 10.3482 9.88966 9.15493 9.98591 7.87579C10.0822 6.59664 9.68309 5.32943 8.87126 4.33625L11.5006 1.7075V3.5C11.5006 3.63261 11.5533 3.75979 11.6471 3.85355C11.7409 3.94732 11.868 4 12.0006 4C12.1332 4 12.2604 3.94732 12.3542 3.85355C12.448 3.75979 12.5006 3.63261 12.5006 3.5V0.5C12.5006 0.367392 12.448 0.240215 12.3542 0.146447C12.2604 0.0526785 12.1332 0 12.0006 0ZM7.82814 10.3306C7.26866 10.8899 6.55592 11.2706 5.78005 11.4248C5.00417 11.579 4.2 11.4997 3.4692 11.1969C2.7384 10.8941 2.11379 10.3814 1.67434 9.72366C1.2349 9.0659 1.00035 8.29261 1.00035 7.50156C1.00035 6.71051 1.2349 5.93723 1.67434 5.27947C2.11379 4.62171 2.7384 4.10902 3.4692 3.80622C4.2 3.50341 5.00417 3.42409 5.78005 3.57829C6.55592 3.73249 7.26866 4.11327 7.82814 4.6725C8.57714 5.42351 8.99776 6.44089 8.99776 7.50156C8.99776 8.56223 8.57714 9.57962 7.82814 10.3306Z" fill={active ? '#E6E6E6' : '#9A9A9A'} />
+  </svg>
+);
+
+const FemaleIcon = ({ active }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true">
+    <path fillRule="evenodd" clipRule="evenodd" d="M5 0.99994C3.93913 0.99994 2.92172 1.42137 2.17157 2.17151C1.42143 2.92166 1 3.93907 1 4.99994C1 6.06081 1.42143 7.07822 2.17157 7.82837C2.92172 8.57851 3.93913 8.99994 5 8.99994C6.06087 8.99994 7.07828 8.57851 7.82843 7.82837C8.57857 7.07822 9 6.06081 9 4.99994C9 3.93907 8.57857 2.92166 7.82843 2.17151C7.07828 1.42137 6.06087 0.99994 5 0.99994ZM3.95006e-10 4.99994C1.21561e-05 4.03235 0.280771 3.08556 0.808227 2.27438C1.33568 1.4632 2.08717 0.822483 2.97156 0.429945C3.85594 0.0374067 4.83523 -0.0900927 5.79064 0.0629099C6.74605 0.215912 7.63655 0.642844 8.35413 1.29192C9.0717 1.94101 9.58553 2.78435 9.8333 3.71968C10.0811 4.655 10.0521 5.64213 9.74997 6.56133C9.44783 7.48053 8.88547 8.29232 8.13109 8.89824C7.37672 9.50416 6.46274 9.87818 5.5 9.97494V11.9999H7.5C7.63261 11.9999 7.75979 12.0526 7.85355 12.1464C7.94732 12.2402 8 12.3673 8 12.4999C8 12.6325 7.94732 12.7597 7.85355 12.8535C7.75979 12.9473 7.63261 12.9999 7.5 12.9999H5.5V15.4999C5.5 15.6325 5.44732 15.7597 5.35355 15.8535C5.25979 15.9473 5.13261 15.9999 5 15.9999C4.86739 15.9999 4.74021 15.9473 4.64645 15.8535C4.55268 15.7597 4.5 15.6325 4.5 15.4999V12.9999H2.5C2.36739 12.9999 2.24021 12.9473 2.14645 12.8535C2.05268 12.7597 2 12.6325 2 12.4999C2 12.3673 2.05268 12.2402 2.14645 12.1464C2.24021 12.0526 2.36739 11.9999 2.5 11.9999H4.5V9.97494C3.26668 9.85099 2.12337 9.27335 1.29188 8.35408C0.460384 7.43482 -1.55717e-05 6.23947 3.95006e-10 4.99994Z" fill={active ? '#E6E6E6' : '#9A9A9A'} />
+  </svg>
+);
 
 /**
  * SignupPage - User registration with personal details
@@ -21,24 +30,11 @@ const SignupPage = ({ onSuccess, onLogin }) => {
     lastName: '',
     email: '',
     phone: '',
+    city: '',
+    age: '',
     gender: '',
-    month: 'May',
-    day: '08',
-    year: '2021',
+    organization: '',
   });
-
-  const monthColRef = useRef(null);
-  const dayColRef = useRef(null);
-  const yearColRef = useRef(null);
-  const scrollTimeoutsRef = useRef({});
-
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 83 }, (_, i) => String(currentYear - 18 - i));
-
-  // Get indices for current selections
-  const monthIndex = MONTHS.indexOf(formData.month);
-  const dayIndex = DAYS.indexOf(formData.day);
-  const yearIndex = years.indexOf(formData.year);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -49,7 +45,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
   };
 
   const handlePhoneChange = (e) => {
-    const value = e.target.value.replace(/[^0-9]/g, '');
+    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
     setFormData(prev => ({
       ...prev,
       phone: value
@@ -63,220 +59,162 @@ const SignupPage = ({ onSuccess, onLogin }) => {
     }));
   };
 
-  useEffect(() => {
-    const ITEM_HEIGHT = 126.853 / 3;
-    const arrays = { month: MONTHS, day: DAYS, year: years };
-    const indices = { month: monthIndex, day: dayIndex, year: yearIndex };
-    const timeoutRegistry = scrollTimeoutsRef.current;
-
-    const setColumnByIndex = (column, index) => {
-      const currentArray = arrays[column];
-      const clampedIndex = Math.max(0, Math.min(index, currentArray.length - 1));
-      const value = currentArray[clampedIndex];
-
-      setFormData(prev => (
-        prev[column] === value
-          ? prev
-          : { ...prev, [column]: value }
-      ));
-    };
-
-    const setupColumn = (column, ref) => {
-      const el = ref.current;
-      if (!el) return () => {};
-
-      const onScroll = () => {
-        if (timeoutRegistry[column]) {
-          clearTimeout(timeoutRegistry[column]);
-        }
-
-        timeoutRegistry[column] = setTimeout(() => {
-          const newIndex = Math.round(el.scrollTop / ITEM_HEIGHT);
-          el.scrollTo({ top: newIndex * ITEM_HEIGHT, behavior: 'smooth' });
-          setColumnByIndex(column, newIndex);
-        }, 80);
-      };
-
-      el.addEventListener('scroll', onScroll, { passive: true });
-      el.scrollTop = indices[column] * ITEM_HEIGHT;
-
-      return () => {
-        el.removeEventListener('scroll', onScroll);
-      };
-    };
-
-    const cleanups = [
-      setupColumn('month', monthColRef),
-      setupColumn('day', dayColRef),
-      setupColumn('year', yearColRef)
-    ];
-
-    return () => {
-      Object.values(timeoutRegistry).forEach(timeoutId => clearTimeout(timeoutId));
-      cleanups.forEach(cleanup => cleanup && cleanup());
-    };
-  }, [monthIndex, dayIndex, yearIndex, years]);
-
   const handleSendOTP = () => {
-    const { firstName, lastName, email, phone, gender } = formData;
-    if (firstName.trim() && lastName.trim() && email.trim() && phone.trim() && gender) {
+    const { firstName, lastName, email, phone, city, age, gender } = formData;
+    if (firstName.trim() && lastName.trim() && email.trim() && phone.trim() && city.trim() && age.trim() && gender) {
       console.log('Signup Form Submitted:', formData);
       onSuccess(formData);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto space-y-8 p-8">
-      <Typography variant="heading" align="center">
-        Welcome to
-      </Typography>
-
+    <div className="max-w-md mx-auto min-h-screen px-6 pt-[75px] pb-6 flex flex-col">
       <Logo size="lg" />
 
-      <div className="space-y-6">
-        <Typography variant="heading" as="h2">
+      <div className="mt-5">
+        <Typography variant="heading" as="h2" align="center">
           Signup
         </Typography>
 
-        <div className="space-y-6">
-          <Input
-            name="firstName"
-            type="text"
-            placeholder="First Name"
-            value={formData.firstName}
-            onChange={handleInputChange}
-          />
-
-          <Input
-            name="lastName"
-            type="text"
-            placeholder="Last Name"
-            value={formData.lastName}
-            onChange={handleInputChange}
-          />
+        <div className="mt-6 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              name="firstName"
+              type="text"
+              placeholder="First Name"
+              value={formData.firstName}
+              onChange={handleInputChange}
+            />
+            <Input
+              name="lastName"
+              type="text"
+              placeholder="Last Name"
+              value={formData.lastName}
+              onChange={handleInputChange}
+            />
+          </div>
 
           <Input
             name="email"
             type="email"
-            placeholder="Email Address"
+            placeholder="Email Id"
             value={formData.email}
             onChange={handleInputChange}
           />
 
+          <div className="flex h-10 px-4 rounded-lg bg-input-bg items-center gap-2">
+            <button
+              type="button"
+              className="flex items-center gap-1 text-label text-label-gray font-lato"
+              aria-label="Country code"
+            >
+              +91
+              <span className="text-[10px]">▼</span>
+            </button>
+            <span className="w-px h-4 bg-white/15" />
+            <input
+              name="phone"
+              type="tel"
+              maxLength={10}
+              placeholder="Phone Number"
+              value={formData.phone}
+              onChange={handlePhoneChange}
+              className="flex-1 bg-transparent text-label text-white placeholder:text-label-gray font-lato focus:outline-none"
+            />
+          </div>
+
           <Input
-            name="phone"
-            type="tel"
-            placeholder="Phone Number"
-            value={formData.phone}
-            onChange={handlePhoneChange}
+            name="city"
+            type="text"
+            placeholder="City"
+            value={formData.city}
+            onChange={handleInputChange}
           />
 
-          {/* Gender Selection */}
-          <div className="space-y-3">
-            <label className="gender-label">Select Gender</label>
-            <div className="gender-options">
-              <label className="gender-radio">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="male"
-                  checked={formData.gender === 'male'}
-                  onChange={() => handleGenderChange('male')}
-                  className="radio-input"
-                />
-                <span className={formData.gender === 'male' ? 'radio-label selected' : 'radio-label'}>Male</span>
-              </label>
-              <label className="gender-radio">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="female"
-                  checked={formData.gender === 'female'}
-                  onChange={() => handleGenderChange('female')}
-                  className="radio-input"
-                />
-                <span className={formData.gender === 'female' ? 'radio-label selected' : 'radio-label'}>Female</span>
-              </label>
-              <label className="gender-radio">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="other"
-                  checked={formData.gender === 'other'}
-                  onChange={() => handleGenderChange('other')}
-                  className="radio-input"
-                />
-                <span className={formData.gender === 'other' ? 'radio-label selected' : 'radio-label'}>Other</span>
-              </label>
+          <Input
+            name="age"
+            type="number"
+            placeholder="Age"
+            value={formData.age}
+            onChange={handleInputChange}
+          />
+
+          <div className="space-y-2">
+            <label className="block font-lato text-label text-label-gray">Select Gender</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => handleGenderChange('male')}
+                className={`flex py-2 px-[10px] justify-center items-center content-center gap-y-[5px] gap-x-[10px] flex-1 flex-wrap rounded-[10px] ${
+                  formData.gender === 'male'
+                    ? 'text-white bg-[radial-gradient(50.74%_50.76%_at_50%_50%,#11795F_0%,#1C493D_100%)]'
+                    : 'text-[#9A9A9A] bg-input-bg'
+                }`}
+              >
+                <MaleIcon active={formData.gender === 'male'} />
+                <span className="font-lato text-label">Male</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleGenderChange('female')}
+                className={`flex py-2 px-[10px] justify-center items-center content-center gap-y-[5px] gap-x-[10px] flex-1 flex-wrap rounded-[10px] ${
+                  formData.gender === 'female'
+                    ? 'text-white bg-[radial-gradient(50.74%_50.76%_at_50%_50%,#11795F_0%,#1C493D_100%)]'
+                    : 'text-[#9A9A9A] bg-input-bg'
+                }`}
+              >
+                <FemaleIcon active={formData.gender === 'female'} />
+                <span className="font-lato text-label">Female</span>
+              </button>
             </div>
           </div>
 
-          {/* Date of Birth Selection */}
-          <div className="space-y-3">
-            <label className="dob-label">Select Date of Birth</label>
-            <div className="date-picker-wrapper">
-              <div className="date-picker-container">
-                <div className="date-row-bg date-row-top"></div>
-                <div className="date-row-bg date-row-middle"></div>
-                <div className="date-row-bg date-row-bottom"></div>
-                <div 
-                  ref={monthColRef}
-                  className="date-column"
-                >
-                  <div className="date-values">
-                    {MONTHS.map((month, idx) => (
-                      <div key={month + idx} className={`date-value ${idx === monthIndex ? 'active' : ''}`}>
-                        {month}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div 
-                  ref={dayColRef}
-                  className="date-column"
-                >
-                  <div className="date-values">
-                    {DAYS.map((day, idx) => (
-                      <div key={day + idx} className={`date-value ${idx === dayIndex ? 'active' : ''}`}>
-                        {day}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div 
-                  ref={yearColRef}
-                  className="date-column"
-                >
-                  <div className="date-values">
-                    {years.map((year, idx) => (
-                      <div key={year + idx} className={`date-value ${idx === yearIndex ? 'active' : ''}`}>
-                        {year}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+          <div className="space-y-1">
+            <div className="flex justify-end">
+              <span className="font-lato text-[8px] font-light tracking-[0.04px] text-[#9A9A9A] opacity-80 text-right">
+                Optional
+              </span>
             </div>
+            <Input
+              name="organization"
+              type="text"
+              placeholder="Organisation Name"
+              value={formData.organization}
+              onChange={handleInputChange}
+            />
           </div>
 
-          <div className="pt-6">
+          <div className="pt-3">
             <Button onClick={handleSendOTP}>
-              Send OTP
+              Continue
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="text-center space-y-4" style={{ marginTop: '10px' }}>
+      <div className="text-center mt-4">
         <span className="opacity-80 text-white text-center font-lato text-[10px] font-medium leading-normal tracking-[0.05px]">
           Already have an account?{' '}
-          <span 
+          <span
             className="text-[12px] tracking-[0.06px] underline cursor-pointer hover:opacity-80"
             onClick={onLogin}
           >
             Log in
           </span>
         </span>
+      </div>
+
+      <div className="mt-auto flex flex-col items-center gap-1 pb-1">
+        <span className="font-lato text-[8px] font-light leading-none tracking-[0.04px] text-[#CCC] opacity-80 text-center">
+          Powered by
+        </span>
+        <img
+          src={metfluxLogo}
+          alt="MetFlux Research"
+          className="w-[60px] h-[22px]"
+          style={{ aspectRatio: '30 / 11' }}
+        />
       </div>
     </div>
   );

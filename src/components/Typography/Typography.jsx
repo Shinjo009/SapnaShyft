@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
  * Typography Component - Provides consistent text styling based on Figma specs
  * 
  * Variants:
- * - heading: "Welcome to" style - 20px/700
+ * - heading: Primary heading style - 20px/700
  * - bodyLarge: Onboarding text - 20px/600 with letter spacing
  * - button: Button text - 14px/600
  * - label: Input labels/tags - 12px/400

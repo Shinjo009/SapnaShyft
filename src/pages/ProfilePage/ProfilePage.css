@@ -100,100 +100,114 @@
 
 /* Account Card */
 .profile-page__account-card {
-  width: calc(100% - 32px);
-  margin: 45px 16px 0 16px;
-  padding: 0;
+  width: calc(100% - 30px);
+  margin: 27px 15px 0 15px;
+  padding: 10px 15px 17px 15px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  border-radius: 12px;
+  align-items: center;
+  gap: 16px;
+  align-self: stretch;
+  border-radius: 24px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 10px 0 rgba(144, 223, 158, 0.5);
 }
 
 .profile-page__account-header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px;
-  border-radius: 12px 12px 0 0;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
 }
 
 .profile-page__avatar {
   width: 52px;
   height: 52px;
-  border-radius: 50%;
+  border-radius: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-top: 0;
   overflow: hidden;
+  background: #063533;
 }
 
 .profile-page__avatar img {
   width: 52px;
   height: 52px;
+  border-radius: 26px;
+  object-fit: cover;
 }
 
 .profile-page__account-info {
   flex: 1;
   display: flex;
-  flex-direction: row;
-  gap: 0;
   align-items: center;
-  justify-content: space-between;
 }
 
 .profile-page__full-name {
   color: #FFF;
-  text-align: left;
-  font-family: Lato;
-  font-size: 18px;
+  font-family: Inter, sans-serif;
+  font-size: 17px;
   font-style: normal;
-  font-weight: 400;
+  font-weight: 600;
   line-height: normal;
-  letter-spacing: 0.09px;
+  letter-spacing: -0.34px;
   margin: 0;
   padding: 0;
 }
 
-.profile-page__contact-row {
-  color: #C4C4C4;
-  text-align: center;
-  font-family: Lato;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 300;
-  line-height: normal;
-  letter-spacing: 0.06px;
+.profile-page__contact-list {
+  width: 100%;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.profile-page__contact-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  margin: 3px 20px 14px 20px;
+  gap: 10px;
+  color: #CCC;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
 }
 
-.profile-page__contact-row span:first-child {
-  flex: 1;
-  text-align: left;
+.profile-page__contact-item img {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
-.profile-page__contact-row span:last-child {
-  flex: 1;
-  text-align: right;
+.profile-page__contact-item--split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
 }
 
-.profile-page__separator {
-  width: 1px;
-  height: 22px;
-  background: rgba(255, 255, 255, 0.3);
-  display: inline-block;
+.profile-page__contact-segment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-page__contact-segment--left {
+  justify-content: flex-start;
+}
+
+.profile-page__contact-segment--right {
+  justify-content: flex-start;
 }
 
 .profile-page__edit-btn {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   background: none;
   border: none;
@@ -214,12 +228,77 @@
   height: 100%;
 }
 
-/* Card Divider */
-.profile-page__card-divider {
-  width: calc(100% - 36px);
-  height: 1px;
-  background: rgba(255, 255, 255, 0.2);
-  margin: 0 18px 14px 18px;
+.profile-page__accounts-title {
+  width: 100%;
+  margin-top: 29px;
+  color: #4B8D83;
+  font-family: Inter, sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 1.32px;
+  text-transform: uppercase;
+}
+
+.profile-page__linked-account-row {
+  width: 100%;
+  margin-top: -8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profile-page__linked-account-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  object-fit: cover;
+  background: #063533;
+}
+
+.profile-page__linked-account-meta {
+  flex: 1;
+  height: 36px;
+  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.profile-page__linked-account-name {
+  color: #CCC;
+  font-family: Inter, sans-serif;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+}
+
+.profile-page__linked-account-relation {
+  color: #9A9A9A;
+  font-family: Inter, sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 300;
+  line-height: 10px;
+}
+
+.profile-page__switch-btn {
+  display: flex;
+  padding: 4px 14px;
+  flex-direction: column;
+  align-items: flex-start;
+  border-radius: 12px;
+  background: rgba(75, 141, 131, 0.2);
+  border: none;
+  color: #CCC;
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  cursor: pointer;
 }
 
 /* Add Account Button */
@@ -227,19 +306,19 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 16px 14px 16px;
+  width: 100%;
+  padding: 0;
+  margin-top: 24px;
   background: none;
   border: none;
   cursor: pointer;
-  color: #FFF;
-  font-family: Lato;
-  font-size: 12px;
+  color: #4B8D83;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
   font-style: normal;
-  font-weight: 400;
+  font-weight: 500;
   line-height: normal;
-  letter-spacing: 0.06px;
   transition: opacity 0.2s ease;
-  border-radius: 0 0 12px 12px;
   justify-content: flex-start;
 }
 

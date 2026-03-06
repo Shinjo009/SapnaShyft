@@ -17,9 +17,9 @@ module.exports = {
       },
       colors: {
         'label-gray': '#999',
-        'input-bg': 'rgba(4, 251, 206, 0.10)',
+        'input-bg': 'rgba(255, 255, 255, 0.05)',
         'input-border': 'rgba(221, 219, 219, 0.20)',
-        'input-focus': 'rgba(4, 251, 206, 0.40)',
+        'input-focus': 'rgba(255, 255, 255, 0.20)',
         'button-border': '#969696',
       },
       borderWidth: {

@@ -359,14 +359,14 @@ Enter 6 OTP digits → Click "Verify OTP" → OTP Verified ✓
 - Button (Get Started)
 
 **Features:**
-- Welcome message: "Welcome to [Logo]"
+- Welcome message: "Welcome To [Logo]"
 - Descriptive text: "A few minutes' pause before the health insights unfold."
 - "Get Started" button with animated arrow indicators
 - Gradient background
 - Smooth transition animation
 
 **Visual Elements:**
-- Logo centered with welcome text
+- Logo centered with Welcome Toext
 - Three animated arrow icons stacked (opacity: 100%, 80%, 60%)
 - Smooth fade-in entrance animation
 - Bottom-positioned button

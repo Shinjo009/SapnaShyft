@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import Button from '../../components/Button';
 import './ProfilePage.css';
 import bgImage from '../../images/BG-2.png';
-import profileAvatarIcon from '../../images/profileavatar.svg';
+import profileAvatarMain from '../../images/TempH.png';
+import profileAvatarAccount from '../../images/TempP.png';
 import editIcon from '../../images/Edit.svg';
 import profileDetailIcon from '../../images/ProfileDetails.svg';
 import healthRecordsIcon from '../../images/HealthRecords.svg';
@@ -11,6 +12,10 @@ import settingsIcon from '../../images/Settings.svg';
 import policyIcon from '../../images/Policy.svg';
 import phonecallIcon from '../../images/Phonecall.svg';
 import bgImage1 from '../../images/BG-1.png';
+import proPhoneIcon from '../../images/Pro-Phone.svg';
+import proMailIcon from '../../images/Pro-Mail.svg';
+import proLocIcon from '../../images/Pro-Loc.svg';
+import proGenAgeIcon from '../../images/Pro-GenAge.svg';
 
 /**
  * ProfilePage - User profile management screen
@@ -53,27 +58,51 @@ const ProfilePage = ({ onBack }) => {
         <div className="profile-page__account-card">
           <div className="profile-page__account-header">
             <div className="profile-page__avatar">
-              <img src={profileAvatarIcon} alt="" aria-hidden="true" />
+              <img src={profileAvatarMain} alt="Profile avatar" />
             </div>
             <div className="profile-page__account-info">
-              <h2 className="profile-page__full-name">Full Name</h2>
+              <h2 className="profile-page__full-name">Harsh Bedre</h2>
             </div>
             <button className="profile-page__edit-btn" aria-label="Edit profile">
               <img src={editIcon} alt="" aria-hidden="true" />
             </button>
           </div>
 
-          <div className="profile-page__contact-row">
-            <span>+91 1234567889</span>
-            <span className="profile-page__separator"></span>
-            <span>abc.xyz@gmail.com</span>
+          <div className="profile-page__contact-list">
+            <div className="profile-page__contact-item">
+              <img src={proPhoneIcon} alt="" aria-hidden="true" />
+              <span>+91 98765 43210</span>
+            </div>
+            <div className="profile-page__contact-item">
+              <img src={proMailIcon} alt="" aria-hidden="true" />
+              <span>aisha.sharma@example.com</span>
+            </div>
+            <div className="profile-page__contact-item profile-page__contact-item--split">
+              <span className="profile-page__contact-segment profile-page__contact-segment--left">
+                <img src={proLocIcon} alt="" aria-hidden="true" />
+                <span>Marol, Mumbai</span>
+              </span>
+              <span className="profile-page__contact-segment profile-page__contact-segment--right">
+                <img src={proGenAgeIcon} alt="" aria-hidden="true" />
+                <span>Female, 23</span>
+              </span>
+            </div>
           </div>
 
-          <div className="profile-page__card-divider" />
+          <div className="profile-page__accounts-title">ACCOUNTS</div>
 
-          <button className="profile-page__add-account">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M9.16699 10.8334H4.16699V9.16669H9.16699V4.16669H10.8337V9.16669H15.8337V10.8334H10.8337V15.8334H9.16699V10.8334Z" fill="white"/>
+          <div className="profile-page__linked-account-row">
+            <img className="profile-page__linked-account-avatar" src={profileAvatarAccount} alt="Linked account avatar" />
+            <div className="profile-page__linked-account-meta">
+              <span className="profile-page__linked-account-name">Prateek Salunkhe</span>
+              <span className="profile-page__linked-account-relation">Spouse</span>
+            </div>
+            <button className="profile-page__switch-btn" type="button">Switch</button>
+          </div>
+
+          <button className="profile-page__add-account" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M3.75 9H14.25M9 3.75V14.25" stroke="#4B8D83" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span>Add Account</span>
           </button>
