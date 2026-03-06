@@ -1,12 +1,15 @@
 # 🚀 SESSION HANDOFF - Continue Here Tomorrow
 
 **Date Created:** January 27, 2026  
-**Status:** Login & OTP pages complete ✅  
-**Next Session:** Ready to build Signup page  
+**Last Updated:** March 5, 2026  
+**Status:** Login & OTP pages complete; Signup page pending ✅  
+**Next Session:** Build Signup page and connect flow in `src/App.js`  
 
 ---
 
 ## ⚡ Quick Context
+
+**Workspace Path:** `c:\Users\nigel_7\OneDrive\Desktop\MYREPOX`
 
 This is a **React login app** with pixel-perfect Figma implementation. We're building a health insights platform with:
 - Login page (phone number entry)
@@ -45,7 +48,7 @@ This is a **React login app** with pixel-perfect Figma implementation. We're bui
 
 ```bash
 # Start the app
-cd c:\Users\nigel\my-app
+cd c:\Users\nigel_7\OneDrive\Desktop\MYREPOX
 npm start
 ```
 
@@ -93,6 +96,12 @@ tailwind.config.js              # Custom colors, fonts, spacing
 ## 🎯 What to Build Next
 
 Based on Figma designs, the next screens are:
+
+### **Recommended Priority for Next Session**
+1. Build `SignupPage` UI using existing reusable atoms
+2. Reuse existing `Select` component for Gender and DOB where appropriate
+3. Add page transitions in `src/App.js` (`Login -> OTP -> Signup`)
+4. Run through the full flow and validate visual spacing against Login/OTP
 
 ### **Option 1: Signup Page** (Recommended Next)
 **Components needed:**
@@ -230,6 +239,9 @@ style={{ backgroundImage: `url(${bgImage})` }}
 ## 📋 Quick Command Reference
 
 ```bash
+# Go to project
+cd c:\Users\nigel_7\OneDrive\Desktop\MYREPOX
+
 # Start dev server
 npm start
 
@@ -313,7 +325,7 @@ Create SignupPage component and integrate it into App.js"
 ---
 
 **Quick Start Tomorrow:**
-1. Open project: `cd c:\Users\nigel\my-app`
+1. Open project: `cd c:\Users\nigel_7\OneDrive\Desktop\MYREPOX`
 2. Start server: `npm start`
 3. Tell Copilot: "Read SESSION_HANDOFF.md - I'm continuing the React login app"
 4. Share Figma specs for next component
