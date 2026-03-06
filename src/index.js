@@ -11,16 +11,22 @@ root.render(
   </React.StrictMode>
 );
 
-// Register service worker for PWA
+// Prevent stale deployments by removing old service workers and caches.
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/serviceWorker.js')
-      .then((registration) => {
-        console.log('Service Worker registered:', registration);
-      })
-      .catch((error) => {
-        console.log('Service Worker registration failed:', error);
-      });
+  window.addEventListener('load', async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+
+      if ('caches' in window) {
+        const cacheKeys = await caches.keys();
+        await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+      }
+
+      console.log('Service workers unregistered and caches cleared.');
+    } catch (error) {
+      console.log('Failed to clear service worker/cache state:', error);
+    }
   });
 }
 

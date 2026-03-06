@@ -23,7 +23,7 @@ const LoginPage = ({ onSuccess, onSignup }) => {
   return (
     <div className="max-w-md mx-auto space-y-8 p-8">
       <Typography variant="heading" align="center">
-        Welcome to
+        Welcome t
       </Typography>
 
       <Logo size="lg" />

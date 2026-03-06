@@ -78,7 +78,7 @@ MYREPOX/
 │   ├── package.json                 # Dependencies & scripts
 │   ├── tailwind.config.js           # Tailwind theme customization
 │   ├── postcss.config.js            # PostCSS plugins
-│   └── firebase.json                # Firebase configuration
+│   └── .gitignore                   # Git ignore rules
 │
 ├── 📚 Documentation
 │   ├── README.md                    # Getting started guide
@@ -1077,7 +1077,7 @@ Dark Mode:
 | Settings Page | Low | User preferences |
 | Profile Page | Medium | User profile view |
 | Search/Filter Functionality | Low | Discovery features |
-| Real Firebase Integration | High | Backend authentication |
+| Backend Authentication Integration | High | Choose preferred provider |
 | Push Notifications | Medium | Health alerts |
 | Data Export/Sharing | Low | User data management |
 
@@ -1194,7 +1194,7 @@ Dark Mode:
 - [ ] Search/Discover Page (explore features)
 
 #### **Phase 7: Backend Integration**
-- [ ] Firebase Authentication integration
+- [ ] Authentication integration
 - [ ] Firestore database connection
 - [ ] Real health data fetching
 - [ ] User data persistence
@@ -1216,7 +1216,7 @@ Dark Mode:
 
 #### **Phase 10: Deployment**
 - [ ] Environment variables setup
-- [ ] Firebase deployment
+- [ ] Deployment pipeline setup
 - [ ] App store distribution (iOS/Android via React Native)
 - [ ] Web analytics setup
 - [ ] Error monitoring (Sentry)
@@ -1229,7 +1229,6 @@ Dark Mode:
 - [package.json](package.json) - Dependencies and scripts
 - [tailwind.config.js](tailwind.config.js) - Tailwind theme
 - [postcss.config.js](postcss.config.js) - PostCSS config
-- [firebase.json](firebase.json) - Firebase settings
 
 ### Documentation
 - [README.md](README.md) - Getting started
