@@ -40,7 +40,7 @@
 }
 
 .profile-page__content--blurred {
-  filter: blur(4px);
+  filter: blur(1.5px);
   pointer-events: none;
 }
 
@@ -328,45 +328,31 @@
 /* Menu Section */
 .profile-page__menu {
   width: 100%;
-  padding: 0 16px;
+  padding: 0 16px 0 21px;
   box-sizing: border-box;
-  margin-top: 24px;
+  margin-top: 28px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 0;
 }
 
-.profile-page__menu-section {
+.profile-page__menu-group {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
-.profile-page__menu-section--profile-details {
-  gap: 15px;
-}
-
-.profile-page__menu-header {
+.profile-page__menu-header-static {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.profile-page__menu-header--clickable {
-  width: 100%;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  text-align: left;
-}
-
-.profile-page__menu-header img {
+.profile-page__menu-header-static img {
   width: 20px;
   height: 20px;
 }
 
-.profile-page__menu-header h2 {
+.profile-page__menu-header-static h2 {
   color: #FFF;
   font-family: Lato;
   font-size: 18px;
@@ -378,41 +364,50 @@
   padding: 0;
 }
 
-.profile-page__menu-items {
+.profile-page__menu-sub-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-left: 28px;
+  margin-top: 6px;
+  padding-left: 5px;
 }
 
-.profile-page__menu-items-row {
+.profile-page__menu-sub-item {
+  opacity: 0.8;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding-left: 0px;
-  flex-wrap: wrap;
-}
-
-.profile-page__menu-item {
-  color: #999;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
   text-align: left;
+  color: #FFF;
   font-family: Lato;
   font-size: 12px;
   font-style: normal;
-  font-weight: 300;
-  line-height: normal;
-  letter-spacing: 0.06px;
+  font-weight: 250;
+  line-height: 24px;
+  position: relative;
 }
 
-.profile-page__menu-dot {
-  width: 4px;
-  height: 4px;
-  aspect-ratio: 1/1;
-  flex-shrink: 0;
+.profile-page__menu-sub-item svg {
+  position: absolute;
+  right: 35px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-.profile-page__menu-items-row .profile-page__menu-dot {
-  margin: 0 10px;
+.profile-page__menu-divider {
+  display: flex;
+  align-self: stretch;
+  width: auto;
+  height: 1px;
+  min-height: 1px;
+  max-height: 1px;
+  background: rgba(153, 153, 153, 0.25);
+  margin-top: 12px;
+  margin-bottom: 12px;
+  margin-right: 21px;
 }
 
 .profile-page__details-list {
@@ -714,7 +709,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;

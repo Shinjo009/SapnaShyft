@@ -8,6 +8,9 @@ import SplashScreen from './pages/SplashScreen';
 import HomePage from './pages/HomePage';
 import HealthScanIndexPage from './pages/HealthScanIndexPage';
 import ProfilePage from './pages/ProfilePage';
+import ReportsPage from './pages/ReportsPage';
+import NutritionPage from './pages/NutritionPage';
+import CustomerSupportPage from './pages/CustomerSupportPage';
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
 import bgImage from './images/BG-1.png';
@@ -218,6 +221,45 @@ function App() {
           onBack={() => {
             console.log('Back to Home');
             setCurrentPage('home');
+          }}
+          onOpenReports={() => {
+            console.log('Navigate to Reports');
+            setCurrentPage('reports');
+          }}
+          onOpenNutrition={() => {
+            console.log('Navigate to Nutrition');
+            setCurrentPage('nutrition');
+          }}
+          onOpenCustomerSupport={() => {
+            console.log('Navigate to Customer Support');
+            setCurrentPage('customer-support');
+          }}
+        />
+      )}
+
+      {currentPage === 'reports' && (
+        <ReportsPage
+          onBack={() => {
+            console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'nutrition' && (
+        <NutritionPage
+          onBack={() => {
+            console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'customer-support' && (
+        <CustomerSupportPage
+          onBack={() => {
+            console.log('Back to Profile');
+            setCurrentPage('profile');
           }}
         />
       )}

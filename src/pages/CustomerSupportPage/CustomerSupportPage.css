@@ -1,0 +1,202 @@
+.customer-support-page {
+  min-height: 100vh;
+  padding: 12px 0 24px 0;
+  box-sizing: border-box;
+}
+
+.customer-support-page__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  position: relative;
+  top: 20px;
+  height: 56px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.customer-support-page__back-btn {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.customer-support-page__back-btn:hover {
+  opacity: 0.8;
+}
+
+.customer-support-page__back-btn svg {
+  width: 100%;
+  height: 100%;
+}
+
+.customer-support-page__title {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+}
+
+.customer-support-page__content {
+  margin-top: 27px;
+  padding: 0 31px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.customer-support-page__text {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.07px;
+}
+
+.customer-support-page__text--left {
+  text-align: left;
+}
+
+.customer-support-page__input {
+  margin-top: 12px;
+  display: flex;
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #999;
+  font-family: Lato;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+  outline: none;
+}
+
+.customer-support-page__query {
+  margin-top: 8px;
+  display: flex;
+  height: 80px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #999;
+  font-family: Lato;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+  outline: none;
+  resize: none;
+}
+
+.customer-support-page__input::placeholder,
+.customer-support-page__query::placeholder {
+  color: #999;
+  font-family: Lato;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.customer-support-page__submit {
+  margin: 12px auto 0 auto;
+  display: flex;
+  width: 118px;
+  height: 36px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.28px;
+  cursor: pointer;
+}
+
+.customer-support-page__or {
+  margin-top: 24px;
+}
+
+.customer-support-page__contact-box {
+  margin-top: 24px;
+  display: flex;
+  padding: 12px 0;
+  justify-content: center;
+  align-items: center;
+  align-self: stretch;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.customer-support-page__contact-inner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 40px;
+  gap: 36px;
+}
+
+.customer-support-page__whatsapp {
+  width: 32px;
+  height: 33px;
+  aspect-ratio: 32 / 33;
+  flex-shrink: 0;
+}
+
+.customer-support-page__contact-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.customer-support-page__contact-title {
+  margin: 0;
+  color: #fff;
+  font-family: Lato;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.customer-support-page__contact-number {
+  margin: 0;
+  color: #ccc;
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+}
