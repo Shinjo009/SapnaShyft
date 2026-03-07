@@ -18,7 +18,7 @@ import proGenAgeIcon from '../../images/Pro-GenAge.svg';
 /**
  * ProfilePage - User profile management screen
  */
-const ProfilePage = ({ onBack, onOpenReports, onOpenNutrition, onOpenCustomerSupport }) => {
+const ProfilePage = ({ onBack, onOpenReports, onOpenNutrition, onOpenCustomerSupport, onOpenPermissions }) => {
   const [activeModal, setActiveModal] = useState(null);
 
   const closeModal = () => setActiveModal(null);
@@ -155,7 +155,7 @@ const ProfilePage = ({ onBack, onOpenReports, onOpenNutrition, onOpenCustomerSup
               <h2>Settings</h2>
             </div>
             <div className="profile-page__menu-sub-list">
-              <button type="button" className="profile-page__menu-sub-item">
+              <button type="button" className="profile-page__menu-sub-item" onClick={onOpenPermissions}>
                 <span>Permissions</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
                   <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage';
 import ReportsPage from './pages/ReportsPage';
 import NutritionPage from './pages/NutritionPage';
 import CustomerSupportPage from './pages/CustomerSupportPage';
+import PermissionsPage from './pages/PermissionsPage';
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
 import bgImage from './images/BG-1.png';
@@ -234,6 +235,10 @@ function App() {
             console.log('Navigate to Customer Support');
             setCurrentPage('customer-support');
           }}
+          onOpenPermissions={() => {
+            console.log('Navigate to Permissions');
+            setCurrentPage('permissions');
+          }}
         />
       )}
 
@@ -257,6 +262,15 @@ function App() {
 
       {currentPage === 'customer-support' && (
         <CustomerSupportPage
+          onBack={() => {
+            console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'permissions' && (
+        <PermissionsPage
           onBack={() => {
             console.log('Back to Profile');
             setCurrentPage('profile');
