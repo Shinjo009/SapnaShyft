@@ -18,7 +18,7 @@ import proGenAgeIcon from '../../images/Pro-GenAge.svg';
 /**
  * ProfilePage - User profile management screen
  */
-const ProfilePage = ({ onBack, onOpenReports, onOpenNutrition, onOpenCustomerSupport, onOpenPermissions }) => {
+const ProfilePage = ({ onBack, onOpenReports, onOpenNutrition, onOpenCustomerSupport, onOpenPermissions, onOpenAddAccount, onOpenEditProfile, onOpenFaq, onOpenTerms }) => {
   const [activeModal, setActiveModal] = useState(null);
 
   const closeModal = () => setActiveModal(null);
@@ -56,7 +56,7 @@ const ProfilePage = ({ onBack, onOpenReports, onOpenNutrition, onOpenCustomerSup
             <div className="profile-page__account-info">
               <h2 className="profile-page__full-name">Harsh Bedre</h2>
             </div>
-            <button className="profile-page__edit-btn" aria-label="Edit profile">
+            <button className="profile-page__edit-btn" aria-label="Edit profile" onClick={onOpenEditProfile}>
               <img src={editIcon} alt="" aria-hidden="true" />
             </button>
           </div>
@@ -93,7 +93,7 @@ const ProfilePage = ({ onBack, onOpenReports, onOpenNutrition, onOpenCustomerSup
             <button className="profile-page__switch-btn" type="button">Switch</button>
           </div>
 
-          <button className="profile-page__add-account" type="button">
+          <button className="profile-page__add-account" type="button" onClick={onOpenAddAccount}>
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
               <path d="M3.75 9H14.25M9 3.75V14.25" stroke="#4B8D83" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -132,7 +132,7 @@ const ProfilePage = ({ onBack, onOpenReports, onOpenNutrition, onOpenCustomerSup
               <h2>Support</h2>
             </div>
             <div className="profile-page__menu-sub-list">
-              <button type="button" className="profile-page__menu-sub-item">
+              <button type="button" className="profile-page__menu-sub-item" onClick={onOpenFaq}>
                 <span>FAQ's</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
                   <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -178,7 +178,7 @@ const ProfilePage = ({ onBack, onOpenReports, onOpenNutrition, onOpenCustomerSup
               <h2>Policy</h2>
             </div>
             <div className="profile-page__menu-sub-list">
-              <button type="button" className="profile-page__menu-sub-item">
+              <button type="button" className="profile-page__menu-sub-item" onClick={onOpenTerms}>
                 <span>Terms &amp; Conditions</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
                   <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

@@ -1,0 +1,158 @@
+.edit-profile-page {
+  min-height: 100vh;
+  padding: 12px 0 24px 0;
+  box-sizing: border-box;
+}
+
+.edit-profile-page__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  position: relative;
+  top: 20px;
+  height: 56px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.edit-profile-page__back-btn {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.edit-profile-page__back-btn svg {
+  width: 100%;
+  height: 100%;
+}
+
+.edit-profile-page__title {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+}
+
+.edit-profile-page__content {
+  margin-top: 27px;
+  padding: 0 24px;
+}
+
+.edit-profile-page__avatar-wrap {
+  width: 110px;
+  height: 110px;
+  margin: 0 auto;
+}
+
+.edit-profile-page__avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.edit-profile-page__form {
+  margin-top: 35px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.edit-profile-page__name-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.edit-profile-page__name-row > div,
+.edit-profile-page__form > div {
+  margin: 0;
+}
+
+.edit-profile-page__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-profile-page__section-label {
+  margin: 0;
+  color: #ccc;
+  font-family: Lato;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.07px;
+}
+
+.edit-profile-page__gender-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.edit-profile-page__choice {
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #9a9a9a;
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+.edit-profile-page__choice--selected {
+  background: radial-gradient(50.74% 50.76% at 50% 50%, #11795f 0%, #1c493d 100%);
+  color: #fff;
+}
+
+.edit-profile-page__gender-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.edit-profile-page__submit {
+  display: flex;
+  width: 100%;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  align-self: stretch;
+  border-radius: 24px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.28px;
+  cursor: pointer;
+}

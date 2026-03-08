@@ -12,6 +12,10 @@ import ReportsPage from './pages/ReportsPage';
 import NutritionPage from './pages/NutritionPage';
 import CustomerSupportPage from './pages/CustomerSupportPage';
 import PermissionsPage from './pages/PermissionsPage';
+import AddAccountPage from './pages/AddAccountPage';
+import EditProfilePage from './pages/EditProfilePage';
+import FAQPage from './pages/FAQPage';
+import TermsConditionsPage from './pages/TermsConditionsPage';
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
 import bgImage from './images/BG-1.png';
@@ -239,6 +243,22 @@ function App() {
             console.log('Navigate to Permissions');
             setCurrentPage('permissions');
           }}
+          onOpenAddAccount={() => {
+            console.log('Navigate to Add Account');
+            setCurrentPage('add-account');
+          }}
+          onOpenEditProfile={() => {
+            console.log('Navigate to Edit Profile');
+            setCurrentPage('edit-profile');
+          }}
+          onOpenFaq={() => {
+            console.log("Navigate to FAQ's");
+            setCurrentPage('faq');
+          }}
+          onOpenTerms={() => {
+            console.log('Navigate to Terms & Conditions');
+            setCurrentPage('terms');
+          }}
         />
       )}
 
@@ -271,6 +291,42 @@ function App() {
 
       {currentPage === 'permissions' && (
         <PermissionsPage
+          onBack={() => {
+            console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'add-account' && (
+        <AddAccountPage
+          onBack={() => {
+            console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'edit-profile' && (
+        <EditProfilePage
+          onBack={() => {
+            console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'faq' && (
+        <FAQPage
+          onBack={() => {
+            console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'terms' && (
+        <TermsConditionsPage
           onBack={() => {
             console.log('Back to Profile');
             setCurrentPage('profile');
