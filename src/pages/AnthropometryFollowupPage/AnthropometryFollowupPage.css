@@ -1,0 +1,289 @@
+.anthropometry-followup-page {
+  min-height: 100vh;
+  padding: 12px 0 24px 0;
+  box-sizing: border-box;
+}
+
+.anthropometry-followup-page__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  position: relative;
+  top: 20px;
+  height: 56px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.anthropometry-followup-page__back {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.anthropometry-followup-page__title {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+}
+
+.anthropometry-followup-page__header-spacer {
+  flex: 1;
+}
+
+.anthropometry-followup-page__subtitle {
+  margin: 13px 16px 0 16px;
+  color: #c4c4c4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.anthropometry-followup-page__question {
+  margin: 0;
+  color: #FFF;
+  text-align: center;
+  font-family: Lato;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.075px;
+}
+
+.anthropometry-followup-page__question--hip {
+  margin-top: 116px;
+}
+
+.anthropometry-followup-page__question--fat {
+  margin-top: 16px;
+}
+
+.anthropometry-followup-page__box {
+  margin: 12px 45px 0 45px;
+  border-radius: 16px;
+  border: 0.838px solid rgba(221, 219, 219, 0.1);
+  background: rgba(4, 251, 206, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.anthropometry-followup-page__hip-box {
+  min-height: 102px;
+  padding: 16px 16px 10px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.anthropometry-followup-page__fat-box {
+  min-height: 102px;
+  padding: 14px 12px 12px 12px;
+}
+
+.anthropometry-followup-page__unit {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  height: 17.6px;
+  padding: 4px 8px;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  background: rgba(136, 136, 136, 0.2);
+  color: #fff;
+  font-family: Lato;
+  font-size: 10px;
+}
+
+.anthropometry-followup-page__arrow-vertical {
+  width: 13px;
+  height: 15px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.anthropometry-followup-page__arrow-vertical--top {
+  top: 18px;
+}
+
+.anthropometry-followup-page__arrow-below {
+  width: 13px;
+  height: 15px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.anthropometry-followup-page__hip-row {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.anthropometry-followup-page__faded {
+  min-width: 24px;
+  color: rgba(255, 255, 255, 0.3);
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 25.38px;
+}
+
+.anthropometry-followup-page__selected-box {
+  display: inline-flex;
+  min-width: 52px;
+  padding: 8px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0);
+}
+
+.anthropometry-followup-page__selected-value {
+  color: #fff;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 31px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 25.38px;
+}
+
+.anthropometry-followup-page__fat-value {
+  margin-top: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 25.38px;
+}
+
+.anthropometry-followup-page__fat-slider {
+  margin-top: 24px;
+  margin-left: 12px;
+  margin-right: 12px;
+  width: calc(100% - 24px);
+  height: 23px;
+  appearance: none;
+  border-radius: 100px;
+  border: 1px solid rgba(204, 32, 59, 0.8);
+  background: rgba(0, 0, 0, 0.1);
+  outline: none;
+}
+
+.anthropometry-followup-page__fat-slider::-webkit-slider-runnable-track {
+  height: 23px;
+  border-radius: 100px;
+  background: linear-gradient(
+    90deg,
+    rgba(204, 32, 59, 0.85) 0%,
+    rgba(204, 32, 59, 0.85) calc((var(--val, 45) - 5) * 100% / 65),
+    rgba(0, 0, 0, 0) calc((var(--val, 45) - 5) * 100% / 65)
+  );
+}
+
+.anthropometry-followup-page__fat-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  border: none;
+  margin-top: 4px;
+  box-shadow: 0 0 0 2px rgba(204, 32, 59, 0.6);
+}
+
+.anthropometry-followup-page__fat-slider::-moz-range-track {
+  height: 23px;
+  border-radius: 100px;
+  border: 1px solid rgba(204, 32, 59, 0.8);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.anthropometry-followup-page__fat-slider::-moz-range-progress {
+  height: 23px;
+  border-radius: 100px;
+  background: rgba(204, 32, 59, 0.85);
+}
+
+.anthropometry-followup-page__fat-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  border: none;
+  box-shadow: 0 0 0 2px rgba(204, 32, 59, 0.6);
+}
+
+.anthropometry-followup-page__skip {
+  margin: 25px auto 0;
+  display: block;
+  border: none;
+  background: none;
+  color: #bbb;
+  font-family: Lato;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.07px;
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: auto;
+  text-underline-offset: auto;
+  text-underline-position: from-font;
+  cursor: pointer;
+}
+
+.anthropometry-followup-page__done {
+  margin: 115px 20px 0 20px;
+  width: calc(100% - 40px);
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.28px;
+  cursor: pointer;
+}

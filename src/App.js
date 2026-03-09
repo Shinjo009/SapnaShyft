@@ -16,6 +16,11 @@ import AddAccountPage from './pages/AddAccountPage';
 import EditProfilePage from './pages/EditProfilePage';
 import FAQPage from './pages/FAQPage';
 import TermsConditionsPage from './pages/TermsConditionsPage';
+import HealthAssessmentPage from './pages/HealthAssessmentPage';
+import QuestionnaireBlankPage from './pages/QuestionnaireBlankPage';
+import AnthropometryPage from './pages/AnthropometryPage';
+import AnthropometryFollowupPage from './pages/AnthropometryFollowupPage';
+import FamilyHistoryPage from './pages/FamilyHistoryPage';
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
 import bgImage from './images/BG-1.png';
@@ -24,6 +29,9 @@ function App() {
   const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedDisease, setSelectedDisease] = useState(null);
+  const [questionnaireProgress, setQuestionnaireProgress] = useState(0);
+  const [activeQuestionnaireStep, setActiveQuestionnaireStep] = useState(0);
+  const [expandedQuestionnaireStep, setExpandedQuestionnaireStep] = useState(null);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
@@ -181,6 +189,78 @@ function App() {
           onNavigateToDiseaseDetail={(disease) => {
             setSelectedDisease(disease);
             setCurrentPage('disease-detail');
+          }}
+          onOpenHealthAssessment={() => {
+            setQuestionnaireProgress(0);
+            setExpandedQuestionnaireStep(null);
+            setCurrentPage('health-assessment');
+          }}
+        />
+      )}
+
+      {currentPage === 'health-assessment' && (
+        <HealthAssessmentPage
+          progress={questionnaireProgress}
+          expandedStep={expandedQuestionnaireStep}
+          onExpandStep={(stepIndex) => {
+            setExpandedQuestionnaireStep(stepIndex);
+          }}
+          onOpenBlank={(stepIndex) => {
+            setActiveQuestionnaireStep(stepIndex);
+            if (stepIndex === 0) {
+              setCurrentPage('anthropometry');
+            } else if (stepIndex === 1) {
+              setCurrentPage('family-history');
+            } else {
+              setCurrentPage('questionnaire-blank');
+            }
+          }}
+        />
+      )}
+
+      {currentPage === 'anthropometry' && (
+        <AnthropometryPage
+          onBack={() => {
+            setCurrentPage('health-assessment');
+          }}
+          onContinue={() => {
+            setCurrentPage('anthropometry-followup');
+          }}
+        />
+      )}
+
+      {currentPage === 'anthropometry-followup' && (
+        <AnthropometryFollowupPage
+          onBack={() => {
+            setCurrentPage('anthropometry');
+          }}
+          onDone={() => {
+            setQuestionnaireProgress((prev) => Math.max(prev, 1));
+            setExpandedQuestionnaireStep(null);
+            setCurrentPage('health-assessment');
+          }}
+        />
+      )}
+
+      {currentPage === 'family-history' && (
+        <FamilyHistoryPage
+          onBack={() => {
+            setCurrentPage('health-assessment');
+          }}
+          onDone={() => {
+            setQuestionnaireProgress((prev) => Math.max(prev, 2));
+            setExpandedQuestionnaireStep(null);
+            setCurrentPage('health-assessment');
+          }}
+        />
+      )}
+
+      {currentPage === 'questionnaire-blank' && (
+        <QuestionnaireBlankPage
+          onBack={() => {
+            setQuestionnaireProgress((prev) => Math.max(prev, Math.min(activeQuestionnaireStep + 1, 5)));
+            setExpandedQuestionnaireStep(null);
+            setCurrentPage('health-assessment');
           }}
         />
       )}

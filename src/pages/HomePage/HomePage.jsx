@@ -6,7 +6,7 @@ import HealthParametersSection from '../../components/HomePage/HealthParametersS
 import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 
-const HomePage = ({ onNavigateToHealthScan, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail }) => {
+const HomePage = ({ onNavigateToHealthScan, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment }) => {
   const handleMenuClick = () => {
     console.log('Menu clicked');
     if (onNavigateToProfile) {
@@ -16,6 +16,9 @@ const HomePage = ({ onNavigateToHealthScan, onNavigateToProfile, onNavigateToRis
 
   const handleSearchClick = () => {
     console.log('Search clicked');
+    if (onOpenHealthAssessment) {
+      onOpenHealthAssessment();
+    }
   };
 
   const handleNavigate = (itemId) => {

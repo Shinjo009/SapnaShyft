@@ -1,0 +1,240 @@
+.family-history-page {
+  min-height: 100vh;
+  padding: 12px 0 20px 0;
+  box-sizing: border-box;
+}
+
+.family-history-page__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  top: 20px;
+  height: 56px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.family-history-page__back {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.family-history-page__title {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 19px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.095px;
+}
+
+.family-history-page__header-icon {
+  width: 18px;
+  height: 18px;
+  margin-left: auto;
+}
+
+.family-history-page__subtitle {
+  margin: 17px 16px 0 16px;
+  color: #c4c4c4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.family-history-page__stack-wrap {
+  margin: 116px 20px 0 20px;
+  position: relative;
+  padding-bottom: var(--stack-space, 36px);
+}
+
+.family-history-page__card {
+  display: flex;
+  padding: 24px 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  align-self: stretch;
+  border-radius: 8px;
+  background: rgba(4, 251, 206, 0.1);
+  border: 0.8px solid rgba(221, 219, 219, 0.12);
+  position: relative;
+  z-index: 3;
+}
+
+.family-history-page__progress {
+  margin-top: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  background: linear-gradient(90deg, #fff 0%, #ccc 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.family-history-page__progress-main {
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.06px;
+}
+
+.family-history-page__progress-sub {
+  font-family: Lato;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.05px;
+}
+
+.family-history-page__question {
+  margin: 0;
+  width: 100%;
+  text-align: left;
+  color: #fff;
+  font-family: Lato;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.075px;
+}
+
+.family-history-page__helper {
+  margin: -12px 0 0 0;
+  width: 100%;
+  color: #bbb;
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.06px;
+}
+
+.family-history-page__chips {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.family-history-page__chips--multi {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.family-history-page__chip {
+  display: flex;
+  width: 140px;
+  padding: 4px 10px;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  border-radius: 24px;
+  border: 0.5px solid #4b8d83;
+  background: transparent;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.family-history-page__chip--selected {
+  background: radial-gradient(50.74% 50.76% at 50% 50%, #11795f 0%, #1c493d 100%);
+}
+
+.family-history-page__chip span {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.family-history-page__tick {
+  width: 12px;
+  height: 12px;
+}
+
+.family-history-page__stack-card {
+  position: absolute;
+  height: 18px;
+  border-radius: 0 0 8px 8px;
+  background: rgba(4, 251, 206, 0.08);
+  border: 0.8px solid rgba(221, 219, 219, 0.12);
+}
+
+.family-history-page__stack-card--one {
+  left: 10px;
+  right: 10px;
+  top: calc(100% - var(--stack-space, 36px));
+  z-index: 2;
+}
+
+.family-history-page__stack-card--two {
+  left: 20px;
+  right: 20px;
+  top: calc(100% - var(--stack-space, 36px) + 18px);
+  z-index: 1;
+}
+
+.family-history-page__swipe-hint {
+  margin: 12px 0 0 0;
+  text-align: center;
+  color: #bbb;
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.06px;
+}
+
+.family-history-page__done {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 40px;
+  width: calc(100% - 40px);
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.32px;
+  cursor: pointer;
+}

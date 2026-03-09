@@ -1,0 +1,306 @@
+.health-assessment-page {
+  height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  padding-top: 44px;
+  display: flex;
+  flex-direction: column;
+}
+
+.health-assessment-page__title {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.12px;
+}
+
+.health-assessment-page__timeline-wrap {
+  flex: 1;
+  padding: 35px 48px;
+  box-sizing: border-box;
+}
+
+.health-assessment-page__timeline {
+  width: 100%;
+  height: 100%;
+  margin: 0 auto;
+  position: relative;
+  --node-size: 98px;
+  --node-radius: 49px;
+  --state-image-size: 132px;
+  --side-gap: 38px;
+  --side-offset: calc(var(--node-radius) + var(--side-gap));
+  --y0: var(--node-radius);
+  --step-y: calc((100% - var(--node-size)) / 4);
+  --y1: calc(var(--y0) + var(--step-y));
+  --y2: calc(var(--y1) + var(--step-y));
+  --y3: calc(var(--y2) + var(--step-y));
+  --y4: calc(var(--y3) + var(--step-y));
+  --line-top: calc(var(--y0) + var(--node-radius));
+  --line-bottom: calc(var(--y4) - var(--node-radius));
+}
+
+.health-assessment-page__line-base,
+.health-assessment-page__line-glow {
+  position: absolute;
+  left: 50%;
+  top: var(--line-top);
+  transform: translateX(-50%);
+  border-radius: 100px;
+}
+
+.health-assessment-page__line-segment {
+  transform: translateX(-50%);
+}
+
+.health-assessment-page__line-base {
+  width: 1px;
+  height: calc(var(--line-bottom) - var(--line-top));
+  background: #c4c4c4;
+  filter: drop-shadow(4px 4px 100px #90df9e);
+}
+
+.health-assessment-page__line-glow {
+  width: 3px;
+  height: calc(var(--line-end-y) - var(--line-top));
+  background: #85e5a5;
+  filter: drop-shadow(0 0 10px #90df9e);
+  transition: height 320ms ease;
+}
+
+.health-assessment-page__dot-base {
+  position: absolute;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border-radius: 100px;
+  background: #c4c4c4;
+  box-shadow: 0 0 8px 0 #c4c4c4;
+}
+
+.health-assessment-page__dot-glow {
+  position: absolute;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  border-radius: 100px;
+  background: #90df9e;
+  box-shadow: 0 0 10px 0 #90df9e;
+}
+
+.health-assessment-page__segment-dot-glow {
+  position: absolute;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  border-radius: 100px;
+  background: #90df9e;
+  box-shadow: 0 0 10px 0 #90df9e;
+}
+
+.dot--1 {
+  top: var(--y1);
+}
+
+.dot--2 {
+  top: var(--y2);
+}
+
+.dot--3 {
+  top: var(--y3);
+}
+
+.seg-dot--0 {
+  top: calc((var(--y0) + var(--y1)) / 2);
+}
+
+.seg-dot--1 {
+  top: calc((var(--y1) + var(--y2)) / 2);
+}
+
+.seg-dot--2 {
+  top: calc((var(--y2) + var(--y3)) / 2);
+}
+
+.seg-dot--3 {
+  top: calc((var(--y3) + var(--y4)) / 2);
+}
+
+.health-assessment-page__branch,
+.health-assessment-page__branch-glow {
+  position: absolute;
+  height: 1px;
+  background: #c4c4c4;
+  filter: drop-shadow(4px 4px 100px #90df9e);
+}
+
+.health-assessment-page__branch-glow {
+  height: 3px;
+  background: #85e5a5;
+  filter: drop-shadow(0 0 10px #90df9e);
+}
+
+.branch--left-1 {
+  width: var(--side-gap);
+  left: calc(50% - var(--side-gap));
+  top: var(--y1);
+}
+
+.branch--right-2 {
+  width: var(--side-gap);
+  left: 50%;
+  top: var(--y2);
+}
+
+.branch--left-3 {
+  width: var(--side-gap);
+  left: calc(50% - var(--side-gap));
+  top: var(--y3);
+}
+
+.health-assessment-page__circle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 98px;
+  height: 98px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transition: all 260ms ease;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 98px 98px;
+}
+
+.health-assessment-page__circle--completed {
+  background: url('../../images/ques-glow2.png') center / var(--state-image-size) var(--state-image-size) no-repeat;
+  border: none;
+  filter: drop-shadow(0 0 15px #90df9e);
+}
+
+.health-assessment-page__circle--active-glow {
+  background: url('../../images/ques-glow1.png') center / var(--state-image-size) var(--state-image-size) no-repeat;
+  border: none;
+  filter: drop-shadow(0 0 15px #90df9e);
+}
+
+.health-assessment-page__circle--button {
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.health-assessment-page__active-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+}
+
+.health-assessment-page__active-circle,
+.health-assessment-page__active-pill {
+  transition: opacity 360ms cubic-bezier(0.22, 1, 0.36, 1), transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.health-assessment-page__active-circle.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.health-assessment-page__active-circle.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.92);
+}
+
+.health-assessment-page__active-pill.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.health-assessment-page__active-pill.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.96);
+}
+
+.health-assessment-page__pill {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -50%);
+  width: 264px;
+  height: 88px;
+  border: none;
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 15px #90df9e);
+  display: flex;
+  align-items: center;
+  padding: 0;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.health-assessment-page__pill-left {
+  margin-left: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.health-assessment-page__icon {
+  width: 32px;
+  height: 32px;
+  aspect-ratio: 1 / 1;
+}
+
+.health-assessment-page__step-label {
+  margin-top: 4px;
+  color: #fff;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  white-space: pre-line;
+}
+
+.health-assessment-page__detail-text {
+  margin-left: 58px;
+  color: #bbb;
+  font-family: Lato;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.055px;
+  text-align: left;
+  white-space: pre-line;
+}
+
+.health-assessment-page__arrow {
+  width: 26px;
+  height: 26px;
+  margin-left: 20px;
+  margin-right: 35px;
+}

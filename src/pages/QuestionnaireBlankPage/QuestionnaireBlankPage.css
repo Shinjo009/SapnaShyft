@@ -1,0 +1,28 @@
+.questionnaire-blank-page {
+  min-height: 100vh;
+  padding: 44px 16px 24px 16px;
+  box-sizing: border-box;
+}
+
+.questionnaire-blank-page__back {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.questionnaire-blank-page__text {
+  margin: 48px 0 0 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}

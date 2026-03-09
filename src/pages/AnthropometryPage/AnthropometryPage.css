@@ -1,0 +1,256 @@
+.anthropometry-page {
+  min-height: 100vh;
+  padding: 12px 0 24px 0;
+  box-sizing: border-box;
+}
+
+.anthropometry-page__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  position: relative;
+  top: 20px;
+  height: 56px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.anthropometry-page__back {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.anthropometry-page__title {
+  margin: 0;
+  color: #FFF;
+  text-align: center;
+  font-family: Lato;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+}
+
+.anthropometry-page__header-icon {
+  width: 18px;
+  height: 18px;
+  margin-left: auto;
+}
+
+.anthropometry-page__header-spacer {
+  flex: 1;
+}
+
+.anthropometry-page__subtitle {
+  margin: 13px 16px 0 16px;
+  color: #c4c4c4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.anthropometry-page__question {
+  margin: 19px 0 0 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.075px;
+}
+
+.anthropometry-page__question--mid {
+  margin-top: 16px;
+}
+
+.anthropometry-page__question--low {
+  margin-top: 12px;
+}
+
+.anthropometry-page__box {
+  margin: 12px 45px 0 45px;
+  border-radius: 16px;
+  border: 0.838px solid rgba(221, 219, 219, 0.1);
+  background: rgba(4, 251, 206, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.anthropometry-page__height-box {
+  min-height: 108px;
+  padding: 16px 16px 10px 16px;
+}
+
+.anthropometry-page__weight-box {
+  min-height: 106px;
+  padding: 18px 16px 10px 16px;
+}
+
+.anthropometry-page__waist-box {
+  min-height: 102px;
+  padding: 16px 16px 10px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.anthropometry-page__unit {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  height: 17.6px;
+  padding: 4px 8px;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  background: rgba(136, 136, 136, 0.2);
+  color: #fff;
+  font-family: Lato;
+  font-size: 10px;
+}
+
+.anthropometry-page__faded {
+  color: rgba(255, 255, 255, 0.3);
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 25.38px;
+}
+
+.anthropometry-page__faded--inline {
+  min-width: 24px;
+}
+
+.anthropometry-page__row-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.anthropometry-page__arrow-wrap {
+  width: 13px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.anthropometry-page__selected-box {
+  display: inline-flex;
+  padding: 8px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  min-width: 52px;
+}
+
+.anthropometry-page__selected-box--weight {
+  position: absolute;
+  left: 50%;
+  top: 63px;
+  transform: translateX(-50%);
+}
+
+.anthropometry-page__selected-value {
+  color: #fff;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 25.38px;
+}
+
+.anthropometry-page__dial {
+  width: 191.999px;
+  height: 109.124px;
+  margin: 10px auto 0;
+  display: block;
+  object-fit: contain;
+}
+
+.anthropometry-page__indicator {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 25px;
+}
+
+.anthropometry-page__waist-row {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.anthropometry-page__arrow-vertical {
+  width: 13px;
+  height: 15px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.anthropometry-page__arrow-vertical--top {
+  top: 18px;
+}
+
+.anthropometry-page__arrow-vertical--bottom {
+  bottom: 14px;
+}
+
+.anthropometry-page__arrow-below {
+  width: 13px;
+  height: 15px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.anthropometry-page__continue {
+  margin: 16px 20px 0 20px;
+  width: calc(100% - 40px);
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.28px;
+  cursor: pointer;
+}
