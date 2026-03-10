@@ -21,6 +21,9 @@ import QuestionnaireBlankPage from './pages/QuestionnaireBlankPage';
 import AnthropometryPage from './pages/AnthropometryPage';
 import AnthropometryFollowupPage from './pages/AnthropometryFollowupPage';
 import FamilyHistoryPage from './pages/FamilyHistoryPage';
+import LifestyleHabitsPage from './pages/LifestyleHabitsPage';
+import NutritionLogPage from './pages/NutritionLogPage';
+import VitalsPage from './pages/VitalsPage';
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
 import bgImage from './images/BG-1.png';
@@ -211,6 +214,12 @@ function App() {
               setCurrentPage('anthropometry');
             } else if (stepIndex === 1) {
               setCurrentPage('family-history');
+            } else if (stepIndex === 2) {
+              setCurrentPage('lifestyle-habits');
+            } else if (stepIndex === 3) {
+              setCurrentPage('nutrition-log');
+            } else if (stepIndex === 4) {
+              setCurrentPage('vitals');
             } else {
               setCurrentPage('questionnaire-blank');
             }
@@ -251,6 +260,50 @@ function App() {
             setQuestionnaireProgress((prev) => Math.max(prev, 2));
             setExpandedQuestionnaireStep(null);
             setCurrentPage('health-assessment');
+          }}
+        />
+      )}
+
+      {currentPage === 'lifestyle-habits' && (
+        <LifestyleHabitsPage
+          onBack={() => {
+            setCurrentPage('health-assessment');
+          }}
+          onDone={() => {
+            setQuestionnaireProgress((prev) => Math.max(prev, 3));
+            setExpandedQuestionnaireStep(null);
+            setCurrentPage('health-assessment');
+          }}
+        />
+      )}
+
+      {currentPage === 'nutrition-log' && (
+        <NutritionLogPage
+          onBack={() => {
+            setCurrentPage('health-assessment');
+          }}
+          onDone={() => {
+            setQuestionnaireProgress((prev) => Math.max(prev, 4));
+            setExpandedQuestionnaireStep(null);
+            setCurrentPage('health-assessment');
+          }}
+        />
+      )}
+
+      {currentPage === 'vitals' && (
+        <VitalsPage
+          onBack={() => {
+            setCurrentPage('health-assessment');
+          }}
+          onSkip={() => {
+            setQuestionnaireProgress((prev) => Math.max(prev, 5));
+            setExpandedQuestionnaireStep(null);
+            setCurrentPage('home');
+          }}
+          onDone={() => {
+            setQuestionnaireProgress((prev) => Math.max(prev, 5));
+            setExpandedQuestionnaireStep(null);
+            setCurrentPage('home');
           }}
         />
       )}

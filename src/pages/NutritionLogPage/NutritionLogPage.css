@@ -1,10 +1,10 @@
-.family-history-page {
+.nutrition-log-page {
   min-height: 100vh;
   padding: 12px 0 20px 0;
   box-sizing: border-box;
 }
 
-.family-history-page__header {
+.nutrition-log-page__header {
   width: 100%;
   display: flex;
   align-items: center;
@@ -16,7 +16,7 @@
   box-sizing: border-box;
 }
 
-.family-history-page__back {
+.nutrition-log-page__back {
   width: 20px;
   height: 20px;
   border: none;
@@ -28,7 +28,7 @@
   cursor: pointer;
 }
 
-.family-history-page__title {
+.nutrition-log-page__title {
   margin: 0;
   color: #fff;
   text-align: center;
@@ -40,14 +40,14 @@
   letter-spacing: 0.095px;
 }
 
-.family-history-page__header-icon {
-  width: 18px;
-  height: 18px;
+.nutrition-log-page__header-icon {
+  width: 17px;
+  height: 22px;
   margin-left: auto;
 }
 
-.family-history-page__subtitle {
-  margin: 17px 16px 0 16px;
+.nutrition-log-page__subtitle {
+  margin: 17px 20px 0 20px;
   color: #c4c4c4;
   font-family: 'DM Sans', sans-serif;
   font-size: 11px;
@@ -56,13 +56,13 @@
   line-height: normal;
 }
 
-.family-history-page__stack-wrap {
-  margin: 116px 20px 0 20px;
+.nutrition-log-page__stack-wrap {
+  margin: 116px 16px 0 16px;
   position: relative;
   padding-bottom: var(--stack-space, 36px);
 }
 
-.family-history-page__card {
+.nutrition-log-page__card {
   display: flex;
   padding: 24px 16px;
   flex-direction: column;
@@ -76,7 +76,7 @@
   z-index: 3;
 }
 
-.family-history-page__progress {
+.nutrition-log-page__progress {
   margin-top: 0;
   display: flex;
   align-items: baseline;
@@ -87,7 +87,7 @@
   -webkit-text-fill-color: transparent;
 }
 
-.family-history-page__progress-main {
+.nutrition-log-page__progress-main {
   font-family: Lato;
   font-size: 12px;
   font-style: normal;
@@ -96,7 +96,7 @@
   letter-spacing: 0.06px;
 }
 
-.family-history-page__progress-sub {
+.nutrition-log-page__progress-sub {
   font-family: Lato;
   font-size: 10px;
   font-style: normal;
@@ -105,7 +105,14 @@
   letter-spacing: 0.05px;
 }
 
-.family-history-page__question {
+.nutrition-log-page__question-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.nutrition-log-page__question {
   margin: 0;
   width: 100%;
   text-align: left;
@@ -118,14 +125,7 @@
   letter-spacing: 0.075px;
 }
 
-.family-history-page__question-row {
-  width: 100%;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.family-history-page__info-btn {
+.nutrition-log-page__info-btn {
   width: 14px;
   height: 14px;
   border: none;
@@ -136,7 +136,7 @@
   margin-top: 2px;
 }
 
-.family-history-page__helper {
+.nutrition-log-page__helper {
   margin: -12px 0 0 0;
   width: 100%;
   color: #bbb;
@@ -148,25 +148,20 @@
   letter-spacing: 0.06px;
 }
 
-.family-history-page__chips {
+.nutrition-log-page__chips {
   width: 100%;
-  display: flex;
-  justify-content: center;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
 }
 
-.family-history-page__chips--multi {
-  flex-wrap: wrap;
-  justify-content: flex-start;
-}
-
-.family-history-page__chip {
+.nutrition-log-page__chip {
   display: flex;
-  width: 140px;
+  min-height: 34px;
   padding: 4px 10px;
   justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   border-radius: 24px;
   border: 0.5px solid #4b8d83;
   background: transparent;
@@ -178,11 +173,15 @@
   line-height: 24px;
 }
 
-.family-history-page__chip--selected {
+.nutrition-log-page__chip--full {
+  grid-column: 1 / -1;
+}
+
+.nutrition-log-page__chip--selected {
   background: radial-gradient(50.74% 50.76% at 50% 50%, #11795f 0%, #1c493d 100%);
 }
 
-.family-history-page__chip span {
+.nutrition-log-page__chip span {
   color: #fff;
   font-family: 'DM Sans', sans-serif;
   font-size: 12px;
@@ -191,12 +190,12 @@
   line-height: 24px;
 }
 
-.family-history-page__tick {
+.nutrition-log-page__tick {
   width: 12px;
   height: 12px;
 }
 
-.family-history-page__stack-card {
+.nutrition-log-page__stack-card {
   position: absolute;
   height: 18px;
   border-radius: 0 0 8px 8px;
@@ -204,21 +203,21 @@
   border: 0.8px solid rgba(221, 219, 219, 0.12);
 }
 
-.family-history-page__stack-card--one {
+.nutrition-log-page__stack-card--one {
   left: 10px;
   right: 10px;
   top: calc(100% - var(--stack-space, 36px));
   z-index: 2;
 }
 
-.family-history-page__stack-card--two {
+.nutrition-log-page__stack-card--two {
   left: 20px;
   right: 20px;
   top: calc(100% - var(--stack-space, 36px) + 18px);
   z-index: 1;
 }
 
-.family-history-page__swipe-hint {
+.nutrition-log-page__swipe-hint {
   margin: 12px 0 0 0;
   text-align: center;
   color: #bbb;
@@ -230,7 +229,7 @@
   letter-spacing: 0.06px;
 }
 
-.family-history-page__done {
+.nutrition-log-page__done {
   position: fixed;
   left: 20px;
   right: 20px;
@@ -257,7 +256,7 @@
   cursor: pointer;
 }
 
-.family-history-page__info-popup {
+.nutrition-log-page__info-popup {
   position: fixed;
   left: 50%;
   bottom: 0;
@@ -276,14 +275,14 @@
   z-index: 30;
 }
 
-.family-history-page__info-handle {
+.nutrition-log-page__info-handle {
   width: 50px;
   height: 1px;
   background: rgba(204, 204, 204, 0.5);
   margin-top: -2px;
 }
 
-.family-history-page__info-close {
+.nutrition-log-page__info-close {
   position: absolute;
   top: 20px;
   right: 30px;
@@ -295,10 +294,10 @@
   cursor: pointer;
 }
 
-.family-history-page__info-list {
+.nutrition-log-page__info-list {
   width: 100%;
   margin: 30px 0 0 0;
-  padding-left: 14px;
+  padding-left: 18px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -306,7 +305,7 @@
   list-style-position: outside;
 }
 
-.family-history-page__info-list li {
+.nutrition-log-page__info-list li {
   color: #ccc;
   font-family: Inter, sans-serif;
   font-size: 12px;
