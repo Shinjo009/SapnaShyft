@@ -61,6 +61,45 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const lockScrollPages = new Set([
+      'health-assessment',
+      'anthropometry',
+      'anthropometry-followup',
+      'family-history',
+      'lifestyle-habits',
+      'nutrition-log',
+      'vitals',
+    ]);
+
+    if (!lockScrollPages.has(currentPage)) {
+      return undefined;
+    }
+
+    const { body, documentElement } = document;
+    const previous = {
+      bodyOverflow: body.style.overflow,
+      bodyTouchAction: body.style.touchAction,
+      bodyOverscrollBehavior: body.style.overscrollBehavior,
+      htmlOverflow: documentElement.style.overflow,
+      htmlOverscrollBehavior: documentElement.style.overscrollBehavior,
+    };
+
+    body.style.overflow = 'hidden';
+    body.style.touchAction = 'none';
+    body.style.overscrollBehavior = 'none';
+    documentElement.style.overflow = 'hidden';
+    documentElement.style.overscrollBehavior = 'none';
+
+    return () => {
+      body.style.overflow = previous.bodyOverflow;
+      body.style.touchAction = previous.bodyTouchAction;
+      body.style.overscrollBehavior = previous.bodyOverscrollBehavior;
+      documentElement.style.overflow = previous.htmlOverflow;
+      documentElement.style.overscrollBehavior = previous.htmlOverscrollBehavior;
+    };
+  }, [currentPage]);
+
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
 

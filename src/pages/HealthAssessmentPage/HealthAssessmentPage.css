@@ -5,6 +5,8 @@
   padding-top: 44px;
   display: flex;
   flex-direction: column;
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 .health-assessment-page__title {
@@ -30,6 +32,7 @@
   height: 100%;
   margin: 0 auto;
   position: relative;
+  touch-action: none;
   --node-size: 98px;
   --node-radius: 49px;
   --state-image-size: 132px;
@@ -174,7 +177,8 @@
   height: 98px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
+  background: transparent;
+  border: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -202,6 +206,9 @@
   border: none;
   cursor: pointer;
   padding: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
 }
 
 .health-assessment-page__active-layer {
@@ -251,12 +258,16 @@
   background-size: 100% 100%;
   background-position: center;
   background-repeat: no-repeat;
+  background-color: transparent;
   filter: drop-shadow(0 0 15px #90df9e);
   display: flex;
   align-items: center;
   padding: 0;
   cursor: pointer;
   box-sizing: border-box;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
 }
 
 .health-assessment-page__pill-left {
