@@ -14,10 +14,20 @@ import metfluxLogo from '../../images/metflux_logo.svg';
  */
 const LoginPage = ({ onSuccess, onSignup }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSendOTP = () => {
+  const handleSendOTP = async () => {
     if (phoneNumber.trim().length >= 10) {
-      onSuccess(phoneNumber);
+      try {
+        setLoading(true);
+        setError('');
+        await onSuccess(phoneNumber);
+      } catch (sendError) {
+        setError(sendError?.message || 'Failed to send OTP. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -43,10 +53,18 @@ const LoginPage = ({ onSuccess, onSignup }) => {
           />
 
           <div className="mt-6">
-            <Button onClick={handleSendOTP} disabled={phoneNumber.trim().length < 10}>
+            <Button
+              onClick={handleSendOTP}
+              loading={loading}
+              disabled={phoneNumber.trim().length < 10}
+            >
               Send OTP
             </Button>
           </div>
+
+          {error ? (
+            <p className="mt-3 text-center text-[11px] text-[#FF9D9D]">{error}</p>
+          ) : null}
         </div>
 
         <div className="text-center mt-4">

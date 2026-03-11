@@ -27,6 +27,13 @@ import VitalsPage from './pages/VitalsPage';
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
 import bgImage from './images/BG-1.png';
+import { sendOtp, verifyOtp, refreshToken, logout } from './services/authService';
+import {
+  saveAuthTokens,
+  getRefreshToken,
+  clearAuthTokens,
+  extractTokensFromResponse,
+} from './utils/authStorage';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
@@ -37,6 +44,27 @@ function App() {
   const [expandedQuestionnaireStep, setExpandedQuestionnaireStep] = useState(null);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+
+  useEffect(() => {
+    const trySessionRestore = async () => {
+      const refreshTokenValue = getRefreshToken();
+
+      if (!refreshTokenValue) {
+        return;
+      }
+
+      try {
+        const refreshResponse = await refreshToken(refreshTokenValue);
+        const tokens = extractTokensFromResponse(refreshResponse, refreshTokenValue);
+        saveAuthTokens(tokens);
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+        clearAuthTokens();
+      }
+    };
+
+    trySessionRestore();
+  }, []);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -115,6 +143,34 @@ function App() {
     setShowInstallPrompt(false);
   };
 
+  const handleSendOtp = async (phone) => {
+    await sendOtp(phone);
+    setPhoneNumber(phone);
+    setCurrentPage('otp');
+  };
+
+  const handleVerifyOtp = async (otp) => {
+    const verificationResponse = await verifyOtp({ phone: phoneNumber, otp });
+    const tokens = extractTokensFromResponse(verificationResponse);
+
+    if (!tokens.refreshToken) {
+      throw new Error('Login response missing refresh token. Please contact backend team.');
+    }
+
+    saveAuthTokens(tokens);
+    setCurrentPage('health-insights');
+  };
+
+  const handleLogout = async () => {
+    const refreshTokenValue = getRefreshToken();
+
+    await logout(refreshTokenValue);
+
+    clearAuthTokens();
+    setPhoneNumber('');
+    setCurrentPage('login');
+  };
+
   return (
     <div 
       className="min-h-screen bg-cover bg-center bg-no-repeat"
@@ -176,20 +232,14 @@ function App() {
       )}
       {currentPage === 'login' && (
         <LoginPage 
-          onSuccess={(phone) => {
-            setPhoneNumber(phone);
-            setCurrentPage('otp');
-          }}
+          onSuccess={handleSendOtp}
           onSignup={() => setCurrentPage('signup')}
         />
       )}
 
       {currentPage === 'signup' && (
         <SignupPage 
-          onSuccess={(data) => {
-            setPhoneNumber(data.phone);
-            setCurrentPage('otp');
-          }}
+          onSuccess={(data) => handleSendOtp(data.phone)}
           onLogin={() => setCurrentPage('login')}
         />
       )}
@@ -197,11 +247,9 @@ function App() {
       {currentPage === 'otp' && (
         <OTPPage 
           phoneNumber={phoneNumber}
+          onVerifyOtp={handleVerifyOtp}
+          onResendOtp={handleSendOtp}
           onBack={() => setCurrentPage('login')}
-          onSuccess={() => {
-            console.log('OTP Verified!');
-            setCurrentPage('health-insights');
-          }}
         />
       )}
 
@@ -431,6 +479,7 @@ function App() {
             console.log('Navigate to Terms & Conditions');
             setCurrentPage('terms');
           }}
+          onLogout={handleLogout}
         />
       )}
 

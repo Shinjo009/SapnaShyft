@@ -18,10 +18,45 @@ import proGenAgeIcon from '../../images/Pro-GenAge.svg';
 /**
  * ProfilePage - User profile management screen
  */
-const ProfilePage = ({ onBack, onOpenReports, onOpenNutrition, onOpenCustomerSupport, onOpenPermissions, onOpenAddAccount, onOpenEditProfile, onOpenFaq, onOpenTerms }) => {
+const ProfilePage = ({
+  onBack,
+  onOpenReports,
+  onOpenNutrition,
+  onOpenCustomerSupport,
+  onOpenPermissions,
+  onOpenAddAccount,
+  onOpenEditProfile,
+  onOpenFaq,
+  onOpenTerms,
+  onLogout,
+}) => {
   const [activeModal, setActiveModal] = useState(null);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const closeModal = () => setActiveModal(null);
+  const closeModal = () => {
+    setActiveModal(null);
+    setLogoutLoading(false);
+    setError('');
+  };
+
+  const handleConfirmAction = async () => {
+    if (activeModal === 'delete') {
+      console.log('Delete account confirmation clicked');
+      closeModal();
+      return;
+    }
+
+    try {
+      setLogoutLoading(true);
+      setError('');
+      await onLogout();
+      closeModal();
+    } catch (logoutError) {
+      setError(logoutError?.message || 'Logout failed. Please try again.');
+      setLogoutLoading(false);
+    }
+  };
 
   return (
     <div className="profile-page">
@@ -251,18 +286,18 @@ const ProfilePage = ({ onBack, onOpenReports, onOpenNutrition, onOpenCustomerSup
               <button
                 className="profile-page__modal-btn profile-page__modal-btn--yes"
                 type="button"
-                onClick={() => {
-                  if (activeModal === 'delete') {
-                    console.log('Delete account confirmation clicked');
-                  } else {
-                    console.log('Log out confirmation clicked');
-                  }
-                  closeModal();
-                }}
+                disabled={logoutLoading}
+                onClick={handleConfirmAction}
               >
-                YES
+                {logoutLoading && activeModal === 'logout' ? 'Logging out...' : 'YES'}
               </button>
             </div>
+
+            {error ? (
+              <p className="profile-page__modal-description" style={{ marginTop: '8px', color: '#FFB3B3' }}>
+                {error}
+              </p>
+            ) : null}
           </div>
         </div>
       )}

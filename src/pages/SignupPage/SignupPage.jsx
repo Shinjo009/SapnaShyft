@@ -35,6 +35,8 @@ const SignupPage = ({ onSuccess, onLogin }) => {
     gender: '',
     organization: '',
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -59,11 +61,18 @@ const SignupPage = ({ onSuccess, onLogin }) => {
     }));
   };
 
-  const handleSendOTP = () => {
+  const handleSendOTP = async () => {
     const { firstName, lastName, email, phone, city, age, gender } = formData;
     if (firstName.trim() && lastName.trim() && email.trim() && phone.trim() && city.trim() && age.trim() && gender) {
-      console.log('Signup Form Submitted:', formData);
-      onSuccess(formData);
+      try {
+        setLoading(true);
+        setError('');
+        await onSuccess(formData);
+      } catch (sendError) {
+        setError(sendError?.message || 'Failed to send OTP. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -186,10 +195,14 @@ const SignupPage = ({ onSuccess, onLogin }) => {
           </div>
 
           <div className="pt-3">
-            <Button onClick={handleSendOTP}>
+            <Button onClick={handleSendOTP} loading={loading}>
               Continue
             </Button>
           </div>
+
+          {error ? (
+            <p className="text-center text-[11px] text-[#FF9D9D]">{error}</p>
+          ) : null}
         </div>
       </div>
 

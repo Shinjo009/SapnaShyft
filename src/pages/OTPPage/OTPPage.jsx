@@ -4,7 +4,6 @@ import Button from '../../components/Button';
 import Logo from '../../components/Logo';
 import OTPInput from '../../components/OTPInput';
 import Timer from '../../components/Timer';
-import { BACKEND_ENABLED } from '../../config/appConfig';
 import metfluxLogo from '../../images/metflux_logo.svg';
 
 /**
@@ -12,12 +11,15 @@ import metfluxLogo from '../../images/metflux_logo.svg';
  * 
  * Props:
  * - phoneNumber: Phone number for display/context
- * - onSuccess: Called when OTP is verified
+ * - onVerifyOtp: Called with OTP when OTP is verified
+ * - onResendOtp: Called with phone number when resend is requested
  * - onBack: Called to go back to login
  */
-const OTPPage = ({ phoneNumber, onSuccess, onBack }) => {
+const OTPPage = ({ phoneNumber, onVerifyOtp, onResendOtp, onBack }) => {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const getMaskedPhone = () => {
     const digits = String(phoneNumber || '');
@@ -34,30 +36,30 @@ const OTPPage = ({ phoneNumber, onSuccess, onBack }) => {
 
   const formattedPhone = getMaskedPhone();
 
-  const handleVerifyOTP = () => {
+  const handleVerifyOTP = async () => {
     if (otp.length === 6) {
-      if (!BACKEND_ENABLED) {
-        onSuccess();
-        return;
-      }
-
-      setLoading(true);
-      // Simulate API call
-      setTimeout(() => {
+      try {
+        setLoading(true);
+        setError('');
+        await onVerifyOtp(otp);
+      } catch (verifyError) {
+        setError(verifyError?.message || 'OTP verification failed. Please try again.');
+      } finally {
         setLoading(false);
-        onSuccess();
-      }, 1000);
+      }
     }
   };
 
-  const handleResendOTP = () => {
-    if (!BACKEND_ENABLED) {
-      console.log('Backend disabled: OTP resend is mocked for', phoneNumber);
-      return;
+  const handleResendOTP = async () => {
+    try {
+      setResendLoading(true);
+      setError('');
+      await onResendOtp(phoneNumber);
+    } catch (resendError) {
+      setError(resendError?.message || 'Failed to resend OTP. Please try again.');
+    } finally {
+      setResendLoading(false);
     }
-
-    console.log('Resending OTP to:', phoneNumber);
-    // API call to resend OTP
   };
 
   return (
@@ -83,10 +85,14 @@ const OTPPage = ({ phoneNumber, onSuccess, onBack }) => {
           <Button 
             onClick={handleVerifyOTP}
             loading={loading}
-            disabled={otp.length !== 6}
+            disabled={otp.length !== 6 || resendLoading}
           >
             Verify OTP
           </Button>
+
+          {error ? (
+            <p className="text-center text-[11px] text-[#FF9D9D]">{error}</p>
+          ) : null}
         </div>
       </div>
 
