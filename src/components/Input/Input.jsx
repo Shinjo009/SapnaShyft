@@ -21,6 +21,7 @@ const Input = ({
   className = '',
   ...props 
 }) => {
+  const isPhoneInput = type === 'tel';
   
   const baseClasses = `
     flex
@@ -30,19 +31,24 @@ const Input = ({
     self-stretch
     w-full
     h-10
-    px-4
-    py-0
+    box-border
+    px-[15px]
+    py-[10px]
     rounded-lg
+    border
+    border-transparent
     bg-input-bg
     font-lato
     text-white
     text-label
     placeholder:text-label-gray
     focus:outline-none
-    focus:ring-1
-    focus:ring-input-focus
+    focus:border-white/20
+    focus:shadow-[0_0_10px_0_rgba(144,223,158,0.30)]
     transition-all
   `.trim().replace(/\s+/g, ' ');
+
+  const typeClasses = isPhoneInput ? 'text-[13px] placeholder:text-[13px] placeholder:leading-4' : '';
   
   const errorClasses = error ? 'border border-red-500' : '';
   
@@ -55,10 +61,11 @@ const Input = ({
       )}
       <input
         type={type}
+        inputMode={props.inputMode || (isPhoneInput ? 'numeric' : undefined)}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className={`${baseClasses} ${errorClasses} ${className}`}
+        className={`${baseClasses} ${typeClasses} ${errorClasses} ${className}`}
         {...props}
       />
       {error && (

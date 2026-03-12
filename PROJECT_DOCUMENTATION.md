@@ -570,7 +570,7 @@ function SignupPage({ onSuccess }) {
       </div>
 
       <Typography variant="link" align="center">
-        Already have an account? <span className="underline">Login</span>
+        Already have an account? <span className="underline"> Login</span>
       </Typography>
     </div>
   );

@@ -24,7 +24,7 @@ export const buildCreateUserPayload = (formData) => ({
   date_of_birth: getDateOfBirthFromAge(formData.age),
   gender: formData.gender.trim(),
   city: formData.city.trim(),
-  referred_by: formData.organization.trim() || undefined,
+  referred_by: formData.organization?.trim() || undefined,
   status: 'active',
 });
 

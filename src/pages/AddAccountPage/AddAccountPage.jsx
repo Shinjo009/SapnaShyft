@@ -111,6 +111,7 @@ const AddAccountPage = ({ onBack }) => {
           </div>
 
           <Input
+            type="tel"
             placeholder="Phone"
             value={formData.phone}
             onChange={(e) => handleChange('phone', e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}

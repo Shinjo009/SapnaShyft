@@ -159,9 +159,26 @@
   padding: 0;
 }
 
+.profile-page__section-divider {
+  height: 1px;
+  flex-shrink: 0;
+  align-self: stretch;
+  opacity: 0.7;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.profile-page__section-divider--after-header {
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+
+.profile-page__section-divider--after-contacts {
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
 .profile-page__contact-list {
   width: 100%;
-  margin-top: 20px;
   display: flex;
   flex-direction: column;
   gap: 13px;
@@ -230,7 +247,6 @@
 
 .profile-page__accounts-title {
   width: 100%;
-  margin-top: 29px;
   color: #4B8D83;
   font-family: Inter, sans-serif;
   font-size: 11px;
@@ -264,6 +280,9 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  box-sizing: border-box;
 }
 
 .profile-page__linked-account-name {
@@ -278,7 +297,7 @@
 .profile-page__linked-account-relation {
   color: #9A9A9A;
   font-family: Inter, sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 300;
   line-height: 10px;
@@ -383,7 +402,7 @@
   text-align: left;
   color: #FFF;
   font-family: Lato;
-  font-size: 12px;
+  font-size: 13px;
   font-style: normal;
   font-weight: 250;
   line-height: 24px;
@@ -392,7 +411,7 @@
 
 .profile-page__menu-sub-item svg {
   position: absolute;
-  right: 35px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
 }
@@ -407,7 +426,7 @@
   background: rgba(153, 153, 153, 0.25);
   margin-top: 12px;
   margin-bottom: 12px;
-  margin-right: 21px;
+  margin-right: 10px;
 }
 
 .profile-page__details-list {
@@ -786,7 +805,7 @@
 .profile-page__modal-buttons {
   display: flex;
   align-items: center;
-  gap: 12px;
+   gap: 45px;
   margin-top: 70px;
 }
 
@@ -795,6 +814,7 @@
   justify-content: center;
   align-items: center;
   gap: 8px;
+  box-sizing: border-box;
   cursor: pointer;
   transition: opacity 0.2s ease;
   color: #FFF;
@@ -811,7 +831,7 @@
 
 .profile-page__modal-btn--no {
   width: 88px;
-  height: 28px;
+   height: 36px;
   padding: 10px 24px;
   border-radius: 24px;
   border: 1px solid #969696;
@@ -821,6 +841,7 @@
 
 .profile-page__modal-btn--yes {
   width: 89px;
+   height: 36px;
   padding: 2px 0;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.50);

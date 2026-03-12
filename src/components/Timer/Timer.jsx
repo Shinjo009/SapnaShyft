@@ -56,8 +56,8 @@ const Timer = ({
       {...props}
     >
       {seconds > 0 ? (
-        <span className="text-sm font-normal opacity-80">
-          {formatTime(seconds)}{' '}
+        <span className="inline-flex items-center justify-center gap-1 text-sm font-normal opacity-80">
+          <span>{formatTime(seconds)}</span>
           <span className="text-[12px] underline cursor-not-allowed opacity-60">
             Resend OTP
           </span>

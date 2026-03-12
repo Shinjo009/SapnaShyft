@@ -174,6 +174,8 @@ const ProfilePage = ({
             </button>
           </div>
 
+          <div className="profile-page__section-divider profile-page__section-divider--after-header" />
+
           <div className="profile-page__contact-list">
             <div className="profile-page__contact-item">
               <img src={proPhoneIcon} alt="" aria-hidden="true" />
@@ -194,6 +196,8 @@ const ProfilePage = ({
               </span>
             </div>
           </div>
+
+          <div className="profile-page__section-divider profile-page__section-divider--after-contacts" />
 
           <div className="profile-page__accounts-title">ACCOUNTS</div>
 

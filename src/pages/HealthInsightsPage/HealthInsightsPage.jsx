@@ -10,8 +10,9 @@ import './HealthInsightsPage.css';
  * 
  * Props:
  * - onGetStarted: Called when Get Started button is clicked
+ * - userName: User's first name to display in welcome message
  */
-const HealthInsightsPage = ({ onGetStarted }) => {
+const HealthInsightsPage = ({ onGetStarted, userName = 'User' }) => {
   return (
     <div className="health-insights-page">
       {/* Background image */}
@@ -25,6 +26,12 @@ const HealthInsightsPage = ({ onGetStarted }) => {
       {/* Center Content: Text */}
       <div className="health-insights-center">
         <div className="health-insights-text">
+          <Typography 
+            align="center"
+            className="health-insights-welcome"
+          >
+            Welcome {userName}!
+          </Typography>
           <Typography 
             variant="bodyLarge" 
             align="center"

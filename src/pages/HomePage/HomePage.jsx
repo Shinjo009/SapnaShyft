@@ -6,7 +6,7 @@ import HealthParametersSection from '../../components/HomePage/HealthParametersS
 import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 
-const HomePage = ({ onNavigateToHealthScan, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment }) => {
+const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment }) => {
   const handleMenuClick = () => {
     console.log('Menu clicked');
     if (onNavigateToProfile) {
@@ -42,7 +42,7 @@ const HomePage = ({ onNavigateToHealthScan, onNavigateToProfile, onNavigateToRis
     <div className="home-page">
       {/* Header */}
       <Header 
-        name="Neha" 
+        name={userName} 
         onMenuClick={handleMenuClick}
         onSearchClick={handleSearchClick}
       />

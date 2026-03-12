@@ -29,6 +29,7 @@ import DiseaseDetailPage from './pages/DiseaseDetailPage';
 import bgImage from './images/BG-1.png';
 import { sendOtp, verifyOtp, refreshToken, logout } from './services/authService';
 import { createUser } from './services/usersService';
+import { getMyProfile } from './services/profileService';
 import {
   saveAuthTokens,
   getRefreshToken,
@@ -39,6 +40,7 @@ import {
 function App() {
   const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [userName, setUserName] = useState('');
   const [selectedDisease, setSelectedDisease] = useState(null);
   const [questionnaireProgress, setQuestionnaireProgress] = useState(0);
   const [activeQuestionnaireStep, setActiveQuestionnaireStep] = useState(0);
@@ -164,6 +166,17 @@ function App() {
     }
 
     saveAuthTokens(tokens);
+
+    try {
+      const profileResponse = await getMyProfile();
+      const profile = profileResponse?.data && typeof profileResponse.data === 'object'
+        ? profileResponse.data
+        : profileResponse;
+      setUserName(profile?.first_name || '');
+    } catch (profileError) {
+      console.error('Failed to fetch user profile:', profileError);
+    }
+
     setCurrentPage('health-insights');
   };
 
@@ -261,6 +274,7 @@ function App() {
 
       {currentPage === 'health-insights' && (
         <HealthInsightsPage 
+          userName={userName}
           onGetStarted={() => {
             console.log('Get Started clicked');
             setCurrentPage('home');
@@ -270,6 +284,7 @@ function App() {
 
       {currentPage === 'home' && (
         <HomePage 
+          userName={userName}
           onNavigateToHealthScan={() => {
             console.log('Navigate to Health Scan Index');
             setCurrentPage('health-scan-index');

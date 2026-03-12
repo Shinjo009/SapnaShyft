@@ -33,7 +33,6 @@ const SignupPage = ({ onSuccess, onLogin }) => {
     city: '',
     age: '',
     gender: '',
-    organization: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -111,24 +110,25 @@ const SignupPage = ({ onSuccess, onLogin }) => {
             onChange={handleInputChange}
           />
 
-          <div className="flex h-10 px-4 rounded-lg bg-input-bg items-center gap-2">
+          <div className="flex self-stretch w-full h-10 box-border px-[15px] py-[10px] rounded-lg border border-transparent bg-input-bg items-center gap-2 focus-within:border-white/20 focus-within:shadow-[0_0_10px_0_rgba(144,223,158,0.30)] transition-all">
             <button
               type="button"
-              className="flex items-center gap-1 text-label text-label-gray font-lato"
+              className="flex items-center gap-1 text-[13px] text-label-gray font-lato flex-shrink-0"
               aria-label="Country code"
             >
               +91
               <span className="text-[10px]">▼</span>
             </button>
-            <span className="w-px h-4 bg-white/15" />
+            <span className="w-px h-4 bg-white/15 flex-shrink-0" />
             <input
               name="phone"
               type="tel"
+              inputMode="numeric"
               maxLength={10}
               placeholder="Phone Number"
               value={formData.phone}
               onChange={handlePhoneChange}
-              className="flex-1 bg-transparent text-label text-white placeholder:text-label-gray font-lato focus:outline-none"
+              className="flex-1 bg-transparent text-white text-[13px] placeholder:text-[13px] placeholder:leading-4 placeholder:text-label-gray font-lato focus:outline-none"
             />
           </div>
 
@@ -154,7 +154,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
               <button
                 type="button"
                 onClick={() => handleGenderChange('male')}
-                className={`flex py-2 px-[10px] justify-center items-center content-center gap-y-[5px] gap-x-[10px] flex-1 flex-wrap rounded-[10px] ${
+                className={`flex h-10 px-[10px] justify-center items-center content-center gap-y-[5px] gap-x-[10px] flex-1 flex-wrap rounded-lg ${
                   formData.gender === 'male'
                     ? 'text-white bg-[radial-gradient(50.74%_50.76%_at_50%_50%,#11795F_0%,#1C493D_100%)]'
                     : 'text-[#9A9A9A] bg-input-bg'
@@ -167,7 +167,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
               <button
                 type="button"
                 onClick={() => handleGenderChange('female')}
-                className={`flex py-2 px-[10px] justify-center items-center content-center gap-y-[5px] gap-x-[10px] flex-1 flex-wrap rounded-[10px] ${
+                className={`flex h-10 px-[10px] justify-center items-center content-center gap-y-[5px] gap-x-[10px] flex-1 flex-wrap rounded-lg ${
                   formData.gender === 'female'
                     ? 'text-white bg-[radial-gradient(50.74%_50.76%_at_50%_50%,#11795F_0%,#1C493D_100%)]'
                     : 'text-[#9A9A9A] bg-input-bg'
@@ -177,21 +177,6 @@ const SignupPage = ({ onSuccess, onLogin }) => {
                 <span className="font-lato text-label">Female</span>
               </button>
             </div>
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex justify-end">
-              <span className="font-lato text-[8px] font-light tracking-[0.04px] text-[#9A9A9A] opacity-80 text-right">
-                Optional
-              </span>
-            </div>
-            <Input
-              name="organization"
-              type="text"
-              placeholder="Organisation Name"
-              value={formData.organization}
-              onChange={handleInputChange}
-            />
           </div>
 
           <div className="pt-3">
@@ -207,13 +192,13 @@ const SignupPage = ({ onSuccess, onLogin }) => {
       </div>
 
       <div className="text-center mt-4">
-        <span className="opacity-80 text-white text-center font-lato text-[10px] font-medium leading-normal tracking-[0.05px]">
-          Already have an account?{' '}
+        <span className="inline-flex items-center justify-center gap-1 opacity-80 text-white text-center font-lato text-[10px] font-medium leading-normal tracking-[0.05px]">
+          <span>Already have an Account?</span>
           <span
             className="text-[12px] tracking-[0.06px] underline cursor-pointer hover:opacity-80"
             onClick={onLogin}
           >
-            Log in
+            Log In
           </span>
         </span>
       </div>

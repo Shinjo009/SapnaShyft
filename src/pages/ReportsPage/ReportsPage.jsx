@@ -1,4 +1,5 @@
 import React from 'react';
+import pdfIcon from '../../images/pdf.svg';
 import './ReportsPage.css';
 
 /**
@@ -25,22 +26,12 @@ const ReportsPage = ({ onBack }) => {
         </button>
 
         <h1 className="reports-page__title">Reports</h1>
-
-        <button className="reports-page__add-btn" type="button">
-          <svg xmlns="http://www.w3.org/2000/svg" width="6" height="6" viewBox="0 0 6 6" fill="none" aria-hidden="true">
-            <rect y="2.40039" width="6" height="1.2" fill="white" />
-            <rect x="3.59961" width="6" height="1.2" transform="rotate(90 3.59961 0)" fill="white" />
-          </svg>
-          <span>ADD</span>
-        </button>
       </div>
 
       <div className="reports-page__list">
         {reports.map((report) => (
           <div key={report.id} className="reports-page__row">
-            <div className="reports-page__pdf-icon" aria-hidden="true">
-              <span>PDF</span>
-            </div>
+            <img className="reports-page__pdf-icon" src={pdfIcon} alt="" aria-hidden="true" />
 
             <div className="reports-page__meta">
               <p className="reports-page__name">{report.name}</p>
@@ -54,6 +45,16 @@ const ReportsPage = ({ onBack }) => {
             </button>
           </div>
         ))}
+      </div>
+
+      <div className="reports-page__add-btn-row">
+        <button className="reports-page__add-btn" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="6" height="6" viewBox="0 0 6 6" fill="none" aria-hidden="true">
+            <rect y="2.40039" width="6" height="1.2" fill="white" />
+            <rect x="3.59961" width="6" height="1.2" transform="rotate(90 3.59961 0)" fill="white" />
+          </svg>
+          <span>ADD</span>
+        </button>
       </div>
     </div>
   );

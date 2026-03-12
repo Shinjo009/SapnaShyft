@@ -16,6 +16,12 @@
   box-sizing: border-box;
 }
 
+.reports-page__add-btn-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+
 .reports-page__back-btn {
   width: 20px;
   height: 20px;
@@ -52,14 +58,13 @@
 }
 
 .reports-page__add-btn {
-  margin-left: auto;
-  display: flex;
-  height: 24px;
+  display: inline-flex;
+  height: 30px;
   padding: 8px 18px;
   justify-content: center;
   align-items: center;
-  align-self: center;
   gap: 4px;
+  box-sizing: border-box;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(144, 223, 158, 0.1);
@@ -77,7 +82,7 @@
 }
 
 .reports-page__list {
-  margin-top: 35px;
+  margin-top: 30px;
   padding-left: 44px;
   padding-right: 16px;
   display: flex;
@@ -92,26 +97,10 @@
 }
 
 .reports-page__pdf-icon {
-  width: 22px;
-  height: 26px;
-  border-radius: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: linear-gradient(180deg, #fff 0 58%, #efefef 100%);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.reports-page__pdf-icon span {
-  width: 100%;
-  text-align: center;
-  background: #e62b2b;
-  color: #fff;
-  font-family: Lato;
-  font-size: 8px;
-  font-weight: 700;
-  line-height: 12px;
+  display: block;
+  flex-shrink: 0;
+  width: 28px;
+  height: 35px;
 }
 
 .reports-page__meta {
@@ -124,7 +113,7 @@
   margin: 0;
   color: #fff;
   font-family: Lato;
-  font-size: 20px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;

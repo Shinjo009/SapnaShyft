@@ -35,7 +35,7 @@ const LoginPage = ({ onSuccess, onSignup }) => {
     <div className="max-w-md mx-auto min-h-screen px-8 pt-[75px] pb-6 flex flex-col">
       <Logo size="lg" />
 
-      <div className="mt-[85px]">
+      <div className="mt-[105px]">
         <Typography variant="heading" as="h2" align="center">
           Log In
         </Typography>
@@ -68,13 +68,13 @@ const LoginPage = ({ onSuccess, onSignup }) => {
         </div>
 
         <div className="text-center mt-4">
-          <span className="opacity-80 text-white text-center font-lato text-[10px] font-medium leading-normal tracking-[0.05px]">
-            Don't have an account?{' '}
+          <span className="inline-flex items-center justify-center gap-1 opacity-80 text-white text-center font-lato text-[10px] font-medium leading-normal tracking-[0.05px]">
+            <span>Don't have an Account?</span>
             <span
               className="text-[12px] tracking-[0.06px] underline cursor-pointer hover:opacity-80"
               onClick={onSignup}
             >
-              Signup
+              Sign Up
             </span>
           </span>
         </div>

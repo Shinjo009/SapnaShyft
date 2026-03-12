@@ -48,6 +48,19 @@
   max-width: 300px;
 }
 
+.health-insights-welcome {
+  color: #ffffff;
+  font-family: Lato;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 30px;
+  letter-spacing: 0.891px;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
 .health-insights-message {
   color: #ffffff;
   font-family: Lato;
@@ -57,6 +70,9 @@
   line-height: 30px;
   letter-spacing: 0.891px;
   text-align: center;
+  margin-top: 35px;
+  margin-bottom: 0;
+  padding: 0;
 }
 
 .get-started-button {
