@@ -2,7 +2,7 @@
 
 Complete guide to all reusable components in the Health Insights App with import paths and usage examples.
 
----
+----
 
 ## Table of Contents
 
