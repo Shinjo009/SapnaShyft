@@ -28,6 +28,7 @@ import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
 import bgImage from './images/BG-1.png';
 import { sendOtp, verifyOtp, refreshToken, logout } from './services/authService';
+import { createUser } from './services/usersService';
 import {
   saveAuthTokens,
   getRefreshToken,
@@ -149,6 +150,11 @@ function App() {
     setCurrentPage('otp');
   };
 
+  const handleSignup = async (formData) => {
+    await createUser(formData);
+    await handleSendOtp(formData.phone);
+  };
+
   const handleVerifyOtp = async (otp) => {
     const verificationResponse = await verifyOtp({ phone: phoneNumber, otp });
     const tokens = extractTokensFromResponse(verificationResponse);
@@ -239,7 +245,7 @@ function App() {
 
       {currentPage === 'signup' && (
         <SignupPage 
-          onSuccess={(data) => handleSendOtp(data.phone)}
+          onSuccess={handleSignup}
           onLogin={() => setCurrentPage('login')}
         />
       )}

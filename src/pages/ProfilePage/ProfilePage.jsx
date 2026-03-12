@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Button from '../../components/Button';
 import './ProfilePage.css';
 import bgImage from '../../images/BG-2.png';
 import bgImage1 from '../../images/BG-1.png';
 import profileAvatarMain from '../../images/TempH.png';
-import profileAvatarAccount from '../../images/TempP.png';
 import editIcon from '../../images/Edit.svg';
 import healthRecordsIcon from '../../images/HealthRecords.svg';
 import supportIcon from '../../images/Support.svg';
@@ -14,6 +13,7 @@ import proPhoneIcon from '../../images/Pro-Phone.svg';
 import proMailIcon from '../../images/Pro-Mail.svg';
 import proLocIcon from '../../images/Pro-Loc.svg';
 import proGenAgeIcon from '../../images/Pro-GenAge.svg';
+import { getMyProfile } from '../../services/profileService';
 
 /**
  * ProfilePage - User profile management screen
@@ -33,6 +33,72 @@ const ProfilePage = ({
   const [activeModal, setActiveModal] = useState(null);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [error, setError] = useState('');
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState('');
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadProfile = async () => {
+      try {
+        setProfileLoading(true);
+        setProfileError('');
+        const response = await getMyProfile();
+        const data = response?.data && typeof response.data === 'object' ? response.data : response;
+
+        if (mounted) {
+          setProfile(data);
+        }
+      } catch (loadError) {
+        if (mounted) {
+          setProfileError(loadError?.message || 'Failed to load profile. Please try again.');
+        }
+      } finally {
+        if (mounted) {
+          setProfileLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const age = useMemo(() => {
+    if (!profile?.date_of_birth) {
+      return '';
+    }
+
+    const dob = new Date(profile.date_of_birth);
+    if (Number.isNaN(dob.getTime())) {
+      return '';
+    }
+
+    const today = new Date();
+    let calculatedAge = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      calculatedAge -= 1;
+    }
+
+    return calculatedAge > 0 ? String(calculatedAge) : '';
+  }, [profile?.date_of_birth]);
+
+  const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim() || 'User';
+  const phoneText = profile?.phone ? `+91 ${profile.phone}` : '-';
+  const emailText = profile?.email || '-';
+  const cityText = profile?.city || '-';
+  const stateText = profile?.state || '';
+  const locationText = [cityText, stateText].filter(Boolean).join(', ') || '-';
+  const genderText = profile?.gender
+    ? `${String(profile.gender).charAt(0).toUpperCase()}${String(profile.gender).slice(1)}`
+    : '';
+  const genderAgeText = [genderText, age].filter(Boolean).join(', ') || '-';
 
   const closeModal = () => {
     setActiveModal(null);
@@ -84,12 +150,24 @@ const ProfilePage = ({
 
         {/* Account Card */}
         <div className="profile-page__account-card">
+          {profileLoading ? (
+            <p className="profile-page__contact-item" style={{ width: '100%', justifyContent: 'center' }}>
+              Loading profile...
+            </p>
+          ) : null}
+
+          {!profileLoading && profileError ? (
+            <p className="profile-page__contact-item" style={{ width: '100%', justifyContent: 'center', color: '#FFB3B3' }}>
+              {profileError}
+            </p>
+          ) : null}
+
           <div className="profile-page__account-header">
             <div className="profile-page__avatar">
               <img src={profileAvatarMain} alt="Profile avatar" />
             </div>
             <div className="profile-page__account-info">
-              <h2 className="profile-page__full-name">Harsh Bedre</h2>
+              <h2 className="profile-page__full-name">{fullName}</h2>
             </div>
             <button className="profile-page__edit-btn" aria-label="Edit profile" onClick={onOpenEditProfile}>
               <img src={editIcon} alt="" aria-hidden="true" />
@@ -99,20 +177,20 @@ const ProfilePage = ({
           <div className="profile-page__contact-list">
             <div className="profile-page__contact-item">
               <img src={proPhoneIcon} alt="" aria-hidden="true" />
-              <span>+91 98765 43210</span>
+              <span>{phoneText}</span>
             </div>
             <div className="profile-page__contact-item">
               <img src={proMailIcon} alt="" aria-hidden="true" />
-              <span>aisha.sharma@example.com</span>
+              <span>{emailText}</span>
             </div>
             <div className="profile-page__contact-item profile-page__contact-item--split">
               <span className="profile-page__contact-segment profile-page__contact-segment--left">
                 <img src={proLocIcon} alt="" aria-hidden="true" />
-                <span>Marol, Mumbai</span>
+                <span>{locationText}</span>
               </span>
               <span className="profile-page__contact-segment profile-page__contact-segment--right">
                 <img src={proGenAgeIcon} alt="" aria-hidden="true" />
-                <span>Female, 23</span>
+                <span>{genderAgeText}</span>
               </span>
             </div>
           </div>
@@ -120,12 +198,10 @@ const ProfilePage = ({
           <div className="profile-page__accounts-title">ACCOUNTS</div>
 
           <div className="profile-page__linked-account-row">
-            <img className="profile-page__linked-account-avatar" src={profileAvatarAccount} alt="Linked account avatar" />
-            <div className="profile-page__linked-account-meta">
-              <span className="profile-page__linked-account-name">Prateek Salunkhe</span>
-              <span className="profile-page__linked-account-relation">Spouse</span>
+            <div className="profile-page__linked-account-meta" style={{ marginLeft: 0 }}>
+              <span className="profile-page__linked-account-name">No linked accounts</span>
+              <span className="profile-page__linked-account-relation">Add family members to switch profiles</span>
             </div>
-            <button className="profile-page__switch-btn" type="button">Switch</button>
           </div>
 
           <button className="profile-page__add-account" type="button" onClick={onOpenAddAccount}>

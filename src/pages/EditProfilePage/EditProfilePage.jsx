@@ -1,27 +1,110 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Input from '../../components/Input';
 import editProfileAvatar from '../../images/Icon-AddAcc.png';
 import './EditProfilePage.css';
+import { getMyProfile, updateMyProfile } from '../../services/profileService';
 
-const genderOptions = ['Male', 'Female'];
+const genderOptions = ['male', 'female'];
 
 const EditProfilePage = ({ onBack }) => {
   const [formData, setFormData] = useState({
-    firstName: 'Aisha',
-    lastName: 'Sharma',
-    email: 'aisha.sharma@example.com',
-    phone: '1234567890',
-    city: 'Marol',
-    age: '23',
-    organization: 'Organization Name',
-    gender: 'Female',
+    first_name: '',
+    last_name: '',
+    email: '',
+    date_of_birth: '',
+    gender: '',
+    address: '',
+    pin_code: '',
+    city: '',
+    state: '',
+    country: '',
+    phone: '',
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadProfile = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const response = await getMyProfile();
+        const profile = response?.data && typeof response.data === 'object' ? response.data : response;
+
+        if (!mounted) {
+          return;
+        }
+
+        setFormData({
+          first_name: profile?.first_name || '',
+          last_name: profile?.last_name || '',
+          email: profile?.email || '',
+          date_of_birth: profile?.date_of_birth || '',
+          gender: (profile?.gender || '').toLowerCase(),
+          address: profile?.address || '',
+          pin_code: profile?.pin_code || '',
+          city: profile?.city || '',
+          state: profile?.state || '',
+          country: profile?.country || '',
+          phone: profile?.phone || '',
+        });
+      } catch (loadError) {
+        if (mounted) {
+          setError(loadError?.message || 'Failed to load profile. Please try again.');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleChange = (field, value) => {
+    setSuccess('');
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError('');
+      setSuccess('');
+
+      const payload = {
+        first_name: formData.first_name.trim() || null,
+        last_name: formData.last_name.trim() || null,
+        email: formData.email.trim() || null,
+        date_of_birth: formData.date_of_birth || null,
+        gender: formData.gender.trim() || null,
+        address: formData.address.trim() || null,
+        pin_code: formData.pin_code.trim() || null,
+        city: formData.city.trim() || null,
+        state: formData.state.trim() || null,
+        country: formData.country.trim() || null,
+      };
+
+      await updateMyProfile(payload);
+      setSuccess('Profile updated successfully.');
+      onBack();
+    } catch (saveError) {
+      setError(saveError?.message || 'Failed to update profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -50,13 +133,15 @@ const EditProfilePage = ({ onBack }) => {
           <div className="edit-profile-page__name-row">
             <Input
               placeholder="First Name"
-              value={formData.firstName}
-              onChange={(e) => handleChange('firstName', e.target.value)}
+              value={formData.first_name}
+              onChange={(e) => handleChange('first_name', e.target.value)}
+              disabled={loading}
             />
             <Input
               placeholder="Last Name"
-              value={formData.lastName}
-              onChange={(e) => handleChange('lastName', e.target.value)}
+              value={formData.last_name}
+              onChange={(e) => handleChange('last_name', e.target.value)}
+              disabled={loading}
             />
           </div>
 
@@ -65,31 +150,56 @@ const EditProfilePage = ({ onBack }) => {
             placeholder="Email"
             value={formData.email}
             onChange={(e) => handleChange('email', e.target.value)}
+            disabled={loading}
           />
 
           <Input
-            placeholder="Phone"
+            placeholder="Phone (read-only)"
             value={formData.phone}
-            onChange={(e) => handleChange('phone', e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
+            disabled
+          />
+
+          <Input
+            type="date"
+            placeholder="Date of Birth"
+            value={formData.date_of_birth}
+            onChange={(e) => handleChange('date_of_birth', e.target.value)}
+            disabled={loading}
+          />
+
+          <Input
+            placeholder="Address"
+            value={formData.address}
+            onChange={(e) => handleChange('address', e.target.value)}
+            disabled={loading}
+          />
+
+          <Input
+            placeholder="Pin Code"
+            value={formData.pin_code}
+            onChange={(e) => handleChange('pin_code', e.target.value)}
+            disabled={loading}
           />
 
           <Input
             placeholder="City"
             value={formData.city}
             onChange={(e) => handleChange('city', e.target.value)}
+            disabled={loading}
           />
 
           <Input
-            type="number"
-            placeholder="Age"
-            value={formData.age}
-            onChange={(e) => handleChange('age', e.target.value)}
+            placeholder="State"
+            value={formData.state}
+            onChange={(e) => handleChange('state', e.target.value)}
+            disabled={loading}
           />
 
           <Input
-            placeholder="Organization Name"
-            value={formData.organization}
-            onChange={(e) => handleChange('organization', e.target.value)}
+            placeholder="Country"
+            value={formData.country}
+            onChange={(e) => handleChange('country', e.target.value)}
+            disabled={loading}
           />
 
           <div className="edit-profile-page__section">
@@ -103,20 +213,24 @@ const EditProfilePage = ({ onBack }) => {
                     type="button"
                     className={`edit-profile-page__choice ${isSelected ? 'edit-profile-page__choice--selected' : ''}`}
                     onClick={() => handleChange('gender', option)}
+                    disabled={loading}
                   >
                     <span className="edit-profile-page__gender-icon" aria-hidden="true">
-                      {option === 'Male' ? '♂' : '♀'}
+                      {option === 'male' ? '♂' : '♀'}
                     </span>
-                    <span>{option}</span>
+                    <span>{option.charAt(0).toUpperCase() + option.slice(1)}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <button type="button" className="edit-profile-page__submit">
-            Save
+          <button type="button" className="edit-profile-page__submit" onClick={handleSave} disabled={loading || saving}>
+            {saving ? 'Saving...' : 'Save'}
           </button>
+
+          {error ? <p className="edit-profile-page__status edit-profile-page__status--error">{error}</p> : null}
+          {success ? <p className="edit-profile-page__status edit-profile-page__status--success">{success}</p> : null}
         </div>
       </div>
     </div>

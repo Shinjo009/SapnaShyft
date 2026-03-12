@@ -156,3 +156,23 @@
   letter-spacing: 0.28px;
   cursor: pointer;
 }
+
+.edit-profile-page__submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.edit-profile-page__status {
+  margin: -6px 0 0;
+  font-family: Lato;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.edit-profile-page__status--error {
+  color: #ffb3b3;
+}
+
+.edit-profile-page__status--success {
+  color: #9ff0bd;
+}
