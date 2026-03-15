@@ -315,3 +315,1906 @@
   margin-left: 20px;
   margin-right: 35px;
 }
+
+/* Merged questionnaire styles into HealthAssessmentPage */
+
+.anthropometry-page {
+  min-height: 100vh;
+  padding: 12px 0 90px 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.anthropometry-page__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  position: relative;
+  top: 20px;
+  height: 56px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.anthropometry-page__back {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.anthropometry-page__title {
+  margin: 0;
+  color: #FFF;
+  text-align: center;
+  font-family: Lato;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+}
+
+.anthropometry-page__header-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  display: block;
+  margin-left: auto;
+}
+
+.anthropometry-page__header-spacer {
+  flex: 1;
+}
+
+.anthropometry-page__subtitle {
+  margin: 13px 16px 0 16px;
+  color: #c4c4c4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.anthropometry-page__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 16px;
+  transform: translateY(-20px);
+}
+
+.anthropometry-page__question {
+  margin: 14px 0 0 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.075px;
+}
+
+.anthropometry-page__question--mid {
+  margin-top: 20px;
+}
+
+.anthropometry-page__question--low {
+  margin-top: 16px;
+}
+
+.anthropometry-page__box {
+  margin: 12px 45px 0 45px;
+  border-radius: 16px;
+  border: 0.838px solid rgba(221, 219, 219, 0.1);
+  background: rgba(4, 251, 206, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.anthropometry-page__height-box {
+  height: 130px;
+  padding: 28px 16px 10px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.anthropometry-page__weight-box {
+  height: 144px;
+  padding: 18px 16px 10px 16px;
+}
+
+.anthropometry-page__waist-box {
+  height: 130px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.anthropometry-page__unit-wrap {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+}
+
+.anthropometry-page__unit {
+  display: inline-flex;
+  height: 17.6px;
+  padding: 4px 8px;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  background: rgba(136, 136, 136, 0.2);
+  color: #fff;
+  font-family: Lato;
+  font-size: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.anthropometry-page__unit-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: rgba(20, 20, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  min-width: 64px;
+  z-index: 20;
+}
+
+.anthropometry-page__unit-option {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-family: Lato;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.anthropometry-page__unit-option.is-active {
+  color: #04fbce;
+  font-weight: 600;
+}
+
+.anthropometry-page__unit-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.anthropometry-page__faded {
+  color: rgba(255, 255, 255, 0.3);
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 25.38px;
+}
+
+.anthropometry-page__faded--inline {
+  min-width: 24px;
+}
+
+.anthropometry-page__row-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.anthropometry-page__arrow-wrap {
+  width: 13px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.anthropometry-page__selected-box {
+  display: inline-flex;
+  padding: 8px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  min-width: 52px;
+}
+
+.anthropometry-page__selected-box--weight {
+  position: absolute;
+  left: 50%;
+  top: 55px;
+  transform: translateX(-50%);
+}
+
+.anthropometry-page__selected-value {
+  color: #fff;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 25.38px;
+}
+
+.anthropometry-page__dial {
+  width: 191.999px;
+  height: 109.124px;
+  margin: 2px auto 0;
+  display: block;
+  object-fit: contain;
+}
+
+.anthropometry-page__indicator {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 25px;
+}
+
+.anthropometry-page__waist-row {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.anthropometry-page__arrow-vertical {
+  width: 13px;
+  height: 15px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.anthropometry-page__arrow-vertical--top {
+  top: 18px;
+}
+
+.anthropometry-page__arrow-vertical--bottom {
+  bottom: 14px;
+}
+
+.anthropometry-page__arrow-below {
+  width: 13px;
+  height: 15px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.anthropometry-page__continue {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 40px;
+  width: calc(100% - 40px);
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.28px;
+  cursor: pointer;
+}
+
+.anthropometry-page__weight-dial-input {
+  color: #fff;
+  background: transparent;
+  border: none;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 25.38px;
+  width: 52px;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.anthropometry-page__weight-dial-input::-webkit-outer-spin-button,
+.anthropometry-page__weight-dial-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.anthropometry-page__waist-h-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+
+
+.anthropometry-followup-page {
+  min-height: 100vh;
+  padding: 12px 0 90px 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.anthropometry-followup-page__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  position: relative;
+  top: 20px;
+  height: 56px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.anthropometry-followup-page__back {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.anthropometry-followup-page__title {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+}
+
+.anthropometry-followup-page__header-spacer {
+  flex: 1;
+}
+
+.anthropometry-followup-page__header-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  display: block;
+  margin-left: auto;
+}
+
+.anthropometry-followup-page__subtitle {
+  margin: 13px 16px 0 16px;
+  color: #c4c4c4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.anthropometry-followup-page__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.anthropometry-followup-page__question {
+  margin: 0;
+  color: #FFF;
+  text-align: center;
+  font-family: Lato;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.075px;
+}
+
+.anthropometry-followup-page__question--hip {
+  margin-top: 16px;
+}
+
+.anthropometry-followup-page__question--fat {
+  margin-top: 20px;
+}
+
+.anthropometry-followup-page__box {
+  margin: 12px 45px 0 45px;
+  border-radius: 16px;
+  border: 0.838px solid rgba(221, 219, 219, 0.1);
+  background: rgba(4, 251, 206, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.anthropometry-followup-page__hip-box {
+  height: 130px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.anthropometry-followup-page__fat-box {
+  min-height: 102px;
+  padding: 14px 12px 12px 12px;
+}
+
+.anthropometry-followup-page__unit-wrap {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+}
+
+.anthropometry-followup-page__unit {
+  display: inline-flex;
+  height: 17.6px;
+  padding: 4px 8px;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  background: rgba(136, 136, 136, 0.2);
+  color: #fff;
+  font-family: Lato;
+  font-size: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.anthropometry-followup-page__unit-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: rgba(20, 20, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  min-width: 64px;
+  z-index: 20;
+}
+
+.anthropometry-followup-page__unit-option {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-family: Lato;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.anthropometry-followup-page__unit-option.is-active {
+  color: #04fbce;
+  font-weight: 600;
+}
+
+.anthropometry-followup-page__unit-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.anthropometry-followup-page__arrow-vertical {
+  width: 13px;
+  height: 15px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.anthropometry-followup-page__arrow-vertical--top {
+  top: 18px;
+}
+
+.anthropometry-followup-page__arrow-below {
+  width: 13px;
+  height: 15px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.anthropometry-followup-page__hip-row {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.anthropometry-followup-page__hip-h-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.anthropometry-followup-page__arrow-wrap {
+  width: 13px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.anthropometry-followup-page__faded {
+  min-width: 24px;
+  color: rgba(255, 255, 255, 0.3);
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 25.38px;
+}
+
+.anthropometry-followup-page__selected-box {
+  display: inline-flex;
+  min-width: 52px;
+  padding: 8px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0);
+}
+
+.anthropometry-followup-page__selected-value {
+  color: #fff;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 31px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 25.38px;
+}
+
+.anthropometry-followup-page__fat-value {
+  margin-top: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 25.38px;
+}
+
+.anthropometry-followup-page__fat-slider {
+  margin-top: 24px;
+  margin-left: 12px;
+  margin-right: 12px;
+  width: calc(100% - 24px);
+  height: 23px;
+  appearance: none;
+  border-radius: 100px;
+  border: 1px solid rgba(204, 32, 59, 0.8);
+  background: rgba(0, 0, 0, 0.1);
+  outline: none;
+}
+
+.anthropometry-followup-page__fat-slider::-webkit-slider-runnable-track {
+  height: 23px;
+  border-radius: 100px;
+  background: linear-gradient(
+    90deg,
+    rgba(204, 32, 59, 0.85) 0%,
+    rgba(204, 32, 59, 0.85) calc((var(--val, 45) - 5) * 100% / 65),
+    rgba(0, 0, 0, 0) calc((var(--val, 45) - 5) * 100% / 65)
+  );
+}
+
+.anthropometry-followup-page__fat-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  border: none;
+  margin-top: 4px;
+  box-shadow: 0 0 0 2px rgba(204, 32, 59, 0.6);
+}
+
+.anthropometry-followup-page__fat-slider::-moz-range-track {
+  height: 23px;
+  border-radius: 100px;
+  border: 1px solid rgba(204, 32, 59, 0.8);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.anthropometry-followup-page__fat-slider::-moz-range-progress {
+  height: 23px;
+  border-radius: 100px;
+  background: rgba(204, 32, 59, 0.85);
+}
+
+.anthropometry-followup-page__fat-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  border: none;
+  box-shadow: 0 0 0 2px rgba(204, 32, 59, 0.6);
+}
+
+.anthropometry-followup-page__skip {
+  align-self: center;
+  margin-top: 30px;
+  border: none;
+  background: none;
+  color: #bbb;
+  font-family: Lato;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.07px;
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: auto;
+  text-underline-offset: auto;
+  text-underline-position: from-font;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.anthropometry-followup-page__done {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 40px;
+  width: calc(100% - 40px);
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.28px;
+  cursor: pointer;
+}
+
+
+.family-history-page {
+  min-height: 100vh;
+  padding: 12px 0 20px 0;
+  box-sizing: border-box;
+}
+
+.family-history-page__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  top: 20px;
+  height: 56px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.family-history-page__back {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.family-history-page__title {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 19px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.095px;
+}
+
+.family-history-page__header-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  display: block;
+  margin-left: auto;
+}
+
+.family-history-page__subtitle {
+  margin: 17px 16px 0 16px;
+  color: #c4c4c4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.family-history-page__stack-wrap {
+  margin: 141px 20px 0 20px;
+  position: relative;
+  padding-bottom: var(--stack-space, 36px);
+}
+
+.family-history-page__card {
+  display: flex;
+  padding: 24px 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  align-self: stretch;
+  border-radius: 8px;
+  background: rgba(4, 251, 206, 0.1);
+  border: 0.8px solid rgba(221, 219, 219, 0.12);
+  position: relative;
+  z-index: 3;
+}
+
+.family-history-page__progress {
+  margin-top: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  background: linear-gradient(90deg, #fff 0%, #ccc 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.family-history-page__progress-main {
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.06px;
+}
+
+.family-history-page__progress-sub {
+  font-family: Lato;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.05px;
+}
+
+.family-history-page__question {
+  margin: 0;
+  width: 100%;
+  text-align: left;
+  color: #fff;
+  font-family: Lato;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.075px;
+}
+
+.family-history-page__question-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.family-history-page__info-btn {
+  width: 14px;
+  height: 14px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.family-history-page__helper {
+  margin: -12px 0 0 0;
+  width: 100%;
+  color: #bbb;
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.06px;
+}
+
+.family-history-page__chips {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
+
+.family-history-page__chips--multi {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.family-history-page__chip {
+  display: flex;
+  width: 140px;
+  padding: 4px 10px;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  border-radius: 24px;
+  border: 0.5px solid #4b8d83;
+  background: transparent;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.family-history-page__chip--selected {
+  background: radial-gradient(50.74% 50.76% at 50% 50%, #11795f 0%, #1c493d 100%);
+}
+
+.family-history-page__chip--full {
+  flex: 0 0 100%;
+  width: 100%;
+}
+
+.family-history-page__chip span {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.family-history-page__tick {
+  width: 12px;
+  height: 12px;
+}
+
+.family-history-page__stack-card {
+  position: absolute;
+  height: 18px;
+  border-radius: 0 0 8px 8px;
+  background: rgba(4, 251, 206, 0.08);
+  border: 0.8px solid rgba(221, 219, 219, 0.12);
+}
+
+.family-history-page__stack-card--one {
+  left: 10px;
+  right: 10px;
+  top: calc(100% - var(--stack-space, 36px));
+  z-index: 2;
+}
+
+.family-history-page__stack-card--two {
+  left: 20px;
+  right: 20px;
+  top: calc(100% - var(--stack-space, 36px) + 18px);
+  z-index: 1;
+}
+
+.family-history-page__swipe-hint {
+  margin: 12px 0 0 0;
+  text-align: center;
+  color: #bbb;
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.06px;
+}
+
+.family-history-page__done {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 40px;
+  width: calc(100% - 40px);
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.32px;
+  cursor: pointer;
+}
+
+.family-history-page__info-popup {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  width: min(362px, calc(100% - 2px));
+  height: 285px;
+  padding: 20px 20px 40px 20px;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 24px 24px 0 0;
+  border: 1px solid rgba(153, 153, 153, 0.5);
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+  box-sizing: border-box;
+  z-index: 30;
+}
+
+.family-history-page__info-handle {
+  width: 50px;
+  height: 1px;
+  background: rgba(204, 204, 204, 0.5);
+  margin-top: -2px;
+}
+
+.family-history-page__info-close {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.family-history-page__info-list {
+  width: 100%;
+  margin: 30px 0 0 0;
+  padding-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style-type: disc;
+  list-style-position: outside;
+}
+
+.family-history-page__info-list li {
+  color: #ccc;
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 300;
+  line-height: 15px;
+}
+
+
+.lifestyle-habits-page {
+  min-height: 100vh;
+  padding: 12px 0 20px 0;
+  box-sizing: border-box;
+}
+
+.lifestyle-habits-page__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  top: 20px;
+  height: 56px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.lifestyle-habits-page__back {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.lifestyle-habits-page__title {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 19px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.095px;
+}
+
+.lifestyle-habits-page__header-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  display: block;
+  margin-left: auto;
+}
+
+.lifestyle-habits-page__subtitle {
+  margin: 17px 16px 0 16px;
+  color: #c4c4c4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.lifestyle-habits-page__stack-wrap {
+  margin: 141px 16px 0 16px;
+  position: relative;
+  padding-bottom: var(--stack-space, 36px);
+}
+
+.lifestyle-habits-page__card {
+  display: flex;
+  padding: 24px 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  align-self: stretch;
+  border-radius: 8px;
+  background: rgba(4, 251, 206, 0.1);
+  border: 0.8px solid rgba(221, 219, 219, 0.12);
+  position: relative;
+  z-index: 3;
+}
+
+.lifestyle-habits-page__progress {
+  margin-top: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  background: linear-gradient(90deg, #fff 0%, #ccc 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.lifestyle-habits-page__progress-main {
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.06px;
+}
+
+.lifestyle-habits-page__progress-sub {
+  font-family: Lato;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.05px;
+}
+
+.lifestyle-habits-page__question-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.lifestyle-habits-page__question {
+  margin: 0;
+  width: 100%;
+  text-align: left;
+  color: #fff;
+  font-family: Lato;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.075px;
+}
+
+.lifestyle-habits-page__info-btn {
+  width: 14px;
+  height: 14px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.lifestyle-habits-page__helper {
+  margin: -12px 0 0 0;
+  width: 100%;
+  color: #bbb;
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.06px;
+}
+
+.lifestyle-habits-page__chips {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 10px;
+}
+
+.lifestyle-habits-page__chip {
+  display: flex;
+  min-height: 34px;
+  padding: 4px 10px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 0.5px solid #4b8d83;
+  background: transparent;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.lifestyle-habits-page__chip--full {
+  grid-column: 1 / -1;
+}
+
+.lifestyle-habits-page__chip--selected {
+  background: radial-gradient(50.74% 50.76% at 50% 50%, #11795f 0%, #1c493d 100%);
+}
+
+.lifestyle-habits-page__chip span {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.lifestyle-habits-page__tick {
+  width: 12px;
+  height: 12px;
+}
+
+.lifestyle-habits-page__stack-card {
+  position: absolute;
+  height: 18px;
+  border-radius: 0 0 8px 8px;
+  background: rgba(4, 251, 206, 0.08);
+  border: 0.8px solid rgba(221, 219, 219, 0.12);
+}
+
+.lifestyle-habits-page__stack-card--one {
+  left: 10px;
+  right: 10px;
+  top: calc(100% - var(--stack-space, 36px));
+  z-index: 2;
+}
+
+.lifestyle-habits-page__stack-card--two {
+  left: 20px;
+  right: 20px;
+  top: calc(100% - var(--stack-space, 36px) + 18px);
+  z-index: 1;
+}
+
+.lifestyle-habits-page__swipe-hint {
+  margin: 12px 0 0 0;
+  text-align: center;
+  color: #bbb;
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.06px;
+}
+
+.lifestyle-habits-page__done {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 40px;
+  width: calc(100% - 40px);
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.32px;
+  cursor: pointer;
+}
+
+.lifestyle-habits-page__info-popup {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  width: min(362px, calc(100% - 2px));
+  height: 285px;
+  padding: 20px 20px 40px 20px;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 24px 24px 0 0;
+  border: 1px solid rgba(153, 153, 153, 0.5);
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+  box-sizing: border-box;
+  z-index: 30;
+}
+
+.lifestyle-habits-page__info-handle {
+  width: 50px;
+  height: 1px;
+  background: rgba(204, 204, 204, 0.5);
+  margin-top: -2px;
+}
+
+.lifestyle-habits-page__info-close {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.lifestyle-habits-page__info-list {
+  width: 100%;
+  margin: 30px 0 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style-type: disc;
+  list-style-position: outside;
+}
+
+.lifestyle-habits-page__info-list li {
+  color: #ccc;
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 300;
+  line-height: 15px;
+}
+
+
+.nutrition-log-page {
+  min-height: 100vh;
+  padding: 12px 0 20px 0;
+  box-sizing: border-box;
+}
+
+.nutrition-log-page__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  top: 20px;
+  height: 56px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.nutrition-log-page__back {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.nutrition-log-page__title {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 19px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.095px;
+}
+
+.nutrition-log-page__header-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  display: block;
+  margin-left: auto;
+}
+
+.nutrition-log-page__subtitle {
+  margin: 17px 20px 0 20px;
+  color: #c4c4c4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.nutrition-log-page__stack-wrap {
+  margin: 141px 16px 0 16px;
+  position: relative;
+  padding-bottom: var(--stack-space, 36px);
+}
+
+.nutrition-log-page__card {
+  display: flex;
+  padding: 24px 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  align-self: stretch;
+  border-radius: 8px;
+  background: rgba(4, 251, 206, 0.1);
+  border: 0.8px solid rgba(221, 219, 219, 0.12);
+  position: relative;
+  z-index: 3;
+}
+
+.nutrition-log-page__progress {
+  margin-top: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  background: linear-gradient(90deg, #fff 0%, #ccc 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nutrition-log-page__progress-main {
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.06px;
+}
+
+.nutrition-log-page__progress-sub {
+  font-family: Lato;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.05px;
+}
+
+.nutrition-log-page__question-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.nutrition-log-page__question {
+  margin: 0;
+  width: 100%;
+  text-align: left;
+  color: #fff;
+  font-family: Lato;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.075px;
+}
+
+.nutrition-log-page__info-btn {
+  width: 14px;
+  height: 14px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.nutrition-log-page__helper {
+  margin: -12px 0 0 0;
+  width: 100%;
+  color: #bbb;
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.06px;
+}
+
+.nutrition-log-page__chips {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
+}
+
+.nutrition-log-page__chip {
+  display: flex;
+  min-height: 34px;
+  padding: 4px 10px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 0.5px solid #4b8d83;
+  background: transparent;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.nutrition-log-page__chip--full {
+  grid-column: 1 / -1;
+}
+
+.nutrition-log-page__chip--selected {
+  background: radial-gradient(50.74% 50.76% at 50% 50%, #11795f 0%, #1c493d 100%);
+}
+
+.nutrition-log-page__chip span {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.nutrition-log-page__tick {
+  width: 12px;
+  height: 12px;
+}
+
+.nutrition-log-page__stack-card {
+  position: absolute;
+  height: 18px;
+  border-radius: 0 0 8px 8px;
+  background: rgba(4, 251, 206, 0.08);
+  border: 0.8px solid rgba(221, 219, 219, 0.12);
+}
+
+.nutrition-log-page__stack-card--one {
+  left: 10px;
+  right: 10px;
+  top: calc(100% - var(--stack-space, 36px));
+  z-index: 2;
+}
+
+.nutrition-log-page__stack-card--two {
+  left: 20px;
+  right: 20px;
+  top: calc(100% - var(--stack-space, 36px) + 18px);
+  z-index: 1;
+}
+
+.nutrition-log-page__swipe-hint {
+  margin: 12px 0 0 0;
+  text-align: center;
+  color: #bbb;
+  font-family: Lato;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.06px;
+}
+
+.nutrition-log-page__done {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 40px;
+  width: calc(100% - 40px);
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.32px;
+  cursor: pointer;
+}
+
+.nutrition-log-page__info-popup {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  width: min(362px, calc(100% - 2px));
+  height: 285px;
+  padding: 20px 20px 40px 20px;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 24px 24px 0 0;
+  border: 1px solid rgba(153, 153, 153, 0.5);
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+  box-sizing: border-box;
+  z-index: 30;
+}
+
+.nutrition-log-page__info-handle {
+  width: 50px;
+  height: 1px;
+  background: rgba(204, 204, 204, 0.5);
+  margin-top: -2px;
+}
+
+.nutrition-log-page__info-close {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.nutrition-log-page__info-list {
+  width: 100%;
+  margin: 30px 0 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style-type: disc;
+  list-style-position: outside;
+}
+
+.nutrition-log-page__info-list li {
+  color: #ccc;
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 300;
+  line-height: 15px;
+}
+
+
+.vitals-page {
+  min-height: 100vh;
+  padding: 12px 0 20px 0;
+  box-sizing: border-box;
+}
+
+.vitals-page__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  top: 20px;
+  height: 56px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.vitals-page__back {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.vitals-page__title {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 19px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.095px;
+}
+
+.vitals-page__header-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  display: block;
+  margin-left: auto;
+}
+
+.vitals-page__subtitle {
+  margin: 17px 20px 0 20px;
+  color: #c4c4c4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.vitals-page__label {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.075px;
+}
+
+.vitals-page__label--first {
+  margin-top: 85px;
+}
+
+.vitals-page__label--second {
+  margin-top: 24px;
+}
+
+.vitals-page__box {
+  margin: 16px 46px 0 46px;
+  display: flex;
+  padding: 50px 32px 43px 33px;
+  justify-content: center;
+  align-items: center;
+  align-self: stretch;
+  border-radius: 16px;
+  border: 0.838px solid rgba(221, 219, 219, 0.1);
+  background: rgba(4, 251, 206, 0.05);
+  position: relative;
+}
+
+.vitals-page__score-box {
+  display: flex;
+  padding: 12px 8px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  min-width: 48px;
+  position: relative;
+}
+
+.vitals-page__score-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: text;
+}
+
+.vitals-page__score-input::-webkit-outer-spin-button,
+.vitals-page__score-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.vitals-page__score-input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.vitals-page__score-value {
+  color: #fff;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 25.38px;
+}
+
+.vitals-page__score-value--empty {
+  color: #bbb;
+  font-weight: 400;
+}
+
+.vitals-page__unit {
+  position: absolute;
+  right: 60px;
+  bottom: 60.367px;
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.07px;
+}
+
+.vitals-page__skip {
+  position: fixed;
+  left: 50%;
+  bottom: 80px;
+  transform: translateX(-50%);
+  border: none;
+  background: none;
+  color: #bbb;
+  font-family: Lato;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.07px;
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: auto;
+  text-underline-offset: auto;
+  text-underline-position: from-font;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.vitals-page__done {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 40px;
+  width: calc(100% - 40px);
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.32px;
+  cursor: pointer;
+}
