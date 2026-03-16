@@ -3,6 +3,7 @@ import './HomePage.css';
 import Header from '../../components/HomePage/Header';
 import MetabolicAgeCard from '../../components/HomePage/MetabolicAgeCard';
 import HealthParametersSection from '../../components/HomePage/HealthParametersSection';
+import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/PositiveWinsSection';
 import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 
@@ -63,6 +64,8 @@ const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToProfi
         ]}
         onSeeMore={handleHealthScanSeeMore}
       />
+
+      <PositiveWinsSection />
 
       {/* Risk Analysis Section */}
       <RiskAnalysisSection onSeeMore={handleRiskAnalysisSeeMore} onDiseaseSelect={onNavigateToDiseaseDetail} />

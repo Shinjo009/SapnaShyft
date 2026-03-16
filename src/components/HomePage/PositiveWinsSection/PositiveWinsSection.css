@@ -1,0 +1,314 @@
+.positive-wins {
+  position: relative;
+  width: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+  margin-top: 20px;
+  margin-bottom: 16px;
+}
+
+.positive-wins__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.positive-wins__header-icon-box {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  justify-content: center;
+  align-items: center;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  border: 1px solid rgba(144, 223, 158, 0.2);
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%);
+  flex-shrink: 0;
+}
+
+.positive-wins__header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.positive-wins__title {
+  margin: 0;
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.positive-wins__subtitle {
+  margin: 0;
+  color: #999;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.positive-wins__carousel {
+  margin-top: 20px;
+  overflow: hidden;
+}
+
+.positive-wins__carousel-track {
+  display: flex;
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.positive-wins__carousel-slide {
+  width: 100%;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
+.positive-wins__card-wrap {
+  --positive-wins-card-height: 182px;
+  position: relative;
+  width: calc(100% - 30px);
+  margin-left: auto;
+  margin-right: auto;
+  height: var(--positive-wins-card-height);
+  overflow: visible;
+  padding-bottom: 18px;
+}
+
+.positive-wins__card-shadow,
+.positive-wins__card {
+  border-radius: 24px;
+}
+
+.positive-wins__card-shadow {
+  position: absolute;
+  top: 0;
+  border: 1px solid rgba(144, 223, 158, 0.1);
+  background: radial-gradient(192.2% 117.1% at 0% 0%, rgba(52, 211, 153, 0.15) 0%, rgba(52, 211, 153, 0) 70%);
+  pointer-events: none;
+}
+
+.positive-wins__card-shadow--one {
+  left: -8px;
+  bottom: -7.999px;
+  width: calc(100% + 16px);
+  height: var(--positive-wins-card-height);
+  z-index: 0;
+}
+
+.positive-wins__card-shadow--two {
+  left: -16px;
+  bottom: -18px;
+  width: calc(100% + 32px);
+  height: var(--positive-wins-card-height);
+  z-index: 0;
+}
+
+.positive-wins__card {
+  position: relative;
+  z-index: 1;
+  height: var(--positive-wins-card-height);
+  display: block;
+  padding: 24px;
+  border: 1px solid rgba(144, 223, 158, 0.3);
+  background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(144, 223, 158, 0.05) 100%);
+  backdrop-filter: blur(40px);
+  overflow: hidden;
+}
+
+.positive-wins__card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(74, 222, 128, 0.08) 0%, rgba(0, 0, 0, 0) 62%);
+  pointer-events: none;
+}
+
+.positive-wins__card-top-row,
+.positive-wins__card-content {
+  position: relative;
+  z-index: 1;
+}
+
+.positive-wins__card-top-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.positive-wins__badge-icon {
+  display: flex;
+  width: 38px;
+  height: 38px;
+  justify-content: center;
+  align-items: center;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  border: 1px solid rgba(144, 223, 158, 0.3);
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 100%);
+  box-shadow: 0 4px 12px 0 rgba(16, 185, 129, 0.1);
+  flex-shrink: 0;
+}
+
+.positive-wins__status-pill {
+  display: flex;
+  padding: 6px 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  border-radius: 20px;
+  border: 1px solid rgba(144, 223, 158, 0.3);
+  background: rgba(0, 0, 0, 0.05);
+  color: #90df9e;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.positive-wins__card-content {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.positive-wins__left-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 17px;
+  min-width: 0;
+  flex: 1;
+}
+
+.positive-wins__risk-title {
+  margin: 0;
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 22px;
+  white-space: pre-line;
+}
+
+.positive-wins__meter {
+  display: flex;
+  height: 8px;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 6px;
+  align-self: stretch;
+}
+
+.positive-wins__meter-pill {
+  height: 5px;
+  flex: 1 0 0;
+  border-radius: 2px;
+}
+
+.positive-wins__meter-pill.is-strong {
+  background: #4ade80;
+  box-shadow: 0 0 12px 0 rgba(144, 223, 158, 0.4);
+}
+
+.positive-wins__meter-pill.is-medium {
+  background: rgba(74, 222, 128, 0.75);
+  box-shadow: 0 0 12px 0 rgba(144, 223, 158, 0.4);
+}
+
+.positive-wins__meter-pill.is-soft {
+  background: rgba(74, 222, 128, 0.4);
+}
+
+.positive-wins__meter-pill.is-faint {
+  background: rgba(74, 222, 128, 0.25);
+}
+
+.positive-wins__meter-pill.is-low {
+  background: rgba(74, 222, 128, 0.15);
+}
+
+.positive-wins__aspect-list {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.positive-wins__aspect-item {
+  display: flex;
+  width: 148px;
+  padding: 6px 10px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
+  gap: 10px;
+}
+
+.positive-wins__aspect-label {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  flex: 1;
+}
+
+.positive-wins__aspect-value {
+  color: #90df9e;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.positive-wins__swipe-hint {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.positive-wins__swipe-text {
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.positive-wins__swipe-arrow {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.positive-wins__swipe-arrow--left {
+  transform: rotate(180deg);
+}
