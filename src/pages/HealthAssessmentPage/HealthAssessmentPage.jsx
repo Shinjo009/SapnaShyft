@@ -5,7 +5,6 @@ import ques3Icon from '../../images/ques-3.svg';
 import ques4Icon from '../../images/ques-4.svg';
 import ques5Icon from '../../images/ques-5.svg';
 import quesArrow from '../../images/ques-arrow.svg';
-import quesElongated from '../../images/ques-elon.svg';
 import tickIcon from '../../images/ques-tick.svg';
 import AnthInd from '../../images/Anth-Ind.svg';
 import './HealthAssessmentPage.css';
@@ -1625,22 +1624,22 @@ const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [] }) => {
 };
 
 const defaultSteps = [
-  { id: 'anthropometry', label: 'Anthropometry', detail: 'Track your\nheight, weight\n& BMI', icon: ques1Icon, side: 'center' },
-  { id: 'family-history', label: 'Family\nHistory', detail: 'Record\nhereditary\nhealth\nconditions', icon: ques2Icon, side: 'left' },
-  { id: 'lifestyle-habits', label: 'Lifestyle &\nHabits', detail: 'Your daily\nroutine &\nactivities', icon: ques3Icon, side: 'right' },
-  { id: 'nutrition-log', label: 'Nutrition\nLog', detail: 'Monitor\nyour\ndietary\nintake', icon: ques4Icon, side: 'left' },
-  { id: 'vitals', label: 'Vitals', detail: 'Blood\npressure\n& more', icon: ques5Icon, side: 'center' },
+  { id: 'anthropometry', label: 'Anthropometry', detail: 'Track your height, weight & BMI', icon: ques1Icon, side: 'center' },
+  { id: 'family-history', label: 'Family\nHistory', detail: 'Record hereditary health conditions', icon: ques2Icon, side: 'left' },
+  { id: 'lifestyle-habits', label: 'Lifestyle &\nHabits', detail: 'Your daily routine & activities', icon: ques3Icon, side: 'right' },
+  { id: 'nutrition-log', label: 'Nutrition\nLog', detail: 'Monitor your dietary intake', icon: ques4Icon, side: 'left' },
+  { id: 'vitals', label: 'Vitals', detail: 'Blood pressure & more', icon: ques5Icon, side: 'center' },
 ];
 
 const DOT_LEVELS = [1, 2, 3];
 const SEGMENT_GLOW_DOT_LEVELS = [0, 1, 2, 3];
 
 const stepMetaByRoute = {
-  anthropometry: { icon: ques1Icon, side: 'center', detail: 'Track your\nheight, weight\n& BMI' },
-  'family-history': { icon: ques2Icon, side: 'left', detail: 'Record\nhereditary\nhealth\nconditions' },
-  'lifestyle-habits': { icon: ques3Icon, side: 'right', detail: 'Your daily\nroutine &\nactivities' },
-  'nutrition-log': { icon: ques4Icon, side: 'left', detail: 'Monitor\nyour\ndietary\nintake' },
-  vitals: { icon: ques5Icon, side: 'center', detail: 'Blood\npressure\n& more' },
+  anthropometry: { icon: ques1Icon, side: 'center', detail: 'Track your height, weight & BMI' },
+  'family-history': { icon: ques2Icon, side: 'left', detail: 'Record hereditary health conditions' },
+  'lifestyle-habits': { icon: ques3Icon, side: 'right', detail: 'Your daily routine & activities' },
+  'nutrition-log': { icon: ques4Icon, side: 'left', detail: 'Monitor your dietary intake' },
+  vitals: { icon: ques5Icon, side: 'center', detail: 'Blood pressure & more' },
 };
 
 const getCirclePositionStyle = (side, index) => {
@@ -1670,20 +1669,20 @@ const HealthAssessmentPage = ({
 }) => {
   const [activeSubPage, setActiveSubPage] = useState(null);
   const [showFollowup, setShowFollowup] = useState(false);
-  const resolvedSteps = Array.isArray(steps) && steps.length > 0
-    ? steps.slice(0, 5).map((step, index) => {
-      const routeId = step?.routeId || defaultSteps[index]?.id;
-      const meta = stepMetaByRoute[routeId] || stepMetaByRoute[defaultSteps[index]?.id] || stepMetaByRoute.vitals;
+  const resolvedSteps = defaultSteps.map((defaultStep) => {
+    const matchedStep = Array.isArray(steps)
+      ? steps.find((step) => step?.routeId === defaultStep.id || step?.id === defaultStep.id)
+      : null;
+    const meta = stepMetaByRoute[defaultStep.id] || stepMetaByRoute.vitals;
 
-      return {
-        id: routeId,
-        label: String(step?.display_name || defaultSteps[index]?.label || ''),
-        detail: meta.detail,
-        icon: meta.icon,
-        side: meta.side,
-      };
-    })
-    : defaultSteps;
+    return {
+      id: defaultStep.id,
+      label: String(matchedStep?.display_name || defaultStep.label),
+      detail: String(meta.detail),
+      icon: meta.icon,
+      side: meta.side,
+    };
+  });
 
   const activeIndex = progress < resolvedSteps.length ? progress : -1;
   const showPill = activeIndex !== -1 && expandedStep === activeIndex;
@@ -1693,6 +1692,22 @@ const HealthAssessmentPage = ({
 
   const isCompleted = (index) => index < progress;
   const isActive = (index) => index === activeIndex;
+
+  useEffect(() => {
+    if (activeIndex === -1 || activeSubPage) {
+      return;
+    }
+
+    if (expandedStep === activeIndex) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      onExpandStep?.(activeIndex);
+    }, 1);
+
+    return () => clearTimeout(timer);
+  }, [activeIndex, activeSubPage, expandedStep, onExpandStep]);
 
   if (activeSubPage === 'anthropometry' && !showFollowup) {
     return (
@@ -1882,7 +1897,7 @@ const HealthAssessmentPage = ({
                   type="button"
                   className={`health-assessment-page__pill health-assessment-page__active-pill ${showPill ? 'is-visible' : 'is-hidden'}`}
                   onClick={() => setActiveSubPage(step.id)}
-                  style={{ ...getPillPositionStyle(), backgroundImage: `url(${quesElongated})` }}
+                  style={getPillPositionStyle()}
                   aria-label={`Open ${step.label} questionnaire`}
                 >
                   <div className="health-assessment-page__pill-left">

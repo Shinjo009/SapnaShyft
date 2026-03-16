@@ -33,9 +33,8 @@
   margin: 0 auto;
   position: relative;
   touch-action: none;
-  --node-size: 98px;
-  --node-radius: 49px;
-  --state-image-size: 132px;
+  --node-size: 100px;
+  --node-radius: 50px;
   --side-gap: 38px;
   --side-offset: calc(var(--node-radius) + var(--side-gap));
   --y0: var(--node-radius);
@@ -173,11 +172,11 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 98px;
-  height: 98px;
+  width: 100px;
+  height: 100px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.15);
   border: none;
   display: flex;
   flex-direction: column;
@@ -185,21 +184,22 @@
   justify-content: center;
   box-sizing: border-box;
   transition: all 260ms ease;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 98px 98px;
 }
 
 .health-assessment-page__circle--completed {
-  background: url('../../images/ques-glow2.png') center / var(--state-image-size) var(--state-image-size) no-repeat;
-  border: none;
+  background: rgba(0, 0, 0, 0);
+  border: 1px solid #a7e4bb;
+  -webkit-filter: drop-shadow(0 0 15px #90df9e);
   filter: drop-shadow(0 0 15px #90df9e);
+  box-shadow: 0 0 15px rgba(144, 223, 158, 0.9);
 }
 
 .health-assessment-page__circle--active-glow {
-  background: url('../../images/ques-glow1.png') center / var(--state-image-size) var(--state-image-size) no-repeat;
-  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(167, 228, 187, 0.9);
+  -webkit-filter: drop-shadow(0 0 15px #90df9e);
   filter: drop-shadow(0 0 15px #90df9e);
+  box-shadow: 0 0 15px rgba(144, 223, 158, 0.9);
 }
 
 .health-assessment-page__circle--button {
@@ -254,15 +254,15 @@
   transform: translate(-50%, -50%);
   width: 264px;
   height: 88px;
-  border: none;
-  background-size: 100% 100%;
-  background-position: center;
-  background-repeat: no-repeat;
+  border: 1px solid #a7e4bb;
+  border-radius: 100px;
   background-color: transparent;
+  -webkit-filter: drop-shadow(0 0 15px #90df9e);
   filter: drop-shadow(0 0 15px #90df9e);
+  box-shadow: 0 0 15px rgba(144, 223, 158, 0.9);
   display: flex;
   align-items: center;
-  padding: 0;
+  padding: 0 20px 0 0;
   cursor: pointer;
   box-sizing: border-box;
   outline: none;
@@ -276,6 +276,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .health-assessment-page__icon {
@@ -297,7 +298,9 @@
 }
 
 .health-assessment-page__detail-text {
-  margin-left: 58px;
+  flex: 1;
+  min-width: 0;
+  margin-left: 20px;
   color: #bbb;
   font-family: Lato;
   font-size: 11px;
@@ -306,14 +309,15 @@
   line-height: normal;
   letter-spacing: 0.055px;
   text-align: left;
-  white-space: pre-line;
+  white-space: normal;
 }
 
 .health-assessment-page__arrow {
   width: 26px;
   height: 26px;
   margin-left: 20px;
-  margin-right: 35px;
+  margin-right: 0;
+  flex-shrink: 0;
 }
 
 /* Merged questionnaire styles into HealthAssessmentPage */
@@ -654,6 +658,7 @@
   line-height: 25.38px;
   width: 52px;
   outline: none;
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 
@@ -2174,7 +2179,7 @@
 .vitals-page__skip {
   position: fixed;
   left: 50%;
-  bottom: 80px;
+  bottom: 110px;
   transform: translateX(-50%);
   border: none;
   background: none;
