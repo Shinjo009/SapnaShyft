@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Input from '../../components/Input';
 import addAccountAvatar from '../../images/Icon-AddAcc.png';
 import './AddAccountPage.css';
+import { createMySubProfile } from '../../services/usersService';
 
 const genderOptions = ['Male', 'Female'];
 const relationOptions = ['Parent', 'Sibling', 'Spouse', 'Child', 'Grandparent', 'Other'];
@@ -18,12 +19,38 @@ const AddAccountPage = ({ onBack }) => {
     gender: 'Female',
     relation: 'Sibling',
   });
+  const [saving, setSaving] = useState(false);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleSubmit = async () => {
+    try {
+      if (!formData.firstName.trim()) {
+        throw new Error('First name is required.');
+      }
+
+      if (!formData.lastName.trim()) {
+        throw new Error('Last name is required.');
+      }
+
+      const age = Number.parseInt(formData.age, 10);
+      if (Number.isNaN(age) || age < 1 || age > 120) {
+        throw new Error('Age must be between 1 and 120.');
+      }
+
+      setSaving(true);
+      await createMySubProfile(formData);
+      onBack();
+    } catch (error) {
+      window.alert(error?.message || 'Failed to add account. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -136,8 +163,8 @@ const AddAccountPage = ({ onBack }) => {
             onChange={(e) => handleChange('organization', e.target.value)}
           />
 
-          <button type="button" className="add-account-page__submit">
-            ADD
+          <button type="button" className="add-account-page__submit" onClick={handleSubmit} disabled={saving}>
+            {saving ? 'ADDING...' : 'ADD'}
           </button>
         </div>
       </div>

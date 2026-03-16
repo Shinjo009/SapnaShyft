@@ -1,4 +1,5 @@
 import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../config/appConfig';
+import { getAccessToken } from '../utils/authStorage';
 
 const parseResponseBody = async (response) => {
   const text = await response.text();
@@ -82,4 +83,19 @@ export const logout = (refreshTokenValue) => {
   }
 
   return post('/auth/logout', { refresh_token: refreshTokenValue });
+};
+
+export const switchAccount = (targetUserId) => {
+  const parsedTargetUserId = Number.parseInt(targetUserId, 10);
+
+  if (Number.isNaN(parsedTargetUserId) || parsedTargetUserId <= 0) {
+    throw new Error('Invalid target user id for account switch.');
+  }
+
+  const accessToken = getAccessToken();
+  if (!accessToken) {
+    throw new Error('You are not logged in. Please login again.');
+  }
+
+  return post(`/auth/switch/${parsedTargetUserId}`, {}, { Authorization: `Bearer ${accessToken}` });
 };

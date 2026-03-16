@@ -657,6 +657,11 @@
   -moz-appearance: textfield;
 }
 
+.anthropometry-page__weight-dial-input::placeholder {
+  color: #fff;
+  opacity: 1;
+}
+
 .anthropometry-page__weight-dial-input::-webkit-outer-spin-button,
 .anthropometry-page__weight-dial-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -1108,7 +1113,7 @@
 }
 
 .family-history-page__stack-wrap {
-  margin: 141px 20px 0 20px;
+  margin: 141px 16px 0 16px;
   position: relative;
   padding-bottom: var(--stack-space, 36px);
 }
@@ -1201,20 +1206,19 @@
 
 .family-history-page__chips {
   width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
 }
 
 .family-history-page__chips--multi {
-  flex-wrap: wrap;
-  justify-content: flex-start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .family-history-page__chip {
   display: flex;
-  width: 140px;
+  width: 100%;
+  min-height: 34px;
   padding: 4px 10px;
   justify-content: center;
   align-items: center;
@@ -1235,8 +1239,7 @@
 }
 
 .family-history-page__chip--full {
-  flex: 0 0 100%;
-  width: 100%;
+  grid-column: 1 / -1;
 }
 
 .family-history-page__chip span {
@@ -1530,7 +1533,7 @@
   width: 100%;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 10px;
+  gap: 14px 12px;
 }
 
 .lifestyle-habits-page__chip {

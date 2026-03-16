@@ -13,7 +13,10 @@ import proPhoneIcon from '../../images/Pro-Phone.svg';
 import proMailIcon from '../../images/Pro-Mail.svg';
 import proLocIcon from '../../images/Pro-Loc.svg';
 import proGenAgeIcon from '../../images/Pro-GenAge.svg';
+import { switchAccount } from '../../services/authService';
 import { getMyProfile } from '../../services/profileService';
+import { getMyProfiles } from '../../services/usersService';
+import { clearAuthTokens, extractTokensFromResponse, saveAuthTokens } from '../../utils/authStorage';
 
 /**
  * ProfilePage - User profile management screen
@@ -36,6 +39,10 @@ const ProfilePage = ({
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState('');
   const [profile, setProfile] = useState(null);
+  const [linkedProfilesLoading, setLinkedProfilesLoading] = useState(true);
+  const [linkedProfilesError, setLinkedProfilesError] = useState('');
+  const [linkedProfiles, setLinkedProfiles] = useState([]);
+  const [switchingUserId, setSwitchingUserId] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -68,7 +75,42 @@ const ProfilePage = ({
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+
+    const loadLinkedProfiles = async () => {
+      try {
+        setLinkedProfilesLoading(true);
+        setLinkedProfilesError('');
+        const response = await getMyProfiles();
+        const data = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
+
+        if (mounted) {
+          setLinkedProfiles(data);
+        }
+      } catch (loadError) {
+        if (mounted) {
+          setLinkedProfilesError(loadError?.message || 'Failed to load linked accounts.');
+        }
+      } finally {
+        if (mounted) {
+          setLinkedProfilesLoading(false);
+        }
+      }
+    };
+
+    loadLinkedProfiles();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const age = useMemo(() => {
+    if (typeof profile?.age === 'number' && profile.age > 0) {
+      return String(profile.age);
+    }
+
     if (!profile?.date_of_birth) {
       return '';
     }
@@ -87,7 +129,7 @@ const ProfilePage = ({
     }
 
     return calculatedAge > 0 ? String(calculatedAge) : '';
-  }, [profile?.date_of_birth]);
+  }, [profile?.age, profile?.date_of_birth]);
 
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim() || 'User';
   const phoneText = profile?.phone ? `+91 ${profile.phone}` : '-';
@@ -99,6 +141,7 @@ const ProfilePage = ({
     ? `${String(profile.gender).charAt(0).toUpperCase()}${String(profile.gender).slice(1)}`
     : '';
   const genderAgeText = [genderText, age].filter(Boolean).join(', ') || '-';
+  const linkedProfilesToRender = linkedProfiles.filter((item) => Number(item?.user_id || 0) !== Number(profile?.user_id || 0));
 
   const closeModal = () => {
     setActiveModal(null);
@@ -121,6 +164,49 @@ const ProfilePage = ({
     } catch (logoutError) {
       setError(logoutError?.message || 'Logout failed. Please try again.');
       setLogoutLoading(false);
+    }
+  };
+
+  const handleSwitchProfile = async (targetUserId) => {
+    try {
+      setSwitchingUserId(targetUserId);
+      setLinkedProfilesError('');
+      setProfileError('');
+
+      const switchResponse = await switchAccount(targetUserId);
+      const tokens = extractTokensFromResponse(switchResponse);
+
+      if (!tokens.accessToken || !tokens.refreshToken) {
+        throw new Error('Switch account response missing access/refresh token.');
+      }
+
+      clearAuthTokens();
+      saveAuthTokens(tokens);
+
+      setProfileLoading(true);
+      setLinkedProfilesLoading(true);
+
+      const [profileResponse, profilesResponse] = await Promise.all([getMyProfile(), getMyProfiles()]);
+
+      const profileData = profileResponse?.data && typeof profileResponse.data === 'object'
+        ? profileResponse.data
+        : profileResponse;
+      const profilesData = Array.isArray(profilesResponse?.data)
+        ? profilesResponse.data
+        : Array.isArray(profilesResponse)
+          ? profilesResponse
+          : [];
+
+      setProfile(profileData);
+      setLinkedProfiles(profilesData);
+    } catch (switchError) {
+      const message = switchError?.message || 'Failed to switch account. Please try again.';
+      setLinkedProfilesError(message);
+      window.alert(message);
+    } finally {
+      setSwitchingUserId(null);
+      setProfileLoading(false);
+      setLinkedProfilesLoading(false);
     }
   };
 
@@ -201,12 +287,60 @@ const ProfilePage = ({
 
           <div className="profile-page__accounts-title">ACCOUNTS</div>
 
-          <div className="profile-page__linked-account-row">
-            <div className="profile-page__linked-account-meta" style={{ marginLeft: 0 }}>
-              <span className="profile-page__linked-account-name">No linked accounts</span>
-              <span className="profile-page__linked-account-relation">Add family members to switch profiles</span>
+          {linkedProfilesLoading ? (
+            <div className="profile-page__linked-account-row">
+              <div className="profile-page__linked-account-meta" style={{ marginLeft: 0 }}>
+                <span className="profile-page__linked-account-name">Loading accounts...</span>
+                <span className="profile-page__linked-account-relation">Please wait</span>
+              </div>
             </div>
-          </div>
+          ) : null}
+
+          {!linkedProfilesLoading && linkedProfilesError ? (
+            <div className="profile-page__linked-account-row">
+              <div className="profile-page__linked-account-meta" style={{ marginLeft: 0 }}>
+                <span className="profile-page__linked-account-name">Unable to load accounts</span>
+                <span className="profile-page__linked-account-relation">{linkedProfilesError}</span>
+              </div>
+            </div>
+          ) : null}
+
+          {!linkedProfilesLoading && !linkedProfilesError && linkedProfilesToRender.length === 0 ? (
+            <div className="profile-page__linked-account-row">
+              <div className="profile-page__linked-account-meta" style={{ marginLeft: 0 }}>
+                <span className="profile-page__linked-account-name">No linked accounts</span>
+                <span className="profile-page__linked-account-relation">Add family members to switch profiles</span>
+              </div>
+            </div>
+          ) : null}
+
+          {!linkedProfilesLoading && !linkedProfilesError && linkedProfilesToRender.map((account) => {
+            const accountName = [account?.first_name, account?.last_name].filter(Boolean).join(' ').trim() || 'User';
+            const relationship = account?.relationship
+              ? `${String(account.relationship).charAt(0).toUpperCase()}${String(account.relationship).slice(1)}`
+              : 'Member';
+            const avatarLetter = String(account?.first_name || accountName || 'U').charAt(0).toUpperCase();
+
+            return (
+              <div key={account.user_id} className="profile-page__linked-account-row">
+                <div className="profile-page__linked-account-avatar" aria-hidden="true">
+                  <span>{avatarLetter}</span>
+                </div>
+                <div className="profile-page__linked-account-meta">
+                  <span className="profile-page__linked-account-name">{accountName}</span>
+                  <span className="profile-page__linked-account-relation">{relationship}</span>
+                </div>
+                <button
+                  type="button"
+                  className="profile-page__switch-btn"
+                  onClick={() => handleSwitchProfile(account.user_id)}
+                  disabled={switchingUserId === account.user_id}
+                >
+                  {switchingUserId === account.user_id ? 'Switching...' : 'Switch'}
+                </button>
+              </div>
+            );
+          })}
 
           <button className="profile-page__add-account" type="button" onClick={onOpenAddAccount}>
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">

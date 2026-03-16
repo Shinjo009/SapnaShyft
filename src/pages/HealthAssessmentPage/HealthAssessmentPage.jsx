@@ -62,7 +62,7 @@ const AnthropometryUnitDropdown = ({ value, options, onChange }) => {
 
 const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   const [height, setHeight] = useState(172);
-  const [weight, setWeight] = useState(55);
+  const [weight, setWeight] = useState('');
   const [waist, setWaist] = useState(33);
   const [heightUnit, setHeightUnit] = useState('cm');
   const [weightUnit, setWeightUnit] = useState('kg');
@@ -182,6 +182,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
             min={20}
             max={250}
             inputMode="numeric"
+            placeholder="00"
             aria-label="Body weight"
           />
         </div>
@@ -407,9 +408,11 @@ const toFamilyApiCards = (questions = []) => {
     const key = question?.question_key || `question-${question?.question_id}`;
     const isMulti = ['multi_choice', 'multiple_choice'].includes(String(question?.question_type || '').toLowerCase());
     const options = Array.isArray(question?.options)
-      ? question.options
-        .map((option) => option?.display_name || option?.option_value || '')
-        .filter(Boolean)
+      ? [...new Set(
+          question.options
+            .map((option) => option?.display_name || option?.option_value || '')
+            .filter(Boolean)
+        )]
       : [];
 
     const normalizedTitle = String(question?.question_text || '').toLowerCase();
@@ -429,7 +432,7 @@ const toFamilyApiCards = (questions = []) => {
   });
 };
 
-const shouldUseFullWidthOption = (label) => String(label || '').length > 23;
+const shouldUseFullWidthOption = (label) => String(label || '').length > 25;
 
 const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [] }) => {
   const [cardIndex, setCardIndex] = useState(0);
@@ -807,13 +810,13 @@ const toLifestyleApiCards = (questions = []) => {
     const key = question?.question_key || `question-${question?.question_id}`;
     const isMulti = ['multi_choice', 'multiple_choice'].includes(String(question?.question_type || '').toLowerCase());
     const options = Array.isArray(question?.options)
-      ? question.options.map((option) => {
+      ? [...new Map(question.options.map((option) => {
           const label = option?.display_name || option?.option_value || '';
-          return {
+          return [label, {
             label,
             fullWidth: lifestyleFullWidthByQuestionKey[key]?.has(label) || shouldUseFullWidthOption(label),
-          };
-        }).filter((option) => option.label)
+          }];
+        })).values()].filter((option) => option.label)
       : [];
 
     const normalizedTitle = String(question?.question_text || '').toLowerCase();
@@ -1293,13 +1296,13 @@ const toNutritionApiCards = (questions = []) => {
     const key = question?.question_key || `question-${question?.question_id}`;
     const isMulti = ['multi_choice', 'multiple_choice'].includes(String(question?.question_type || '').toLowerCase());
     const options = Array.isArray(question?.options)
-      ? question.options.map((option) => {
+      ? [...new Map(question.options.map((option) => {
           const label = option?.display_name || option?.option_value || '';
-          return {
+          return [label, {
             label,
             fullWidth: nutritionFullWidthByQuestionKey[key]?.has(label) || shouldUseFullWidthOption(label),
-          };
-        }).filter((option) => option.label)
+          }];
+        })).values()].filter((option) => option.label)
       : [];
 
     let helper = nutritionHelperByQuestionKey[key] || '';

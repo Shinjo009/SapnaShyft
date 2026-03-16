@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import whatsappIcon from '../../images/whatsapp.svg';
+import { submitSupportTicket } from '../../services/usersService';
 import './CustomerSupportPage.css';
 
 /**
@@ -8,6 +9,32 @@ import './CustomerSupportPage.css';
 const CustomerSupportPage = ({ onBack }) => {
   const [contact, setContact] = useState('');
   const [query, setQuery] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    const contactInput = contact.trim();
+    const queryText = query.trim();
+
+    if (!contactInput || !queryText || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await submitSupportTicket({
+        contact_input: contactInput,
+        query_text: queryText,
+      });
+      setContact('');
+      setQuery('');
+      window.alert('Your ticket has been submitted successfully.');
+    } catch (error) {
+      window.alert(error?.message || 'Failed to submit your ticket. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="customer-support-page">
@@ -43,8 +70,8 @@ const CustomerSupportPage = ({ onBack }) => {
           onChange={(e) => setQuery(e.target.value)}
         />
 
-        <button className="customer-support-page__submit" type="button">
-          Submit
+        <button className="customer-support-page__submit" type="button" onClick={handleSubmit} disabled={isSubmitting}>
+          {isSubmitting ? 'Submitting...' : 'Submit'}
         </button>
 
         <p className="customer-support-page__text customer-support-page__or">OR</p>

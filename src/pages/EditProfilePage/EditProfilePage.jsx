@@ -6,18 +6,41 @@ import { getMyProfile, updateMyProfile } from '../../services/profileService';
 
 const genderOptions = ['male', 'female'];
 
+const getAgeValue = (profile) => {
+  if (typeof profile?.age === 'number' && profile.age > 0) {
+    return String(profile.age);
+  }
+
+  if (!profile?.date_of_birth) {
+    return '';
+  }
+
+  const dob = new Date(profile.date_of_birth);
+  if (Number.isNaN(dob.getTime())) {
+    return '';
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age -= 1;
+  }
+
+  return age > 0 ? String(age) : '';
+};
+
 const EditProfilePage = ({ onBack }) => {
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
     email: '',
-    date_of_birth: '',
+    age: '',
     gender: '',
     address: '',
-    pin_code: '',
-    city: '',
-    state: '',
     country: '',
+    organization_name: '',
     phone: '',
   });
   const [loading, setLoading] = useState(true);
@@ -43,13 +66,11 @@ const EditProfilePage = ({ onBack }) => {
           first_name: profile?.first_name || '',
           last_name: profile?.last_name || '',
           email: profile?.email || '',
-          date_of_birth: profile?.date_of_birth || '',
+          age: getAgeValue(profile),
           gender: (profile?.gender || '').toLowerCase(),
           address: profile?.address || '',
-          pin_code: profile?.pin_code || '',
-          city: profile?.city || '',
-          state: profile?.state || '',
           country: profile?.country || '',
+          organization_name: profile?.referred_by || '',
           phone: profile?.phone || '',
         });
       } catch (loadError) {
@@ -84,17 +105,21 @@ const EditProfilePage = ({ onBack }) => {
       setError('');
       setSuccess('');
 
+      const age = Number.parseInt(formData.age, 10);
+
+      if (Number.isNaN(age) || age < 1 || age > 120) {
+        throw new Error('Age must be between 1 and 120.');
+      }
+
       const payload = {
+        age,
         first_name: formData.first_name.trim() || null,
         last_name: formData.last_name.trim() || null,
         email: formData.email.trim() || null,
-        date_of_birth: formData.date_of_birth || null,
         gender: formData.gender.trim() || null,
         address: formData.address.trim() || null,
-        pin_code: formData.pin_code.trim() || null,
-        city: formData.city.trim() || null,
-        state: formData.state.trim() || null,
         country: formData.country.trim() || null,
+        referred_by: formData.organization_name.trim() || null,
       };
 
       await updateMyProfile(payload);
@@ -160,10 +185,10 @@ const EditProfilePage = ({ onBack }) => {
           />
 
           <Input
-            type="date"
-            placeholder="Date of Birth"
-            value={formData.date_of_birth}
-            onChange={(e) => handleChange('date_of_birth', e.target.value)}
+            type="number"
+            placeholder="Age"
+            value={formData.age}
+            onChange={(e) => handleChange('age', e.target.value)}
             disabled={loading}
           />
 
@@ -175,30 +200,16 @@ const EditProfilePage = ({ onBack }) => {
           />
 
           <Input
-            placeholder="Pin Code"
-            value={formData.pin_code}
-            onChange={(e) => handleChange('pin_code', e.target.value)}
-            disabled={loading}
-          />
-
-          <Input
-            placeholder="City"
-            value={formData.city}
-            onChange={(e) => handleChange('city', e.target.value)}
-            disabled={loading}
-          />
-
-          <Input
-            placeholder="State"
-            value={formData.state}
-            onChange={(e) => handleChange('state', e.target.value)}
-            disabled={loading}
-          />
-
-          <Input
             placeholder="Country"
             value={formData.country}
             onChange={(e) => handleChange('country', e.target.value)}
+            disabled={loading}
+          />
+
+          <Input
+            placeholder="Organization Name"
+            value={formData.organization_name}
+            onChange={(e) => handleChange('organization_name', e.target.value)}
             disabled={loading}
           />
 
