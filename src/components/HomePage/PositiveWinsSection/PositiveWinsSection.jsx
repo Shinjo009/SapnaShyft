@@ -76,13 +76,29 @@ const defaultCards = [
 
 const PositiveWinsSection = ({ cards = defaultCards }) => {
   const [activeIndex, setActiveIndex] = useState(cards.length - 1);
+  const [swipeDirection, setSwipeDirection] = useState('next');
+  const [isAnimating, setIsAnimating] = useState(false);
   const touchStartXRef = useRef(null);
+  const animationTimerRef = useRef(null);
+
+  const startAnimation = (direction) => {
+    setSwipeDirection(direction);
+    setIsAnimating(true);
+    if (animationTimerRef.current) {
+      clearTimeout(animationTimerRef.current);
+    }
+    animationTimerRef.current = setTimeout(() => {
+      setIsAnimating(false);
+    }, 430);
+  };
 
   const goPrev = () => {
+    startAnimation('prev');
     setActiveIndex((prev) => (prev - 1 + cards.length) % cards.length);
   };
 
   const goNext = () => {
+    startAnimation('next');
     setActiveIndex((prev) => (prev + 1) % cards.length);
   };
 
@@ -119,49 +135,56 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
         </div>
       </div>
 
-      <div className="positive-wins__carousel" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-        <div className="positive-wins__carousel-track" style={{ transform: `translateX(-${activeIndex * 100}%)` }}>
-          {cards.map((card) => {
-            const CardIcon = card.Icon;
-            return (
-              <div key={card.title} className="positive-wins__carousel-slide">
-                <div className="positive-wins__card-wrap">
-                  <div className="positive-wins__card-shadow positive-wins__card-shadow--one" aria-hidden="true" />
-                  <div className="positive-wins__card-shadow positive-wins__card-shadow--two" aria-hidden="true" />
+      <div
+        className={`positive-wins__stack${isAnimating ? ` positive-wins__stack--moving-${swipeDirection}` : ''}`}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {cards.map((card, index) => {
+          const CardIcon = card.Icon;
+          const distance = (index - activeIndex + cards.length) % cards.length;
+          const role = distance === 0
+            ? 'front'
+            : distance === 1
+              ? 'back-one'
+              : distance === 2
+                ? 'back-two'
+                : 'hidden';
 
-                  <article className="positive-wins__card">
-                    <div className="positive-wins__card-top-row">
-                      <div className="positive-wins__badge-icon">
-                        <CardIcon />
-                      </div>
-                      <span className="positive-wins__status-pill">Optimal</span>
+          return (
+            <article
+              key={`${card.title}-${index}`}
+              className={`positive-wins__stack-card positive-wins__stack-card--${role}`}
+            >
+              <div className="positive-wins__card-top-row">
+                <div className="positive-wins__badge-icon">
+                  <CardIcon />
+                </div>
+                <span className="positive-wins__status-pill">Optimal</span>
+              </div>
+
+              <div className="positive-wins__card-content">
+                <div className="positive-wins__left-column">
+                  <h3 className="positive-wins__risk-title">{card.title}</h3>
+                  <div className="positive-wins__meter" aria-hidden="true">
+                    {barSegments.map((segmentClass, barIndex) => (
+                      <span key={`${card.title}-${segmentClass}-${barIndex}`} className={`positive-wins__meter-pill ${segmentClass}`} />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="positive-wins__aspect-list">
+                  {card.aspects.map((aspect) => (
+                    <div key={`${card.title}-${aspect.label}`} className="positive-wins__aspect-item">
+                      <span className="positive-wins__aspect-label">{aspect.label}</span>
+                      {aspect.percent ? <span className="positive-wins__aspect-value">{aspect.percent}</span> : null}
                     </div>
-
-                    <div className="positive-wins__card-content">
-                      <div className="positive-wins__left-column">
-                        <h3 className="positive-wins__risk-title">{card.title}</h3>
-                        <div className="positive-wins__meter" aria-hidden="true">
-                          {barSegments.map((segmentClass, index) => (
-                            <span key={`${card.title}-${segmentClass}-${index}`} className={`positive-wins__meter-pill ${segmentClass}`} />
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="positive-wins__aspect-list">
-                        {card.aspects.map((aspect) => (
-                          <div key={`${card.title}-${aspect.label}`} className="positive-wins__aspect-item">
-                            <span className="positive-wins__aspect-label">{aspect.label}</span>
-                            {aspect.percent ? <span className="positive-wins__aspect-value">{aspect.percent}</span> : null}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </article>
+                  ))}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </article>
+          );
+        })}
       </div>
 
       <div className="positive-wins__swipe-hint" aria-hidden="true">
