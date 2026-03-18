@@ -1,250 +1,509 @@
-.risk-analysis {
+.risk-analysis-wins {
   position: relative;
   width: 100%;
   padding: 0 16px;
   box-sizing: border-box;
+  margin-top: 20px;
   margin-bottom: 16px;
 }
 
-.risk-analysis__see-more {
-  color: #C4C4C4;
-  font-family: Lato, sans-serif;
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 16px;
-  text-decoration: underline dotted;
-  text-decoration-thickness: 0.55px;
-  text-underline-offset: 2.75px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  white-space: nowrap;
-}
-
-.risk-analysis__see-more:hover {
-  opacity: 0.8;
-}
-
-.risk-analysis__box {
+.risk-analysis-wins__header {
   display: flex;
-  padding: 8px 16px;
-  flex-direction: column;
-  justify-content: center;
   align-items: flex-start;
-  gap: 16px;
-  align-self: stretch;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.risk-analysis__text-group {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  align-self: stretch;
-  width: 100%;
-}
-
-.risk-analysis__top-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
-
-.risk-analysis__subheading {
-  color: #FFF;
-  text-align: left;
-  font-family: Lato, sans-serif;
-  font-size: 14px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 20px;
-  margin: 0;
-  padding: 0;
-}
-
-.risk-analysis__note {
-  color: #C4C4C4;
-  text-align: left;
-  font-family: "DM Sans", sans-serif;
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: normal;
-  margin: 0;
-  padding: 0;
-}
-
-.risk-analysis__cards {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-  justify-content: center;
-  align-items: flex-end;
-  padding: 0;
-  margin: 0;
-}
-
-.blood-markers__box {
-  display: flex;
-  padding: 8px 16px;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  align-self: stretch;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  margin-top: 12px;
-}
-
-.blood-markers__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  gap: 8px;
-}
-
-.blood-markers__title {
-  color: #FFF;
-  text-align: left;
-  font-family: Lato, sans-serif;
-  font-size: 14px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 20px;
-  margin: 0;
-}
-
-.blood-markers__see-more {
-  color: #C4C4C4;
-  font-family: Lato, sans-serif;
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 16px;
-  text-decoration: underline dotted;
-  text-decoration-thickness: 0.55px;
-  text-underline-offset: 2.75px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  white-space: nowrap;
-}
-
-.blood-markers__see-more:hover {
-  opacity: 0.8;
-}
-
-.blood-markers__note {
-  color: #C4C4C4;
-  text-align: left;
-  font-family: "DM Sans", sans-serif;
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: normal;
-  margin: 0;
-}
-
-.blood-markers__list {
-  display: flex;
-  flex-direction: column;
   gap: 10px;
-  width: 100%;
 }
 
-.blood-marker-card {
+.risk-analysis-wins__see-more {
+  margin-left: auto;
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #999;
+  font-family: Lato, sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 5%;
+  text-underline-offset: 25%;
+  text-underline-position: from-font;
+  cursor: pointer;
+}
+
+.risk-analysis-wins__header-icon-box {
   display: flex;
-  padding: 8px 16px;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 12px;
-  align-self: stretch;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0);
-  border: 0.8px solid rgba(255, 255, 255, 0.2);
-  box-sizing: border-box;
-  justify-content: space-between;
+  width: 32px;
+  height: 32px;
+  justify-content: center;
+  align-items: center;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  border: 1px solid rgba(233, 93, 92, 0.25);
+  background: linear-gradient(135deg, rgba(233, 93, 92, 0.2) 0%, rgba(233, 93, 92, 0.05) 100%);
+  flex-shrink: 0;
 }
 
-.blood-marker-card__left {
+.risk-analysis-wins__header-copy {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.blood-marker-card__title-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.blood-marker-card__name {
-  color: #FFF;
-  text-align: center;
+.risk-analysis-wins__title {
+  margin: 0;
+  color: #fff;
   font-family: Lato, sans-serif;
   font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.risk-analysis-wins__subtitle {
+  margin: 0;
+  color: #999;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.risk-analysis-wins__stack {
+  --risk-analysis-wins-card-height: 202px;
+  --risk-analysis-wins-drag-x: 0px;
+  position: relative;
+  margin-top: 20px;
+  width: calc(100% - 30px);
+  margin-left: auto;
+  margin-right: auto;
+  height: var(--risk-analysis-wins-card-height);
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.risk-analysis-wins__stack-card {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  top: 0;
+  height: var(--risk-analysis-wins-card-height);
+  border-radius: 24px;
+  display: block;
+  padding: 24px;
+  border: 1px solid rgba(233, 93, 92, 0.1);
+  background: radial-gradient(192.2% 117.1% at 0% 0%, rgba(233, 93, 92, 0.15) 0%, rgba(233, 93, 92, 0) 70%);
+  box-sizing: border-box;
+  overflow: hidden;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transition:
+    transform 620ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 620ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    border-color 320ms ease,
+    background 320ms ease;
+}
+
+.risk-analysis-wins__stack[data-dragging='true'] .risk-analysis-wins__stack-card {
+  transition-property: transform;
+  transition-duration: 0ms;
+}
+
+.risk-analysis-wins__stack-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(233, 93, 92, 0.08) 0%, rgba(0, 0, 0, 0) 62%);
+  pointer-events: none;
+}
+
+.risk-analysis-wins__stack-card--front {
+  transform: translate3d(var(--risk-analysis-wins-drag-x), 0, 0);
+  z-index: 3;
+  border-color: rgba(233, 93, 92, 0.35);
+  background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(233, 93, 92, 0.05) 100%);
+  box-shadow: 0 24px 48px 0 rgba(0, 0, 0, 0.6), 0 0 30px 0 rgba(233, 93, 92, 0.15), 0 1px 0 1px rgba(255, 255, 255, 0.15) inset;
+  opacity: 1;
+}
+
+.risk-analysis-wins__stack-card--back-one {
+  transform: translate3d(112%, 0, 0);
+  z-index: 2;
+  border-color: rgba(233, 93, 92, 0.2);
+  background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(233, 93, 92, 0.05) 100%);
+  opacity: 0;
+}
+
+.risk-analysis-wins__stack-card--back-two {
+  transform: translate3d(-112%, 0, 0);
+  z-index: 1;
+  border-color: rgba(233, 93, 92, 0.1);
+  background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(233, 93, 92, 0.05) 100%);
+  opacity: 0;
+}
+
+.risk-analysis-wins__stack-card--hidden {
+  transform: translate3d(112%, 0, 0);
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--hidden {
+  transform: translate3d(112%, 0, 0);
+}
+
+.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--hidden {
+  transform: translate3d(-112%, 0, 0);
+}
+
+.risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--front {
+  transform: translate3d(-112%, 0, 0);
+}
+
+.risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-one {
+  transform: translate3d(0, 0, 0);
+  z-index: 4;
+  border-color: rgba(233, 93, 92, 0.35);
+  opacity: 1;
+}
+
+.risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-two {
+  transform: translate3d(-112%, 0, 0);
+}
+
+.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--front {
+  transform: translate3d(112%, 0, 0);
+}
+
+.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-one {
+  transform: translate3d(112%, 0, 0);
+}
+
+.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-two {
+  transform: translate3d(0, 0, 0);
+  z-index: 4;
+  border-color: rgba(233, 93, 92, 0.35);
+  opacity: 1;
+}
+
+.risk-analysis-wins__card-top-row,
+.risk-analysis-wins__card-content {
+  position: relative;
+  z-index: 1;
+  opacity: 1;
+  will-change: opacity;
+}
+
+.risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-top-row,
+.risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-content,
+.risk-analysis-wins__stack-card--back-two .risk-analysis-wins__card-top-row,
+.risk-analysis-wins__stack-card--back-two .risk-analysis-wins__card-content,
+.risk-analysis-wins__stack-card--hidden .risk-analysis-wins__card-top-row,
+.risk-analysis-wins__stack-card--hidden .risk-analysis-wins__card-content {
+  opacity: 0;
+}
+
+.risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-top-row,
+.risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-content,
+.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-two .risk-analysis-wins__card-top-row,
+.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-two .risk-analysis-wins__card-content {
+  opacity: 1;
+}
+
+.risk-analysis-wins__card-top-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.risk-analysis-wins__badge-icon {
+  display: flex;
+  width: 38px;
+  height: 38px;
+  justify-content: center;
+  align-items: center;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  border: 1px solid rgba(233, 93, 92, 0.35);
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 100%);
+  box-shadow: 0 24px 48px 0 rgba(0, 0, 0, 0.60), 0 0 30px 0 rgba(233, 93, 92, 0.15), 0 1px 0 1px rgba(255, 255, 255, 0.15) inset;
+  flex-shrink: 0;
+}
+
+.risk-analysis-wins__badge-icon img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.risk-analysis-wins__status-pill {
+  display: flex;
+  padding: 6px 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  border-radius: 24px;
+  border: 1px solid rgba(233, 93, 92, 0.25);
+  background: rgba(233, 93, 92, 0.12);
+  margin-left: auto;
+}
+
+.risk-analysis-wins__card-content {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.risk-analysis-wins__left-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+  flex: 0 0 97px;
+  margin-left: 0;
+}
+
+.risk-analysis-wins__risk-title {
+  margin: 0;
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 16px;
   font-style: normal;
   font-weight: 600;
-  line-height: 20px;
+  line-height: 19.8px;
+  margin-left: 3px;
 }
 
-.blood-marker-card__value {
-  color: #FFF;
-  text-align: center;
-  font-family: "DM Sans", sans-serif;
-  font-size: 12px;
+.risk-analysis-wins__gauge-rank-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  width: 97px;
+}
+
+.risk-analysis-wins__dial-wrap {
+  width: 89px;
+  height: 46px;
+  position: relative;
+  margin-top: 5px;
+}
+
+.risk-analysis-wins__dial {
+  width: 89px;
+  height: 44px;
+  display: block;
+}
+
+.risk-analysis-wins__dial-track {
+  stroke: rgba(233, 93, 92, 0.2);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.risk-analysis-wins__dial-progress {
+  stroke: #e95d5c;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.risk-analysis-wins__dial-score {
+  position: absolute;
+  left: 50%;
+  top: 28px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.risk-analysis-wins__dial-score-value {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.risk-analysis-wins__dial-score-max {
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
   font-style: normal;
   font-weight: 500;
   line-height: normal;
 }
 
-.blood-marker-card__arrow {
-  display: inline-flex;
-  align-items: center;
+.risk-analysis-wins__health-rank-box {
+  display: flex;
+  width: 92px;
+  padding: 5px 6px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  border-radius: 0 6px 6px 0;
+  border-left: 1px solid rgba(233, 93, 92, 0.5);
+  background: rgba(0, 0, 0, 0.1);
+  gap: 2px;
+  position: relative;
+  overflow: hidden;
 }
 
-.blood-marker-card__profile {
-  color: #C4C4C4;
+.risk-analysis-wins__health-rank-text {
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 300;
+  line-height: normal;
+  letter-spacing: 0.5px;
+  position: relative;
+  z-index: 1;
+}
+
+.risk-analysis-wins__health-rank-value {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 15px;
+  position: relative;
+  z-index: 1;
+}
+
+.risk-analysis-wins__health-rank-spark {
+  width: 49px;
+  height: 35px;
+  object-fit: contain;
+  display: block;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+.risk-analysis-wins__action-box {
+  display: flex;
+  width: 196px;
+  padding: 5px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  flex-shrink: 0;
+  align-self: stretch;
+  margin-left: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(233, 93, 92, 0.15);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.risk-analysis-wins__action-title {
+  width: 100%;
+  color: #e95d5c;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   text-align: left;
-  font-family: "DM Sans", sans-serif;
+}
+
+.risk-analysis-wins__action-text {
+  width: 100%;
+  margin: 0;
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 15.95px;
+  text-align: left;
+}
+
+.risk-analysis-wins__stack-card[role='button'] {
+  cursor: pointer;
+}
+
+.risk-analysis-wins__stack-card[role='button']:focus-visible {
+  outline: 1px solid rgba(233, 93, 92, 0.55);
+  outline-offset: 2px;
+}
+
+.risk-analysis-wins__title {
+  color: #fff;
+}
+
+.risk-analysis-wins__subtitle {
+  color: #9a9a9a;
+}
+
+.risk-analysis-wins__swipe-text {
+  color: #9a9a9a;
+}
+
+.risk-analysis-wins__aspect-label {
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
   font-size: 11px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
-  margin-left: 0;
 }
 
-.blood-marker-card__risk {
+.risk-analysis-wins__aspect-value {
+  color: #e95d5c;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.risk-analysis-wins__swipe-hint {
+  margin-top: 16px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  align-self: flex-start;
+  justify-content: center;
+  gap: 12px;
 }
 
-.blood-marker-card__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: linear-gradient(180deg, #E95D5C 0%, #833434 100%);
-}
-
-.blood-marker-card__risk-text {
-  color: #FFF;
-  text-align: center;
-  font-family: "DM Sans", sans-serif;
-  font-size: 12px;
+.risk-analysis-wins__swipe-text {
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 400;
+  font-weight: 500;
   line-height: normal;
-  white-space: nowrap;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.risk-analysis-wins__swipe-arrow {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.risk-analysis-wins__swipe-arrow--left {
+  transform: rotate(180deg);
 }

@@ -54,6 +54,7 @@
 
 .positive-wins__stack {
   --positive-wins-card-height: 182px;
+  --positive-wins-drag-x: 0px;
   position: relative;
   margin-top: 20px;
   width: calc(100% - 30px);
@@ -61,6 +62,7 @@
   margin-right: auto;
   height: var(--positive-wins-card-height);
   overflow: visible;
+  touch-action: pan-y;
 }
 
 .positive-wins__stack-card {
@@ -75,13 +77,20 @@
   backdrop-filter: blur(40px);
   box-sizing: border-box;
   overflow: hidden;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
   transition:
-    left 420ms cubic-bezier(0.22, 1, 0.36, 1),
-    width 420ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 320ms ease,
+    left 520ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    width 520ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 520ms cubic-bezier(0.22, 0.61, 0.36, 1),
     border-color 320ms ease,
     background 320ms ease;
+}
+
+.positive-wins__stack[data-dragging='true'] .positive-wins__stack-card {
+  transition-property: transform;
+  transition-duration: 0ms;
 }
 
 .positive-wins__stack-card::before {
@@ -96,7 +105,7 @@
   left: 0;
   width: 100%;
   top: 0;
-  transform: translateX(0);
+  transform: translate3d(var(--positive-wins-drag-x), 0, 0);
   z-index: 3;
   border-color: rgba(144, 223, 158, 0.3);
   background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(144, 223, 158, 0.05) 100%);
@@ -107,7 +116,7 @@
   left: -7px;
   width: calc(100% + 14px);
   top: 0;
-  transform: translateX(0);
+  transform: translate3d(calc(var(--positive-wins-drag-x) * 0.56), 0, 0);
   z-index: 2;
   opacity: 1;
 }
@@ -116,7 +125,7 @@
   left: -14px;
   width: calc(100% + 28px);
   top: 0;
-  transform: translateX(0);
+  transform: translate3d(calc(var(--positive-wins-drag-x) * 0.32), 0, 0);
   z-index: 1;
   opacity: 1;
 }
@@ -128,44 +137,70 @@
   z-index: 0;
   opacity: 0;
   pointer-events: none;
+  transform: translate3d(0, 0, 0);
 }
 
 .positive-wins__stack--moving-next .positive-wins__stack-card--hidden {
-  transform: translateX(140px);
+  transform: translate3d(64px, 0, 0);
 }
 
 .positive-wins__stack--moving-prev .positive-wins__stack-card--hidden {
-  transform: translateX(-140px);
+  transform: translate3d(-64px, 0, 0);
 }
 
 .positive-wins__stack--moving-next .positive-wins__stack-card--front {
-  transform: translateX(-18px);
+  transform: translate3d(-8px, 0, 0);
 }
 
 .positive-wins__stack--moving-next .positive-wins__stack-card--back-one {
-  transform: translateX(-10px);
+  transform: translate3d(-4px, 0, 0);
 }
 
 .positive-wins__stack--moving-next .positive-wins__stack-card--back-two {
-  transform: translateX(-4px);
+  transform: translate3d(-2px, 0, 0);
 }
 
 .positive-wins__stack--moving-prev .positive-wins__stack-card--front {
-  transform: translateX(18px);
+  transform: translate3d(8px, 0, 0);
 }
 
 .positive-wins__stack--moving-prev .positive-wins__stack-card--back-one {
-  transform: translateX(10px);
+  transform: translate3d(4px, 0, 0);
 }
 
 .positive-wins__stack--moving-prev .positive-wins__stack-card--back-two {
-  transform: translateX(4px);
+  transform: translate3d(2px, 0, 0);
 }
 
 .positive-wins__card-top-row,
 .positive-wins__card-content {
   position: relative;
   z-index: 1;
+  opacity: 1;
+  will-change: opacity;
+  transition: opacity 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Subtle fade during stack transition for smoother perceived motion. */
+.positive-wins__stack--moving-next .positive-wins__stack-card--front .positive-wins__card-top-row,
+.positive-wins__stack--moving-next .positive-wins__stack-card--front .positive-wins__card-content,
+.positive-wins__stack--moving-prev .positive-wins__stack-card--front .positive-wins__card-top-row,
+.positive-wins__stack--moving-prev .positive-wins__stack-card--front .positive-wins__card-content {
+  opacity: 0.68;
+}
+
+.positive-wins__stack--moving-next .positive-wins__stack-card--back-one .positive-wins__card-top-row,
+.positive-wins__stack--moving-next .positive-wins__stack-card--back-one .positive-wins__card-content,
+.positive-wins__stack--moving-prev .positive-wins__stack-card--back-one .positive-wins__card-top-row,
+.positive-wins__stack--moving-prev .positive-wins__stack-card--back-one .positive-wins__card-content {
+  opacity: 0.84;
+}
+
+.positive-wins__stack--moving-next .positive-wins__stack-card--back-two .positive-wins__card-top-row,
+.positive-wins__stack--moving-next .positive-wins__stack-card--back-two .positive-wins__card-content,
+.positive-wins__stack--moving-prev .positive-wins__stack-card--back-two .positive-wins__card-top-row,
+.positive-wins__stack--moving-prev .positive-wins__stack-card--back-two .positive-wins__card-content {
+  opacity: 0.92;
 }
 
 .positive-wins__card-top-row {

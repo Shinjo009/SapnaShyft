@@ -116,10 +116,16 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   const handleWaistTouchEnd = () => { waistTouchLastX.current = null; };
 
   const handleWeightChange = (e) => {
-    const val = e.target.value;
-    if (val === '') { setWeight(''); return; }
-    const num = parseInt(val, 10);
-    if (!isNaN(num)) setWeight(clamp(num, 20, 250));
+    // Only allow digits while typing — no clamping mid-input.
+    const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 3);
+    setWeight(val);
+  };
+
+  const handleWeightBlur = () => {
+    if (weight === '') return;
+    const num = parseInt(weight, 10);
+    if (isNaN(num)) { setWeight(''); return; }
+    setWeight(String(clamp(num, 20, 250)));
   };
 
   const getQuestionText = (keys, fallback) => {
@@ -174,13 +180,13 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
         <img src={AnthInd} alt="" aria-hidden="true" className="anthropometry-page__dial" />
         <div className="anthropometry-page__selected-box anthropometry-page__selected-box--weight">
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             className="anthropometry-page__weight-dial-input"
             value={weight}
             onChange={handleWeightChange}
-            min={20}
-            max={250}
-            inputMode="numeric"
+            onBlur={handleWeightBlur}
+            maxLength={3}
             placeholder="00"
             aria-label="Body weight"
           />

@@ -545,8 +545,9 @@ function App() {
         <SplashScreen 
           onComplete={() => {
             console.log('Splash animation complete');
-            setCurrentPage('login');
           }}
+          onLogin={() => setCurrentPage('login')}
+          onSignup={() => setCurrentPage('signup')}
         />
       )}
     </div>

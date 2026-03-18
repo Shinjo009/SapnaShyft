@@ -69,10 +69,30 @@ const DISEASE_CONTENT = {
 };
 
 const RISK_ZONES = [
-  { range: '0-25', label: 'Healthy', color: '#90DF9E' },
-  { range: '26-50', label: 'Increased Risk', color: '#DAC15A' },
-  { range: '51-75', label: 'High Risk', color: '#EE8B48' },
-  { range: '76-100', label: 'Very High Risk', color: '#E95D5C' }
+  {
+    range: '0-25',
+    label: 'Healthy',
+    color: '#90DF9E',
+    dotFill: 'linear-gradient(180deg, #90DF9E 0%, #4E7956 100%), #90DF9E'
+  },
+  {
+    range: '26-50',
+    label: 'Increased Risk',
+    color: '#DAC15A',
+    dotFill: 'linear-gradient(180deg, #DAC15A 0%, #746730 100%), #90DF9E'
+  },
+  {
+    range: '51-75',
+    label: 'High Risk',
+    color: '#EE8B48',
+    dotFill: 'linear-gradient(90deg, #EE8B48 0%, #884F29 100%), #90DF9E'
+  },
+  {
+    range: '76-100',
+    label: 'Very High Risk',
+    color: '#E95D5C',
+    dotFill: 'linear-gradient(180deg, #E95D5C 0%, #833434 100%)'
+  }
 ];
 
 const DOTS_PER_ZONE = [13, 13, 13, 13];
@@ -100,6 +120,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [dotsAnimated, setDotsAnimated] = useState(false);
   const [riskStripWidth, setRiskStripWidth] = useState(0);
+  const [animatedLifestyleLeftPercent, setAnimatedLifestyleLeftPercent] = useState(0);
   const title = disease?.name?.replace('\n', ' ') || 'Oxidative Stress';
   const diseaseContent = DISEASE_CONTENT[getDiseaseKey(title)] || DISEASE_CONTENT['oxidative stress'];
   const score = Math.max(0, Math.min(100, disease?.score ?? 85));
@@ -200,6 +221,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   const currentZone = RISK_ZONES[currentZoneIndex];
   const currentZoneColor = RISK_ZONES[currentZoneIndex].color;
   const healthRankColor = RISK_ZONES[healthRankZoneIndex].color;
+  const lifestyleTargetPercent = 22;
 
   useEffect(() => {
     const element = riskStripRef.current;
@@ -225,14 +247,42 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   useEffect(() => {
     setDotsAnimated(false);
     setAnimatedMarkerLeftPercent(0);
+    let markerTimeout;
 
+    // Split start/end updates across frames so CSS left-transition is always visible.
     const animationFrame = requestAnimationFrame(() => {
       setDotsAnimated(true);
-      setAnimatedMarkerLeftPercent(markerLeftPercent);
+
+      markerTimeout = window.setTimeout(() => {
+        setAnimatedMarkerLeftPercent(markerLeftPercent);
+      }, 120);
     });
 
-    return () => cancelAnimationFrame(animationFrame);
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      if (markerTimeout) {
+        window.clearTimeout(markerTimeout);
+      }
+    };
   }, [markerLeftPercent]);
+
+  useEffect(() => {
+    setAnimatedLifestyleLeftPercent(0);
+    let lifestyleTimeout;
+
+    const animationFrame = requestAnimationFrame(() => {
+      lifestyleTimeout = window.setTimeout(() => {
+        setAnimatedLifestyleLeftPercent(lifestyleTargetPercent);
+      }, 120);
+    });
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      if (lifestyleTimeout) {
+        window.clearTimeout(lifestyleTimeout);
+      }
+    };
+  }, [lifestyleTargetPercent]);
 
   return (
     <div className="disease-detail-page">
@@ -301,7 +351,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
                   style={{
                     width: `${dotSize}px`,
                     height: `${dotSize}px`,
-                    backgroundColor: zone.color,
+                    background: zone.dotFill,
                     transitionDelay: `${index * 12}ms`
                   }}
                 />
@@ -358,7 +408,13 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
 
         <div className="disease-detail-lifestyle-bar-wrap">
           <div className="disease-detail-lifestyle-bar" />
-          <img src={lifestyleTick} alt="" className="disease-detail-lifestyle-knob" aria-hidden="true" />
+          <img
+            src={lifestyleTick}
+            alt=""
+            className="disease-detail-lifestyle-knob"
+            style={{ left: `${animatedLifestyleLeftPercent}%` }}
+            aria-hidden="true"
+          />
         </div>
 
         <div className="disease-detail-lifestyle-bands">

@@ -38,20 +38,24 @@
 }
 
 .ellipse.e1 {
-  right: 57.5px;
-  transform: translate(50%, -50%);
+  transform: translateY(-50%) scale(1.13);
 }
 
 .ellipse.e2 {
+  transform: translateY(-50%) scale(1.148);
 }
 
 .ellipse.e3 {
+  transform: translateY(-50%) scale(1.13);
 }
 
 .ellipse.e4 {
+  right: -25px;
+  transform: translate(50%, -50%) scale(1.19);
 }
 
 .ellipse.e5 {
+  transform: translateY(-50%) scale(1.15);
 }
 
 /* Header */
@@ -274,7 +278,7 @@
 .score-max {
   color: #C4C4C4;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  font-size: 9px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
@@ -283,42 +287,60 @@
 .disease-risk-analysis-page .health-scan-page__legend {
   position: fixed;
   bottom: 40px;
-}
-
-/* Risk Legend */
-.risk-legend {
-  position: relative;
-  z-index: 1;
+  width: 100%;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 40px;
-  padding: 0 20px;
-}
-
-.legend-item {
-  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 0;
   align-items: center;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.disease-risk-analysis-page .health-scan-page__legend-item {
+  display: inline-flex;
+  align-items: flex-start;
   gap: 6px;
-}
-
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  box-shadow: 0 0 10px currentColor;
-}
-
-.legend-label {
-  color: rgba(255, 255, 255, 0.8);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
-  white-space: nowrap;
+}
+
+.disease-risk-analysis-page .health-scan-page__legend-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.disease-risk-analysis-page .health-scan-page__legend-range {
+  display: block;
+}
+
+.disease-risk-analysis-page .health-scan-page__legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.disease-risk-analysis-page .health-scan-page__legend-dot--healthy {
+  background: #90DF9E;
+}
+
+.disease-risk-analysis-page .health-scan-page__legend-dot--increased {
+  background: #DAC15A;
+}
+
+.disease-risk-analysis-page .health-scan-page__legend-dot--high {
+  background: #EE8B48;
+}
+
+.disease-risk-analysis-page .health-scan-page__legend-dot--very-high {
+  background: #E95D5C;
 }
 
 /* Responsive adjustments */
@@ -330,10 +352,6 @@
   .carousel-container {
     width: 100%;
     max-width: 375px;
-  }
-
-  .risk-legend {
-    gap: 12px;
   }
 }
 

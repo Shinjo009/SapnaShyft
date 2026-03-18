@@ -277,9 +277,9 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
     const e3ScaleX = e3Rect ? e3Rect.width / 400 : scaleX;
     const e3ScaleY = e3Rect ? e3Rect.height / 480 : scaleY;
     const radii = {
-      top: 247 * e3ScaleY,
+      top: 250 * e3ScaleY,
       right: 450 * e3ScaleX,
-      bottom: 235 * e3ScaleY,
+      bottom: 239 * e3ScaleY,
       left: 365  * e3ScaleX
     };
 

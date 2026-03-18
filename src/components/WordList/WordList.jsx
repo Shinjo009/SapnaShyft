@@ -1,6 +1,13 @@
-const WordList = ({ words, activeIndex }) => {
+const WordList = ({
+  words,
+  activeIndex,
+  fontSize = 48,
+  lineHeight = 55,
+  gap = 0,
+  letterSpacing = 0.24,
+}) => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: `${gap}px` }}>
       {words.map((word, index) => (
         <span
           key={word}
@@ -8,11 +15,11 @@ const WordList = ({ words, activeIndex }) => {
           style={{
             color: index === activeIndex ? '#EEE' : 'rgba(184, 184, 184, 0.50)',
             fontFamily: 'Lato',
-            fontSize: '48px',
+            fontSize: `${fontSize}px`,
             fontStyle: 'normal',
             fontWeight: '400',
-            lineHeight: '55px',
-            letterSpacing: '0.24px',
+            lineHeight: `${lineHeight}px`,
+            letterSpacing: `${letterSpacing}px`,
             transition: 'color 0.3s ease-out',
             position: 'relative',
             zIndex: index === activeIndex ? 20 : 0,

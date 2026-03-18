@@ -78,32 +78,67 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
   const [activeIndex, setActiveIndex] = useState(cards.length - 1);
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const stackRef = useRef(null);
   const touchStartXRef = useRef(null);
-  const animationTimerRef = useRef(null);
+  const latestDragXRef = useRef(0);
 
-  const startAnimation = (direction) => {
+  const resetDragOffset = () => {
+    latestDragXRef.current = 0;
+    if (stackRef.current) {
+      stackRef.current.style.setProperty('--positive-wins-drag-x', '0px');
+    }
+  };
+
+  const applyDragOffset = (value) => {
+    latestDragXRef.current = value;
+    if (stackRef.current) {
+      stackRef.current.style.setProperty('--positive-wins-drag-x', `${value}px`);
+    }
+  };
+
+  const startAnimation = (direction, updateIndex) => {
+    setIsDragging(false);
+    resetDragOffset();
     setSwipeDirection(direction);
     setIsAnimating(true);
-    if (animationTimerRef.current) {
-      clearTimeout(animationTimerRef.current);
-    }
-    animationTimerRef.current = setTimeout(() => {
-      setIsAnimating(false);
-    }, 430);
+
+    requestAnimationFrame(() => {
+      updateIndex();
+    });
   };
 
   const goPrev = () => {
-    startAnimation('prev');
-    setActiveIndex((prev) => (prev - 1 + cards.length) % cards.length);
+    if (isAnimating) return;
+    startAnimation('prev', () => {
+      setActiveIndex((prev) => (prev - 1 + cards.length) % cards.length);
+    });
   };
 
   const goNext = () => {
-    startAnimation('next');
-    setActiveIndex((prev) => (prev + 1) % cards.length);
+    if (isAnimating) return;
+    startAnimation('next', () => {
+      setActiveIndex((prev) => (prev + 1) % cards.length);
+    });
   };
 
   const handleTouchStart = (event) => {
+    if (isAnimating) {
+      return;
+    }
     touchStartXRef.current = event.touches[0].clientX;
+    setIsDragging(true);
+    resetDragOffset();
+  };
+
+  const handleTouchMove = (event) => {
+    if (touchStartXRef.current == null || isAnimating) {
+      return;
+    }
+
+    const deltaX = event.touches[0].clientX - touchStartXRef.current;
+    const clamped = Math.max(-28, Math.min(28, deltaX));
+    applyDragOffset(clamped);
   };
 
   const handleTouchEnd = (event) => {
@@ -112,15 +147,31 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
     }
 
     const deltaX = event.changedTouches[0].clientX - touchStartXRef.current;
-    if (Math.abs(deltaX) > 40) {
+    if (Math.abs(deltaX) > 36) {
       if (deltaX < 0) {
         goNext();
       } else {
         goPrev();
       }
+    } else {
+      setIsDragging(false);
+      resetDragOffset();
     }
 
     touchStartXRef.current = null;
+  };
+
+  const handleTouchCancel = () => {
+    touchStartXRef.current = null;
+    setIsDragging(false);
+    resetDragOffset();
+  };
+
+  const handleStackTransitionEnd = (event) => {
+    if (!isAnimating) return;
+    if (!event.target.classList.contains('positive-wins__stack-card--front')) return;
+    if (event.propertyName !== 'transform') return;
+    setIsAnimating(false);
   };
 
   return (
@@ -136,9 +187,14 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
       </div>
 
       <div
+        ref={stackRef}
         className={`positive-wins__stack${isAnimating ? ` positive-wins__stack--moving-${swipeDirection}` : ''}`}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
+        onTransitionEnd={handleStackTransitionEnd}
+        data-dragging={isDragging ? 'true' : 'false'}
       >
         {cards.map((card, index) => {
           const CardIcon = card.Icon;

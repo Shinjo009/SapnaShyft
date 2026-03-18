@@ -1,71 +1,99 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import triangleImg from '../../images/triangle.png';
 
-const SpinningTriangle = ({ onWordIndex, totalWords, activeIndex, onAnimationComplete }) => {
-  const [rotation, setRotation] = useState(0);
-  const [smoothY, setSmoothY] = useState(0);
-
-  const animationRef = useRef();
-  const startTimeRef = useRef();
+const SpinningTriangle = ({
+  onWordIndex,
+  totalWords,
+  onAnimationComplete,
+  wordStep = 57,
+  width = 162.684,
+  height = 140.889,
+  leftOffset = -100,
+}) => {
+  const triangleRef = useRef(null);
+  const animationRef = useRef(null);
+  const startTimeRef = useRef(null);
   const animationFinishedRef = useRef(false);
+  const lastWordIndexRef = useRef(-1);
 
-  const ROTATION_DURATION = 2500;
-  const WORD_HEIGHT = 57;
-  const SMOOTHING = 0.08;
-  const OFFSET = 1;
+  const ROTATION_DURATION = 2300;
+  const START_OFFSET = -45;
 
   useEffect(() => {
+    const triangleElement = triangleRef.current;
+
+    if (!triangleElement) {
+      return undefined;
+    }
+
+    // Reset animation state each mount/run.
+    startTimeRef.current = null;
+    animationFinishedRef.current = false;
+    lastWordIndexRef.current = -1;
+    triangleElement.style.opacity = '1';
+    triangleElement.style.transform = `translateY(${START_OFFSET}px) rotate(0deg)`;
+
     const animate = (timestamp) => {
+      if (animationFinishedRef.current) {
+        return;
+      }
+
       if (!startTimeRef.current) {
         startTimeRef.current = timestamp;
       }
 
       const elapsed = timestamp - startTimeRef.current;
-      
-      // Stop animation after one complete rotation
-      if (elapsed >= ROTATION_DURATION) {
-        const lastIndex = totalWords - 1;
-        const lastY = lastIndex * WORD_HEIGHT;
-        setSmoothY(lastY);
-        setRotation(360);
-        if (!animationFinishedRef.current) {
-          animationFinishedRef.current = true;
-          onAnimationComplete?.();
-        }
-        return;
-      }
+      const progress = Math.min(elapsed / ROTATION_DURATION, 1);
 
-      const currentRotation = (elapsed / ROTATION_DURATION) * 360;
+      const currentRotation = progress * 360;
       const normalizedRotation = currentRotation % 360;
+      const positionY = progress * Math.max(totalWords - 1, 0) * wordStep;
 
-      setRotation(normalizedRotation);
+      // Keep the triangle on a smooth, straight downward path while spinning.
+      triangleElement.style.transform = `translateY(${positionY + START_OFFSET}px) rotate(${normalizedRotation}deg)`;
 
       const targetIndex =
         Math.floor(normalizedRotation / (360 / totalWords)) % totalWords;
-      onWordIndex(targetIndex);
 
-      const targetY = targetIndex * WORD_HEIGHT;
-      setSmoothY((prev) => prev + (targetY - prev) * SMOOTHING);
+      if (targetIndex !== lastWordIndexRef.current) {
+        lastWordIndexRef.current = targetIndex;
+        onWordIndex(targetIndex);
+      }
+
+      if (progress >= 1) {
+        animationFinishedRef.current = true;
+        triangleElement.style.opacity = '0';
+        onWordIndex(null);
+        onAnimationComplete?.();
+        return;
+      }
 
       animationRef.current = requestAnimationFrame(animate);
     };
 
     animationRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationRef.current);
-  }, [onAnimationComplete, onWordIndex, totalWords]);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [onAnimationComplete, onWordIndex, totalWords, wordStep]);
 
   return (
     <div
+      ref={triangleRef}
       style={{
         position: 'absolute',
-        left: '-80px',
-        width: '256px',
-        height: '256px',
-        zIndex: 10,
+        left: `${leftOffset}px`,
+        width: `${width}px`,
+        height: `${height}px`,
+        zIndex: 15,
         top: 0,
-        transform: `translateY(${smoothY + OFFSET}px) rotate(${rotation}deg)`,
         transformOrigin: 'center center',
-        transition: 'transform 0.05s linear',
+        transition: 'opacity 0.16s ease-out',
+        pointerEvents: 'none',
+        willChange: 'transform, opacity',
       }}
     >
       <img
