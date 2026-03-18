@@ -18,6 +18,7 @@ import FAQPage from './pages/FAQPage';
 import TermsConditionsPage from './pages/TermsConditionsPage';
 import HealthAssessmentPage from './pages/HealthAssessmentPage';
 import QuestionnaireBlankPage from './pages/QuestionnaireBlankPage';
+import BloodMarkersPage from './pages/BloodMarkersPage/BloodMarkersPage';
 
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
@@ -358,6 +359,19 @@ function App() {
           onOpenHealthAssessment={() => {
             setCurrentPage('health-assessment');
             initializeQuestionnaire();
+          }}
+          onNavigateToBloodMarkers={() => {
+            console.log('Navigate to Blood Markers');
+            setCurrentPage('blood-markers');
+          }}
+        />
+      )}
+
+      {currentPage === 'blood-markers' && (
+        <BloodMarkersPage
+          onBack={() => {
+            console.log('Back to Home');
+            setCurrentPage('home');
           }}
         />
       )}

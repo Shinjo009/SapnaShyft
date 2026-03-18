@@ -133,7 +133,10 @@ const HealthScanIndexPage = ({ onBack }) => {
                       </svg>
                     </span>
                   </div>
-                  <span className="health-scan-page__metric-range">Range : 15-30</span>
+                  <span className="health-scan-page__metric-range-container">
+                    <span className="health-scan-page__metric-range-label">Ideal range</span>
+                    <span className="health-scan-page__metric-range-value">15-30</span>
+                  </span>
                 </div>
 
                 <div className="health-scan-page__metric-card">
@@ -149,7 +152,10 @@ const HealthScanIndexPage = ({ onBack }) => {
                       </svg>
                     </span>
                   </div>
-                  <span className="health-scan-page__metric-range">Range : 15-25</span>
+                  <span className="health-scan-page__metric-range-container">
+                    <span className="health-scan-page__metric-range-label">Ideal range</span>
+                    <span className="health-scan-page__metric-range-value">15-20</span>
+                  </span>
                 </div>
               </div>
 
@@ -166,7 +172,10 @@ const HealthScanIndexPage = ({ onBack }) => {
                     </svg>
                   </span>
                 </div>
-                <span className="health-scan-page__metric-range">Range : &lt;=120/80</span>
+                <span className="health-scan-page__metric-range-container">
+                  <span className="health-scan-page__metric-range-label">Ideal range</span>
+                  <span className="health-scan-page__metric-range-value">&lt;=120/80</span>
+                </span>
               </div>
 
               <div className="health-scan-page__metric-card health-scan-page__metric-card--full">
@@ -182,6 +191,10 @@ const HealthScanIndexPage = ({ onBack }) => {
                     </svg>
                   </span>
                 </div>
+                <span className="health-scan-page__metric-range-container">
+                  <span className="health-scan-page__metric-range-label">Ideal range</span>
+                  <span className="health-scan-page__metric-range-value">1300-1700</span>
+                </span>
               </div>
             </div>
           )}
@@ -244,7 +257,10 @@ const HealthScanIndexPage = ({ onBack }) => {
                       </svg>
                     </span>
                   </div>
-                  <span className="health-scan-page__metric-range">Ideal : 30-40</span>
+                  <span className="health-scan-page__metric-range-container">
+                    <span className="health-scan-page__metric-range-label">Ideal range</span>
+                    <span className="health-scan-page__metric-range-value">30-40</span>
+                  </span>
                 </div>
 
                 <div className="health-scan-page__metric-card">
@@ -260,7 +276,10 @@ const HealthScanIndexPage = ({ onBack }) => {
                       </svg>
                     </span>
                   </div>
-                  <span className="health-scan-page__metric-range">Ideal : 10-20</span>
+                  <span className="health-scan-page__metric-range-container">
+                    <span className="health-scan-page__metric-range-label">Ideal range</span>
+                    <span className="health-scan-page__metric-range-value">10-20</span>
+                  </span>
                 </div>
               </div>
 
@@ -278,7 +297,10 @@ const HealthScanIndexPage = ({ onBack }) => {
                       </svg>
                     </span>
                   </div>
-                  <span className="health-scan-page__metric-range">Ideal : 20-40</span>
+                  <span className="health-scan-page__metric-range-container">
+                    <span className="health-scan-page__metric-range-label">Ideal range</span>
+                    <span className="health-scan-page__metric-range-value">20-40</span>
+                  </span>
                 </div>
 
                 <div className="health-scan-page__metric-card">
@@ -294,7 +316,10 @@ const HealthScanIndexPage = ({ onBack }) => {
                       </svg>
                     </span>
                   </div>
-                  <span className="health-scan-page__metric-range">Ideal : 5-15</span>
+                  <span className="health-scan-page__metric-range-container">
+                    <span className="health-scan-page__metric-range-label">Ideal range</span>
+                    <span className="health-scan-page__metric-range-value">5-15</span>
+                  </span>
                 </div>
               </div>
 
@@ -311,7 +336,10 @@ const HealthScanIndexPage = ({ onBack }) => {
                     </svg>
                   </span>
                 </div>
-                <span className="health-scan-page__metric-range">Ideal : 2-3 litres</span>
+                <span className="health-scan-page__metric-range-container">
+                  <span className="health-scan-page__metric-range-label">Ideal range</span>
+                  <span className="health-scan-page__metric-range-value">2-3 litres</span>
+                </span>
               </div>
             </div>
           )}
@@ -401,7 +429,10 @@ const HealthScanIndexPage = ({ onBack }) => {
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--below">
                     <span>5-7 hours / day</span>
                   </div>
-                  <span className="health-scan-page__metric-range">Ideal : 6-8 hours / day</span>
+                  <span className="health-scan-page__metric-range-container">
+                    <span className="health-scan-page__metric-range-label">Ideal range</span>
+                    <span className="health-scan-page__metric-range-value">6-8 hours / day</span>
+                  </span>
                 </div>
 
                 <div className="health-scan-page__metric-card">

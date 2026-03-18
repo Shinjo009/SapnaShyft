@@ -25,6 +25,19 @@ const SwipeArrow = () => (
   </svg>
 );
 
+const MarkerTrendIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <g clipPath="url(#clip0_2394_17328)">
+      <path d="M11.787 3.65514L12.9743 4.78469L8.99102 8.57417L6.30999 6.02356C6.00359 5.69562 5.46738 5.69562 5.16098 6.02356L0.258528 10.6875C-0.0861759 10.979 -0.0861759 11.4891 0.258528 11.7806C0.564931 12.0721 1.10114 12.0721 1.40754 11.7806L5.73549 7.66324L8.41652 10.2138C8.72292 10.5418 9.25913 10.5418 9.56553 10.2138L14.1233 5.87781L15.3106 7.00736C15.5787 7.22599 16 7.08024 16 6.71587V3.40008C16 3.18145 15.8468 2.99927 15.617 2.99927H12.0934C11.7487 2.99927 11.5572 3.43651 11.787 3.65514Z" fill="#EF4444"/>
+    </g>
+    <defs>
+      <clipPath id="clip0_2394_17328">
+        <rect width="16" height="16" fill="white" transform="translate(0 -0.000732422)"/>
+      </clipPath>
+    </defs>
+  </svg>
+);
+
 const DISEASES_DATA = [
   { id: 1, name: 'Obesity', icon: ObesityIcon, score: 55 },
   { id: 2, name: 'Oxidative Stress', icon: OxidativeIcon, score: 85 },
@@ -64,6 +77,12 @@ const defaultCards = DISEASES_DATA
     healthRankLabel: `${HEALTH_RANK_SCORE_FROM_DISEASE_DETAIL}th`,
   }));
 
+const BLOOD_MARKERS_DATA = [
+  { id: 1, name: 'Albumin', value: '23.5 mg/dL', profile: 'Liver Profile', risk: 'High Risk' },
+  { id: 2, name: 'Albumin', value: '23.5 mg/dL', profile: 'Liver Profile', risk: 'High Risk' },
+  { id: 3, name: 'Albumin', value: '23.5 mg/dL', profile: 'Liver Profile', risk: 'High Risk' },
+];
+
 const GaugeDial = ({ score }) => {
   const safeScore = Math.max(0, Math.min(100, score ?? 0));
   const pathD = 'M4 40 A36 36 0 0 1 76 40';
@@ -88,12 +107,12 @@ const GaugeDial = ({ score }) => {
   );
 };
 
-const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore }) => {
+const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore, onBloodMarkersSeeMore }) => {
   const [activeIndex, setActiveIndex] = useState(cards.length - 1);
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const pendingDirectionRef = useRef(null);
+  const [isResetting, setIsResetting] = useState(false);
   const stackRef = useRef(null);
   const touchStartXRef = useRef(null);
   const latestDragXRef = useRef(0);
@@ -116,7 +135,6 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore 
     setIsDragging(false);
     resetDragOffset();
     setSwipeDirection(direction);
-    pendingDirectionRef.current = direction;
     setIsAnimating(true);
   };
 
@@ -180,16 +198,16 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore 
     if (!event.target.classList.contains('risk-analysis-wins__stack-card--front')) return;
     if (event.propertyName !== 'transform') return;
 
-    const pendingDirection = pendingDirectionRef.current;
-    if (pendingDirection === 'next') {
-      setActiveIndex((prev) => (prev + 1) % cards.length);
-    } else if (pendingDirection === 'prev') {
-      setActiveIndex((prev) => (prev - 1 + cards.length) % cards.length);
-    }
-
-    pendingDirectionRef.current = null;
+    setIsResetting(true);
+    setActiveIndex((prev) => (prev + 1) % cards.length);
     setIsAnimating(false);
     resetDragOffset();
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsResetting(false);
+      });
+    });
   };
 
   const handleCardClick = (card) => {
@@ -226,20 +244,18 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore 
         onTouchCancel={handleTouchCancel}
         onTransitionEnd={handleStackTransitionEnd}
         data-dragging={isDragging ? 'true' : 'false'}
+        data-resetting={isResetting ? 'true' : 'false'}
       >
         {cards.map((card, index) => {
           const CardIcon = card.icon;
-          const nextIndex = (activeIndex + 1) % cards.length;
-          const prevIndex = (activeIndex - 1 + cards.length) % cards.length;
-
-          let role = 'hidden';
-          if (index === activeIndex) {
-            role = 'front';
-          } else if (index === nextIndex) {
-            role = 'back-one';
-          } else if (index === prevIndex) {
-            role = 'back-two';
-          }
+          const distance = (index - activeIndex + cards.length) % cards.length;
+          const role = distance === 0
+            ? 'front'
+            : distance === 1
+              ? 'back-one'
+              : distance === 2
+                ? 'back-two'
+                : 'hidden';
 
           return (
             <article
@@ -294,6 +310,40 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore 
         <span className="risk-analysis-wins__swipe-text">Swipe to explore</span>
         <span className="risk-analysis-wins__swipe-arrow"><SwipeArrow /></span>
       </div>
+
+      <section className="risk-analysis-wins__blood-markers" aria-label="Blood Markers">
+        <div className="risk-analysis-wins__blood-markers-header">
+          <div className="risk-analysis-wins__blood-markers-copy">
+            <h3 className="risk-analysis-wins__blood-markers-title">Blood Markers</h3>
+            <p className="risk-analysis-wins__blood-markers-subtitle">Tap the card to know more</p>
+          </div>
+          <button
+            type="button"
+            className="risk-analysis-wins__blood-markers-see-more"
+            onClick={onBloodMarkersSeeMore}
+          >
+            See more
+          </button>
+        </div>
+
+        <div className="risk-analysis-wins__blood-markers-list">
+          {BLOOD_MARKERS_DATA.map((marker) => (
+            <article className="risk-analysis-wins__blood-marker-card" key={marker.id}>
+              <div className="risk-analysis-wins__blood-marker-left">
+                <div className="risk-analysis-wins__blood-marker-main-row">
+                  <span className="risk-analysis-wins__blood-marker-name">{marker.name}</span>
+                  <span className="risk-analysis-wins__blood-marker-divider" aria-hidden="true">|</span>
+                  <span className="risk-analysis-wins__blood-marker-value">{marker.value}</span>
+                  <span className="risk-analysis-wins__blood-marker-trend" aria-hidden="true"><MarkerTrendIcon /></span>
+                </div>
+                <span className="risk-analysis-wins__blood-marker-profile">{marker.profile}</span>
+              </div>
+
+              <span className="risk-analysis-wins__blood-marker-risk-pill">{marker.risk}</span>
+            </article>
+          ))}
+        </div>
+      </section>
     </section>
   );
 };

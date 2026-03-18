@@ -82,7 +82,7 @@
   margin-left: auto;
   margin-right: auto;
   height: var(--risk-analysis-wins-card-height);
-  overflow: hidden;
+  overflow: visible;
   touch-action: pan-y;
 }
 
@@ -96,19 +96,24 @@
   display: block;
   padding: 24px;
   border: 1px solid rgba(233, 93, 92, 0.1);
-  background: radial-gradient(192.2% 117.1% at 0% 0%, rgba(233, 93, 92, 0.15) 0%, rgba(233, 93, 92, 0) 70%);
+  background: linear-gradient(110deg, #3e2e2d -0.8%, #101413 100.17%);
   box-sizing: border-box;
   overflow: hidden;
   will-change: transform, opacity;
   backface-visibility: hidden;
   transition:
-    transform 620ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    opacity 620ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    left 560ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    width 560ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 560ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .risk-analysis-wins__stack[data-dragging='true'] .risk-analysis-wins__stack-card {
   transition-property: transform;
   transition-duration: 0ms;
+}
+
+.risk-analysis-wins__stack[data-resetting='true'] .risk-analysis-wins__stack-card {
+  transition: none;
 }
 
 .risk-analysis-wins__stack-card::before {
@@ -120,6 +125,7 @@
 }
 
 .risk-analysis-wins__stack-card--front {
+  top: 0;
   transform: translate3d(var(--risk-analysis-wins-drag-x), 0, 0);
   z-index: 3;
   border-color: rgba(233, 93, 92, 0.35);
@@ -128,34 +134,45 @@
 }
 
 .risk-analysis-wins__stack-card--back-one {
-  transform: translate3d(112%, 0, 0);
+  left: -7px;
+  width: calc(100% + 14px);
+  top: 0;
+  transform: translate3d(0, 0, 0) scale(1);
   z-index: 2;
-  border-color: rgba(233, 93, 92, 0.2);
-  background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(233, 93, 92, 0.05) 100%);
-  opacity: 0;
+  border: 1px solid rgba(233, 93, 92, 0.2);
+  background: radial-gradient(192.2% 117.1% at 0% 0%, rgba(233, 93, 92, 0.15) 0%, rgba(233, 93, 92, 0) 70%);
+  opacity: 1;
+  pointer-events: none;
 }
 
 .risk-analysis-wins__stack-card--back-two {
-  transform: translate3d(-112%, 0, 0);
+  left: -14px;
+  width: calc(100% + 28px);
+  top: 0;
+  transform: translate3d(0, 0, 0) scale(1);
   z-index: 1;
-  border-color: rgba(233, 93, 92, 0.1);
-  background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(233, 93, 92, 0.05) 100%);
-  opacity: 0;
+  border: 1px solid rgba(233, 93, 92, 0.2);
+  background: radial-gradient(192.2% 117.1% at 0% 0%, rgba(233, 93, 92, 0.15) 0%, rgba(233, 93, 92, 0) 70%);
+  opacity: 1;
+  pointer-events: none;
 }
 
 .risk-analysis-wins__stack-card--hidden {
-  transform: translate3d(112%, 0, 0);
+  left: 0;
+  width: 100%;
+  top: 0;
+  transform: translate3d(0, 0, 0) scale(1);
   z-index: 0;
   opacity: 0;
   pointer-events: none;
 }
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--hidden {
-  transform: translate3d(112%, 0, 0);
+  transform: translate3d(0, 0, 0) scale(1);
 }
 
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--hidden {
-  transform: translate3d(-112%, 0, 0);
+  transform: translate3d(0, 0, 0) scale(1);
 }
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--front {
@@ -163,14 +180,16 @@
 }
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-one {
+  left: 0;
+  width: 100%;
   transform: translate3d(0, 0, 0);
   z-index: 4;
-  border-color: rgba(233, 93, 92, 0.35);
-  opacity: 1;
 }
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-two {
-  transform: translate3d(-112%, 0, 0);
+  left: -7px;
+  width: calc(100% + 14px);
+  transform: translate3d(0, 0, 0);
 }
 
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--front {
@@ -178,14 +197,16 @@
 }
 
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-one {
-  transform: translate3d(112%, 0, 0);
+  left: 0;
+  width: 100%;
+  transform: translate3d(0, 0, 0);
+  z-index: 4;
 }
 
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-two {
+  left: -7px;
+  width: calc(100% + 14px);
   transform: translate3d(0, 0, 0);
-  z-index: 4;
-  border-color: rgba(233, 93, 92, 0.35);
-  opacity: 1;
 }
 
 .risk-analysis-wins__card-top-row,
@@ -193,7 +214,6 @@
   position: relative;
   z-index: 1;
   opacity: 1;
-  will-change: opacity;
 }
 
 .risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-top-row,
@@ -207,8 +227,8 @@
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-top-row,
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-content,
-.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-two .risk-analysis-wins__card-top-row,
-.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-two .risk-analysis-wins__card-content {
+.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-top-row,
+.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-content {
   opacity: 1;
 }
 
@@ -507,4 +527,172 @@
 
 .risk-analysis-wins__swipe-arrow--left {
   transform: rotate(180deg);
+}
+
+.risk-analysis-wins__blood-markers {
+  display: flex;
+  padding: 8px 16px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  margin-top: 16px;
+}
+
+.risk-analysis-wins__blood-markers-header {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.risk-analysis-wins__blood-markers-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.risk-analysis-wins__blood-markers-title {
+  margin: 0;
+  color: #FFF;
+  text-align: left;
+  font-family: Lato, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.risk-analysis-wins__blood-markers-subtitle {
+  margin: 0;
+  color: #C4C4C4;
+  text-align: left;
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.risk-analysis-wins__blood-markers-see-more {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #C4C4C4;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 5%;
+  text-underline-offset: 25%;
+  text-underline-position: from-font;
+  cursor: pointer;
+}
+
+.risk-analysis-wins__blood-markers-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.risk-analysis-wins__blood-marker-card {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  padding: 8px 12px;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 8px;
+  border: 0.5px solid rgba(233, 93, 92, 0.50);
+  box-shadow: -1px 0 4px 0 rgba(233, 93, 92, 0.50);
+}
+
+.risk-analysis-wins__blood-marker-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.risk-analysis-wins__blood-marker-main-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.risk-analysis-wins__blood-marker-name {
+  color: #FFF;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.risk-analysis-wins__blood-marker-divider {
+  color: #E95D5C;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.risk-analysis-wins__blood-marker-value {
+  color: #FFF;
+  text-align: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 300;
+  line-height: 10px;
+}
+
+.risk-analysis-wins__blood-marker-trend {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+.risk-analysis-wins__blood-marker-profile {
+  color: #C4C4C4;
+  text-align: left;
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.risk-analysis-wins__blood-marker-risk-pill {
+  display: flex;
+  width: 54px;
+  height: 21px;
+  padding: 4px 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  flex-shrink: 0;
+  border-radius: 90px;
+  background: rgba(233, 93, 92, 0.20);
+  color: #FFF;
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  box-sizing: border-box;
 }

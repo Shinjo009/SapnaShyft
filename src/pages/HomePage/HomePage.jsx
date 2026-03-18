@@ -7,7 +7,7 @@ import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/P
 import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 
-const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment }) => {
+const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers }) => {
   const handleMenuClick = () => {
     console.log('Menu clicked');
     if (onNavigateToProfile) {
@@ -36,6 +36,12 @@ const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToProfi
   const handleRiskAnalysisSeeMore = () => {
     if (onNavigateToRiskAnalysis) {
       onNavigateToRiskAnalysis();
+    }
+  };
+
+  const handleBloodMarkersSeeMore = () => {
+    if (onNavigateToBloodMarkers) {
+      onNavigateToBloodMarkers();
     }
   };
 
@@ -68,7 +74,11 @@ const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToProfi
       <PositiveWinsSection />
 
       {/* Risk Analysis Section */}
-      <RiskAnalysisSection onSeeMore={handleRiskAnalysisSeeMore} onDiseaseSelect={onNavigateToDiseaseDetail} />
+      <RiskAnalysisSection
+        onSeeMore={handleRiskAnalysisSeeMore}
+        onDiseaseSelect={onNavigateToDiseaseDetail}
+        onBloodMarkersSeeMore={handleBloodMarkersSeeMore}
+      />
 
       <NavBar defaultActive="home" onNavigate={handleNavigate} />
     </div>

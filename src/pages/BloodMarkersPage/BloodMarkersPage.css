@@ -1,0 +1,507 @@
+.blood-markers-page {
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px 32px;
+  overflow-y: auto;
+}
+
+.blood-markers-page__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 30px;
+}
+
+.blood-markers-page__back-btn,
+.blood-markers-page__search-btn {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  cursor: pointer;
+}
+
+.blood-markers-page__title {
+  margin: 0;
+  color: #FFF;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+}
+
+.blood-markers-page__search-btn {
+  margin-left: auto;
+}
+
+.blood-markers-page__filters {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.blood-markers-page__filter-pill {
+  display: flex;
+  padding: 8px 16px;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex: 1 0 0;
+  border-radius: 30px;
+  border: 1px solid #999;
+  background: transparent;
+  color: #999;
+  text-align: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  letter-spacing: 0.1px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.blood-markers-page__filter-pill--active {
+  display: flex;
+  padding: 8px 16px;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex: 1 0 0;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.30);
+  background: rgba(144, 223, 158, 0.20);
+  box-shadow: 0 0 10px 0 rgba(144, 223, 158, 0.40);
+  color: #FFF;
+  font-weight: 600;
+}
+
+.blood-markers-page__sections {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.blood-markers-page__section {
+  display: flex;
+  flex-direction: column;
+}
+
+.blood-markers-page__organ-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.blood-markers-page__organ-icon-box {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  justify-content: center;
+  align-items: center;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+}
+
+.blood-markers-page__organ-icon-box--low {
+  border: 1px solid rgba(144, 223, 158, 0.20);
+  background: linear-gradient(135deg, rgba(144, 223, 158, 0.20) 0%, rgba(144, 223, 158, 0.05) 100%);
+}
+
+.blood-markers-page__organ-icon-box--moderate {
+  border: 1px solid rgba(218, 193, 90, 0.20);
+  background: linear-gradient(135deg, rgba(218, 193, 90, 0.20) 0%, rgba(218, 193, 90, 0.05) 100%);
+}
+
+.blood-markers-page__organ-icon-box--increased {
+  border: 1px solid rgba(238, 139, 72, 0.20);
+  background: linear-gradient(135deg, rgba(238, 139, 72, 0.20) 0%, rgba(238, 139, 72, 0.05) 100%);
+}
+
+.blood-markers-page__organ-icon-box--high {
+  border: 1px solid rgba(233, 93, 92, 0.20);
+  background: linear-gradient(135deg, rgba(233, 93, 92, 0.20) 0%, rgba(233, 93, 92, 0.05) 100%);
+}
+
+.blood-markers-page__organ-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.blood-markers-page__organ-title {
+  margin: 0;
+  color: #FFF;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.blood-markers-page__organ-subtitle {
+  margin: 0;
+  color: rgba(204, 204, 204, 0.60);
+  font-family: "DM Sans", sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.blood-markers-page__stack {
+  --blood-markers-card-height: 136px;
+  --blood-markers-drag-x: 0px;
+  margin-top: 16px;
+  width: calc(100% - 12px);
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+  height: var(--blood-markers-card-height);
+  overflow: visible;
+  touch-action: pan-y;
+}
+
+.blood-markers-page__stack-card {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  top: 0;
+  height: var(--blood-markers-card-height);
+  border-radius: 24px;
+  display: flex;
+  padding: 24px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  overflow: hidden;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transition: left 560ms cubic-bezier(0.22, 0.61, 0.36, 1), width 560ms cubic-bezier(0.22, 0.61, 0.36, 1), transform 560ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.blood-markers-page__stack[data-dragging='true'] .blood-markers-page__stack-card {
+  transition-property: transform;
+  transition-duration: 0ms;
+}
+
+.blood-markers-page__stack[data-resetting='true'] .blood-markers-page__stack-card {
+  transition: none;
+}
+
+.blood-markers-page__stack-card--theme-low {
+  background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(144, 223, 158, 0.05) 100%);
+  backdrop-filter: blur(40px);
+}
+
+.blood-markers-page__stack-card--theme-moderate {
+  background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(218, 193, 90, 0.05) 100%);
+  box-shadow: 0 10px 22px 0 rgba(0, 0, 0, 0.42), 0 0 10px 0 rgba(218, 193, 90, 0.08), 0 1px 0 1px rgba(255, 255, 255, 0.08) inset;
+  backdrop-filter: blur(12px);
+}
+
+.blood-markers-page__stack-card--theme-increased {
+  background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(238, 139, 72, 0.05) 100%);
+  box-shadow: 0 8px 18px 0 rgba(0, 0, 0, 0.35), 0 0 10px 0 rgba(238, 139, 72, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.blood-markers-page__stack-card--theme-high {
+  background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(233, 93, 92, 0.05) 100%);
+  box-shadow: 0 10px 22px 0 rgba(0, 0, 0, 0.42), 0 0 10px 0 rgba(233, 93, 92, 0.08), 0 1px 0 1px rgba(255, 255, 255, 0.08) inset;
+  backdrop-filter: blur(12px);
+}
+
+.blood-markers-page__stack-card--front.blood-markers-page__stack-card--theme-low {
+  border-color: rgba(144, 223, 158, 0.35);
+}
+
+.blood-markers-page__stack-card--front.blood-markers-page__stack-card--theme-moderate {
+  border-color: rgba(218, 193, 90, 0.35);
+}
+
+.blood-markers-page__stack-card--front.blood-markers-page__stack-card--theme-increased {
+  border-color: rgba(238, 139, 72, 0.35);
+}
+
+.blood-markers-page__stack-card--front.blood-markers-page__stack-card--theme-high {
+  border-color: rgba(233, 93, 92, 0.35);
+}
+
+.blood-markers-page__stack-card--back-one.blood-markers-page__stack-card--theme-low,
+.blood-markers-page__stack-card--back-two.blood-markers-page__stack-card--theme-low {
+  border-color: rgba(144, 223, 158, 0.07);
+}
+
+.blood-markers-page__stack-card--back-one.blood-markers-page__stack-card--theme-moderate,
+.blood-markers-page__stack-card--back-two.blood-markers-page__stack-card--theme-moderate {
+  border-color: rgba(218, 193, 90, 0.07);
+}
+
+.blood-markers-page__stack-card--back-one.blood-markers-page__stack-card--theme-increased,
+.blood-markers-page__stack-card--back-two.blood-markers-page__stack-card--theme-increased {
+  border-color: rgba(238, 139, 72, 0.07);
+}
+
+.blood-markers-page__stack-card--back-one.blood-markers-page__stack-card--theme-high,
+.blood-markers-page__stack-card--back-two.blood-markers-page__stack-card--theme-high {
+  border-color: rgba(233, 93, 92, 0.07);
+}
+
+.blood-markers-page__stack-card--front {
+  transform: translate3d(var(--blood-markers-drag-x), 0, 0);
+  z-index: 3;
+  opacity: 1;
+}
+
+.blood-markers-page__stack-card--back-one {
+  left: -7px;
+  width: calc(100% + 14px);
+  z-index: 2;
+  opacity: 1;
+  pointer-events: none;
+}
+
+.blood-markers-page__stack-card--back-two {
+  left: -14px;
+  width: calc(100% + 28px);
+  z-index: 1;
+  opacity: 1;
+  pointer-events: none;
+}
+
+.blood-markers-page__stack-card--hidden {
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.blood-markers-page__stack--moving-next .blood-markers-page__stack-card--front {
+  transform: translate3d(-112%, 0, 0);
+}
+
+.blood-markers-page__stack--moving-next .blood-markers-page__stack-card--back-one {
+  left: 0;
+  width: 100%;
+  z-index: 4;
+}
+
+.blood-markers-page__stack--moving-next .blood-markers-page__stack-card--back-two {
+  left: -7px;
+  width: calc(100% + 14px);
+}
+
+.blood-markers-page__stack--moving-prev .blood-markers-page__stack-card--front {
+  transform: translate3d(112%, 0, 0);
+}
+
+.blood-markers-page__stack--moving-prev .blood-markers-page__stack-card--back-one {
+  left: 0;
+  width: 100%;
+  z-index: 4;
+}
+
+.blood-markers-page__stack--moving-prev .blood-markers-page__stack-card--back-two {
+  left: -7px;
+  width: calc(100% + 14px);
+}
+
+.blood-markers-page__card-top-row,
+.blood-markers-page__card-bottom-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.blood-markers-page__stack-card--back-one .blood-markers-page__card-top-row,
+.blood-markers-page__stack-card--back-one .blood-markers-page__card-bottom-row,
+.blood-markers-page__stack-card--back-two .blood-markers-page__card-top-row,
+.blood-markers-page__stack-card--back-two .blood-markers-page__card-bottom-row,
+.blood-markers-page__stack-card--hidden .blood-markers-page__card-top-row,
+.blood-markers-page__stack-card--hidden .blood-markers-page__card-bottom-row {
+  opacity: 0;
+}
+
+.blood-markers-page__stack--moving-next .blood-markers-page__stack-card--back-one .blood-markers-page__card-top-row,
+.blood-markers-page__stack--moving-next .blood-markers-page__stack-card--back-one .blood-markers-page__card-bottom-row,
+.blood-markers-page__stack--moving-prev .blood-markers-page__stack-card--back-one .blood-markers-page__card-top-row,
+.blood-markers-page__stack--moving-prev .blood-markers-page__stack-card--back-one .blood-markers-page__card-bottom-row {
+  opacity: 1;
+}
+
+.blood-markers-page__card-top-row {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.blood-markers-page__marker-block {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.blood-markers-page__marker-line {
+  width: 4px;
+  border-radius: 9999px;
+  align-self: stretch;
+}
+
+.blood-markers-page__marker-line--low {
+  background: #90DF9E;
+}
+
+.blood-markers-page__marker-line--moderate {
+  background: #DAC15A;
+}
+
+.blood-markers-page__marker-line--increased {
+  background: #EE8B48;
+}
+
+.blood-markers-page__marker-line--high {
+  background: #EF4444;
+}
+
+.blood-markers-page__marker-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.blood-markers-page__marker-label {
+  color: #9A9A9A;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.blood-markers-page__marker-value-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.blood-markers-page__marker-value {
+  color: #FFF;
+  font-family: "DM Sans", sans-serif;
+  font-size: 26px;
+  font-style: normal;
+  font-weight: 300;
+  line-height: 28px;
+}
+
+.blood-markers-page__marker-unit {
+  color: #9A9A9A;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.blood-markers-page__risk-chip {
+  display: flex;
+  padding: 2px 8px;
+  align-items: center;
+  gap: 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.10);
+}
+
+.blood-markers-page__risk-chip-text {
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 15px;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+}
+
+.blood-markers-page__card-bottom-row {
+  justify-content: flex-start;
+  gap: 0;
+  align-items: flex-start;
+  position: relative;
+}
+
+.blood-markers-page__meter {
+  display: flex;
+  height: 8px;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 6px;
+  align-self: stretch;
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.blood-markers-page__meter-pill {
+  flex: 1 0 0;
+  align-self: stretch;
+  border-radius: 2px;
+}
+
+.blood-markers-page__card-chevron {
+  width: 8px;
+  height: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  right: 0;
+  top: 18px;
+}
+
+.blood-markers-page__swipe-hint {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.blood-markers-page__swipe-text {
+  color: #9A9A9A;
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.blood-markers-page__swipe-arrow {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.blood-markers-page__swipe-arrow--left {
+  transform: rotate(180deg);
+}

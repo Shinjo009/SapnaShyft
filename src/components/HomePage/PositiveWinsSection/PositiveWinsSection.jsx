@@ -72,6 +72,33 @@ const defaultCards = [
       { label: 'Obesity', percent: '12%' },
     ],
   },
+  {
+    title: 'Healthy\nHabits',
+    Icon: HealthyHabitsIcon,
+    aspects: [
+      { label: 'Improved Sleep' },
+      { label: 'Better Hydration' },
+      { label: 'Good Exercise' },
+    ],
+  },
+  {
+    title: 'Healthy\nProfiles',
+    Icon: HealthyProfilesIcon,
+    aspects: [
+      { label: 'Liver Profile' },
+      { label: 'Thyroid Profile' },
+      { label: 'Heart Profile' },
+    ],
+  },
+  {
+    title: 'Low Risk',
+    Icon: LowRiskIcon,
+    aspects: [
+      { label: 'Thyroid', percent: '12%' },
+      { label: 'Cardiac Health', percent: '12%' },
+      { label: 'Obesity', percent: '12%' },
+    ],
+  },
 ];
 
 const PositiveWinsSection = ({ cards = defaultCards }) => {
@@ -79,6 +106,7 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const stackRef = useRef(null);
   const touchStartXRef = useRef(null);
   const latestDragXRef = useRef(0);
@@ -97,29 +125,21 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
     }
   };
 
-  const startAnimation = (direction, updateIndex) => {
+  const startAnimation = (direction) => {
     setIsDragging(false);
     resetDragOffset();
     setSwipeDirection(direction);
     setIsAnimating(true);
-
-    requestAnimationFrame(() => {
-      updateIndex();
-    });
   };
 
   const goPrev = () => {
     if (isAnimating) return;
-    startAnimation('prev', () => {
-      setActiveIndex((prev) => (prev - 1 + cards.length) % cards.length);
-    });
+    startAnimation('prev');
   };
 
   const goNext = () => {
     if (isAnimating) return;
-    startAnimation('next', () => {
-      setActiveIndex((prev) => (prev + 1) % cards.length);
-    });
+    startAnimation('next');
   };
 
   const handleTouchStart = (event) => {
@@ -171,7 +191,18 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
     if (!isAnimating) return;
     if (!event.target.classList.contains('positive-wins__stack-card--front')) return;
     if (event.propertyName !== 'transform') return;
+
+    setIsResetting(true);
+    // Treat swipe as dismiss action: the immediate stacked card behind comes forward.
+    setActiveIndex((prev) => (prev + 1) % cards.length);
     setIsAnimating(false);
+    resetDragOffset();
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsResetting(false);
+      });
+    });
   };
 
   return (
@@ -195,6 +226,7 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
         onTouchCancel={handleTouchCancel}
         onTransitionEnd={handleStackTransitionEnd}
         data-dragging={isDragging ? 'true' : 'false'}
+        data-resetting={isResetting ? 'true' : 'false'}
       >
         {cards.map((card, index) => {
           const CardIcon = card.Icon;
