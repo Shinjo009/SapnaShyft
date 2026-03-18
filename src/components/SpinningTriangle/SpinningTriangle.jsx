@@ -78,7 +78,7 @@ const SpinningTriangle = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [onAnimationComplete, onWordIndex, totalWords, wordStep]);
+  }, [onAnimationComplete, onWordIndex, totalWords, wordStep, START_OFFSET]);
 
   return (
     <div
