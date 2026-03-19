@@ -429,7 +429,7 @@ const HealthScanIndexPage = ({ onBack }) => {
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--below">
                     <span>5-7 hours / day</span>
                   </div>
-                  <span className="health-scan-page__metric-range-container">
+                  <span className="health-scan-page__metric-range-container health-scan-page__metric-range-container--sleep">
                     <span className="health-scan-page__metric-range-label">Ideal range</span>
                     <span className="health-scan-page__metric-range-value">6-8 hours / day</span>
                   </span>

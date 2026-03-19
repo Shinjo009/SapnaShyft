@@ -328,6 +328,18 @@
   line-height: normal;
 }
 
+.health-scan-page__metric-range-container--sleep {
+  width: 100%;
+  margin-left: 0;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.health-scan-page__metric-range-container--sleep .health-scan-page__metric-range-label,
+.health-scan-page__metric-range-container--sleep .health-scan-page__metric-range-value {
+  white-space: nowrap;
+}
+
 .health-scan-page__metric-icon {
   display: inline-flex;
   align-items: center;
