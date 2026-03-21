@@ -32,6 +32,8 @@ const getAgeValue = (profile) => {
 };
 
 const EditProfilePage = ({ onBack }) => {
+  const inputTextClass = '!text-[13px] !leading-[13px] placeholder:!text-[13px] placeholder:!leading-[13px]';
+
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -160,12 +162,14 @@ const EditProfilePage = ({ onBack }) => {
               placeholder="First Name"
               value={formData.first_name}
               onChange={(e) => handleChange('first_name', e.target.value)}
+              className={inputTextClass}
               disabled={loading}
             />
             <Input
               placeholder="Last Name"
               value={formData.last_name}
               onChange={(e) => handleChange('last_name', e.target.value)}
+              className={inputTextClass}
               disabled={loading}
             />
           </div>
@@ -175,12 +179,14 @@ const EditProfilePage = ({ onBack }) => {
             placeholder="Email"
             value={formData.email}
             onChange={(e) => handleChange('email', e.target.value)}
+            className={inputTextClass}
             disabled={loading}
           />
 
           <Input
             placeholder="Phone (read-only)"
             value={formData.phone}
+            className={inputTextClass}
             disabled
           />
 
@@ -189,6 +195,7 @@ const EditProfilePage = ({ onBack }) => {
             placeholder="Age"
             value={formData.age}
             onChange={(e) => handleChange('age', e.target.value)}
+            className={inputTextClass}
             disabled={loading}
           />
 
@@ -196,6 +203,7 @@ const EditProfilePage = ({ onBack }) => {
             placeholder="Address"
             value={formData.address}
             onChange={(e) => handleChange('address', e.target.value)}
+            className={inputTextClass}
             disabled={loading}
           />
 
@@ -203,6 +211,7 @@ const EditProfilePage = ({ onBack }) => {
             placeholder="Country"
             value={formData.country}
             onChange={(e) => handleChange('country', e.target.value)}
+            className={inputTextClass}
             disabled={loading}
           />
 
@@ -210,6 +219,7 @@ const EditProfilePage = ({ onBack }) => {
             placeholder="Organization Name"
             value={formData.organization_name}
             onChange={(e) => handleChange('organization_name', e.target.value)}
+            className={inputTextClass}
             disabled={loading}
           />
 

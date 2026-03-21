@@ -7,7 +7,7 @@ import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/P
 import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 
-const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers }) => {
+const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealthScanTab, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers }) => {
   const handleMenuClick = () => {
     console.log('Menu clicked');
     if (onNavigateToProfile) {
@@ -28,6 +28,25 @@ const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToProfi
   };
 
   const handleHealthScanSeeMore = () => {
+    if (onNavigateToHealthScan) {
+      onNavigateToHealthScan();
+    }
+  };
+
+  const handleHealthScanCircleClick = (item) => {
+    const tabByLabel = {
+      'Fitness score': 0,
+      'Nutrition score': 1,
+      'Lifestyle score': 2,
+    };
+
+    const tabIndex = tabByLabel[item?.label] ?? 0;
+
+    if (onNavigateToHealthScanTab) {
+      onNavigateToHealthScanTab(tabIndex);
+      return;
+    }
+
     if (onNavigateToHealthScan) {
       onNavigateToHealthScan();
     }
@@ -69,6 +88,7 @@ const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToProfi
           { percentage: 20, label: 'Fitness score' }
         ]}
         onSeeMore={handleHealthScanSeeMore}
+        onCardClick={handleHealthScanCircleClick}
       />
 
       <PositiveWinsSection />

@@ -86,18 +86,6 @@ const TermsConditionsPage = ({ onBack }) => {
           </section>
         </div>
       </div>
-
-      <div className="terms-page__consent-wrap">
-        <p className="terms-page__consent-text">
-          By continuing, you confirm that you have read and
-          <br />
-          agree to the Terms &amp; Conditions and Privacy Policy.
-        </p>
-
-        <button type="button" className="terms-page__accept-btn">
-          Accept
-        </button>
-      </div>
     </div>
   );
 };

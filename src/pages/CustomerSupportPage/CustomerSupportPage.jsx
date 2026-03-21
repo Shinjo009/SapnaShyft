@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import whatsappIcon from '../../images/whatsapp.svg';
 import { submitSupportTicket } from '../../services/usersService';
 import './CustomerSupportPage.css';
 
@@ -7,15 +6,14 @@ import './CustomerSupportPage.css';
  * CustomerSupportPage - Contact support form
  */
 const CustomerSupportPage = ({ onBack }) => {
-  const [contact, setContact] = useState('');
   const [query, setQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleSubmit = async () => {
-    const contactInput = contact.trim();
     const queryText = query.trim();
 
-    if (!contactInput || !queryText || isSubmitting) {
+    if (!queryText || isSubmitting) {
       return;
     }
 
@@ -23,12 +21,11 @@ const CustomerSupportPage = ({ onBack }) => {
 
     try {
       await submitSupportTicket({
-        contact_input: contactInput,
+        contact_input: 'Not Provided',
         query_text: queryText,
       });
-      setContact('');
       setQuery('');
-      window.alert('Your ticket has been submitted successfully.');
+      setShowSuccessModal(true);
     } catch (error) {
       window.alert(error?.message || 'Failed to submit your ticket. Please try again.');
     } finally {
@@ -37,7 +34,7 @@ const CustomerSupportPage = ({ onBack }) => {
   };
 
   return (
-    <div className="customer-support-page">
+    <div className={`customer-support-page${showSuccessModal ? ' customer-support-page--modal-open' : ''}`}>
       <div className="customer-support-page__header">
         <button
           className="customer-support-page__back-btn"
@@ -56,13 +53,6 @@ const CustomerSupportPage = ({ onBack }) => {
       <div className="customer-support-page__content">
         <p className="customer-support-page__text customer-support-page__text--left">Tell us about your issue</p>
 
-        <input
-          className="customer-support-page__input"
-          placeholder="Your Email/ Phone No."
-          value={contact}
-          onChange={(e) => setContact(e.target.value)}
-        />
-
         <textarea
           className="customer-support-page__query"
           placeholder="Type your query here ..."
@@ -70,22 +60,24 @@ const CustomerSupportPage = ({ onBack }) => {
           onChange={(e) => setQuery(e.target.value)}
         />
 
-        <button className="customer-support-page__submit" type="button" onClick={handleSubmit} disabled={isSubmitting}>
+        <button className="customer-support-page__submit" type="button" onClick={handleSubmit} disabled={isSubmitting || !query.trim()}>
           {isSubmitting ? 'Submitting...' : 'Submit'}
         </button>
+      </div>
 
-        <p className="customer-support-page__text customer-support-page__or">OR</p>
-
-        <div className="customer-support-page__contact-box">
-          <div className="customer-support-page__contact-inner">
-            <img src={whatsappIcon} alt="WhatsApp" className="customer-support-page__whatsapp" />
-            <div className="customer-support-page__contact-copy">
-              <p className="customer-support-page__contact-title">Contact us on WhatsApp</p>
-              <p className="customer-support-page__contact-number">+91 1234556789</p>
+      {showSuccessModal ? (
+        <div className="customer-support-page__success-overlay" onClick={() => setShowSuccessModal(false)}>
+          <div className="customer-support-page__success-card" onClick={(e) => e.stopPropagation()}>
+            <div className="customer-support-page__success-icon-box" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="12" viewBox="0 0 16 12" fill="none">
+                <path d="M14.3333 1L5.16667 10.1667L1 6" stroke="#90DF9E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
+            <p className="customer-support-page__success-title">Request Submitted Successfully</p>
+            <p className="customer-support-page__success-text">Thanks for reaching out! We've received your query and our team will get back to you shortly.</p>
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 };

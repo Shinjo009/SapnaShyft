@@ -64,9 +64,7 @@ const SplashScreen = ({ onComplete, onLogin, onSignup }) => {
             Log In
           </button>
 
-          <span className="mx-[44px] text-white text-center font-lato text-[30px] font-light leading-none tracking-[0.6px]">
-            |
-          </span>
+          <div className="mx-[44px] h-6 w-px bg-white rounded-full" />
 
           <button
             type="button"

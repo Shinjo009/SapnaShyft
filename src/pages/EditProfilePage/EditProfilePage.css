@@ -41,8 +41,8 @@
   font-family: Lato;
   font-size: 20px;
   font-style: normal;
-  font-weight: 400;
-  line-height: normal;
+  font-weight: 700;
+  line-height: 24px;
   letter-spacing: 0.1px;
 }
 
@@ -67,13 +67,13 @@
   margin-top: 35px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 .edit-profile-page__name-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .edit-profile-page__name-row > div,
@@ -101,7 +101,7 @@
 .edit-profile-page__gender-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .edit-profile-page__choice {

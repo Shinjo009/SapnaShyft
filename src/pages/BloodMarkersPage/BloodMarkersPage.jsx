@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './BloodMarkersPage.css';
+import trendsImage from '../../images/trends.svg';
 
 const FILTERS = ['Optimal', 'Marginal', 'Critical'];
 
@@ -127,13 +128,323 @@ const RiskTrendIcon = ({ type }) => {
   );
 };
 
+const ALBUMIN_DUMMY_VALUE_BY_THEME = {
+  low: '9.4',
+  moderate: '11.2',
+  increased: '13.6',
+  high: '23.5',
+};
+
 const markerCards = (theme) => [
-  { id: `${theme}-1`, marker: 'ALBUMIN', value: '23.5', unit: 'mg/dL', riskType: theme },
-  { id: `${theme}-2`, marker: 'ALBUMIN', value: '23.5', unit: 'mg/dL', riskType: theme },
-  { id: `${theme}-3`, marker: 'ALBUMIN', value: '23.5', unit: 'mg/dL', riskType: theme },
+  { id: `${theme}-1`, marker: 'ALBUMIN', value: ALBUMIN_DUMMY_VALUE_BY_THEME[theme] || '11.0', unit: 'mg/dL', riskType: theme },
+  { id: `${theme}-2`, marker: 'ALBUMIN', value: ALBUMIN_DUMMY_VALUE_BY_THEME[theme] || '11.0', unit: 'mg/dL', riskType: theme },
+  { id: `${theme}-3`, marker: 'ALBUMIN', value: ALBUMIN_DUMMY_VALUE_BY_THEME[theme] || '11.0', unit: 'mg/dL', riskType: theme },
 ];
 
-const BloodMarkerStackSection = ({ section }) => {
+const BLOOD_MARKER_DETAIL_CONTENT = {
+  ALBUMIN: {
+    title: 'Albumin',
+    description: 'Measure of the main protein in blood that maintains fluid balance and transports substances.',
+    defaultValue: 23.5,
+    unit: 'mg/dL',
+    normalMin: 7,
+    normalMax: 12,
+    trendSummary: '40 % Worse than last result',
+    causes: [
+      'High albumin is usually due to dehydration, severe fluid loss like diarrhea or vomiting. It can also rise due to certain medicines or high protein intake, though this is less common.'
+    ],
+    effects: ['Damage to Kidney', 'Issues in blood circulation', 'Damage to Liver']
+  }
+};
+
+const BLOOD_DOT_GAP = 2;
+const BLOOD_ZONE_COUNT = 3;
+const BLOOD_MIN_DOTS_PER_ZONE = 12;
+
+const getDotSizeForMarker = (index, markerIndex) => {
+  const distanceFromMarker = Math.abs(index - markerIndex);
+  if (distanceFromMarker === 0) return 12;
+  return Math.max(4, 11 - distanceFromMarker);
+};
+
+const getDotColorForValue = (dotValue, normalMin, normalMax, minScale, maxScale) => {
+  if (dotValue >= normalMin && dotValue <= normalMax) {
+    return '#90DF9E';
+  }
+
+  if (dotValue < normalMin) {
+    const ratio = (normalMin - dotValue) / Math.max(normalMin - minScale, 1e-6);
+    if (ratio < 0.35) return '#DAC15A';
+    if (ratio < 0.7) return '#EE8B48';
+    return '#E95D5C';
+  }
+
+  const ratio = (dotValue - normalMax) / Math.max(maxScale - normalMax, 1e-6);
+  if (ratio < 0.35) return '#DAC15A';
+  if (ratio < 0.7) return '#EE8B48';
+  return '#E95D5C';
+};
+
+const BloodMarkerDetailView = ({ marker, onBack }) => {
+  const riskStripRef = useRef(null);
+  const indicatorRef = useRef(null);
+  const detail = BLOOD_MARKER_DETAIL_CONTENT[marker?.marker] || BLOOD_MARKER_DETAIL_CONTENT.ALBUMIN;
+  const markerValue = Number.parseFloat(marker?.value);
+  const activeValue = Number.isFinite(markerValue) ? markerValue : detail.defaultValue;
+  const [riskStripWidth, setRiskStripWidth] = useState(0);
+  const [dotsAnimated, setDotsAnimated] = useState(false);
+  const [animatedMarkerLeftPercent, setAnimatedMarkerLeftPercent] = useState(0);
+  const [indicatorWidth, setIndicatorWidth] = useState(0);
+  const rangeSpan = Math.max(1, detail.normalMax - detail.normalMin);
+  const minScale = Math.max(0, detail.normalMin - rangeSpan);
+  const maxScale = detail.normalMax + rangeSpan;
+  const clampedValue = Math.max(minScale, Math.min(maxScale, activeValue));
+  const normalStartPercent = ((detail.normalMin - minScale) / (maxScale - minScale)) * 100;
+  const normalEndPercent = ((detail.normalMax - minScale) / (maxScale - minScale)) * 100;
+  const markerPercent = ((clampedValue - minScale) / (maxScale - minScale)) * 100;
+  const dotsPerZone = useMemo(() => {
+    if (!riskStripWidth) return BLOOD_MIN_DOTS_PER_ZONE;
+    return Math.max(BLOOD_MIN_DOTS_PER_ZONE, Math.round((riskStripWidth / BLOOD_ZONE_COUNT) / 7.4));
+  }, [riskStripWidth]);
+  const bloodTotalDots = dotsPerZone * BLOOD_ZONE_COUNT;
+  const selectedIndex = Math.round((markerPercent / 100) * (bloodTotalDots - 1));
+  const zoneCenterPercents = useMemo(
+    () => [normalStartPercent / 2, (normalStartPercent + normalEndPercent) / 2, (normalEndPercent + 100) / 2],
+    [normalStartPercent, normalEndPercent]
+  );
+  const riskText = clampedValue > detail.normalMax ? 'Very High Risk' : clampedValue < detail.normalMin ? 'Low Risk' : 'Normal';
+  const riskColor = getDotColorForValue(clampedValue, detail.normalMin, detail.normalMax, minScale, maxScale);
+
+  const riskLayout = useMemo(() => {
+    const buildLayoutForMarker = (candidateMarkerIndex) => {
+      const rawDotSizes = Array.from({ length: bloodTotalDots }, (_, index) =>
+        getDotSizeForMarker(index, candidateMarkerIndex)
+      );
+
+      const totalRawDotWidth = rawDotSizes.reduce((sum, size) => sum + size, 0);
+      const totalGapWidth = BLOOD_DOT_GAP * (bloodTotalDots - 1);
+      const availableDotWidth = riskStripWidth ? Math.max(0, riskStripWidth - totalGapWidth) : totalRawDotWidth;
+      const dotSizeScale = totalRawDotWidth > 0 ? (availableDotWidth / totalRawDotWidth) : 1;
+      const adjustedDotSizes = rawDotSizes.map((size) => size * dotSizeScale);
+      const dotsTrackWidth = adjustedDotSizes.reduce((sum, size) => sum + size, 0) + totalGapWidth;
+
+      const dotCenterPercents = [];
+      let runningX = 0;
+      for (let index = 0; index < bloodTotalDots; index += 1) {
+        const dotSize = adjustedDotSizes[index];
+        const centerPx = runningX + dotSize / 2;
+        dotCenterPercents.push(dotsTrackWidth > 0 ? (centerPx / dotsTrackWidth) * 100 : 0);
+        runningX += dotSize + BLOOD_DOT_GAP;
+      }
+
+      return { adjustedDotSizes, dotsTrackWidth, dotCenterPercents };
+    };
+
+    let candidateMarkerIndex = selectedIndex;
+    let layout = buildLayoutForMarker(candidateMarkerIndex);
+
+    const nearestIndex = layout.dotCenterPercents.reduce((closestIndex, _, index) => {
+      const currentDistance = Math.abs(layout.dotCenterPercents[index] - markerPercent);
+      const closestDistance = Math.abs(layout.dotCenterPercents[closestIndex] - markerPercent);
+      return currentDistance < closestDistance ? index : closestIndex;
+    }, 0);
+
+    if (nearestIndex !== candidateMarkerIndex) {
+      candidateMarkerIndex = nearestIndex;
+      layout = buildLayoutForMarker(candidateMarkerIndex);
+    }
+
+    return {
+      markerIndex: candidateMarkerIndex,
+      markerLeftPercent: layout.dotCenterPercents[candidateMarkerIndex] ?? markerPercent,
+      adjustedDotSizes: layout.adjustedDotSizes,
+      dotsTrackWidth: layout.dotsTrackWidth,
+      dotCenterPercents: layout.dotCenterPercents
+    };
+  }, [markerPercent, riskStripWidth, selectedIndex, bloodTotalDots]);
+
+  const { markerLeftPercent, adjustedDotSizes, dotsTrackWidth, dotCenterPercents } = riskLayout;
+  const markerDotSize = adjustedDotSizes[riskLayout.markerIndex] || 0;
+  const markerLineTop = 11 + (12 + markerDotSize) / 2;
+
+  const markerLeftPx = riskStripWidth > 0 ? (animatedMarkerLeftPercent / 100) * riskStripWidth : 0;
+  const indicatorSidePadding = 12;
+  const indicatorHalfWidth = indicatorWidth / 2;
+  const indicatorLeftPx = riskStripWidth > 0
+    ? Math.min(
+      Math.max(markerLeftPx, indicatorHalfWidth + indicatorSidePadding),
+      Math.max(indicatorHalfWidth + indicatorSidePadding, riskStripWidth - indicatorHalfWidth - indicatorSidePadding)
+    )
+    : markerLeftPx;
+
+  useEffect(() => {
+    const element = riskStripRef.current;
+    if (!element) return undefined;
+
+    const updateWidth = () => {
+      setRiskStripWidth(element.clientWidth);
+    };
+
+    updateWidth();
+    const resizeObserver = new ResizeObserver(() => {
+      updateWidth();
+    });
+
+    resizeObserver.observe(element);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const element = indicatorRef.current;
+    if (!element) return undefined;
+
+    const updateWidth = () => {
+      setIndicatorWidth(element.clientWidth);
+    };
+
+    updateWidth();
+    const resizeObserver = new ResizeObserver(() => {
+      updateWidth();
+    });
+
+    resizeObserver.observe(element);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [detail.value, detail.unit, riskText]);
+
+  useEffect(() => {
+    setDotsAnimated(false);
+    setAnimatedMarkerLeftPercent(0);
+    let markerTimeout;
+
+    const animationFrame = requestAnimationFrame(() => {
+      setDotsAnimated(true);
+      markerTimeout = window.setTimeout(() => {
+        setAnimatedMarkerLeftPercent(markerLeftPercent);
+      }, 120);
+    });
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      if (markerTimeout) {
+        window.clearTimeout(markerTimeout);
+      }
+    };
+  }, [markerLeftPercent]);
+
+  return (
+    <div className="blood-marker-detail">
+      <header className="blood-marker-detail__header">
+        <button type="button" className="blood-marker-detail__back-btn" onClick={onBack} aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <h1 className="blood-marker-detail__title">{detail.title}</h1>
+      </header>
+
+      <p className="blood-marker-detail__description">{detail.description}</p>
+
+      <section className="blood-marker-detail__scale-section" aria-label="Blood marker range scale">
+        <div className="blood-marker-detail__risk-strip" ref={riskStripRef}>
+          <div className="blood-marker-detail__risk-scale-shell" style={{ width: `${dotsTrackWidth}px` }}>
+            <div className="blood-marker-detail__labels-row">
+              {[`<${detail.normalMin} = Low`, `${detail.normalMin}-${detail.normalMax} = Normal`, `>${detail.normalMax} = High`].map((label, index) => (
+                <div
+                  key={label}
+                  className="blood-marker-detail__label-group"
+                  style={{ left: `${zoneCenterPercents[index]}%` }}
+                >
+                  <span>{label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="blood-marker-detail__risk-track-area">
+              <span className="blood-marker-detail__zone-separator" style={{ left: `${normalStartPercent}%` }} />
+              <span className="blood-marker-detail__zone-separator" style={{ left: `${normalEndPercent}%` }} />
+
+              <div className="blood-marker-detail__risk-dots-track">
+                {Array.from({ length: bloodTotalDots }, (_, index) => {
+                  const dotCenterPercent = dotCenterPercents[index] ?? 0;
+                  const dotValue = minScale + ((maxScale - minScale) * dotCenterPercent) / 100;
+                  const dotColor = getDotColorForValue(dotValue, detail.normalMin, detail.normalMax, minScale, maxScale);
+                  const dotSize = adjustedDotSizes[index];
+
+                  return (
+                    <span
+                      key={`detail-dot-${index}`}
+                      className={`blood-marker-detail__risk-dot ${dotsAnimated ? 'animated' : ''}`}
+                      style={{
+                        background: dotColor,
+                        width: `${dotSize}px`,
+                        height: `${dotSize}px`,
+                        transitionDelay: `${index * 12}ms`
+                      }}
+                    />
+                  );
+                })}
+              </div>
+
+              <div className="blood-marker-detail__risk-marker-zone">
+                <div
+                  className="blood-marker-detail__risk-marker"
+                  style={{
+                    left: `${animatedMarkerLeftPercent}%`,
+                    top: `${markerLineTop}px`
+                  }}
+                >
+                  <span className="blood-marker-detail__risk-marker-line" style={{ borderLeftColor: riskColor }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div ref={indicatorRef} className="blood-marker-detail__value-row" style={{ left: `${indicatorLeftPx}px` }}>
+          <div className="blood-marker-detail__value-main" style={{ color: riskColor }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill={riskColor} />
+            </svg>
+            <span>{activeValue} {detail.unit}</span>
+          </div>
+          <div className="blood-marker-detail__risk-main">
+            <span className="blood-marker-detail__risk-badge-dot" style={{ background: riskColor }} />
+            <span>{riskText}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="blood-marker-detail__trends-section" aria-label="Trends">
+        <h3 className="blood-marker-detail__section-heading">Trends</h3>
+        <p className="blood-marker-detail__trend-text">We recommend testing every 16 weeks</p>
+        <div className="blood-marker-detail__trends-chart-shell">
+          <img src={trendsImage} alt="Trends chart" className="blood-marker-detail__trends-chart-image" />
+        </div>
+        <p className="blood-marker-detail__trend-summary">{detail.trendSummary}</p>
+      </section>
+
+      <section className="blood-marker-detail__info-section">
+        <h3 className="blood-marker-detail__section-heading">Causes</h3>
+        {detail.causes.map((item) => (
+          <p key={item} className="blood-marker-detail__body-text">{item}</p>
+        ))}
+
+        <h3 className="blood-marker-detail__section-heading blood-marker-detail__effects-heading">Effects</h3>
+        <div className="blood-marker-detail__effects-list">
+          {detail.effects.map((effect) => (
+            <p key={effect} className="blood-marker-detail__effect-item">{effect}</p>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+};
+
+const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
   const cards = markerCards(section.theme);
   const [activeIndex, setActiveIndex] = useState(cards.length - 1);
   const [swipeDirection, setSwipeDirection] = useState('next');
@@ -269,6 +580,15 @@ const BloodMarkerStackSection = ({ section }) => {
             <article
               key={card.id}
               className={`blood-markers-page__stack-card blood-markers-page__stack-card--${role} blood-markers-page__stack-card--theme-${card.riskType}`}
+              onClick={() => onOpenDetail({ ...card, organ: section.organ, parameters: section.parameters })}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onOpenDetail({ ...card, organ: section.organ, parameters: section.parameters });
+                }
+              }}
             >
               <div className="blood-markers-page__card-top-row">
                 <div className="blood-markers-page__marker-block">
@@ -318,8 +638,28 @@ const BloodMarkerStackSection = ({ section }) => {
 
 const BloodMarkersPage = ({ onBack }) => {
   const [activeFilter, setActiveFilter] = useState('Optimal');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMarker, setSelectedMarker] = useState(null);
 
   const sections = SCENARIOS[activeFilter] || SCENARIOS.Optimal;
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredSections = normalizedQuery
+    ? sections.filter((section) => {
+        const markerText = markerCards(section.theme).map((card) => card.marker.toLowerCase()).join(' ');
+        return section.organ.toLowerCase().includes(normalizedQuery)
+          || section.parameters.toLowerCase().includes(normalizedQuery)
+          || markerText.includes(normalizedQuery);
+      })
+    : sections;
+
+  if (selectedMarker) {
+    return (
+      <div className="blood-markers-page">
+        <BloodMarkerDetailView marker={selectedMarker} onBack={() => setSelectedMarker(null)} />
+      </div>
+    );
+  }
 
   return (
     <div className="blood-markers-page">
@@ -340,6 +680,7 @@ const BloodMarkersPage = ({ onBack }) => {
         <button
           type="button"
           className="blood-markers-page__search-btn"
+          onClick={() => setIsSearchOpen((prev) => !prev)}
           aria-label="Search"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -348,6 +689,23 @@ const BloodMarkersPage = ({ onBack }) => {
           </svg>
         </button>
       </header>
+
+      {isSearchOpen ? (
+        <div className="blood-markers-page__search-row">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="rgba(255, 255, 255, 0.72)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M21 21L16.65 16.65" stroke="rgba(255, 255, 255, 0.72)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="blood-markers-page__search-input"
+            placeholder="Search blood markers"
+            aria-label="Search blood markers"
+          />
+        </div>
+      ) : null}
 
       <div className="blood-markers-page__filters" role="tablist" aria-label="Risk filters">
         {FILTERS.map((filter) => {
@@ -368,8 +726,8 @@ const BloodMarkersPage = ({ onBack }) => {
       </div>
 
       <div className="blood-markers-page__sections">
-        {sections.map((section) => (
-          <BloodMarkerStackSection key={section.id} section={section} />
+        {filteredSections.map((section) => (
+          <BloodMarkerStackSection key={section.id} section={section} onOpenDetail={setSelectedMarker} />
         ))}
       </div>
     </div>

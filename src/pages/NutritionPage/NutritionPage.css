@@ -1,6 +1,6 @@
 .nutrition-page {
   min-height: 100vh;
-  padding: 12px 0 24px 0;
+  padding: 12px 0 140px 0;
   box-sizing: border-box;
 }
 
@@ -102,10 +102,62 @@
 
 .nutrition-page__chip--selected {
   border-radius: 999px;
-  background: radial-gradient(50.74% 50.76% at 50% 50%, #11795f 0%, #1c493d 100%);
+  background: radial-gradient(50% 50% at 50% 50%, rgba(102, 186, 201, 0.75) 0%, rgba(32, 70, 97, 0.50) 100%);
   color: #fff;
 }
 
 .nutrition-page__chip--full {
   grid-column: 1 / -1;
+}
+
+.nutrition-page__other-wrap {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nutrition-page__other-input {
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  padding: 0 14px;
+  outline: none;
+}
+
+.nutrition-page__other-input::placeholder {
+  color: #999;
+}
+
+.nutrition-page__done-btn {
+  position: fixed;
+  left: 26px;
+  right: 21px;
+  bottom: 40px;
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  align-self: stretch;
+  border-radius: 24px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.28px;
+  cursor: pointer;
+  z-index: 20;
 }

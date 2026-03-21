@@ -33,8 +33,8 @@
   margin: 0 auto;
   position: relative;
   touch-action: none;
-  --node-size: 100px;
-  --node-radius: 50px;
+  --node-size: 105px;
+  --node-radius: 52.5px;
   --side-gap: 38px;
   --side-offset: calc(var(--node-radius) + var(--side-gap));
   --y0: var(--node-radius);
@@ -89,8 +89,8 @@
 .health-assessment-page__dot-glow {
   position: absolute;
   left: 50%;
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   transform: translate(-50%, -50%);
   border-radius: 100px;
   background: #90df9e;
@@ -172,8 +172,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 100px;
-  height: 100px;
+  width: 105px;
+  height: 105px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
@@ -197,9 +197,9 @@
 .health-assessment-page__circle--active-glow {
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(167, 228, 187, 0.9);
-  -webkit-filter: drop-shadow(0 0 15px #90df9e);
-  filter: drop-shadow(0 0 15px #90df9e);
-  box-shadow: 0 0 15px rgba(144, 223, 158, 0.9);
+  -webkit-filter: none;
+  filter: none;
+  box-shadow: 0 0 0 1px rgba(167, 228, 187, 0.35), 0 0 15px rgba(144, 223, 158, 0.9);
 }
 
 .health-assessment-page__circle--button {
@@ -220,7 +220,7 @@
 
 .health-assessment-page__active-circle,
 .health-assessment-page__active-pill {
-  transition: opacity 360ms cubic-bezier(0.22, 1, 0.36, 1), transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 620ms cubic-bezier(0.22, 1, 0.36, 1), transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .health-assessment-page__active-circle.is-visible {
@@ -239,12 +239,14 @@
   opacity: 1;
   pointer-events: auto;
   transform: translate(-50%, -50%) scale(1);
+  transition-delay: 140ms;
 }
 
 .health-assessment-page__active-pill.is-hidden {
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -50%) scale(0.96);
+  transition-delay: 0ms;
 }
 
 .health-assessment-page__pill {
@@ -290,6 +292,19 @@
   width: 32px;
   height: 32px;
   aspect-ratio: 1 / 1;
+  display: block;
+  background: transparent;
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.health-assessment-page__icon--family {
+  width: 28px;
+  height: 28px;
 }
 
 .health-assessment-page__step-label {
@@ -297,7 +312,7 @@
   color: #fff;
   text-align: center;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
@@ -391,7 +406,7 @@
   margin: 13px 16px 0 16px;
   color: #c4c4c4;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
@@ -436,7 +451,7 @@
 }
 
 .anthropometry-page__height-box {
-  height: 130px;
+  height: 144px;
   padding: 28px 16px 10px 16px;
   display: flex;
   flex-direction: column;
@@ -451,7 +466,7 @@
 }
 
 .anthropometry-page__waist-box {
-  height: 130px;
+  height: 144px;
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
@@ -486,20 +501,30 @@
   position: absolute;
   right: 0;
   top: calc(100% + 4px);
-  background: rgba(20, 20, 30, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: inline-flex;
+  width: 55px;
+  height: 61px;
+  padding: 4px 8px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(136, 136, 136, 0.20);
+  border: none;
   border-radius: 8px;
   list-style: none;
   margin: 0;
-  padding: 4px 0;
-  min-width: 64px;
+  box-sizing: border-box;
   z-index: 20;
+}
+
+.anthropometry-page__unit-menu li {
+  width: 100%;
 }
 
 .anthropometry-page__unit-option {
   display: block;
   width: 100%;
-  padding: 6px 12px;
+  padding: 2px 0;
   background: none;
   border: none;
   color: #fff;
@@ -510,13 +535,23 @@
 }
 
 .anthropometry-page__unit-option.is-active {
-  color: #04fbce;
-  font-weight: 600;
+  color: #fff;
+  font-weight: 400;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.20);
 }
 
 .anthropometry-page__unit-option:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.20);
   border-radius: 4px;
+}
+
+.anthropometry-page__unit-arrow {
+  display: inline-flex;
+  width: 10px;
+  height: 7px;
+  align-items: center;
+  justify-content: center;
 }
 
 .anthropometry-page__faded {
@@ -556,7 +591,14 @@
   border-radius: 8px;
   background: rgba(0, 0, 0, 0);
   border: 1px solid rgba(255, 255, 255, 0.18);
+  width: 52px;
   min-width: 52px;
+  height: 52px;
+  box-sizing: border-box;
+}
+
+.anthropometry-page__selected-box--height {
+  width: 52px;
 }
 
 .anthropometry-page__selected-box--weight {
@@ -566,11 +608,15 @@
   transform: translateX(-50%);
 }
 
-.anthropometry-page__selected-value {
-  color: #fff;
+.anthropometry-page__selected-value,
+.anthropometry-page__weight-dial-input,
+.anthropometry-page__height-dual-input,
+.anthropometry-followup-page__selected-value,
+.anthropometry-followup-page__fat-value {
+  color: #FFF;
   text-align: center;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 24px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 24px !important;
   font-style: normal;
   font-weight: 700;
   line-height: 25.38px;
@@ -591,6 +637,10 @@
   transform: translateX(-50%);
   width: 36px;
   height: 25px;
+}
+
+.anthropometry-page__indicator svg {
+  transition: transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .anthropometry-page__waist-row {
@@ -654,19 +704,76 @@
 }
 
 .anthropometry-page__weight-dial-input {
-  color: #fff;
   background: transparent;
   border: none;
+  width: 100%;
+  outline: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.anthropometry-page__height-dual-boxes {
+  display: grid;
+  grid-template-columns: 44px 44px;
+  align-items: center;
+  gap: 8px;
+}
+
+.anthropometry-page__selected-box--height-dual {
+  position: relative;
+  width: 44px;
+  min-width: 44px;
+  height: 52px;
+  padding: 6px;
+  gap: 0;
+}
+
+.anthropometry-page__height-dual-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.anthropometry-page__height-dual-mark {
+  position: absolute;
+  left: calc(50% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #FFF;
   text-align: center;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 24px;
   font-style: normal;
   font-weight: 700;
   line-height: 25.38px;
-  width: 72px;
-  outline: none;
-  appearance: textfield;
-  -moz-appearance: textfield;
+}
+
+.anthropometry-page__height-dual-mark--double {
+  left: calc(50% + 7px);
+}
+
+.anthropometry-page__height-dual-input::-webkit-outer-spin-button,
+.anthropometry-page__height-dual-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.anthropometry-page__height-dual-faded-row {
+  display: grid;
+  grid-template-columns: 44px 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.anthropometry-page__height-dual-faded-cell {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .anthropometry-page__weight-dial-input::placeholder {
@@ -751,7 +858,7 @@
   margin: 13px 16px 0 16px;
   color: #c4c4c4;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
@@ -795,7 +902,7 @@
 }
 
 .anthropometry-followup-page__hip-box {
-  height: 130px;
+  height: 144px;
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
@@ -805,7 +912,7 @@
 }
 
 .anthropometry-followup-page__fat-box {
-  min-height: 102px;
+  height: 144px;
   padding: 14px 12px 12px 12px;
 }
 
@@ -835,20 +942,30 @@
   position: absolute;
   right: 0;
   top: calc(100% + 4px);
-  background: rgba(20, 20, 30, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: inline-flex;
+  width: 55px;
+  height: 61px;
+  padding: 4px 8px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(136, 136, 136, 0.20);
+  border: none;
   border-radius: 8px;
   list-style: none;
   margin: 0;
-  padding: 4px 0;
-  min-width: 64px;
+  box-sizing: border-box;
   z-index: 20;
+}
+
+.anthropometry-followup-page__unit-menu li {
+  width: 100%;
 }
 
 .anthropometry-followup-page__unit-option {
   display: block;
   width: 100%;
-  padding: 6px 12px;
+  padding: 2px 0;
   background: none;
   border: none;
   color: #fff;
@@ -859,13 +976,23 @@
 }
 
 .anthropometry-followup-page__unit-option.is-active {
-  color: #04fbce;
-  font-weight: 600;
+  color: #fff;
+  font-weight: 400;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.20);
 }
 
 .anthropometry-followup-page__unit-option:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.20);
   border-radius: 4px;
+}
+
+.anthropometry-followup-page__unit-arrow {
+  display: inline-flex;
+  width: 10px;
+  height: 7px;
+  align-items: center;
+  justify-content: center;
 }
 
 .anthropometry-followup-page__arrow-vertical {
@@ -934,25 +1061,8 @@
   background: rgba(0, 0, 0, 0);
 }
 
-.anthropometry-followup-page__selected-value {
-  color: #fff;
-  text-align: center;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 31px;
-  font-style: normal;
-  font-weight: 700;
-  line-height: 25.38px;
-}
-
 .anthropometry-followup-page__fat-value {
   margin-top: 14px;
-  color: rgba(255, 255, 255, 0.8);
-  text-align: center;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 24px;
-  font-style: normal;
-  font-weight: 700;
-  line-height: 25.38px;
 }
 
 .anthropometry-followup-page__fat-slider {
@@ -1118,7 +1228,7 @@
   margin: 17px 16px 0 16px;
   color: #c4c4c4;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
@@ -1138,10 +1248,16 @@
   gap: 24px;
   align-self: stretch;
   border-radius: 8px;
-  background: rgba(4, 251, 206, 0.1);
+  background: linear-gradient(123deg, rgba(66, 207, 254, 0.20) 0.06%, rgba(170, 218, 255, 0.20) 99.94%);
   border: 0.8px solid rgba(221, 219, 219, 0.12);
   position: relative;
   z-index: 3;
+  animation: questionnaire-card-enter 620ms cubic-bezier(0.19, 1, 0.22, 1);
+  will-change: transform, opacity;
+}
+
+.family-history-page__card > * {
+  animation: questionnaire-card-content-enter 520ms cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .family-history-page__progress {
@@ -1236,7 +1352,7 @@
   align-items: center;
   gap: 10px;
   border-radius: 24px;
-  border: 0.5px solid #4b8d83;
+  border: 0.5px solid rgba(160, 170, 176, 0.50);
   background: transparent;
   color: #fff;
   font-family: 'DM Sans', sans-serif;
@@ -1247,7 +1363,8 @@
 }
 
 .family-history-page__chip--selected {
-  background: radial-gradient(50.74% 50.76% at 50% 50%, #11795f 0%, #1c493d 100%);
+  border: 0.5px solid #D0D0D0;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(102, 186, 201, 0.75) 0%, rgba(32, 70, 97, 0.50) 100%);
 }
 
 .family-history-page__chip--full {
@@ -1272,7 +1389,7 @@
   position: absolute;
   height: 18px;
   border-radius: 0 0 8px 8px;
-  background: rgba(4, 251, 206, 0.08);
+  background: linear-gradient(123deg, rgba(9, 187, 246, 0.10) 0.06%, rgba(19, 142, 236, 0.10) 99.94%);
   border: 0.8px solid rgba(221, 219, 219, 0.12);
 }
 
@@ -1331,11 +1448,13 @@
 
 .family-history-page__info-popup {
   position: fixed;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 0;
-  transform: translateX(-50%);
+  transform: none;
   display: flex;
-  width: min(362px, calc(100% - 2px));
+  width: 100vw;
+  max-width: none;
   height: 285px;
   padding: 20px 20px 40px 20px;
   flex-direction: column;
@@ -1443,7 +1562,7 @@
   margin: 17px 16px 0 16px;
   color: #c4c4c4;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
@@ -1463,10 +1582,16 @@
   gap: 24px;
   align-self: stretch;
   border-radius: 8px;
-  background: rgba(4, 251, 206, 0.1);
+  background: linear-gradient(125deg, rgba(243, 12, 129, 0.20) 1.63%, rgba(151, 49, 78, 0.20) 51.4%, rgba(195, 60, 128, 0.20) 64.88%);
   border: 0.8px solid rgba(221, 219, 219, 0.12);
   position: relative;
   z-index: 3;
+  animation: questionnaire-card-enter 620ms cubic-bezier(0.19, 1, 0.22, 1);
+  will-change: transform, opacity;
+}
+
+.lifestyle-habits-page__card > * {
+  animation: questionnaire-card-content-enter 520ms cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .lifestyle-habits-page__progress {
@@ -1556,7 +1681,7 @@
   align-items: center;
   gap: 8px;
   border-radius: 24px;
-  border: 0.5px solid #4b8d83;
+  border: 0.5px solid rgba(160, 170, 176, 0.50);
   background: transparent;
   color: #fff;
   font-family: 'DM Sans', sans-serif;
@@ -1571,7 +1696,8 @@
 }
 
 .lifestyle-habits-page__chip--selected {
-  background: radial-gradient(50.74% 50.76% at 50% 50%, #11795f 0%, #1c493d 100%);
+  border: 0.5px solid #D0D0D0;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(238, 134, 176, 0.40) 37.02%, rgba(42, 15, 23, 0.21) 100%);
 }
 
 .lifestyle-habits-page__chip span {
@@ -1592,7 +1718,7 @@
   position: absolute;
   height: 18px;
   border-radius: 0 0 8px 8px;
-  background: rgba(4, 251, 206, 0.08);
+  background: linear-gradient(125deg, rgba(243, 12, 129, 0.10) 1.63%, rgba(151, 49, 78, 0.10) 51.4%, rgba(195, 60, 128, 0.10) 64.88%);
   border: 0.8px solid rgba(221, 219, 219, 0.12);
 }
 
@@ -1651,11 +1777,13 @@
 
 .lifestyle-habits-page__info-popup {
   position: fixed;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 0;
-  transform: translateX(-50%);
+  transform: none;
   display: flex;
-  width: min(362px, calc(100% - 2px));
+  width: 100vw;
+  max-width: none;
   height: 285px;
   padding: 20px 20px 40px 20px;
   flex-direction: column;
@@ -1763,7 +1891,7 @@
   margin: 17px 20px 0 20px;
   color: #c4c4c4;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
@@ -1783,10 +1911,38 @@
   gap: 24px;
   align-self: stretch;
   border-radius: 8px;
-  background: rgba(4, 251, 206, 0.1);
+  background: linear-gradient(180deg, rgba(12, 31, 51, 0.40) 0%, rgba(7, 20, 33, 0.40) 100%);
   border: 0.8px solid rgba(221, 219, 219, 0.12);
   position: relative;
   z-index: 3;
+  animation: questionnaire-card-enter 620ms cubic-bezier(0.19, 1, 0.22, 1);
+  will-change: transform, opacity;
+}
+
+.nutrition-log-page__card > * {
+  animation: questionnaire-card-content-enter 520ms cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+@keyframes questionnaire-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes questionnaire-card-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .nutrition-log-page__progress {
@@ -1876,7 +2032,7 @@
   align-items: center;
   gap: 8px;
   border-radius: 24px;
-  border: 0.5px solid #4b8d83;
+  border: 0.5px solid rgba(160, 170, 176, 0.50);
   background: transparent;
   color: #fff;
   font-family: 'DM Sans', sans-serif;
@@ -1891,7 +2047,8 @@
 }
 
 .nutrition-log-page__chip--selected {
-  background: radial-gradient(50.74% 50.76% at 50% 50%, #11795f 0%, #1c493d 100%);
+  border: 0.5px solid #D0D0D0;
+  background: radial-gradient(50% 50% at 50% 50%, #506983 0%, rgba(45, 85, 144, 0.21) 100%);
 }
 
 .nutrition-log-page__chip span {
@@ -1912,7 +2069,7 @@
   position: absolute;
   height: 18px;
   border-radius: 0 0 8px 8px;
-  background: rgba(4, 251, 206, 0.08);
+  background: linear-gradient(180deg, rgba(12, 31, 51, 0.30) 0%, rgba(7, 20, 33, 0.30) 100%);
   border: 0.8px solid rgba(221, 219, 219, 0.12);
 }
 
@@ -1971,11 +2128,13 @@
 
 .nutrition-log-page__info-popup {
   position: fixed;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 0;
-  transform: translateX(-50%);
+  transform: none;
   display: flex;
-  width: min(362px, calc(100% - 2px));
+  width: 100vw;
+  max-width: none;
   height: 285px;
   padding: 20px 20px 40px 20px;
   flex-direction: column;
@@ -2083,7 +2242,7 @@
   margin: 17px 20px 0 20px;
   color: #c4c4c4;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
@@ -2118,7 +2277,7 @@
   align-self: stretch;
   border-radius: 16px;
   border: 0.838px solid rgba(221, 219, 219, 0.1);
-  background: rgba(4, 251, 206, 0.05);
+  background: linear-gradient(123deg, rgba(144, 223, 158, 0.30) 0.03%, rgba(0, 0, 0, 0.15) 50%, rgba(137, 244, 203, 0.30) 99.97%);
   position: relative;
 }
 
@@ -2184,10 +2343,9 @@
 }
 
 .vitals-page__skip {
-  position: fixed;
-  left: 50%;
-  bottom: 110px;
-  transform: translateX(-50%);
+  display: block;
+  width: fit-content;
+  margin: 25px auto 0;
   border: none;
   background: none;
   color: #bbb;

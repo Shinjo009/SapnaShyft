@@ -187,9 +187,7 @@
 
 .health-scan-page__divider {
   width: 100%;
-  height: 0.5px;
-  background: #FFF;
-  opacity: 0.4;
+  border-top: 1px dotted rgba(255, 255, 255, 0.45);
   margin-top: 24px;
 }
 
@@ -205,7 +203,7 @@
   color: #FFF;
   text-align: center;
   font-family: Lato;
-  font-size: 16px;
+  font-size: 17px;
   font-style: normal;
   font-weight: 600;
   line-height: 24px;
@@ -213,7 +211,7 @@
 }
 
 .health-scan-page__metrics-date {
-  color: #FFF;
+  color: #9A9A9A;
   text-align: center;
   font-family: Lato;
   font-size: 11px;
@@ -240,6 +238,10 @@
   background: rgba(255, 255, 255, 0.05);
   box-sizing: border-box;
   --metric-icon-offset: 26px;
+}
+
+.health-scan-page__metric-card--physical-activity {
+  gap: 9px;
 }
 
 .health-scan-page__metric-card--full {
@@ -349,10 +351,11 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  margin-left: var(--metric-icon-offset);
 }
 
 .health-scan-page__family-history span {
-  color: #C4C4C4;
+  color: #DAC15A;
   font-family: "DM Sans";
   font-size: 12px;
   font-style: normal;
@@ -381,6 +384,10 @@
   z-index: 100;
   display: flex;
   justify-content: center;
+  border-radius: 64px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(14px);
 }
 
 /* Progress Card Override */
@@ -395,20 +402,7 @@
 }
 
 .health-scan-page__score-label {
-  position: absolute;
-  color: #FFF;
-  text-align: center;
-  font-family: Lato;
-  font-size: 14px;
-  font-style: normal;
-  font-weight: 600;
-  line-height: 20px;
-  z-index: 10;
-  top: 50px;
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  width: 90%;
+  display: none;
 }
 
 .health-scan-page__progress-card .circular-progress-card {
@@ -430,7 +424,7 @@
 }
 
 .health-scan-page__progress-card .circular-progress-card__content {
-  top: 95.5px;
+  top: 50%;
 }
 
 .health-scan-page__progress-card .circular-progress-card__percentage {
@@ -440,7 +434,7 @@
   font-size: 40px;
   font-style: normal;
   font-weight: 700;
-  line-height: 39px;
+  line-height: 1;
 }
 
 .health-scan-page__progress-card .circular-progress-card__label {

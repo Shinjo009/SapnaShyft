@@ -8,7 +8,7 @@ import './CircularProgressCard.css';
  * - percentage: The percentage value to display (e.g., 75)
  * - label: Label text below the card (e.g., "Lifestyle score")
  */
-const CircularProgressCard = ({ percentage = 75, label = 'Score' }) => {
+const CircularProgressCard = ({ percentage = 75, label = 'Score', onClick }) => {
   // SVG circle properties - stroke-based progress ring
   const RADIUS = 40; // Circle radius for 82px outer diameter with 2px stroke
   const CIRCUMFERENCE = useMemo(() => 2 * Math.PI * RADIUS, []);
@@ -27,8 +27,22 @@ const CircularProgressCard = ({ percentage = 75, label = 'Score' }) => {
     return { color: '#E95D5C', rgb: '233 93 92' };
   }, [percentage]);
 
+  const handleKeyDown = (event) => {
+    if (!onClick) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onClick();
+    }
+  };
+
   return (
-    <div className="circular-progress-card">
+    <div
+      className={`circular-progress-card${onClick ? ' circular-progress-card--clickable' : ''}`}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       {/* SVG Progress Ring */}
       <svg 
         className="circular-progress-card__ring"

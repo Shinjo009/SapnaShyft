@@ -202,6 +202,15 @@
   flex-shrink: 0;
 }
 
+.profile-page__contact-item--location {
+  align-items: flex-start;
+}
+
+.profile-page__contact-item--location span:last-child {
+  white-space: normal;
+  line-height: 18px;
+}
+
 .profile-page__contact-item--split {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -378,6 +387,8 @@
 .profile-page__menu-header-static img {
   width: 20px;
   height: 20px;
+  filter: brightness(0) saturate(0) invert(1);
+  opacity: 0.7;
 }
 
 .profile-page__menu-header-static h2 {

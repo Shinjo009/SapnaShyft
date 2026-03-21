@@ -29,7 +29,7 @@
 .positive-wins__header-copy {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .positive-wins__title {
@@ -39,17 +39,17 @@
   font-size: 14px;
   font-style: normal;
   font-weight: 400;
-  line-height: 20px;
+  line-height: 16px;
 }
 
 .positive-wins__subtitle {
   margin: 0;
   color: #999;
   font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 400;
-  line-height: normal;
+  line-height: 11px;
 }
 
 .positive-wins__stack {
@@ -84,9 +84,10 @@
   will-change: transform, opacity;
   backface-visibility: hidden;
   transition:
-    left 560ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    width 560ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    transform 560ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    left 680ms cubic-bezier(0.19, 1, 0.22, 1),
+    width 680ms cubic-bezier(0.19, 1, 0.22, 1),
+    transform 680ms cubic-bezier(0.19, 1, 0.22, 1),
+    opacity 620ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .positive-wins__stack[data-dragging='true'] .positive-wins__stack-card {
@@ -95,7 +96,8 @@
 }
 
 .positive-wins__stack[data-resetting='true'] .positive-wins__stack-card {
-  transition: none;
+  transition-property: left, width, transform;
+  transition-duration: 0ms;
 }
 
 .positive-wins__stack-card::before {
@@ -111,15 +113,16 @@
   transform: translate3d(var(--positive-wins-drag-x), 0, 0);
   z-index: 3;
   opacity: 1;
+  animation: positive-wins-card-enter 340ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .positive-wins__stack-card--back-one {
   left: -7px;
   width: calc(100% + 14px);
   top: 0;
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: translate3d(0, 0, 0) scale(0.992);
   z-index: 2;
-  opacity: 1;
+  opacity: 0.82;
   pointer-events: none;
 }
 
@@ -127,9 +130,10 @@
   left: -14px;
   width: calc(100% + 28px);
   top: 0;
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: translate3d(0, 0, 0) scale(0.985);
   z-index: 1;
-  opacity: 1;
+  opacity: 0.7;
+  transition-delay: 60ms;
   pointer-events: none;
 }
 
@@ -160,12 +164,14 @@
   width: 100%;
   transform: translate3d(0, 0, 0) scale(1);
   z-index: 4;
+  opacity: 1;
 }
 
 .positive-wins__stack--moving-next .positive-wins__stack-card--back-two {
   left: -7px;
   width: calc(100% + 14px);
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: translate3d(0, 0, 0) scale(0.992);
+  opacity: 0.82;
 }
 
 .positive-wins__stack--moving-prev .positive-wins__stack-card--front {
@@ -177,12 +183,14 @@
   width: 100%;
   transform: translate3d(0, 0, 0) scale(1);
   z-index: 4;
+  opacity: 1;
 }
 
 .positive-wins__stack--moving-prev .positive-wins__stack-card--back-two {
   left: -7px;
   width: calc(100% + 14px);
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: translate3d(0, 0, 0) scale(0.992);
+  opacity: 0.82;
 }
 
 .positive-wins__card-top-row,
@@ -190,6 +198,7 @@
   position: relative;
   z-index: 1;
   opacity: 1;
+  transition: opacity 380ms ease;
 }
 
 .positive-wins__card-top-row {
@@ -238,6 +247,7 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 18px;
+  margin-top: 2px;
 }
 
 .positive-wins__left-column {
@@ -368,4 +378,22 @@
 
 .positive-wins__swipe-arrow--left {
   transform: rotate(180deg);
+}
+
+@keyframes positive-wins-card-enter {
+  0% {
+    opacity: 0.82;
+    transform: translate3d(0, 10px, 0) scale(0.985);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(var(--positive-wins-drag-x), 0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .positive-wins__stack-card--front {
+    animation: none;
+  }
 }

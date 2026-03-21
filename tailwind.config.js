@@ -11,7 +11,7 @@ module.exports = {
       fontSize: {
         'heading': ['20px', { lineHeight: '24px', fontWeight: '700' }],
         'body-large': ['20px', { lineHeight: '30px', fontWeight: '600', letterSpacing: '0.891px' }],
-        'button': ['14px', { fontWeight: '600', letterSpacing: '0.28px' }],
+        'button': ['15px', { fontWeight: '600', letterSpacing: '0.28px' }],
         'label': ['12px', { lineHeight: '16px', fontWeight: '400' }],
         'link': ['10px', { fontWeight: '500', letterSpacing: '0.05px' }],
       },

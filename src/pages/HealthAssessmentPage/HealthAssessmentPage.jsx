@@ -18,10 +18,20 @@ const AnthropometryTriangleArrow = ({ direction = 'right' }) => {
   );
 };
 
-const AnthropometryDialIndicator = () => (
+const AnthropometryDialIndicator = ({ angle = 0 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="25" viewBox="0 0 36 25" fill="none" aria-hidden="true">
-    <path d="M19.7802 0L22.9881 23H36H0H16.1292L19.7802 0Z" fill="#CC203B"/>
+    <path
+      d="M19.7802 0L22.9881 23H36H0H16.1292L19.7802 0Z"
+      fill="#CC203B"
+      style={{ transform: `rotate(${angle}deg)`, transformOrigin: '19.5px 19.5px' }}
+    />
     <circle cx="19.5" cy="19.5" r="5.5" fill="#CC203B"/>
+  </svg>
+);
+
+const UnitDropdownArrow = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="7" viewBox="0 0 10 7" fill="none" aria-hidden="true">
+    <path d="M3.74486 6.56097C4.14368 7.11932 4.97351 7.11932 5.37233 6.56097L8.92914 1.58143C9.4019 0.919565 8.92878 0.000194936 8.1154 0.000194864L1.00178 0.000194243C0.18841 0.000194171 -0.284713 0.919564 0.18805 1.58143L3.74486 6.56097Z" fill="white"/>
   </svg>
 );
 
@@ -36,7 +46,7 @@ const AnthropometryUnitDropdown = ({ value, options, onChange }) => {
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        {value} <span>▼</span>
+        {value} <span className="anthropometry-page__unit-arrow"><UnitDropdownArrow /></span>
       </button>
       {open && (
         <ul className="anthropometry-page__unit-menu" role="listbox">
@@ -63,9 +73,11 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   const [height, setHeight] = useState(172);
   const [weight, setWeight] = useState('');
   const [waist, setWaist] = useState(33);
-  const [heightUnit, setHeightUnit] = useState('cm');
-  const [weightUnit, setWeightUnit] = useState('kg');
-  const [waistUnit, setWaistUnit] = useState('in');
+  const [heightUnit, setHeightUnit] = useState('Cm');
+  const [weightUnit, setWeightUnit] = useState('Kg');
+  const [waistUnit, setWaistUnit] = useState('In');
+  const [heightFeet, setHeightFeet] = useState(5);
+  const [heightInches, setHeightInches] = useState(8);
 
   const heightTouchLastY = useRef(null);
   const waistTouchLastX = useRef(null);
@@ -125,8 +137,51 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
     if (weight === '') return;
     const num = parseInt(weight, 10);
     if (isNaN(num)) { setWeight(''); return; }
-    setWeight(String(clamp(num, 20, 250)));
+    setWeight(String(clamp(num, 0, 250)));
   };
+
+  useEffect(() => {
+    if (heightUnit !== 'Ft/In') return;
+    const totalInches = Math.max(0, Math.round(height / 2.54));
+    const nextFeet = Math.floor(totalInches / 12);
+    const nextInches = totalInches % 12;
+    setHeightFeet(nextFeet);
+    setHeightInches(nextInches);
+  }, [height, heightUnit]);
+
+  const handleHeightUnitChange = (nextUnit) => {
+    if (nextUnit === 'Ft/In') {
+      const totalInches = Math.max(0, Math.round(height / 2.54));
+      setHeightFeet(Math.floor(totalInches / 12));
+      setHeightInches(totalInches % 12);
+    }
+    if (heightUnit === 'Ft/In' && nextUnit === 'Cm') {
+      const totalInches = clamp(heightFeet * 12 + heightInches, 47, 91);
+      setHeight(Math.round(totalInches * 2.54));
+    }
+    setHeightUnit(nextUnit);
+  };
+
+  const handleFeetChange = (e) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '').slice(0, 1);
+    const nextFeet = raw === '' ? 0 : clamp(Number(raw), 3, 8);
+    setHeightFeet(nextFeet);
+    const totalInches = clamp(nextFeet * 12 + heightInches, 47, 91);
+    setHeight(Math.round(totalInches * 2.54));
+  };
+
+  const handleInchesChange = (e) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+    const nextInches = raw === '' ? 0 : clamp(Number(raw), 0, 11);
+    setHeightInches(nextInches);
+    const totalInches = clamp(heightFeet * 12 + nextInches, 47, 91);
+    setHeight(Math.round(totalInches * 2.54));
+  };
+
+  const parsedWeight = Number.parseInt(weight, 10);
+  const weightForIndicator = Number.isNaN(parsedWeight) ? 50 : clamp(parsedWeight, 0, 100);
+  const indicatorProgress = weightForIndicator / 100;
+  const indicatorAngle = -85 + (indicatorProgress * 170);
 
   const getQuestionText = (keys, fallback) => {
     const match = questions.find((question) => keys.includes(String(question?.question_key || '').toLowerCase()));
@@ -162,21 +217,64 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
         onTouchMove={handleHeightTouchMove}
         onTouchEnd={handleHeightTouchEnd}
       >
-        <AnthropometryUnitDropdown value={heightUnit} options={['cm', 'in']} onChange={setHeightUnit} />
-        <div className="anthropometry-page__faded">{height - 1}</div>
+        <AnthropometryUnitDropdown value={heightUnit} options={['Ft/In', 'Cm']} onChange={handleHeightUnitChange} />
+        {heightUnit === 'Ft/In' ? (
+          <div className="anthropometry-page__height-dual-faded-row" aria-hidden="true">
+            <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{Math.max(0, heightFeet - 1)}</span>
+            <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{heightInches === 0 ? 11 : heightInches - 1}</span>
+          </div>
+        ) : (
+          <div className="anthropometry-page__faded">{height - 1}</div>
+        )}
         <div className="anthropometry-page__row-centered">
           <div className="anthropometry-page__arrow-wrap"><AnthropometryTriangleArrow direction="right" /></div>
-          <div className="anthropometry-page__selected-box">
-            <span className="anthropometry-page__selected-value">{height}</span>
-          </div>
+          {heightUnit === 'Ft/In' ? (
+            <div className="anthropometry-page__height-dual-boxes">
+              <div className="anthropometry-page__selected-box anthropometry-page__selected-box--height-dual">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className="anthropometry-page__height-dual-input"
+                  value={heightFeet}
+                  onChange={handleFeetChange}
+                  maxLength={1}
+                  aria-label="Height in feet"
+                />
+                <span className="anthropometry-page__height-dual-mark">'</span>
+              </div>
+              <div className="anthropometry-page__selected-box anthropometry-page__selected-box--height-dual">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className="anthropometry-page__height-dual-input"
+                  value={heightInches}
+                  onChange={handleInchesChange}
+                  maxLength={2}
+                  aria-label="Height in inches"
+                />
+                <span className="anthropometry-page__height-dual-mark anthropometry-page__height-dual-mark--double">''</span>
+              </div>
+            </div>
+          ) : (
+            <div className="anthropometry-page__selected-box anthropometry-page__selected-box--height">
+              <span className="anthropometry-page__selected-value">{height}</span>
+            </div>
+          )}
           <div className="anthropometry-page__arrow-wrap"><AnthropometryTriangleArrow direction="left" /></div>
         </div>
-        <div className="anthropometry-page__faded">{height + 1}</div>
+        {heightUnit === 'Ft/In' ? (
+          <div className="anthropometry-page__height-dual-faded-row" aria-hidden="true">
+            <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{Math.min(8, heightFeet + 1)}</span>
+            <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{heightInches === 11 ? 0 : heightInches + 1}</span>
+          </div>
+        ) : (
+          <div className="anthropometry-page__faded">{height + 1}</div>
+        )}
       </div>
 
       <p className="anthropometry-page__question anthropometry-page__question--mid">{weightQuestion}</p>
       <div className="anthropometry-page__box anthropometry-page__weight-box">
-        <AnthropometryUnitDropdown value={weightUnit} options={['kg', 'lb']} onChange={setWeightUnit} />
+        <AnthropometryUnitDropdown value={weightUnit} options={['Kg', 'Lb']} onChange={setWeightUnit} />
         <img src={AnthInd} alt="" aria-hidden="true" className="anthropometry-page__dial" />
         <div className="anthropometry-page__selected-box anthropometry-page__selected-box--weight">
           <input
@@ -192,7 +290,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
           />
         </div>
         <div className="anthropometry-page__indicator">
-          <AnthropometryDialIndicator />
+          <AnthropometryDialIndicator angle={indicatorAngle} />
         </div>
       </div>
 
@@ -204,7 +302,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
         onTouchMove={handleWaistTouchMove}
         onTouchEnd={handleWaistTouchEnd}
       >
-        <AnthropometryUnitDropdown value={waistUnit} options={['in', 'cm']} onChange={setWaistUnit} />
+        <AnthropometryUnitDropdown value={waistUnit} options={['In', 'Cm']} onChange={setWaistUnit} />
         <div className="anthropometry-page__arrow-wrap"><AnthropometryTriangleArrow direction="down" /></div>
         <div className="anthropometry-page__waist-h-row">
           <span className="anthropometry-page__faded anthropometry-page__faded--inline">{waist - 2}</span>
@@ -235,7 +333,7 @@ const FollowupUnitDropdown = ({ value, options, onChange }) => {
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        {value} <span>▼</span>
+        {value} <span className="anthropometry-followup-page__unit-arrow"><UnitDropdownArrow /></span>
       </button>
       {open && (
         <ul className="anthropometry-followup-page__unit-menu" role="listbox">
@@ -313,7 +411,7 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone }) => {
         onTouchMove={handleHipTouchMove}
         onTouchEnd={handleHipTouchEnd}
       >
-        <FollowupUnitDropdown value={hipUnit} options={['in', 'cm']} onChange={setHipUnit} />
+        <FollowupUnitDropdown value={hipUnit} options={['In', 'Cm']} onChange={setHipUnit} />
         <div className="anthropometry-followup-page__arrow-wrap"><AnthropometryTriangleArrow direction="down" /></div>
         <div className="anthropometry-followup-page__hip-h-row">
           <span className="anthropometry-followup-page__faded">{hipSize - 2}</span>
@@ -439,6 +537,58 @@ const toFamilyApiCards = (questions = []) => {
 
 const shouldUseFullWidthOption = (label) => String(label || '').length > 25;
 
+const normalizeInfoLines = (infoLines = []) => {
+  return infoLines.flatMap((line) => {
+    const text = String(line || '').trim();
+    if (!text) return [];
+    if (!text.includes('.')) return [text];
+    return text
+      .split('.')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => `${part}.`);
+  });
+};
+
+const useCenteredQuestionGap = (deps = []) => {
+  const subtitleRef = useRef(null);
+  const stackWrapRef = useRef(null);
+  const [stackTopGap, setStackTopGap] = useState(141);
+
+  useEffect(() => {
+    let frameId;
+
+    const recalc = () => {
+      if (!subtitleRef.current || !stackWrapRef.current) return;
+      const subtitleBottom = subtitleRef.current.getBoundingClientRect().bottom;
+      const stackHeight = stackWrapRef.current.offsetHeight;
+      const gap = Math.max(16, Math.round((window.innerHeight - subtitleBottom - stackHeight) / 2) - 30);
+      setStackTopGap(gap);
+    };
+
+    const scheduleRecalc = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(recalc);
+    };
+
+    scheduleRecalc();
+    window.addEventListener('resize', scheduleRecalc);
+
+    const observer = new ResizeObserver(scheduleRecalc);
+    if (stackWrapRef.current) {
+      observer.observe(stackWrapRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', scheduleRecalc);
+      observer.disconnect();
+      cancelAnimationFrame(frameId);
+    };
+  }, deps);
+
+  return { subtitleRef, stackWrapRef, stackTopGap };
+};
+
 const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [] }) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
@@ -476,6 +626,14 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [] }) => {
   const questionsLeft = totalCards - progressNumerator;
   const stackCardCount = questionsLeft >= 2 ? 2 : questionsLeft;
   const stackSpace = stackCardCount === 2 ? 36 : stackCardCount === 1 ? 18 : 0;
+  const infoLines = normalizeInfoLines(activeCard.infoLines || []);
+  const { subtitleRef, stackWrapRef, stackTopGap } = useCenteredQuestionGap([
+    cardIndex,
+    stackSpace,
+    activeCard.title,
+    activeCard.helper,
+    activeCard.options?.length || 0,
+  ]);
 
   const chipClass = (opt) => {
     const selected = activeSelections.includes(opt);
@@ -512,7 +670,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [] }) => {
   const handleWheel = (e) => {
     e.preventDefault();
     const now = Date.now();
-    if (now - lastWheelAtRef.current < 220) return;
+    if (now - lastWheelAtRef.current < 340) return;
     lastWheelAtRef.current = now;
 
     if (e.deltaY > 0) {
@@ -563,18 +721,19 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [] }) => {
         <img src={ques2Icon} alt="" aria-hidden="true" className="family-history-page__header-icon" />
       </div>
 
-      <p className="family-history-page__subtitle">
+      <p className="family-history-page__subtitle" ref={subtitleRef}>
         Knowing your family's health patterns helps us predict risks more accurately.
       </p>
 
       <div
         className="family-history-page__stack-wrap"
-        style={{ '--stack-space': `${stackSpace}px` }}
+        ref={stackWrapRef}
+        style={{ '--stack-space': `${stackSpace}px`, marginTop: `${stackTopGap}px` }}
         onWheel={handleWheel}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="family-history-page__card">
+        <div key={activeCard.key} className="family-history-page__card">
           <div className="family-history-page__progress">
             <span className="family-history-page__progress-main">{progressNumerator}</span>
             <span className="family-history-page__progress-sub">/{totalCards}</span>
@@ -626,7 +785,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [] }) => {
         <button type="button" className="family-history-page__done" onClick={onDone}>Done</button>
       ) : null}
 
-      {showInfoPopup && activeCard.infoLines?.length ? (
+      {showInfoPopup && infoLines.length ? (
         <div className="family-history-page__info-popup" role="dialog" aria-label="Condition information">
           <div className="family-history-page__info-handle" aria-hidden="true" />
           <button
@@ -641,8 +800,8 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [] }) => {
           </button>
 
           <ul className="family-history-page__info-list">
-            {activeCard.infoLines.map((line) => (
-              <li key={line}>{line}</li>
+            {infoLines.map((line, index) => (
+              <li key={`${line}-${index}`}>{line}</li>
             ))}
           </ul>
         </div>
@@ -879,6 +1038,14 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [] }) => {
   const questionsLeft = totalCards - progressNumerator;
   const stackCardCount = questionsLeft >= 2 ? 2 : questionsLeft;
   const stackSpace = stackCardCount === 2 ? 36 : stackCardCount === 1 ? 18 : 0;
+  const infoLines = normalizeInfoLines(activeCard.infoLines || []);
+  const { subtitleRef, stackWrapRef, stackTopGap } = useCenteredQuestionGap([
+    cardIndex,
+    stackSpace,
+    activeCard.title,
+    activeCard.helper,
+    activeCard.options?.length || 0,
+  ]);
 
   const chipClass = (option) => {
     const selected = activeSelections.includes(option.label);
@@ -916,7 +1083,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [] }) => {
   const handleWheel = (e) => {
     e.preventDefault();
     const now = Date.now();
-    if (now - lastWheelAtRef.current < 220) return;
+    if (now - lastWheelAtRef.current < 340) return;
     lastWheelAtRef.current = now;
 
     if (e.deltaY > 0) {
@@ -969,18 +1136,19 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [] }) => {
         <img src={ques3Icon} alt="" aria-hidden="true" className="lifestyle-habits-page__header-icon" />
       </div>
 
-      <p className="lifestyle-habits-page__subtitle">
+      <p className="lifestyle-habits-page__subtitle" ref={subtitleRef}>
         Your routines help our system decode how your habits influence your health.
       </p>
 
       <div
         className="lifestyle-habits-page__stack-wrap"
-        style={{ '--stack-space': `${stackSpace}px` }}
+        ref={stackWrapRef}
+        style={{ '--stack-space': `${stackSpace}px`, marginTop: `${stackTopGap}px` }}
         onWheel={handleWheel}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="lifestyle-habits-page__card">
+        <div key={activeCard.key} className="lifestyle-habits-page__card">
           <div className="lifestyle-habits-page__progress">
             <span className="lifestyle-habits-page__progress-main">{progressNumerator}</span>
             <span className="lifestyle-habits-page__progress-sub">/{totalCards}</span>
@@ -1034,7 +1202,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [] }) => {
         <button type="button" className="lifestyle-habits-page__done" onClick={onDone}>Done</button>
       ) : null}
 
-      {showInfoPopup && activeCard.infoLines?.length ? (
+      {showInfoPopup && infoLines.length ? (
         <div className="lifestyle-habits-page__info-popup" role="dialog" aria-label="Intensity information">
           <div className="lifestyle-habits-page__info-handle" aria-hidden="true" />
           <button
@@ -1049,8 +1217,8 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [] }) => {
           </button>
 
           <ul className="lifestyle-habits-page__info-list">
-            {activeCard.infoLines.map((line) => (
-              <li key={line}>{line}</li>
+            {infoLines.map((line, index) => (
+              <li key={`${line}-${index}`}>{line}</li>
             ))}
           </ul>
         </div>
@@ -1371,6 +1539,14 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [] }) => {
   const questionsLeft = totalCards - progressNumerator;
   const stackCardCount = questionsLeft >= 2 ? 2 : questionsLeft;
   const stackSpace = stackCardCount === 2 ? 36 : stackCardCount === 1 ? 18 : 0;
+  const infoLines = normalizeInfoLines(activeCard.infoLines || []);
+  const { subtitleRef, stackWrapRef, stackTopGap } = useCenteredQuestionGap([
+    cardIndex,
+    stackSpace,
+    activeCard.title,
+    activeCard.helper,
+    activeCard.options?.length || 0,
+  ]);
 
   const chipClass = (option) => {
     const selected = activeSelections.includes(option.label);
@@ -1408,7 +1584,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [] }) => {
   const handleWheel = (e) => {
     e.preventDefault();
     const now = Date.now();
-    if (now - lastWheelAtRef.current < 220) return;
+    if (now - lastWheelAtRef.current < 340) return;
     lastWheelAtRef.current = now;
 
     if (e.deltaY > 0) {
@@ -1459,18 +1635,19 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [] }) => {
         <img src={ques4Icon} alt="" aria-hidden="true" className="nutrition-log-page__header-icon" />
       </div>
 
-      <p className="nutrition-log-page__subtitle">
+      <p className="nutrition-log-page__subtitle" ref={subtitleRef}>
         Your dietary data helps our system decode patterns that impact your metabolic health.
       </p>
 
       <div
         className="nutrition-log-page__stack-wrap"
-        style={{ '--stack-space': `${stackSpace}px` }}
+        ref={stackWrapRef}
+        style={{ '--stack-space': `${stackSpace}px`, marginTop: `${stackTopGap}px` }}
         onWheel={handleWheel}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="nutrition-log-page__card">
+        <div key={activeCard.key} className="nutrition-log-page__card">
           <div className="nutrition-log-page__progress">
             <span className="nutrition-log-page__progress-main">{progressNumerator}</span>
             <span className="nutrition-log-page__progress-sub">/{totalCards}</span>
@@ -1524,7 +1701,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [] }) => {
         <button type="button" className="nutrition-log-page__done" onClick={onDone}>Done</button>
       ) : null}
 
-      {showInfoPopup && activeCard.infoLines?.length ? (
+      {showInfoPopup && infoLines.length ? (
         <div className="nutrition-log-page__info-popup" role="dialog" aria-label="Diet information">
           <div className="nutrition-log-page__info-handle" aria-hidden="true" />
           <button
@@ -1539,8 +1716,8 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [] }) => {
           </button>
 
           <ul className="nutrition-log-page__info-list">
-            {activeCard.infoLines.map((line) => (
-              <li key={line}>{line}</li>
+            {infoLines.map((line, index) => (
+              <li key={`${line}-${index}`}>{line}</li>
             ))}
           </ul>
         </div>
@@ -1550,14 +1727,24 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [] }) => {
 };
 
 const formatVitalsTwoDigits = (value) => String(value).padStart(2, '0');
+const VITALS_DEFAULTS = {
+  systolic: 120,
+  diastolic: 80,
+};
 
 const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [] }) => {
-  const [systolic, setSystolic] = useState(0);
-  const [diastolic, setDiastolic] = useState(80);
+  const [systolic, setSystolic] = useState(null);
+  const [diastolic, setDiastolic] = useState(null);
 
   const handleNumberInput = (setter) => (e) => {
-    const next = Number(e.target.value || 0);
-    const clamped = Math.max(0, Math.min(299, next));
+    const raw = String(e.target.value || '').trim();
+    if (raw === '') {
+      setter(null);
+      return;
+    }
+
+    const next = Number(raw);
+    const clamped = Math.max(0, Math.min(299, Number.isNaN(next) ? 0 : next));
     setter(clamped);
   };
 
@@ -1568,6 +1755,8 @@ const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [] }) => {
 
   const systolicLabel = getQuestionText(['systolic_blood_pressure', 'systolic'], 'Systolic Blood Pressure');
   const diastolicLabel = getQuestionText(['diastolic_blood_pressure', 'diastolic'], 'Diastolic Blood Pressure');
+  const systolicDisplay = systolic == null ? VITALS_DEFAULTS.systolic : systolic;
+  const diastolicDisplay = diastolic == null ? VITALS_DEFAULTS.diastolic : diastolic;
 
   return (
     <div className="vitals-page">
@@ -1593,12 +1782,12 @@ const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [] }) => {
             type="number"
             min="0"
             max="299"
-            value={systolic}
+            value={systolic ?? ''}
             onChange={handleNumberInput(setSystolic)}
             aria-label="Systolic blood pressure"
           />
-          <span className={`vitals-page__score-value ${systolic === 0 ? 'vitals-page__score-value--empty' : ''}`} aria-hidden="true">
-            {formatVitalsTwoDigits(systolic)}
+          <span className={`vitals-page__score-value ${systolic == null ? 'vitals-page__score-value--empty' : ''}`} aria-hidden="true">
+            {formatVitalsTwoDigits(systolicDisplay)}
           </span>
         </div>
         <span className="vitals-page__unit">mmHg</span>
@@ -1612,12 +1801,12 @@ const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [] }) => {
             type="number"
             min="0"
             max="299"
-            value={diastolic}
+            value={diastolic ?? ''}
             onChange={handleNumberInput(setDiastolic)}
             aria-label="Diastolic blood pressure"
           />
-          <span className={`vitals-page__score-value ${diastolic === 0 ? 'vitals-page__score-value--empty' : ''}`} aria-hidden="true">
-            {formatVitalsTwoDigits(diastolic)}
+          <span className={`vitals-page__score-value ${diastolic == null ? 'vitals-page__score-value--empty' : ''}`} aria-hidden="true">
+            {formatVitalsTwoDigits(diastolicDisplay)}
           </span>
         </div>
         <span className="vitals-page__unit">mmHg</span>
@@ -1664,6 +1853,12 @@ const getPillPositionStyle = () => ({
   left: '50%',
 });
 
+const formatTimelineStepLabel = (label) => {
+  const words = String(label || '').trim().split(/\s+/).filter(Boolean);
+  if (words.length <= 2) return String(label || '');
+  return `${words.slice(0, 2).join(' ')}\n${words.slice(2).join(' ')}`;
+};
+
 const HealthAssessmentPage = ({
   progress = 0,
   expandedStep = null,
@@ -1691,10 +1886,12 @@ const HealthAssessmentPage = ({
   });
 
   const activeIndex = progress < resolvedSteps.length ? progress : -1;
-  const showPill = activeIndex !== -1 && expandedStep === activeIndex;
-  const activeY = activeIndex !== -1 ? `var(--y${activeIndex})` : null;
+  const focusedIndex = expandedStep != null ? expandedStep : activeIndex;
+  const showPill = focusedIndex !== -1 && expandedStep === focusedIndex;
+  const activeY = focusedIndex !== -1 ? `var(--y${focusedIndex})` : null;
   const lineEndY = progress >= 4 ? 'var(--line-bottom)' : `var(--y${Math.min(progress, 4)})`;
-  const hideMiddleDotAtActivePill = showPill && activeIndex >= 1 && activeIndex <= 3;
+  const activeConnectorHalfHeight = showPill ? '44px' : 'var(--node-radius)';
+  const hideMiddleDotAtActivePill = showPill && focusedIndex >= 1 && focusedIndex <= 3;
 
   const isCompleted = (index) => index < progress;
   const isActive = (index) => index === activeIndex;
@@ -1704,13 +1901,13 @@ const HealthAssessmentPage = ({
       return;
     }
 
-    if (expandedStep === activeIndex) {
+    if (expandedStep != null) {
       return;
     }
 
     const timer = setTimeout(() => {
       onExpandStep?.(activeIndex);
-    }, 1);
+    }, 240);
 
     return () => clearTimeout(timer);
   }, [activeIndex, activeSubPage, expandedStep, onExpandStep]);
@@ -1804,22 +2001,22 @@ const HealthAssessmentPage = ({
         <div className="health-assessment-page__timeline" role="list" aria-label="Health assessment steps">
         {!showPill && <div className="health-assessment-page__line-base" />}
 
-        {showPill && activeIndex > 0 && (
+        {showPill && focusedIndex > 0 && (
           <div
             className="health-assessment-page__line-base health-assessment-page__line-segment"
             style={{
               top: 'var(--line-top)',
-              height: `calc(${activeY} - var(--node-radius) - var(--line-top))`,
+              height: `calc(${activeY} - ${activeConnectorHalfHeight} - var(--line-top))`,
             }}
           />
         )}
 
-        {showPill && activeIndex < 4 && (
+        {showPill && focusedIndex < 4 && (
           <div
             className="health-assessment-page__line-base health-assessment-page__line-segment"
             style={{
-              top: `calc(${activeY} + var(--node-radius))`,
-              height: `calc(var(--line-bottom) - (${activeY} + var(--node-radius)))`,
+              top: `calc(${activeY} + ${activeConnectorHalfHeight})`,
+              height: `calc(var(--line-bottom) - (${activeY} + ${activeConnectorHalfHeight}))`,
             }}
           />
         )}
@@ -1838,19 +2035,19 @@ const HealthAssessmentPage = ({
                 className="health-assessment-page__line-glow health-assessment-page__line-segment"
                 style={{
                   top: 'var(--line-top)',
-                  '--line-end-y': `calc(${activeY} - var(--node-radius))`,
+                  '--line-end-y': `calc(${activeY} - ${activeConnectorHalfHeight})`,
                 }}
               />
             )}
           </>
         )}
 
-        {!(hideMiddleDotAtActivePill && activeIndex === 1) && <div className="health-assessment-page__dot-base dot--1" />}
-        {!(hideMiddleDotAtActivePill && activeIndex === 2) && <div className="health-assessment-page__dot-base dot--2" />}
-        {!(hideMiddleDotAtActivePill && activeIndex === 3) && <div className="health-assessment-page__dot-base dot--3" />}
+        {!(hideMiddleDotAtActivePill && focusedIndex === 1) && <div className="health-assessment-page__dot-base dot--1" />}
+        {!(hideMiddleDotAtActivePill && focusedIndex === 2) && <div className="health-assessment-page__dot-base dot--2" />}
+        {!(hideMiddleDotAtActivePill && focusedIndex === 3) && <div className="health-assessment-page__dot-base dot--3" />}
 
         {DOT_LEVELS.map((level) => (
-          isCompleted(level) && !(hideMiddleDotAtActivePill && activeIndex === level) ? (
+          isCompleted(level) && !(hideMiddleDotAtActivePill && focusedIndex === level) ? (
             <div key={level} className={`health-assessment-page__dot-glow dot--${level}`} />
           ) : null
         ))}
@@ -1861,17 +2058,18 @@ const HealthAssessmentPage = ({
           ) : null
         ))}
 
-        {!(hideMiddleDotAtActivePill && activeIndex === 1) && <div className="health-assessment-page__branch branch--left-1" />}
-        {!(hideMiddleDotAtActivePill && activeIndex === 2) && <div className="health-assessment-page__branch branch--right-2" />}
-        {!(hideMiddleDotAtActivePill && activeIndex === 3) && <div className="health-assessment-page__branch branch--left-3" />}
+        {!(hideMiddleDotAtActivePill && focusedIndex === 1) && <div className="health-assessment-page__branch branch--left-1" />}
+        {!(hideMiddleDotAtActivePill && focusedIndex === 2) && <div className="health-assessment-page__branch branch--right-2" />}
+        {!(hideMiddleDotAtActivePill && focusedIndex === 3) && <div className="health-assessment-page__branch branch--left-3" />}
 
-        {isCompleted(1) && !(hideMiddleDotAtActivePill && activeIndex === 1) && <div className="health-assessment-page__branch-glow branch--left-1" />}
-        {isCompleted(2) && !(hideMiddleDotAtActivePill && activeIndex === 2) && <div className="health-assessment-page__branch-glow branch--right-2" />}
-        {isCompleted(3) && !(hideMiddleDotAtActivePill && activeIndex === 3) && <div className="health-assessment-page__branch-glow branch--left-3" />}
+        {isCompleted(1) && !(hideMiddleDotAtActivePill && focusedIndex === 1) && <div className="health-assessment-page__branch-glow branch--left-1" />}
+        {isCompleted(2) && !(hideMiddleDotAtActivePill && focusedIndex === 2) && <div className="health-assessment-page__branch-glow branch--right-2" />}
+        {isCompleted(3) && !(hideMiddleDotAtActivePill && focusedIndex === 3) && <div className="health-assessment-page__branch-glow branch--left-3" />}
 
         {resolvedSteps.map((step, index) => {
           const completed = isCompleted(index);
-          const active = isActive(index);
+          const active = index === activeIndex || index === focusedIndex;
+          const isPillVisibleForStep = showPill && focusedIndex === index;
           if (active) {
             const activeCircleStyle = {
               top: '0',
@@ -1890,25 +2088,25 @@ const HealthAssessmentPage = ({
               >
                 <button
                   type="button"
-                  className={`health-assessment-page__circle health-assessment-page__circle--active-glow health-assessment-page__circle--button health-assessment-page__active-circle ${showPill ? 'is-hidden' : 'is-visible'}`}
+                  className={`health-assessment-page__circle health-assessment-page__circle--active-glow health-assessment-page__circle--button health-assessment-page__active-circle ${isPillVisibleForStep ? 'is-hidden' : 'is-visible'}`}
                   style={activeCircleStyle}
                   onClick={() => onExpandStep?.(index)}
                   aria-label={`Expand ${step.label}`}
                 >
-                  <img src={step.icon} alt="" aria-hidden="true" className="health-assessment-page__icon" />
-                  <span className="health-assessment-page__step-label">{step.label}</span>
+                  <img src={step.icon} alt="" aria-hidden="true" className={`health-assessment-page__icon ${step.id === 'family-history' ? 'health-assessment-page__icon--family' : ''}`} />
+                  <span className="health-assessment-page__step-label">{formatTimelineStepLabel(step.label)}</span>
                 </button>
 
                 <button
                   type="button"
-                  className={`health-assessment-page__pill health-assessment-page__active-pill ${showPill ? 'is-visible' : 'is-hidden'}`}
+                  className={`health-assessment-page__pill health-assessment-page__active-pill ${isPillVisibleForStep ? 'is-visible' : 'is-hidden'}`}
                   onClick={() => setActiveSubPage(step.id)}
                   style={getPillPositionStyle()}
                   aria-label={`Open ${step.label} questionnaire`}
                 >
                   <div className="health-assessment-page__pill-left">
-                    <img src={step.icon} alt="" aria-hidden="true" className="health-assessment-page__icon" />
-                    <span className="health-assessment-page__step-label">{step.label}</span>
+                    <img src={step.icon} alt="" aria-hidden="true" className={`health-assessment-page__icon ${step.id === 'family-history' ? 'health-assessment-page__icon--family' : ''}`} />
+                    <span className="health-assessment-page__step-label">{formatTimelineStepLabel(step.label)}</span>
                   </div>
 
                   <span className="health-assessment-page__detail-text">{step.detail}</span>
@@ -1919,15 +2117,37 @@ const HealthAssessmentPage = ({
             );
           }
 
+          const inactiveCircleContent = (
+            <>
+              <img src={step.icon} alt="" aria-hidden="true" className={`health-assessment-page__icon ${step.id === 'family-history' ? 'health-assessment-page__icon--family' : ''}`} />
+              <span className="health-assessment-page__step-label">{formatTimelineStepLabel(step.label)}</span>
+            </>
+          );
+
+          if (completed) {
+            return (
+              <button
+                key={step.id}
+                type="button"
+                role="listitem"
+                className="health-assessment-page__circle health-assessment-page__circle--completed health-assessment-page__circle--button"
+                style={getCirclePositionStyle(step.side, index)}
+                onClick={() => onExpandStep?.(index)}
+                aria-label={`Open ${step.label} questionnaire`}
+              >
+                {inactiveCircleContent}
+              </button>
+            );
+          }
+
           return (
             <div
               key={step.id}
               role="listitem"
-              className={`health-assessment-page__circle ${completed ? 'health-assessment-page__circle--completed' : ''}`}
+              className="health-assessment-page__circle"
               style={getCirclePositionStyle(step.side, index)}
             >
-              <img src={step.icon} alt="" aria-hidden="true" className="health-assessment-page__icon" />
-              <span className="health-assessment-page__step-label">{step.label}</span>
+              {inactiveCircleContent}
             </div>
           );
         })}

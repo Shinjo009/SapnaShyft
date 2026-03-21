@@ -7,6 +7,7 @@ import './NutritionPage.css';
 const NutritionPage = ({ onBack }) => {
   const [selectedDiet, setSelectedDiet] = useState('Non-Veg');
   const [selectedAllergies, setSelectedAllergies] = useState(['Dairy', 'Corn']);
+  const [otherAllergyInput, setOtherAllergyInput] = useState('');
 
   const dietOptions = ['Veg', 'Non-Veg', 'Vegan', 'Jain', 'Eggetarian', 'Keto'];
   const allergyOptions = ['Peanuts', 'Dairy', 'Eggs', 'Fish', 'Soy', 'Wheat', 'Sesame', 'Mustard', 'Corn', 'Other'];
@@ -15,6 +16,19 @@ const NutritionPage = ({ onBack }) => {
     setSelectedAllergies((prev) => (
       prev.includes(item) ? prev.filter((v) => v !== item) : [...prev, item]
     ));
+  };
+
+  const isOtherSelected = selectedAllergies.includes('Other');
+
+  const handleDone = () => {
+    const value = otherAllergyInput.trim();
+
+    if (value) {
+      setSelectedAllergies((prev) => (prev.includes(value) ? prev : [...prev, value]));
+      setOtherAllergyInput('');
+    }
+
+    onBack?.();
   };
 
   return (
@@ -72,6 +86,22 @@ const NutritionPage = ({ onBack }) => {
             );
           })}
         </div>
+
+        {isOtherSelected ? (
+          <div className="nutrition-page__other-wrap">
+            <input
+              type="text"
+              className="nutrition-page__other-input"
+              placeholder="Enter allergy"
+              value={otherAllergyInput}
+              onChange={(e) => setOtherAllergyInput(e.target.value)}
+            />
+          </div>
+        ) : null}
+
+        <button type="button" className="nutrition-page__done-btn" onClick={handleDone}>
+          Done
+        </button>
       </div>
     </div>
   );

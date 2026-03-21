@@ -13,7 +13,7 @@ const HealthParametersSection = ({ data = [
   { percentage: 100, label: 'Lifestyle score' },
   { percentage: 75, label: 'Nutrition score' },
   { percentage: 75, label: 'Fitness score' }
-], onSeeMore }) => {
+], onSeeMore, onCardClick }) => {
   const handleSeeMore = (e) => {
     e.preventDefault();
     if (onSeeMore) {
@@ -42,6 +42,7 @@ const HealthParametersSection = ({ data = [
               key={index}
               percentage={item.percentage}
               label={item.label}
+              onClick={onCardClick ? () => onCardClick(item, index) : undefined}
             />
           ))}
         </div>

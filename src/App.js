@@ -45,6 +45,7 @@ function App() {
   const [questionnaireQuestionsByCategoryId, setQuestionnaireQuestionsByCategoryId] = useState({});
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [selectedHealthScanTab, setSelectedHealthScanTab] = useState(0);
 
   const getProgressFromCategories = (categories) => {
     let completedCount = 0;
@@ -342,6 +343,12 @@ function App() {
           userName={userName}
           onNavigateToHealthScan={() => {
             console.log('Navigate to Health Scan Index');
+            setSelectedHealthScanTab(0);
+            setCurrentPage('health-scan-index');
+          }}
+          onNavigateToHealthScanTab={(tabIndex) => {
+            console.log('Navigate to Health Scan Index tab:', tabIndex);
+            setSelectedHealthScanTab(tabIndex);
             setCurrentPage('health-scan-index');
           }}
           onNavigateToProfile={() => {
@@ -407,6 +414,7 @@ function App() {
 
       {currentPage === 'health-scan-index' && (
         <HealthScanIndexPage 
+          initialTab={selectedHealthScanTab}
           onBack={() => {
             console.log('Back to Home');
             setCurrentPage('home');

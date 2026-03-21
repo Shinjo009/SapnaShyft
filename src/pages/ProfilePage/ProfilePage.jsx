@@ -263,58 +263,33 @@ const ProfilePage = ({
           <div className="profile-page__section-divider profile-page__section-divider--after-header" />
 
           <div className="profile-page__contact-list">
-            <div className="profile-page__contact-item">
-              <img src={proPhoneIcon} alt="" aria-hidden="true" />
-              <span>{phoneText}</span>
-            </div>
-            <div className="profile-page__contact-item">
-              <img src={proMailIcon} alt="" aria-hidden="true" />
-              <span>{emailText}</span>
-            </div>
             <div className="profile-page__contact-item profile-page__contact-item--split">
               <span className="profile-page__contact-segment profile-page__contact-segment--left">
-                <img src={proLocIcon} alt="" aria-hidden="true" />
-                <span>{locationText}</span>
+                <img src={proPhoneIcon} alt="" aria-hidden="true" />
+                <span>{phoneText}</span>
               </span>
               <span className="profile-page__contact-segment profile-page__contact-segment--right">
                 <img src={proGenAgeIcon} alt="" aria-hidden="true" />
                 <span>{genderAgeText}</span>
               </span>
             </div>
+            <div className="profile-page__contact-item">
+              <img src={proMailIcon} alt="" aria-hidden="true" />
+              <span>{emailText}</span>
+            </div>
+            <div className="profile-page__contact-item profile-page__contact-item--location">
+              <img src={proLocIcon} alt="" aria-hidden="true" />
+              <span>{locationText}</span>
+            </div>
           </div>
 
           <div className="profile-page__section-divider profile-page__section-divider--after-contacts" />
 
-          <div className="profile-page__accounts-title">ACCOUNTS</div>
-
-          {linkedProfilesLoading ? (
-            <div className="profile-page__linked-account-row">
-              <div className="profile-page__linked-account-meta" style={{ marginLeft: 0 }}>
-                <span className="profile-page__linked-account-name">Loading accounts...</span>
-                <span className="profile-page__linked-account-relation">Please wait</span>
-              </div>
-            </div>
+          {!linkedProfilesLoading && !linkedProfilesError && linkedProfilesToRender.length > 0 ? (
+            <div className="profile-page__accounts-title">ACCOUNTS</div>
           ) : null}
 
-          {!linkedProfilesLoading && linkedProfilesError ? (
-            <div className="profile-page__linked-account-row">
-              <div className="profile-page__linked-account-meta" style={{ marginLeft: 0 }}>
-                <span className="profile-page__linked-account-name">Unable to load accounts</span>
-                <span className="profile-page__linked-account-relation">{linkedProfilesError}</span>
-              </div>
-            </div>
-          ) : null}
-
-          {!linkedProfilesLoading && !linkedProfilesError && linkedProfilesToRender.length === 0 ? (
-            <div className="profile-page__linked-account-row">
-              <div className="profile-page__linked-account-meta" style={{ marginLeft: 0 }}>
-                <span className="profile-page__linked-account-name">No linked accounts</span>
-                <span className="profile-page__linked-account-relation">Add family members to switch profiles</span>
-              </div>
-            </div>
-          ) : null}
-
-          {!linkedProfilesLoading && !linkedProfilesError && linkedProfilesToRender.map((account) => {
+          {!linkedProfilesLoading && !linkedProfilesError && linkedProfilesToRender.length > 0 && linkedProfilesToRender.map((account) => {
             const accountName = [account?.first_name, account?.last_name].filter(Boolean).join(' ').trim() || 'User';
             const relationship = account?.relationship
               ? `${String(account.relationship).charAt(0).toUpperCase()}${String(account.relationship).slice(1)}`

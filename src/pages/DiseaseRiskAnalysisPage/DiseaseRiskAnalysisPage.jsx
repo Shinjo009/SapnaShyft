@@ -15,10 +15,10 @@ import OxidativeIcon from '../../images/Oxidative.png';
 
 // Import ellipses
 import E1 from '../../images/E1.png';
-import E2 from '../../images/E2.png';
+import E2 from '../../images/E2.svg';
 import E3 from '../../images/E3.png';
 import E4 from '../../images/E4.png';
-import E5 from '../../images/E5.png';
+import E5 from '../../images/E5.svg';
 
 const DISEASES_DATA = [
   { id: 1, name: 'Obesity', icon: ObesityIcon, score: 55 },
@@ -57,7 +57,7 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
   // Get risk color based on score
   const getRiskColor = (score) => {
     if (score <= 25) return '#90DF9E'; // Green - Healthy
-    if (score <= 50) return '#FFB800'; // Yellow - Increased Risk
+    if (score <= 50) return '#DAC15A'; // Yellow - Increased Risk
     if (score <= 75) return '#FF8C42'; // Orange - High Risk
     return '#FF4444'; // Red - Very High Risk
   };

@@ -68,10 +68,10 @@ const LoginPage = ({ onSuccess, onSignup }) => {
         </div>
 
         <div className="text-center mt-4">
-          <span className="inline-flex items-center justify-center gap-1 opacity-80 text-white text-center font-lato text-[10px] font-medium leading-normal tracking-[0.05px]">
+          <span className="inline-flex items-center justify-center gap-1 opacity-80 text-white text-center font-lato text-[11px] font-medium leading-normal tracking-[0.05px]">
             <span>Don't have an Account?</span>
             <span
-              className="text-[12px] tracking-[0.06px] underline cursor-pointer hover:opacity-80"
+              className="text-[13px] tracking-[0.06px] underline cursor-pointer hover:opacity-80"
               onClick={onSignup}
             >
               Sign Up

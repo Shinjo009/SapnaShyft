@@ -1,21 +1,22 @@
 import React, { useRef, useState } from 'react';
 import './RiskAnalysisSection.css';
-import ObesityIcon from '../../../images/Obesity.png';
-import ThyroidHealthIcon from '../../../images/ThyroidHealth.png';
-import NAFLDIcon from '../../../images/NAFLD.png';
-import Type2Icon from '../../../images/Type2.png';
-import PCOSIcon from '../../../images/PCOS.png';
-import HyperTensionIcon from '../../../images/HyperTension.png';
-import MetabolicIcon from '../../../images/Metabolic.png';
-import CardiacHealthIcon from '../../../images/Cardiac Health.png';
-import DyslipidemiaIcon from '../../../images/Dyslipidemia.png';
-import OxidativeIcon from '../../../images/Oxidative.png';
+import ObesityIcon from '../../../images/Obesity-RA.svg';
+import ThyroidHealthIcon from '../../../images/Thyroid-RA.svg';
+import NAFLDIcon from '../../../images/NAFLD-RA.svg';
+import Type2Icon from '../../../images/Type2-RA.svg';
+import PCOSIcon from '../../../images/PCOS-RA.svg';
+import HyperTensionIcon from '../../../images/Hypertension-RA.svg';
+import MetabolicIcon from '../../../images/Metabolic-RA.svg';
+import CardiacHealthIcon from '../../../images/Cardiac-RA.svg';
+import DyslipidemiaIcon from '../../../images/Dyslipidemia-RA.svg';
+import OxidativeIcon from '../../../images/Oxidative-RA.svg';
 import HealthRankSpark from '../../../images/HealthRankSpark.svg';
 
 const PositiveWinsHeaderIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-    <path d="M11.6081 9.66748L12.7443 16.062C12.7704 16.2162 12.698 16.3703 12.5628 16.4488C12.4275 16.5273 12.2578 16.5136 12.1368 16.4145L9.45182 14.3992C9.18561 14.2004 8.82028 14.2004 8.55407 14.3992L5.86457 16.4137C5.74374 16.5127 5.57422 16.5264 5.43907 16.4481C5.30391 16.3699 5.2314 16.216 5.25707 16.062L6.39257 9.66748" stroke="#E95D5C" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M4.5 6C4.5 8.48362 6.51638 10.5 9 10.5C11.4836 10.5 13.5 8.48362 13.5 6C13.5 3.51638 11.4836 1.5 9 1.5C6.51638 1.5 4.5 3.51638 4.5 6H4.5" stroke="#E95D5C" strokeLinecap="round" strokeLinejoin="round"/>
+  <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21" fill="none" aria-hidden="true">
+    <path d="M4.5 3.5V14.5C4.5 15.0304 4.71071 15.5391 5.08579 15.9142C5.46086 16.2893 5.96957 16.5 6.5 16.5H17.5" stroke="#E95D5C" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M6.5 12.5L9.5 9.5L11.5 11.5L16.5 6.5" stroke="#E95D5C" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M16.5 9.5V6.5H13.5" stroke="#E95D5C" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 

@@ -7,7 +7,16 @@ import { createMySubProfile } from '../../services/usersService';
 const genderOptions = ['Male', 'Female'];
 const relationOptions = ['Parent', 'Sibling', 'Spouse', 'Child', 'Grandparent', 'Other'];
 
+const SelectGenderHeadingIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M8.00091 4.37916C8.65663 4.90515 9.12998 5.62434 9.35374 6.43463C9.57749 7.24491 9.54029 8.10509 9.24741 8.89303C8.95452 9.68097 8.42085 10.3566 7.72216 10.824C7.02348 11.2914 6.1953 11.5268 5.35522 11.4968C4.51515 11.4668 3.70588 11.1729 3.04233 10.6568C2.37879 10.1407 1.89469 9.42873 1.65879 8.6219C1.42288 7.81507 1.44716 6.95442 1.72818 6.16217C2.00919 5.36992 2.53266 4.68634 3.22425 4.2085M5.50091 11.4998V15.4998" stroke="#999999" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M6.42267 9.216C5.82278 8.71035 5.38484 8.03944 5.16336 7.28678C4.94187 6.53412 4.94662 5.73294 5.17702 4.98296C5.40741 4.23298 5.85327 3.56731 6.45911 3.0688C7.06495 2.5703 7.80402 2.26096 8.58433 2.1793C9.36464 2.09764 10.1517 2.24726 10.8477 2.60954C11.5436 2.97181 12.1176 3.53075 12.4983 4.21678C12.8789 4.90281 13.0495 5.68565 12.9886 6.46786C12.9278 7.25006 12.6382 7.9971 12.156 8.616M11.8287 3.328L14.5 0.5M14.5 0.5H12M14.5 0.5V3M3.5 13.5H7.5" stroke="#999999" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const AddAccountPage = ({ onBack }) => {
+  const inputTextClass = '!text-[13px] !leading-[13px] placeholder:!text-[13px] placeholder:!leading-[13px]';
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -81,11 +90,13 @@ const AddAccountPage = ({ onBack }) => {
               placeholder="First Name"
               value={formData.firstName}
               onChange={(e) => handleChange('firstName', e.target.value)}
+              className={inputTextClass}
             />
             <Input
               placeholder="Last Name"
               value={formData.lastName}
               onChange={(e) => handleChange('lastName', e.target.value)}
+              className={inputTextClass}
             />
           </div>
 
@@ -94,10 +105,14 @@ const AddAccountPage = ({ onBack }) => {
             placeholder="Age"
             value={formData.age}
             onChange={(e) => handleChange('age', e.target.value)}
+            className={inputTextClass}
           />
 
           <div className="add-account-page__section">
-            <p className="add-account-page__section-label">Select Gender</p>
+            <div className="add-account-page__section-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <SelectGenderHeadingIcon />
+              <span>Select Gender</span>
+            </div>
             <div className="add-account-page__gender-grid">
               {genderOptions.map((option) => {
                 const isSelected = formData.gender === option;
@@ -142,6 +157,7 @@ const AddAccountPage = ({ onBack }) => {
             placeholder="Phone"
             value={formData.phone}
             onChange={(e) => handleChange('phone', e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
+            className={inputTextClass}
           />
 
           <Input
@@ -149,18 +165,21 @@ const AddAccountPage = ({ onBack }) => {
             placeholder="Email"
             value={formData.email}
             onChange={(e) => handleChange('email', e.target.value)}
+            className={inputTextClass}
           />
 
           <Input
             placeholder="City"
             value={formData.city}
             onChange={(e) => handleChange('city', e.target.value)}
+            className={inputTextClass}
           />
 
           <Input
             placeholder="Organization Name"
             value={formData.organization}
             onChange={(e) => handleChange('organization', e.target.value)}
+            className={inputTextClass}
           />
 
           <button type="button" className="add-account-page__submit" onClick={handleSubmit} disabled={saving}>

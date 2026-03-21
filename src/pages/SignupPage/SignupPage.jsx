@@ -17,6 +17,19 @@ const FemaleIcon = ({ active }) => (
   </svg>
 );
 
+const PhoneFieldIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M9.6908 11.4692C9.96732 11.5962 10.2949 11.5144 10.4793 11.2723L10.71 10.97C10.9555 10.6427 11.3408 10.45 11.75 10.45H13.7C14.418 10.45 15 11.032 15 11.75V13.7C15 14.418 14.418 15 13.7 15C7.23827 15 2 9.76173 2 3.3C2 2.58203 2.58203 2 3.3 2H5.25C5.96797 2 6.55 2.58203 6.55 3.3V5.25C6.55 5.65918 6.35735 6.04449 6.03 6.29L5.7258 6.51815C5.47976 6.70602 5.40035 7.04134 5.536 7.3196C6.42434 9.12391 7.88538 10.5831 9.6908 11.4692" stroke="#9A9A9A" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const SelectGenderHeadingIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M8.00091 4.37916C8.65663 4.90515 9.12998 5.62434 9.35374 6.43463C9.57749 7.24491 9.54029 8.10509 9.24741 8.89303C8.95452 9.68097 8.42085 10.3566 7.72216 10.824C7.02348 11.2914 6.1953 11.5268 5.35522 11.4968C4.51515 11.4668 3.70588 11.1729 3.04233 10.6568C2.37879 10.1407 1.89469 9.42873 1.65879 8.6219C1.42288 7.81507 1.44716 6.95442 1.72818 6.16217C2.00919 5.36992 2.53266 4.68634 3.22425 4.2085M5.50091 11.4998V15.4998" stroke="#999999" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M6.42267 9.216C5.82278 8.71035 5.38484 8.03944 5.16336 7.28678C4.94187 6.53412 4.94662 5.73294 5.17702 4.98296C5.40741 4.23298 5.85327 3.56731 6.45911 3.0688C7.06495 2.5703 7.80402 2.26096 8.58433 2.1793C9.36464 2.09764 10.1517 2.24726 10.8477 2.60954C11.5436 2.97181 12.1176 3.53075 12.4983 4.21678C12.8789 4.90281 13.0495 5.68565 12.9886 6.46786C12.9278 7.25006 12.6382 7.9971 12.156 8.616M11.8287 3.328L14.5 0.5M14.5 0.5H12M14.5 0.5V3M3.5 13.5H7.5" stroke="#999999" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 /**
  * SignupPage - User registration with personal details
  * 
@@ -84,14 +97,15 @@ const SignupPage = ({ onSuccess, onLogin }) => {
           Signup
         </Typography>
 
-        <div className="mt-6 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="mt-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <Input
               name="firstName"
               type="text"
               placeholder="First Name"
               value={formData.firstName}
               onChange={handleInputChange}
+              className="!text-[13px] !leading-[13px] placeholder:!text-[13px] placeholder:!leading-[13px]"
             />
             <Input
               name="lastName"
@@ -99,6 +113,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
               placeholder="Last Name"
               value={formData.lastName}
               onChange={handleInputChange}
+              className="!text-[13px] !leading-[13px] placeholder:!text-[13px] placeholder:!leading-[13px]"
             />
           </div>
 
@@ -108,28 +123,25 @@ const SignupPage = ({ onSuccess, onLogin }) => {
             placeholder="Email Id"
             value={formData.email}
             onChange={handleInputChange}
+            className="!text-[13px] !leading-[13px] placeholder:!text-[13px] placeholder:!leading-[13px]"
           />
 
-          <div className="flex self-stretch w-full h-10 box-border px-[15px] py-[10px] rounded-lg border border-transparent bg-input-bg items-center gap-2 focus-within:border-white/20 focus-within:shadow-[0_0_10px_0_rgba(144,223,158,0.30)] transition-all">
-            <button
-              type="button"
-              className="flex items-center gap-1 text-[13px] text-label-gray font-lato flex-shrink-0"
-              aria-label="Country code"
-            >
-              +91
-              <span className="text-[10px]">▼</span>
-            </button>
-            <span className="w-px h-4 bg-white/15 flex-shrink-0" />
-            <input
-              name="phone"
-              type="tel"
-              inputMode="numeric"
-              maxLength={10}
-              placeholder="Phone Number"
-              value={formData.phone}
-              onChange={handlePhoneChange}
-              className="flex-1 bg-transparent text-white text-[13px] placeholder:text-[13px] placeholder:leading-4 placeholder:text-label-gray font-lato focus:outline-none"
-            />
+          <div className="flex self-stretch w-full h-10 box-border px-[15px] py-[10px] rounded-lg border border-transparent bg-input-bg items-center focus-within:border-white/20 focus-within:shadow-[0_0_10px_0_rgba(144,223,158,0.30)] transition-all">
+            <span className="flex-1 min-w-0 flex items-center gap-[6px]">
+              <span className="pointer-events-none inline-flex items-center justify-center">
+                <PhoneFieldIcon />
+              </span>
+              <input
+                name="phone"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="Phone Number"
+                value={formData.phone}
+                onChange={handlePhoneChange}
+                className="flex-1 min-w-0 bg-transparent text-white !text-[13px] !leading-[13px] placeholder:text-label-gray placeholder:!text-[13px] placeholder:!leading-[13px] font-lato focus:outline-none"
+              />
+            </span>
           </div>
 
           <Input
@@ -138,6 +150,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
             placeholder="City"
             value={formData.city}
             onChange={handleInputChange}
+            className="!text-[13px] !leading-[13px] placeholder:!text-[13px] placeholder:!leading-[13px]"
           />
 
           <Input
@@ -146,11 +159,15 @@ const SignupPage = ({ onSuccess, onLogin }) => {
             placeholder="Age"
             value={formData.age}
             onChange={handleInputChange}
+            className="!text-[13px] !leading-[13px] placeholder:!text-[13px] placeholder:!leading-[13px]"
           />
 
-          <div className="space-y-2">
-            <label className="block font-lato text-label text-label-gray">Select Gender</label>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-[6px]">
+              <SelectGenderHeadingIcon />
+              <Typography variant="label" as="label" className="!text-[13px] !leading-[13px]">Select Gender</Typography>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
                 onClick={() => handleGenderChange('male')}
@@ -161,7 +178,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
                 }`}
               >
                 <MaleIcon active={formData.gender === 'male'} />
-                <span className="font-lato text-label">Male</span>
+                <span className="font-lato !text-[13px] !leading-[13px]">Male</span>
               </button>
 
               <button
@@ -174,7 +191,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
                 }`}
               >
                 <FemaleIcon active={formData.gender === 'female'} />
-                <span className="font-lato text-label">Female</span>
+                <span className="font-lato !text-[13px] !leading-[13px]">Female</span>
               </button>
             </div>
           </div>
@@ -192,10 +209,10 @@ const SignupPage = ({ onSuccess, onLogin }) => {
       </div>
 
       <div className="text-center mt-4">
-        <span className="inline-flex items-center justify-center gap-1 opacity-80 text-white text-center font-lato text-[10px] font-medium leading-normal tracking-[0.05px]">
+        <span className="inline-flex items-center justify-center gap-1 opacity-80 text-white text-center font-lato text-[11px] font-medium leading-normal tracking-[0.05px]">
           <span>Already have an Account?</span>
           <span
-            className="text-[12px] tracking-[0.06px] underline cursor-pointer hover:opacity-80"
+            className="text-[13px] tracking-[0.06px] underline cursor-pointer hover:opacity-80"
             onClick={onLogin}
           >
             Log In

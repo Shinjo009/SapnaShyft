@@ -157,8 +157,17 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
     }
 
     const deltaX = event.touches[0].clientX - touchStartXRef.current;
-    const clamped = Math.max(-28, Math.min(28, deltaX));
-    applyDragOffset(clamped);
+    const stackWidth = stackRef.current?.clientWidth || 260;
+    const softLimit = Math.max(120, stackWidth * 0.55);
+    const absDelta = Math.abs(deltaX);
+    const direction = deltaX < 0 ? -1 : 1;
+
+    // Apply soft resistance after the primary drag range to avoid abrupt edge sticking.
+    const dragValue = absDelta <= softLimit
+      ? deltaX
+      : direction * (softLimit + (absDelta - softLimit) * 0.18);
+
+    applyDragOffset(dragValue);
   };
 
   const handleTouchEnd = (event) => {
@@ -166,8 +175,10 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
       return;
     }
 
+    const stackWidth = stackRef.current?.clientWidth || 260;
+    const swipeThreshold = Math.max(30, stackWidth * 0.14);
     const deltaX = event.changedTouches[0].clientX - touchStartXRef.current;
-    if (Math.abs(deltaX) > 36) {
+    if (Math.abs(deltaX) > swipeThreshold) {
       if (deltaX < 0) {
         goNext();
       } else {
@@ -193,8 +204,12 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
     if (event.propertyName !== 'transform') return;
 
     setIsResetting(true);
-    // Treat swipe as dismiss action: the immediate stacked card behind comes forward.
-    setActiveIndex((prev) => (prev + 1) % cards.length);
+    setActiveIndex((prev) => {
+      if (swipeDirection === 'prev') {
+        return (prev - 1 + cards.length) % cards.length;
+      }
+      return (prev + 1) % cards.length;
+    });
     setIsAnimating(false);
     resetDragOffset();
 

@@ -8,6 +8,16 @@
   max-width: 120px;
 }
 
+.circular-progress-card--clickable {
+  cursor: pointer;
+}
+
+.circular-progress-card--clickable:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.45);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+
 /* SVG Ring Container */
 .circular-progress-card__ring {
   width: 85px;
@@ -78,9 +88,9 @@
 
 /* Fraction separator (/100) */
 .circular-progress-card__fraction-separator {
-  color: #FFF;
+  color: #999;
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 11px;
+  font-size: 9px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
@@ -91,7 +101,7 @@
   color: #FFF;
   text-align: center;
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 700;
   line-height: normal;
@@ -111,7 +121,7 @@
   }
 
   .circular-progress-card__label {
-    font-size: 10px;
+    font-size: 12px;
   }
 }
 

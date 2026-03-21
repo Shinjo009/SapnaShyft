@@ -21,8 +21,12 @@ import familyHistoryIcon from '../../images/FamilyHistory.svg';
 /**
  * HealthScanIndexPage - Detail page for Health Scan Index with tab navigation
  */
-const HealthScanIndexPage = ({ onBack }) => {
-  const [activeTab, setActiveTab] = React.useState(0);
+const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
+  const [activeTab, setActiveTab] = React.useState(initialTab);
+
+  React.useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const handleTabChange = (index) => {
     setActiveTab(index);
@@ -67,7 +71,6 @@ const HealthScanIndexPage = ({ onBack }) => {
         <div className="health-scan-page__tab-content">
           <div className="health-scan-page__circle-container">
             <div className="health-scan-page__progress-card">
-              <div className="health-scan-page__score-label">{tabTitles[activeTab]}</div>
               <CircularProgressCard
                 percentage={activeTab === 0 ? 75 : activeTab === 1 ? 45 : 20}
                 label={tabTitles[activeTab]}
@@ -78,7 +81,7 @@ const HealthScanIndexPage = ({ onBack }) => {
           {activeTab === 0 && (
             <div className="health-scan-page__fitness-info">
               <p className="health-scan-page__intro-text">
-                This score highlights how your waist, body fat, and measurements influence your long-term fitness risk.
+                This score reflects how your metrics influence long-term risk.
               </p>
 
               <div className="health-scan-page__legend">
@@ -117,6 +120,44 @@ const HealthScanIndexPage = ({ onBack }) => {
               <div className="health-scan-page__metrics-header">
                 <h2 className="health-scan-page__metrics-title">Fitness Metrics</h2>
                 <span className="health-scan-page__metrics-date">As on {formattedDate}</span>
+              </div>
+
+              <div className="health-scan-page__metric-card health-scan-page__metric-card--full">
+                <div className="health-scan-page__metric-title">
+                  <img src={bloodPressureIcon} alt="" aria-hidden="true" />
+                  <span>Blood pressure</span>
+                </div>
+                <div className="health-scan-page__metric-value health-scan-page__metric-value--within">
+                  <span>90/55 mm/Hg</span>
+                  <span className="health-scan-page__metric-icon" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                </div>
+                <span className="health-scan-page__metric-range-container">
+                  <span className="health-scan-page__metric-range-label">Ideal range</span>
+                  <span className="health-scan-page__metric-range-value">&lt;=120/80</span>
+                </span>
+              </div>
+
+              <div className="health-scan-page__metric-card health-scan-page__metric-card--full">
+                <div className="health-scan-page__metric-title">
+                  <img src={bmrIcon} alt="" aria-hidden="true" />
+                  <span>Basal Metabolic Rate</span>
+                </div>
+                <div className="health-scan-page__metric-value health-scan-page__metric-value--below">
+                  <span>1350 kcal</span>
+                  <span className="health-scan-page__metric-icon" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
+                    </svg>
+                  </span>
+                </div>
+                <span className="health-scan-page__metric-range-container">
+                  <span className="health-scan-page__metric-range-label">Ideal range</span>
+                  <span className="health-scan-page__metric-range-value">1300-1700</span>
+                </span>
               </div>
 
               <div className="health-scan-page__metrics-grid">
@@ -158,51 +199,13 @@ const HealthScanIndexPage = ({ onBack }) => {
                   </span>
                 </div>
               </div>
-
-              <div className="health-scan-page__metric-card health-scan-page__metric-card--full">
-                <div className="health-scan-page__metric-title">
-                  <img src={bloodPressureIcon} alt="" aria-hidden="true" />
-                  <span>Blood pressure</span>
-                </div>
-                <div className="health-scan-page__metric-value health-scan-page__metric-value--within">
-                  <span>90/55 mm/Hg</span>
-                  <span className="health-scan-page__metric-icon" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                </div>
-                <span className="health-scan-page__metric-range-container">
-                  <span className="health-scan-page__metric-range-label">Ideal range</span>
-                  <span className="health-scan-page__metric-range-value">&lt;=120/80</span>
-                </span>
-              </div>
-
-              <div className="health-scan-page__metric-card health-scan-page__metric-card--full">
-                <div className="health-scan-page__metric-title">
-                  <img src={bmrIcon} alt="" aria-hidden="true" />
-                  <span>Basal Metabolic Rate</span>
-                </div>
-                <div className="health-scan-page__metric-value health-scan-page__metric-value--below">
-                  <span>1350 kcal</span>
-                  <span className="health-scan-page__metric-icon" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
-                    </svg>
-                  </span>
-                </div>
-                <span className="health-scan-page__metric-range-container">
-                  <span className="health-scan-page__metric-range-label">Ideal range</span>
-                  <span className="health-scan-page__metric-range-value">1300-1700</span>
-                </span>
-              </div>
             </div>
           )}
 
           {activeTab === 1 && (
             <div className="health-scan-page__fitness-info">
               <p className="health-scan-page__intro-text">
-                Your nutrition score captures the health impact of your food choices.
+                This score reflects how your nutrition influences long-term risk.
               </p>
 
               <div className="health-scan-page__legend">
@@ -347,7 +350,7 @@ const HealthScanIndexPage = ({ onBack }) => {
           {activeTab === 2 && (
             <div className="health-scan-page__fitness-info">
               <p className="health-scan-page__intro-text">
-                Your lifestyle score shows the impact of your routines on your health.
+                This score reflects how your lifestyle influences long-term risk.
               </p>
 
               <div className="health-scan-page__legend">
@@ -388,7 +391,7 @@ const HealthScanIndexPage = ({ onBack }) => {
                 <span className="health-scan-page__metrics-date">As on {formattedDate}</span>
               </div>
 
-              <div className="health-scan-page__metric-card health-scan-page__metric-card--full">
+              <div className="health-scan-page__metric-card health-scan-page__metric-card--full health-scan-page__metric-card--physical-activity">
                 <div className="health-scan-page__metric-title">
                   <img src={physicalActivityIcon} alt="" aria-hidden="true" />
                   <span>Physical Activity</span>
@@ -441,8 +444,8 @@ const HealthScanIndexPage = ({ onBack }) => {
                     <span>Family History</span>
                   </div>
                   <div className="health-scan-page__family-history">
-                    <span>Mother - Diabetic</span>
-                    <span>Father - Thyroid</span>
+                    <span>Diabetic</span>
+                    <span>Thyroid</span>
                   </div>
                 </div>
               </div>

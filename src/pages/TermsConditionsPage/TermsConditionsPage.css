@@ -73,6 +73,10 @@
   box-sizing: border-box;
 }
 
+.terms-page__card:last-child {
+  margin-bottom: 20px;
+}
+
 .terms-page__card-header {
   width: 100%;
   display: flex;
