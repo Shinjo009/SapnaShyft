@@ -18,8 +18,8 @@
   bottom: -2px;
   left: 0;
   background-image: url('./images/BG-1.png');
-  background-size: cover;
-  background-position: center;
+  background-size: 100% 100%;
+  background-position: top center;
   background-repeat: no-repeat;
   z-index: 0;
 }

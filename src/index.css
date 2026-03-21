@@ -9,9 +9,17 @@ body,
   min-height: 100%;
 }
 
+html,
+body {
+  background-color: #08171a;
+  background-image: url('./images/BG-1.png');
+  background-size: 100% 100%;
+  background-position: top center;
+  background-repeat: no-repeat;
+}
+
 body {
   margin: 0;
-  background-color: #08171a;
   overscroll-behavior-y: none;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
