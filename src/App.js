@@ -22,7 +22,6 @@ import BloodMarkersPage from './pages/BloodMarkersPage/BloodMarkersPage';
 
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
-import bgImage from './images/BG-1.png';
 import { sendOtp, verifyOtp, refreshToken, logout } from './services/authService';
 import { createUser } from './services/usersService';
 import { getMyProfile } from './services/profileService';
@@ -247,13 +246,9 @@ function App() {
   };
 
   return (
-    <div 
-      className="min-h-screen bg-cover bg-center bg-no-repeat"
-      style={{ 
-        backgroundImage: `url(${bgImage})`,
-        backgroundAttachment: 'fixed'
-      }}
-    >
+    <div className="app-root">
+      <div className="app-background" aria-hidden="true" />
+      <div className="app-scroll">
       {/* PWA Install Prompt Banner */}
       {showInstallPrompt && (
         <div style={{
@@ -572,6 +567,7 @@ function App() {
           onSignup={() => setCurrentPage('signup')}
         />
       )}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Button from '../../components/Button';
 import './ProfilePage.css';
-import bgImage from '../../images/BG-2.png';
 import bgImage1 from '../../images/BG-1.png';
 import profileAvatarMain from '../../images/TempH.png';
 import editIcon from '../../images/Edit.svg';
@@ -212,11 +211,6 @@ const ProfilePage = ({
 
   return (
     <div className="profile-page">
-      {/* Background Image */}
-      <div className="profile-page__background">
-        <img src={bgImage} alt="" className="profile-page__bg-image" />
-      </div>
-
       {/* Content */}
       <div className={`profile-page__content ${activeModal ? 'profile-page__content--blurred' : ''}`}>
         {/* Back Button Header */}

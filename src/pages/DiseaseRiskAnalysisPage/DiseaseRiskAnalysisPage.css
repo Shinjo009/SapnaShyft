@@ -2,12 +2,7 @@
 
 .disease-risk-analysis-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, rgba(10, 10, 10, 0.95) 0%, rgba(26, 11, 46, 0.95) 100%);
-  background-image: url('../../images/BG-1.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background: transparent;
   position: relative;
   overflow: hidden;
   padding: 20px;

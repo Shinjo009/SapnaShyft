@@ -646,6 +646,8 @@
   border-left: 0.8px dotted rgba(196, 196, 196, 0.9);
   border-radius: 1px;
   transform: translateX(-50%);
+  z-index: 2;
+  pointer-events: none;
 }
 
 .blood-marker-detail__risk-dots-track {
@@ -836,6 +838,12 @@
 }
 
 @media (max-width: 768px) {
+  .blood-marker-detail__zone-separator {
+    border-left-width: 1px;
+    border-left-color: rgba(196, 196, 196, 1);
+    opacity: 1;
+  }
+
   .blood-marker-detail__labels-row {
     font-size: 12px;
     line-height: 20px;
