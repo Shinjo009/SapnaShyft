@@ -32,8 +32,8 @@ const SplashScreen = ({ onComplete, onLogin, onSignup }) => {
 
   return (
     <div
-      className="max-w-md mx-auto min-h-screen px-8 pt-[75px] pb-6 flex flex-col overflow-hidden"
-      style={{ minHeight: '100dvh', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
+      className="max-w-md mx-auto h-full min-h-full px-8 pt-[75px] pb-6 flex flex-col overflow-hidden"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
     >
       <Logo size="lg" />
 

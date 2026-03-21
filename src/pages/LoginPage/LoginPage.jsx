@@ -32,7 +32,7 @@ const LoginPage = ({ onSuccess, onSignup }) => {
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-screen px-8 pt-[75px] pb-6 flex flex-col">
+    <div className="max-w-md mx-auto min-h-full px-8 pt-[75px] pb-6 flex flex-col">
       <Logo size="lg" />
 
       <div className="mt-[105px]">

@@ -15,6 +15,15 @@ body,
   min-height: 100vh;
 }
 
+html {
+  height: -webkit-fill-available;
+}
+
+body,
+#root {
+  min-height: -webkit-fill-available;
+}
+
 @supports (height: 100dvh) {
   html,
   body,

@@ -8,6 +8,8 @@
   right: 0;
   bottom: 0;
   left: 0;
+  height: 100%;
+  min-height: -webkit-fill-available;
   overflow: hidden;
 }
 
@@ -38,6 +40,16 @@
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+}
+
+/* Force all top-level screens to inherit the fixed app viewport height. */
+.app-scroll > * {
+  min-height: 100% !important;
+}
+
+/* Override Tailwind min-h-screen usage within screen wrappers. */
+.app-scroll .min-h-screen {
+  min-height: 100% !important;
 }
 
 .App-logo {
