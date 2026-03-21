@@ -554,6 +554,7 @@ const useCenteredQuestionGap = (deps = []) => {
   const subtitleRef = useRef(null);
   const stackWrapRef = useRef(null);
   const [stackTopGap, setStackTopGap] = useState(141);
+  const depsKey = useMemo(() => JSON.stringify(deps), [deps]);
 
   useEffect(() => {
     let frameId;
@@ -584,7 +585,7 @@ const useCenteredQuestionGap = (deps = []) => {
       observer.disconnect();
       cancelAnimationFrame(frameId);
     };
-  }, deps);
+  }, [depsKey]);
 
   return { subtitleRef, stackWrapRef, stackTopGap };
 };
@@ -1894,8 +1895,6 @@ const HealthAssessmentPage = ({
   const hideMiddleDotAtActivePill = showPill && focusedIndex >= 1 && focusedIndex <= 3;
 
   const isCompleted = (index) => index < progress;
-  const isActive = (index) => index === activeIndex;
-
   useEffect(() => {
     if (activeIndex === -1 || activeSubPage) {
       return;
