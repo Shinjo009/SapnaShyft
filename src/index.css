@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-bottom-bleed: 40px;
+}
+
 html,
 body,
 #root {
@@ -13,7 +17,7 @@ html,
 body {
   background-color: #08171a;
   background-image: url('./images/BG-1.png');
-  background-size: 100% 100%;
+  background-size: 100% calc(100% + var(--bg-bottom-bleed, 40px));
   background-position: top center;
   background-repeat: no-repeat;
 }

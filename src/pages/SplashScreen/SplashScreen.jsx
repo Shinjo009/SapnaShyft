@@ -57,7 +57,7 @@ const SplashScreen = ({ onComplete, onLogin, onSignup }) => {
         </div>
       </div>
 
-      <div className="mt-[100px]">
+      <div className="mt-auto">
         <div className="flex h-10 px-6 py-[10px] justify-center items-center self-stretch rounded-[36px] border border-[#969696] bg-[linear-gradient(90deg,#296359_0%,#41AB99_100%)] shadow-[0_12px_20px_0_rgba(255,255,255,0.15)]">
           <button
             type="button"
@@ -77,18 +77,18 @@ const SplashScreen = ({ onComplete, onLogin, onSignup }) => {
             Sign Up
           </button>
         </div>
-      </div>
 
-      <div className="mt-auto flex flex-col items-center gap-1 pb-1">
-        <span className="font-lato text-[8px] font-light leading-none tracking-[0.04px] text-[#CCC] opacity-80 text-center">
-          Powered by
-        </span>
-        <img
-          src={metfluxLogo}
-          alt="MetFlux Research"
-          className="w-[60px] h-[22px]"
-          style={{ aspectRatio: '30 / 11' }}
-        />
+        <div className="mt-[45px] flex flex-col items-center gap-1 pb-1">
+          <span className="font-lato text-[8px] font-light leading-none tracking-[0.04px] text-[#CCC] opacity-80 text-center">
+            Powered by
+          </span>
+          <img
+            src={metfluxLogo}
+            alt="MetFlux Research"
+            className="w-[60px] h-[22px]"
+            style={{ aspectRatio: '30 / 11' }}
+          />
+        </div>
       </div>
     </div>
   );
