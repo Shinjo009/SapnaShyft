@@ -13,12 +13,12 @@
 
 .app-background {
   position: fixed;
-  top: 0;
+  top: calc(-1 * var(--bg-safe-top, 0px));
   right: 0;
-  bottom: calc(-1 * var(--bg-bottom-bleed, 40px));
+  bottom: calc(-1 * (var(--bg-safe-bottom, 0px) + var(--bg-bottom-bleed, 40px)));
   left: 0;
   background-image: url('./images/BG-1.png');
-  background-size: 100% calc(100% + var(--bg-bottom-bleed, 40px));
+  background-size: 100% calc(100% + var(--bg-safe-top, 0px) + var(--bg-safe-bottom, 0px) + var(--bg-bottom-bleed, 40px));
   background-position: top center;
   background-repeat: no-repeat;
   z-index: 0;
