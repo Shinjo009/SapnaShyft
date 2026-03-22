@@ -3,43 +3,28 @@
 @tailwind utilities;
 
 :root {
-  --bg-bottom-bleed: 40px;
-  --bg-safe-top: env(safe-area-inset-top, 0px);
-  --bg-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --bg-bottom-bleed: 100px;
 }
 
 html,
 body,
 #root {
+  width: 100vw;
   height: 100vh;
-  min-height: 100vh;
-}
-
-html {
-  height: -webkit-fill-available;
-}
-
-body,
-#root {
   min-height: -webkit-fill-available;
-}
-
-@supports (height: 100dvh) {
-  html,
-  body,
-  #root {
-    height: 100dvh;
-    min-height: 100dvh;
-  }
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 html,
 body {
   background-color: #08171a;
   background-image: url('./images/BG-1.png');
-  background-size: 100% calc(100% + var(--bg-safe-top, 0px) + var(--bg-safe-bottom, 0px) + var(--bg-bottom-bleed, 40px));
+  background-size: 100% calc(100% + 100px);
   background-position: top center;
   background-repeat: no-repeat;
+  background-attachment: local;
 }
 
 body {

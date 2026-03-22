@@ -8,38 +8,40 @@
   right: 0;
   bottom: 0;
   left: 0;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   min-height: -webkit-fill-available;
   overflow: hidden;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 .app-background {
   position: fixed;
-  top: calc(-1 * var(--bg-safe-top, 0px));
+  top: 0;
   right: 0;
-  bottom: calc(-1 * (var(--bg-safe-bottom, 0px) + var(--bg-bottom-bleed, 40px)));
+  bottom: -100px;
   left: 0;
   background-image: url('./images/BG-1.png');
-  background-size: 100% calc(100% + var(--bg-safe-top, 0px) + var(--bg-safe-bottom, 0px) + var(--bg-bottom-bleed, 40px));
+  background-size: 100% calc(100% + 100px);
   background-position: top center;
   background-repeat: no-repeat;
   z-index: 0;
-}
-
-@supports (height: 100dvh) {
-  .app-root {
-    height: 100dvh;
-  }
 }
 
 .app-scroll {
   position: relative;
   z-index: 1;
   height: 100%;
+  width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 /* Force all top-level screens to inherit the fixed app viewport height. */
