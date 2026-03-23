@@ -2,16 +2,16 @@ import React, { useRef, useEffect, useState } from 'react';
 import './DiseaseRiskAnalysisPage.css';
 
 // Import disease icons
-import ObesityIcon from '../../images/Obesity.png';
-import ThyroidHealthIcon from '../../images/ThyroidHealth.png';
-import NAFLDIcon from '../../images/NAFLD.png';
-import Type2Icon from '../../images/Type2.png';
-import PCOSIcon from '../../images/PCOS.png';
-import HyperTensionIcon from '../../images/HyperTension.png';
-import MetabolicIcon from '../../images/Metabolic.png';
-import CardiacHealthIcon from '../../images/Cardiac Health.png';
-import DyslipidemiaIcon from '../../images/Dyslipidemia.png';
-import OxidativeIcon from '../../images/Oxidative.png';
+import ObesityIcon from '../../images/Obesity-RA.svg';
+import ThyroidHealthIcon from '../../images/Thyroid-RA.svg';
+import NAFLDIcon from '../../images/NAFLD-RA.svg';
+import Type2Icon from '../../images/Type2-RA.svg';
+import PCOSIcon from '../../images/PCOS-RA.svg';
+import HyperTensionIcon from '../../images/Hypertension-RA.svg';
+import MetabolicIcon from '../../images/Metabolic-RA.svg';
+import CardiacHealthIcon from '../../images/Cardiac-RA.svg';
+import DyslipidemiaIcon from '../../images/Dyslipidemia-RA.svg';
+import OxidativeIcon from '../../images/Oxidative-RA.svg';
 
 // Import ellipses
 import E1 from '../../images/E1.png';

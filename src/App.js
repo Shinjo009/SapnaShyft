@@ -19,6 +19,8 @@ import TermsConditionsPage from './pages/TermsConditionsPage';
 import HealthAssessmentPage from './pages/HealthAssessmentPage';
 import QuestionnaireBlankPage from './pages/QuestionnaireBlankPage';
 import BloodMarkersPage from './pages/BloodMarkersPage/BloodMarkersPage';
+import PackagesPage from './pages/PackagesPage';
+import PackageDetailsPage from './pages/PackageDetailsPage';
 
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
@@ -365,6 +367,32 @@ function App() {
           onNavigateToBloodMarkers={() => {
             console.log('Navigate to Blood Markers');
             setCurrentPage('blood-markers');
+          }}
+          onNavigateToPackages={() => {
+            console.log('Navigate to Packages');
+            setCurrentPage('packages');
+          }}
+        />
+      )}
+
+      {currentPage === 'packages' && (
+        <PackagesPage
+          onNavigateHome={() => {
+            console.log('Back to Home');
+            setCurrentPage('home');
+          }}
+          onOpenPackageDetails={() => {
+            console.log('Navigate to Package Details');
+            setCurrentPage('package-details');
+          }}
+        />
+      )}
+
+      {currentPage === 'package-details' && (
+        <PackageDetailsPage
+          onBack={() => {
+            console.log('Back to Packages');
+            setCurrentPage('packages');
           }}
         />
       )}

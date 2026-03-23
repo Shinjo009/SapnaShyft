@@ -7,7 +7,7 @@ import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/P
 import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 
-const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealthScanTab, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers }) => {
+const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealthScanTab, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers, onNavigateToPackages }) => {
   const handleMenuClick = () => {
     console.log('Menu clicked');
     if (onNavigateToProfile) {
@@ -24,7 +24,14 @@ const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealt
 
   const handleNavigate = (itemId) => {
     console.log('Navigating to:', itemId);
-    // Handle navigation logic here
+    if (itemId === 'packages' && onNavigateToPackages) {
+      onNavigateToPackages();
+      return;
+    }
+
+    if (itemId === 'home') {
+      return;
+    }
   };
 
   const handleHealthScanSeeMore = () => {
