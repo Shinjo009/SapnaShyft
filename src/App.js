@@ -248,8 +248,7 @@ function App() {
   return (
     <div className="app-root">
       <div className="app-background" aria-hidden="true" />
-      <div className="app-scroll">
-      {/* PWA Install Prompt Banner */}
+      {/* PWA Install Prompt Banner - Fixed outside scroll container */}
       {showInstallPrompt && (
         <div style={{
           position: 'fixed',
@@ -300,6 +299,7 @@ function App() {
           </div>
         </div>
       )}
+      <div className="app-scroll">
       {currentPage === 'login' && (
         <LoginPage 
           onSuccess={handleSendOtp}
