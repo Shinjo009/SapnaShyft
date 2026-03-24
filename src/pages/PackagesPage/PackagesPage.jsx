@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import './PackagesPage.css';
 import NavBar from '../../components/NavBar';
+import PatientSelectionOverlay from '../../components/PatientSelectionOverlay';
 
 const FILTERS = ['All', 'Male', 'Female', 'Cancer', 'Popular'];
 
@@ -41,6 +42,7 @@ const FeatureChips = ['Biological Age', 'Kidney', 'Heart', '+ More'];
 
 const PackagesPage = ({ onNavigateHome, onOpenPackageDetails }) => {
   const [activeFilter, setActiveFilter] = useState('All');
+  const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
 
   const visibleCards = useMemo(() => PACKAGE_CARDS, []);
 
@@ -154,12 +156,23 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails }) => {
                   </div>
                   <span className="packages-card__price-old">₹4,498</span>
                 </div>
-                <button type="button" className="packages-card__book-btn">BOOK</button>
+                <button
+                  type="button"
+                  className="packages-card__book-btn"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setIsPatientOverlayOpen(true);
+                  }}
+                >
+                  BOOK
+                </button>
               </div>
             </article>
           ))}
         </section>
       </div>
+
+      <PatientSelectionOverlay open={isPatientOverlayOpen} onClose={() => setIsPatientOverlayOpen(false)} />
 
       <NavBar defaultActive="packages" onNavigate={handleNav} />
     </div>

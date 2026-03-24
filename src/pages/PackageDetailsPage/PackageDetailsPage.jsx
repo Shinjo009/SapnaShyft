@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import './PackageDetailsPage.css';
+import PatientSelectionOverlay from '../../components/PatientSelectionOverlay';
 
 const TABS = [
   'Overview',
@@ -177,12 +178,98 @@ const ABOUT_PACKAGE_COPY = [
   'It helps detect hidden risks like diabetes, thyroid, heart, or liver issues at an early stage, while also highlighting deficiencies that affect energy and immunity. Regular use of this package supports disease prevention, better treatment planning, and overall well-being.',
 ];
 
+const SAMPLE_ITEMS = [
+  {
+    id: 'blood',
+    label: 'Blood',
+    description: 'Our phlebotomist will draw a blood sample, typically from a vein in your inner elbow.',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path fillRule="evenodd" clipRule="evenodd" d="M12.6407 0.268341L15.7529 3.3764C15.9133 3.54218 16.002 3.76421 16 3.99467C15.998 4.22514 15.9054 4.4456 15.7422 4.60857C15.579 4.77153 15.3583 4.86398 15.1275 4.86598C14.8967 4.86798 14.6744 4.77939 14.5084 4.61927L13.2629 5.86214L14.8182 7.41617C14.9023 7.49726 14.9693 7.59425 15.0154 7.70149C15.0616 7.80872 15.0858 7.92406 15.0869 8.04077C15.0879 8.15748 15.0656 8.27323 15.0214 8.38125C14.9771 8.48927 14.9117 8.58741 14.8291 8.66994C14.7465 8.75247 14.6482 8.81774 14.54 8.86193C14.4319 8.90613 14.316 8.92837 14.1991 8.92735C14.0822 8.92634 13.9667 8.90209 13.8593 8.85603C13.752 8.80996 13.6548 8.743 13.5736 8.65905L12.9522 8.03761L7.97315 13.01C7.47799 13.5043 6.80649 13.782 6.10633 13.782C5.40616 13.782 4.73466 13.5043 4.2395 13.01L1.49162 15.7533C1.32562 15.9134 1.10329 16.002 0.872516 16C0.64174 15.998 0.420984 15.9055 0.257794 15.7426C0.0946046 15.5796 0.00203866 15.3591 3.32725e-05 15.1287C-0.00197211 14.8982 0.0867434 14.6762 0.247072 14.5104L2.99407 11.7671C2.74883 11.5222 2.55429 11.2315 2.42156 10.9116C2.28884 10.5916 2.22053 10.2487 2.22053 9.90236C2.22053 9.55603 2.28884 9.2131 2.42156 8.89315C2.55429 8.57319 2.74883 8.28248 2.99407 8.03761L7.97315 3.06524L7.35088 2.44381C7.26681 2.36272 7.19976 2.26573 7.15363 2.1585C7.1075 2.05126 7.08322 1.93592 7.08221 1.81921C7.08119 1.7025 7.10346 1.58675 7.14772 1.47873C7.19197 1.37071 7.25733 1.27257 7.33997 1.19004C7.42261 1.10751 7.52088 1.04224 7.62905 0.998048C7.73722 0.953852 7.85312 0.931612 7.96999 0.932627C8.08685 0.933641 8.20235 0.957889 8.30973 1.00395C8.41712 1.05002 8.51424 1.11698 8.59543 1.20093L10.1516 2.75409L11.3961 1.51121C11.312 1.43013 11.245 1.33314 11.1989 1.2259C11.1527 1.11866 11.1285 1.00332 11.1274 0.886614C11.1264 0.769904 11.1487 0.654161 11.193 0.546138C11.2372 0.438115 11.3026 0.339976 11.3852 0.257446C11.4678 0.174917 11.5661 0.10965 11.6743 0.0654543C11.7825 0.0212586 11.8984 -0.00098099 12.0152 3.31872e-05C12.1321 0.00104736 12.2476 0.025295 12.355 0.0713613C12.4624 0.117428 12.5595 0.18439 12.6407 0.268341ZM9.21771 4.30812L7.97315 5.55187L8.59543 6.17242C8.67721 6.25403 8.74209 6.35093 8.78637 6.45757C8.83064 6.56422 8.85346 6.67854 8.8535 6.79399C8.85354 6.90944 8.83081 7.02377 8.7866 7.13045C8.7424 7.23713 8.67759 7.33407 8.59587 7.41573C8.51415 7.4974 8.41713 7.56219 8.31033 7.60641C8.20354 7.65063 8.08907 7.67341 7.97347 7.67345C7.85786 7.67349 7.74337 7.65079 7.63655 7.60665C7.52973 7.56251 7.43265 7.49778 7.35088 7.41617L6.7286 6.79474L6.10633 7.41617L6.7286 8.03761C6.81267 8.11869 6.87972 8.21568 6.92585 8.32292C6.97198 8.43016 6.99626 8.5455 6.99727 8.66221C6.99829 8.77892 6.97602 8.89466 6.93176 9.00269C6.88751 9.11071 6.82215 9.20885 6.73951 9.29138C6.65687 9.37391 6.5586 9.43917 6.45043 9.48337C6.34226 9.52757 6.22636 9.5498 6.10949 9.54879C5.99263 9.54778 5.87713 9.52353 5.76975 9.47746C5.66236 9.4314 5.56524 9.36443 5.48405 9.28048L4.86177 8.65905L4.2395 9.28048C4.15766 9.36211 4.09274 9.45906 4.04845 9.56576C4.00416 9.67247 3.98136 9.78685 3.98136 9.90236C3.98136 10.0179 4.00416 10.1322 4.04845 10.239C4.09274 10.3457 4.15766 10.4426 4.2395 10.5242L5.48405 11.7671C5.64911 11.9319 5.87294 12.0245 6.10633 12.0245C6.33971 12.0245 6.56355 11.9319 6.7286 11.7671L11.7077 6.79474L9.21771 4.30812ZM12.6415 2.75409L11.3961 3.99784L12.0184 4.61927L13.2638 3.3764L12.6415 2.75409Z" fill="#9A9A9A"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'urine',
+    label: 'Urine',
+    description: 'Our phlebotomist will provide a clean, sterile container for you to collect a urine sample',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path fillRule="evenodd" clipRule="evenodd" d="M0.390667 0.390667C0.140601 0.640657 7.55165e-05 0.97974 0 1.33333V3.55556H0.950222C0.950222 3.57511 0.950815 3.59482 0.952 3.61467L1.72267 15.1702C1.73766 15.3951 1.83752 15.6059 2.00205 15.76C2.16658 15.914 2.38349 15.9998 2.60889 16H12.9467C13.1721 15.9999 13.3892 15.9142 13.5538 15.7601C13.7184 15.6061 13.8183 15.3952 13.8333 15.1702L14.604 3.61467C14.6052 3.59499 14.6058 3.57527 14.6058 3.55556H16V1.33333C16.0006 1.07108 15.9237 0.814496 15.7788 0.595897C15.6339 0.377298 15.4276 0.206458 15.1858 0.104889C15.0215 0.0355669 14.845 -9.95365e-05 14.6667 2.08634e-07H1.33333C0.97974 7.57252e-05 0.640657 0.140601 0.390667 0.390667ZM13.7164 3.55556H1.83911L1.95778 5.33333H6.66667C6.90241 5.33333 7.12851 5.42698 7.2952 5.59368C7.4619 5.76038 7.55555 5.98647 7.55555 6.22222V7.11111H13.4796L13.7164 3.55556ZM2.27289 6.22222L2.61867 12.4444H6.66667V6.22222H2.27289ZM2.22222 2.53956H1.33333V1.016H2.22222V2.53956ZM4 1.016H3.11111V2.53956H4V1.016ZM5.77778 2.53956H4.88889V1.016H5.77778V2.53956ZM7.55555 1.016H6.66667V2.53956H7.55555V1.016ZM9.33333 2.53956H8.44444V1.016H9.33333V2.53956ZM11.1111 1.016H10.2222V2.53956H11.1111V1.016ZM12.8889 2.53956H12V1.016H12.8889V2.53956ZM14.6667 1.016H13.7778V2.53956H14.6667V1.016Z" fill="#9A9A9A"/>
+      </svg>
+    ),
+  },
+];
+
+const PREPARATION_GROUPS = [
+  {
+    id: 'blood',
+    title: 'Blood',
+    tone: 'teal',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M10 16L11.5 17.5M14 8L12.5 6.5M15 2C13.202 3.998 12.482 5.995 12.193 7.993M16.5 10.5L17.5 11.5M17 6L14.109 3.109M2 15C8.667 9 15.333 15 22 9M20 9L20.891 9.891M3.109 14.109L4 15M6.5 12.5L7.5 13.5M7 18L9.891 20.891M9 22C10.798 20.002 11.518 18.005 11.807 16.007" stroke="#55F0E6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    points: [
+      'Fast for 8-12 hours before the test. Only plain water is allowed.',
+      'Skip iron or vitamin supplements for 24 hours before sample collection.',
+      'Take regular medicines (like thyroid) unless your doctor tells you otherwise.',
+      'Drink enough water so veins are easy to access.',
+    ],
+  },
+  {
+    id: 'urine',
+    title: 'Urine',
+    tone: 'violet',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M10 16L11.5 17.5M14 8L12.5 6.5M15 2C13.202 3.998 12.482 5.995 12.193 7.993M16.5 10.5L17.5 11.5M17 6L14.109 3.109M2 15C8.667 9 15.333 15 22 9M20 9L20.891 9.891M3.109 14.109L4 15M6.5 12.5L7.5 13.5M7 18L9.891 20.891M9 22C10.798 20.002 11.518 18.005 11.807 16.007" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    points: [
+      'Collect the first morning midstream urine (discard the first few drops, collect the middle stream).',
+      'Use only the sterile container provided for collection.',
+      'Ensure the area is clean before collecting the sample',
+      'Submit the urine sample on the same day for accurate results.',
+    ],
+  },
+];
+
+const PARAMETER_GROUPS = [
+  {
+    id: 'liver',
+    title: 'Liver Function',
+    items: ['Bilirubin', 'Albumin', 'SGOT', 'SGPT', 'ALP', ''],
+    locked: false,
+  },
+  {
+    id: 'kidney',
+    title: 'Kidney Function',
+    items: ['Creatinine', 'BUN', 'Uric Acid', 'Calcium', '', ''],
+    locked: false,
+  },
+  {
+    id: 'thyroid',
+    title: 'Kidney Function',
+    items: ['Creatinine', 'BUN', 'Uric Acid', 'Calcium', '', ''],
+    locked: true,
+  },
+  {
+    id: 'heart',
+    title: 'Heart Function',
+    items: ['Troponin', 'CK-MB', 'LDH', 'Apo-A1', 'Apo-B', ''],
+    locked: false,
+  },
+];
+
 const PackageDetailsPage = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState('Overview');
   const [order, setOrder] = useState([0, 1, 2]);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartX = useRef(0);
+  const didMoveRef = useRef(false);
   const swipeCount = useRef(0);
   const resetTimerRef = useRef(null);
   const [openFaqId, setOpenFaqId] = useState('faq-water');
@@ -222,6 +309,7 @@ const PackageDetailsPage = ({ onBack }) => {
   const handlePointerDown = (event) => {
     setIsDragging(true);
     dragStartX.current = event.clientX;
+    didMoveRef.current = false;
   };
 
   const handlePointerMove = (event) => {
@@ -230,6 +318,9 @@ const PackageDetailsPage = ({ onBack }) => {
     }
 
     const delta = event.clientX - dragStartX.current;
+    if (Math.abs(delta) > 8) {
+      didMoveRef.current = true;
+    }
     setDragX(delta);
   };
 
@@ -260,12 +351,50 @@ const PackageDetailsPage = ({ onBack }) => {
       return;
     }
 
+    if (tab === 'Samples Required') {
+      setActiveOverlay('samples');
+      return;
+    }
+
+    if (tab === 'Test Preparation') {
+      setActiveOverlay('prep');
+      return;
+    }
+
+    if (tab === 'Parameters Included') {
+      setActiveOverlay('tests');
+      return;
+    }
+
     setActiveOverlay('');
   };
 
   const handleCloseOverlay = () => {
     setActiveOverlay('');
     setActiveTab('Overview');
+  };
+
+  const handleHighlightCardClick = (cardId) => {
+    if (didMoveRef.current) {
+      return;
+    }
+
+    if (cardId === 'samples') {
+      setActiveOverlay('samples');
+      setActiveTab('Samples Required');
+      return;
+    }
+
+    if (cardId === 'prep') {
+      setActiveOverlay('prep');
+      setActiveTab('Test Preparation');
+      return;
+    }
+
+    if (cardId === 'tests') {
+      setActiveOverlay('tests');
+      setActiveTab('Parameters Included');
+    }
   };
 
   return (
@@ -366,6 +495,7 @@ const PackageDetailsPage = ({ onBack }) => {
                 onPointerMove={isFront ? handlePointerMove : undefined}
                 onPointerUp={isFront ? handlePointerUp : undefined}
                 onPointerCancel={isFront ? handlePointerUp : undefined}
+                onClick={() => handleHighlightCardClick(card.id)}
               >
                 <div className="package-highlight-card__icon-box">{card.icon}</div>
                 <div className="package-highlight-card__small">{card.small}</div>
@@ -469,11 +599,11 @@ const PackageDetailsPage = ({ onBack }) => {
             </div>
           </div>
 
-          <button type="button" className="package-details-page__book-cta">BOOK</button>
+          <button type="button" className="package-details-page__book-cta" onClick={() => setActiveOverlay('patients')}>BOOK</button>
         </div>
       </div>
 
-      {activeOverlay ? (
+      {activeOverlay && activeOverlay !== 'patients' ? (
         <div className="package-details-page__overlay" role="dialog" aria-modal="true">
           <button type="button" className="package-details-page__overlay-close" aria-label="Close" onClick={handleCloseOverlay}>
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -482,9 +612,17 @@ const PackageDetailsPage = ({ onBack }) => {
             </svg>
           </button>
 
-          <div className="package-details-page__overlay-sheet">
+          <div className={`package-details-page__overlay-sheet${activeOverlay === 'tests' ? ' is-tests' : ''}`}>
             <h3 className="package-details-page__overlay-title">
-              {activeOverlay === 'why' ? 'Why this package?' : 'About the package'}
+              {activeOverlay === 'why'
+                ? 'Why this package?'
+                : activeOverlay === 'about'
+                  ? 'About the package'
+                  : activeOverlay === 'samples'
+                    ? 'Samples required'
+                    : activeOverlay === 'prep'
+                      ? 'Preparations'
+                      : 'Package includes 150 tests'}
             </h3>
 
             {activeOverlay === 'why' ? (
@@ -496,18 +634,113 @@ const PackageDetailsPage = ({ onBack }) => {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : null}
+
+            {activeOverlay === 'about' ? (
               <div className="package-details-page__overlay-about-copy">
                 {ABOUT_PACKAGE_COPY.map((paragraph) => (
                   <p key={paragraph}>{paragraph}</p>
                 ))}
               </div>
-            )}
+            ) : null}
 
-            <div className="package-details-page__overlay-grip" aria-hidden="true" />
+            {activeOverlay === 'samples' ? (
+              <div className="package-details-page__samples-list">
+                {SAMPLE_ITEMS.map((item) => (
+                  <div key={item.id} className="package-details-page__sample-item">
+                    <div className="package-details-page__sample-icon-box">{item.icon}</div>
+                    <h4>{item.label}</h4>
+                    <p>{item.description}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {activeOverlay === 'prep' ? (
+              <div className="package-details-page__prep-list">
+                {PREPARATION_GROUPS.map((group) => (
+                  <section
+                    key={group.id}
+                    className={`package-details-page__prep-card package-details-page__prep-card--${group.tone}`}
+                    aria-label={`${group.title} preparation`}
+                  >
+                    <div className="package-details-page__prep-head">
+                      {group.icon}
+                      <h4>{group.title}</h4>
+                    </div>
+
+                    <div className={`package-details-page__prep-steps package-details-page__prep-steps--${group.tone}`}>
+                      {group.points.map((point) => (
+                        <div key={point} className="package-details-page__prep-step">
+                          <p>{point}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : null}
+
+            {activeOverlay === 'tests' ? (
+              <div className="package-details-page__tests-scroll">
+                {PARAMETER_GROUPS.map((group) => (
+                  <section key={group.id} className="package-details-page__test-card" aria-label={group.title}>
+                    <div className="package-details-page__test-head">
+                      <div className="package-details-page__test-icon-box">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+                          <path d="M12.1667 6.33333H10.72C10.1961 6.33221 9.73563 6.68052 9.59417 7.185L8.22333 12.0617C8.20519 12.1239 8.14815 12.1667 8.08333 12.1667C8.01852 12.1667 7.96148 12.1239 7.94333 12.0617L4.72333 0.605C4.70519 0.542778 4.64815 0.5 4.58333 0.5C4.51852 0.5 4.46148 0.542778 4.44333 0.605L3.0725 5.48167C2.93162 5.98407 2.47428 6.33184 1.9525 6.33333H0.5" stroke="#90DF9E" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                      <h4>{group.title}</h4>
+                    </div>
+
+                    <div className="package-details-page__test-divider" />
+
+                    <div className="package-details-page__test-grid">
+                      {group.items.map((item, idx) => (
+                        item ? (
+                          <div key={`${group.id}-${item}-${idx}`} className="package-details-page__test-pill">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="8" viewBox="0 0 11 8" fill="none" aria-hidden="true">
+                              <path d="M9.91536 0.583496L3.4987 7.00016L0.582031 4.0835" stroke="#90DF9E" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <span>{item}</span>
+                          </div>
+                        ) : <div key={`${group.id}-empty-${idx}`} />
+                      ))}
+                    </div>
+
+                    {group.locked ? (
+                      <div className="package-details-page__locked-layer" aria-hidden="true">
+                        <div className="package-details-page__locked-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="23" height="27" viewBox="0 0 23 27" fill="none">
+                            <path d="M6.5 12V8.5C6.5 5.73858 8.73858 3.5 11.5 3.5C14.2614 3.5 16.5 5.73858 16.5 8.5V12" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                            <rect x="4" y="11" width="15" height="12" rx="2" fill="white"/>
+                            <circle cx="11.5" cy="17" r="1.4" fill="#071018"/>
+                          </svg>
+                        </div>
+                        <button type="button" className="package-details-page__locked-btn">Explore Other Packages</button>
+                        <div className="package-details-page__locked-note">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                            <path d="M1.16406 7.00033C1.16406 10.2198 3.77789 12.8337 6.9974 12.8337C10.2169 12.8337 12.8307 10.2198 12.8307 7.00033C12.8307 3.78082 10.2169 1.16699 6.9974 1.16699C3.77789 1.16699 1.16406 3.78082 1.16406 7.00033V7.00033" stroke="white" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M7 9.33366V7.00033M7 4.66699H7.00583" stroke="white" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span>Locked markers available in higher packages</span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </section>
+                ))}
+
+                <div className="package-details-page__overlay-grip package-details-page__overlay-grip--tests" aria-hidden="true" />
+              </div>
+            ) : null}
+
+            {activeOverlay !== 'tests' ? <div className="package-details-page__overlay-grip" aria-hidden="true" /> : null}
           </div>
         </div>
       ) : null}
+
+      <PatientSelectionOverlay open={activeOverlay === 'patients'} onClose={() => setActiveOverlay('')} />
     </div>
   );
 };
