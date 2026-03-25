@@ -144,7 +144,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails }) => {
                 <div className="packages-card__metric-separator" aria-hidden="true" />
                 <div className="packages-card__metric">
                   <span className="packages-card__metric-value">8-12 hrs</span>
-                  <span className="packages-card__metric-label">fasting</span>
+                  <span className="packages-card__metric-label">Fasting</span>
                 </div>
               </div>
 

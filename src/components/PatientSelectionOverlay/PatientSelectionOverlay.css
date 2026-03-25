@@ -51,6 +51,14 @@
   overflow: hidden;
 }
 
+.patient-select-overlay__sheet.is-payment {
+  min-height: 4vh;
+}
+
+.patient-select-overlay__sheet.is-confirmed {
+  min-height: 50vh;
+}
+
 .patient-select-overlay__sheet.is-address {
   min-height: 10vh;
 }
@@ -192,7 +200,7 @@
 .patient-select-overlay__selected-package-left span {
   color: #e6f7f0;
   font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 600;
   line-height: normal;
@@ -318,6 +326,117 @@
   letter-spacing: 0.28px;
 }
 
+.patient-payment {
+  width: 100%;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 20px;
+}
+.patient-payment__box {
+  display: flex;
+  padding: 8px 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(50px);
+}
+.patient-payment__row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.patient-payment__label {
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+}
+.patient-payment__value {
+  color: #ccc;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+}
+.patient-payment__value--discount {
+  color: #90df9e;
+}
+.patient-payment__value--subtotal {
+  color: #fff;
+}
+.patient-payment__divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.patient-payment__total-row {
+  margin-top: 16px;
+  display: flex;
+  padding: 2px 5px 4px;
+  justify-content: space-between;
+  align-items: center;
+  align-self: stretch;
+}
+.patient-payment__total-label {
+  color: #fff;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+}
+.patient-payment__total-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.patient-payment__total-old {
+  color: #ccc;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 200;
+  line-height: normal;
+  text-decoration-line: line-through;
+}
+.patient-payment__total-new {
+  color: #fff;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+}
+.patient-payment__continue {
+  margin-top: 24px;
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  align-self: stretch;
+  border-radius: 36px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-family: Sora, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.28px;
+}
+
 .patient-select-overlay__continue.is-active {
   border: 1px solid #969696;
   background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
@@ -337,7 +456,7 @@
   bottom: 20px;
   transform: translateX(-50%);
   width: 64px;
-  height: 2px;
+  height: 0px;
   border-radius: 32px;
   background: #063533;
 }
@@ -359,6 +478,10 @@
 }
 
 .patient-select-overlay__sheet.is-details .patient-select-overlay__grip {
+  bottom: 20px;
+}
+
+.patient-select-overlay__sheet.is-confirmed .patient-select-overlay__grip {
   bottom: 20px;
 }
 
@@ -703,7 +826,9 @@
 }
 
 .patient-package__card.is-selected {
-  border: 1px solid #fff;
+  border-radius: 14px;
+  border: 1px solid #FFF;
+  background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(47, 210, 176, 0.20) 99.99%);
   box-shadow: 0 0 10px 0 rgba(255, 255, 255, 0.25);
 }
 
@@ -922,9 +1047,9 @@
   background: transparent;
   color: #fff;
   font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
+  font-size: 12px;
   font-style: normal;
-  font-weight: 400;
+  font-weight: 300;
   line-height: normal;
   letter-spacing: 0.5px;
   outline: none;
@@ -1211,7 +1336,7 @@
 .patient-confirm__patient-package span {
   color: #e6f7f0;
   font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 600;
   line-height: normal;
@@ -1226,7 +1351,7 @@
 .patient-confirm__price-old {
   color: #fff;
   font-family: 'DM Sans', sans-serif;
-  font-size: 8px;
+  font-size: 9px;
   font-style: normal;
   font-weight: 200;
   line-height: normal;
@@ -1237,7 +1362,7 @@
 .patient-confirm__price-now {
   color: #fff;
   font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 700;
   line-height: normal;
@@ -1346,4 +1471,138 @@
   font-weight: 600;
   line-height: normal;
   letter-spacing: 0.28px;
+}
+
+.patient-final {
+  width: 100%;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding-bottom: 28px;
+}
+
+.patient-final__status-icon {
+  align-self: center;
+  display: inline-flex;
+  width: 54px;
+  height: 54px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 100px;
+  border: 1px solid #90df9e;
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 10px 0 #90df9e;
+}
+
+.patient-final__status-text {
+  margin: 12px 0 0;
+  color: #90df9e;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.patient-final__booking-id {
+  margin-top: 24px;
+  display: flex;
+  height: 38px;
+  padding: 4px 16px;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(118deg, rgba(124, 58, 237, 0.17) 0.01%, rgba(47, 210, 176, 0.25) 99.99%);
+  backdrop-filter: blur(50px);
+}
+
+.patient-final__booking-id span {
+  color: #ccc;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+}
+
+.patient-final__booking-id i {
+  color: #ccc;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 22px;
+  font-style: normal;
+  font-weight: 200;
+  line-height: normal;
+}
+
+.patient-final__booking-id strong {
+  color: #fff;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.patient-final__section-title {
+  margin: 24px 0 0;
+  color: #fff;
+  font-family: Inter, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.patient-final__patients-box {
+  margin-top: 6px;
+  display: flex;
+  padding: 8px 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(50px);
+}
+
+.patient-final__patient-row {
+  width: 100%;
+  display: flex;
+  padding: 6px 0;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 8px;
+}
+
+.patient-final__patient-package {
+  text-align: right;
+}
+
+.patient-final__patient-package span {
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 300;
+  line-height: normal;
+}
+
+.patient-final__patient-package p {
+  margin: 2px 0 0;
+  color: #e6f7f0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.patient-final__info-card {
+  margin-top: 11px;
 }

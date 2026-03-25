@@ -20,6 +20,10 @@
   justify-content: space-between;
   padding: 20px 4px 0;
   box-sizing: border-box;
+  position: sticky;
+  top: 0;
+  align-self: flex-start; 
+  z-index: 10;
 }
 
 .packages-page__title {
@@ -243,7 +247,7 @@
   color: #c4c4c4;
   text-align: center;
   font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;

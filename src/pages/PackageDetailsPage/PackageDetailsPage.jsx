@@ -463,11 +463,11 @@ const PackageDetailsPage = ({ onBack }) => {
             </div>
             <div className="package-details-page__meta-item">
               <MetaClockIcon />
-              <span>Reports in 12-24 hours</span>
+              <span>Reports in 24-48 hours</span>
             </div>
             <div className="package-details-page__meta-item">
               <MetaPeopleIcon />
-              <span>100% doctor booked</span>
+              <span>100k+ booked</span>
             </div>
           </div>
         </section>

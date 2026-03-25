@@ -206,6 +206,12 @@ const DetailClockIcon = () => (
   </svg>
 );
 
+const ConfirmTickIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="25" height="18" viewBox="0 0 25 18" fill="none" aria-hidden="true">
+    <path d="M23.0013 1.6665L8.33463 16.3332L1.66797 9.6665" stroke="#90DF9E" strokeWidth="3.33333" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const SCHEDULE_DATES = [
   { id: 'mon-12', day: 'Mon', date: '12' },
   { id: 'tue-13', day: 'Tue', date: '13' },
@@ -510,7 +516,7 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
         </svg>
       </button>
 
-      <div className={`patient-select-overlay__sheet${view === 'add' ? ' is-add' : ''}${view === 'package' ? ' is-package' : ''}${view === 'address' ? ' is-address' : ''}${view === 'schedule' ? ' is-schedule' : ''}${view === 'details' ? ' is-details' : ''}`}>
+      <div className={`patient-select-overlay__sheet${view === 'add' ? ' is-add' : ''}${view === 'package' ? ' is-package' : ''}${view === 'address' ? ' is-address' : ''}${view === 'schedule' ? ' is-schedule' : ''}${view === 'details' ? ' is-details' : ''}${view === 'payment' ? ' is-payment' : ''}${view === 'confirmed' ? ' is-confirmed' : ''}`}>
         {view === 'select' ? (
           <>
             <h3 className="patient-select-overlay__title">Select patients</h3>
@@ -832,7 +838,7 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
               </div>
             </div>
           </>
-        ) : (
+        ) : view === 'details' ? (
           <>
             <h3 className="patient-select-overlay__title">Patient Details</h3>
 
@@ -936,7 +942,126 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
                 </div>
               </div>
 
-              <button type="button" className="patient-confirm__continue">Continue</button>
+              <button type="button" className="patient-confirm__continue" onClick={() => setView('payment')}>Continue</button>
+            </div>
+          </>
+        ) : view === 'payment' ? (
+          <>
+            <h3 className="patient-select-overlay__title">Payment Breakdown</h3>
+
+            <div className="patient-payment">
+              <div className="patient-payment__box">
+                <div className="patient-payment__row">
+                  <span className="patient-payment__label">Total MRP</span>
+                  <span className="patient-payment__value">Rs. 3,998</span>
+                </div>
+
+                <div className="patient-payment__row">
+                  <span className="patient-payment__label">Platform Discount</span>
+                  <span className="patient-payment__value patient-payment__value--discount">- Rs. 1,499</span>
+                </div>
+
+                <div className="patient-payment__divider" />
+
+                <div className="patient-payment__row">
+                  <span className="patient-payment__label">Subtotal</span>
+                  <span className="patient-payment__value patient-payment__value--subtotal">Rs. 2,499</span>
+                </div>
+              </div>
+
+              <div className="patient-payment__total-row">
+                <span className="patient-payment__total-label">Total Amount</span>
+                <div className="patient-payment__total-right">
+                  <span className="patient-payment__total-old">Rs. 3,998/-</span>
+                  <span className="patient-payment__total-new">Rs. 2,499</span>
+                </div>
+              </div>
+
+              <button type="button" className="patient-payment__continue" onClick={() => setView('confirmed')}>Continue</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="patient-final">
+              <div className="patient-final__status-icon">
+                <ConfirmTickIcon />
+              </div>
+
+              <p className="patient-final__status-text">Booking Confirmed</p>
+
+              <div className="patient-final__booking-id">
+                <span>Booking ID</span>
+                <i>|</i>
+                <strong>XYZ123</strong>
+              </div>
+
+              <h4 className="patient-final__section-title">Patient Details</h4>
+              <div className="patient-final__patients-box">
+                {selectedPatients.map((patient, index) => (
+                  <React.Fragment key={patient.id}>
+                    <div className="patient-final__patient-row">
+                      <div className="patient-select-overlay__left">
+                        <div className="patient-select-overlay__avatar">
+                          {patient.gender === 'male' ? <MaleIcon /> : <FemaleIcon />}
+                        </div>
+                        <div className="patient-select-overlay__details">
+                          <p className="patient-select-overlay__name">{patient.name}</p>
+                          <p className="patient-select-overlay__meta">{patient.meta}</p>
+                        </div>
+                      </div>
+
+                      <div className="patient-final__patient-package">
+                        <span>Package</span>
+                        <p>Full Body Checkup</p>
+                      </div>
+                    </div>
+
+                    {index < selectedPatients.length - 1 ? <div className="patient-confirm__divider" /> : null}
+                  </React.Fragment>
+                ))}
+              </div>
+
+              <h4 className="patient-final__section-title">Address Details</h4>
+              <div className="patient-confirm__info-card patient-final__info-card">
+                <div className="patient-confirm__info-row">
+                  <span className="patient-confirm__info-icon"><DetailLocationIcon /></span>
+                  <div className="patient-confirm__info-text-wrap">
+                    <p className="patient-confirm__info-label">Address</p>
+                    <p className="patient-confirm__info-value">{`${addressData.house}, ${addressData.area}, ${addressData.landmark}`}</p>
+                  </div>
+                </div>
+
+                <div className="patient-confirm__divider" />
+
+                <div className="patient-confirm__info-row">
+                  <span className="patient-confirm__info-icon is-city"><DetailCityIcon /></span>
+                  <div className="patient-confirm__info-text-wrap">
+                    <p className="patient-confirm__info-label">City</p>
+                    <p className="patient-confirm__info-value">{`${addressData.city}, ${addressData.pincode}`}</p>
+                  </div>
+                </div>
+              </div>
+
+              <h4 className="patient-final__section-title">Appointment Details</h4>
+              <div className="patient-confirm__info-card patient-confirm__info-card--appointment patient-final__info-card">
+                <div className="patient-confirm__info-row">
+                  <span className="patient-confirm__info-icon"><DetailCalendarIcon /></span>
+                  <div className="patient-confirm__info-text-wrap">
+                    <p className="patient-confirm__info-label">Date</p>
+                    <p className="patient-confirm__info-value">{getAppointmentDate()}</p>
+                  </div>
+                </div>
+
+                <div className="patient-confirm__divider" />
+
+                <div className="patient-confirm__info-row">
+                  <span className="patient-confirm__info-icon is-city"><DetailClockIcon /></span>
+                  <div className="patient-confirm__info-text-wrap">
+                    <p className="patient-confirm__info-label">Time Slot</p>
+                    <p className="patient-confirm__info-value">{getTimeRange()}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </>
         )}
