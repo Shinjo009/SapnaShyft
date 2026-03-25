@@ -384,7 +384,6 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
     const format12 = (value) => {
       let h = value.getHours();
       const m = value.getMinutes().toString().padStart(2, '0');
-      const suffix = h >= 12 ? 'PM' : 'AM';
       h %= 12;
       if (h === 0) {
         h = 12;
