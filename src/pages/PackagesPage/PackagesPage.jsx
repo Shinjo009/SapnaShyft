@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './PackagesPage.css';
 import NavBar from '../../components/NavBar';
 import PatientSelectionOverlay from '../../components/PatientSelectionOverlay';
@@ -8,8 +8,8 @@ const FILTERS = ['All', 'Male', 'Female', 'Cancer', 'Popular'];
 const PACKAGE_CARDS = [
   { id: 1, theme: 'teal' },
   { id: 2, theme: 'pink' },
-  { id: 3, theme: 'glow' },
-  { id: 4, theme: 'teal' },
+  { id: 3, theme: 'teal' },
+  { id: 4, theme: 'pink' },
 ];
 
 const SearchIcon = () => (
@@ -44,6 +44,18 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails }) => {
   const [activeFilter, setActiveFilter] = useState('All');
   const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+
+    if (isPatientOverlayOpen) {
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isPatientOverlayOpen]);
+
   const visibleCards = useMemo(() => PACKAGE_CARDS, []);
 
   const handleNav = (itemId) => {
@@ -54,7 +66,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails }) => {
 
   return (
     <div className="packages-page">
-      <div className="packages-page__content">
+      <div className="packages-page__fixed-top">
         <header className="packages-page__header">
           <h1 className="packages-page__title">Explore Packages</h1>
           <button type="button" className="packages-page__cart-btn" aria-label="Open cart">
@@ -71,7 +83,9 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails }) => {
             <CustomPackageIcon />
           </button>
         </section>
+      </div>
 
+      <div className="packages-page__content">
         <section className="packages-page__filters" aria-label="Package filters">
           {FILTERS.map((filter) => (
             <button
@@ -174,7 +188,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails }) => {
 
       <PatientSelectionOverlay open={isPatientOverlayOpen} onClose={() => setIsPatientOverlayOpen(false)} />
 
-      <NavBar defaultActive="packages" onNavigate={handleNav} />
+      {!isPatientOverlayOpen ? <NavBar defaultActive="packages" onNavigate={handleNav} /> : null}
     </div>
   );
 };

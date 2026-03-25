@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './PackageDetailsPage.css';
 import PatientSelectionOverlay from '../../components/PatientSelectionOverlay';
 
@@ -274,6 +274,7 @@ const PackageDetailsPage = ({ onBack }) => {
   const resetTimerRef = useRef(null);
   const [openFaqId, setOpenFaqId] = useState('faq-water');
   const [activeOverlay, setActiveOverlay] = useState('');
+  const faqSectionRef = useRef(null);
 
   const frontCardIndex = order[0];
 
@@ -341,6 +342,14 @@ const PackageDetailsPage = ({ onBack }) => {
   const handleTabClick = (tab) => {
     setActiveTab(tab);
 
+    if (tab === "FAQ'S") {
+      setActiveOverlay('');
+      if (faqSectionRef.current) {
+        faqSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+      return;
+    }
+
     if (tab === 'About This Package') {
       setActiveOverlay('about');
       return;
@@ -368,6 +377,18 @@ const PackageDetailsPage = ({ onBack }) => {
 
     setActiveOverlay('');
   };
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+
+    if (activeOverlay) {
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [activeOverlay]);
 
   const handleCloseOverlay = () => {
     setActiveOverlay('');
@@ -399,7 +420,7 @@ const PackageDetailsPage = ({ onBack }) => {
 
   return (
     <div className="package-details-page">
-      <div className="package-details-page__content">
+      <div className="package-details-page__fixed-top">
         <header className="package-details-page__header">
           <div className="package-details-page__header-left">
             <button type="button" className="package-details-page__back-btn" onClick={onBack} aria-label="Go back">
@@ -428,7 +449,9 @@ const PackageDetailsPage = ({ onBack }) => {
             </button>
           ))}
         </section>
+      </div>
 
+      <div className="package-details-page__content">
         <section className="package-details-page__overview-box">
           <div className="package-details-page__badge-row">
             <div className="package-details-page__badge package-details-page__badge--popular">
@@ -545,7 +568,7 @@ const PackageDetailsPage = ({ onBack }) => {
             {BIOMARKER_BENEFITS.map((item, index) => (
               <div key={item.title} className="package-details-page__benefit-item">
                 <div className="package-details-page__benefit-marker-col" aria-hidden="true">
-                  <div className={`package-details-page__benefit-index${index === 0 ? ' is-first' : ''}`}>{index + 1}</div>
+                  <div className="package-details-page__benefit-index">{index + 1}</div>
                   {index < BIOMARKER_BENEFITS.length - 1 ? <div className="package-details-page__benefit-line" /> : null}
                 </div>
 
@@ -558,7 +581,7 @@ const PackageDetailsPage = ({ onBack }) => {
           </div>
         </section>
 
-        <section className="package-details-page__faq-section" aria-label="Frequently asked questions">
+        <section className="package-details-page__faq-section" aria-label="Frequently asked questions" ref={faqSectionRef}>
           <h3 className="package-details-page__faq-title">Frequently Asked Questions</h3>
 
           <div className="package-details-page__faq-list">
@@ -588,23 +611,25 @@ const PackageDetailsPage = ({ onBack }) => {
         </section>
       </div>
 
-      <div className="package-details-page__book-bar" aria-label="Package booking bar">
-        <div className="package-details-page__book-bar-inner">
-          <div className="package-details-page__price-col">
-            <span className="package-details-page__price-label">Package price:</span>
-            <div className="package-details-page__price-line">
-              <span className="package-details-page__price-current">₹ 2,499</span>
-              <span className="package-details-page__price-old">₹ 4,498</span>
-              <span className="package-details-page__price-off">44% OFF</span>
+      {activeOverlay !== 'patients' ? (
+        <div className="package-details-page__book-bar" aria-label="Package booking bar">
+          <div className="package-details-page__book-bar-inner">
+            <div className="package-details-page__price-col">
+              <span className="package-details-page__price-label">Package price:</span>
+              <div className="package-details-page__price-line">
+                <span className="package-details-page__price-current">₹ 2,499</span>
+                <span className="package-details-page__price-old">₹ 4,498</span>
+                <span className="package-details-page__price-off">44% OFF</span>
+              </div>
             </div>
-          </div>
 
-          <button type="button" className="package-details-page__book-cta" onClick={() => setActiveOverlay('patients')}>BOOK</button>
+            <button type="button" className="package-details-page__book-cta" onClick={() => setActiveOverlay('patients')}>BOOK</button>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {activeOverlay && activeOverlay !== 'patients' ? (
-        <div className="package-details-page__overlay" role="dialog" aria-modal="true">
+        <div className="package-details-page__overlay" role="dialog" aria-modal="true" onClick={handleCloseOverlay}>
           <button type="button" className="package-details-page__overlay-close" aria-label="Close" onClick={handleCloseOverlay}>
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
               <rect width="32" height="32" rx="16" fill="#063533"/>
@@ -612,7 +637,10 @@ const PackageDetailsPage = ({ onBack }) => {
             </svg>
           </button>
 
-          <div className={`package-details-page__overlay-sheet${activeOverlay === 'tests' ? ' is-tests' : ''}`}>
+          <div
+            className={`package-details-page__overlay-sheet${activeOverlay === 'tests' ? ' is-tests' : ''}`}
+            onClick={(event) => event.stopPropagation()}
+          >
             <h3 className="package-details-page__overlay-title">
               {activeOverlay === 'why'
                 ? 'Why this package?'

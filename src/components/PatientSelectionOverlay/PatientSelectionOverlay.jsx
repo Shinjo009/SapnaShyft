@@ -266,6 +266,18 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
     }
   }, [open]);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   const selectedPackage = useMemo(
     () => PACKAGE_OPTIONS.find((item) => item.id === selectedPackageId) || PACKAGE_OPTIONS[0],
     [selectedPackageId],
@@ -519,7 +531,7 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
       <div className={`patient-select-overlay__sheet${view === 'add' ? ' is-add' : ''}${view === 'package' ? ' is-package' : ''}${view === 'address' ? ' is-address' : ''}${view === 'schedule' ? ' is-schedule' : ''}${view === 'details' ? ' is-details' : ''}${view === 'payment' ? ' is-payment' : ''}${view === 'confirmed' ? ' is-confirmed' : ''}`}>
         {view === 'select' ? (
           <>
-            <h3 className="patient-select-overlay__title">Select patients</h3>
+            <h3 className="patient-select-overlay__title">Select members</h3>
 
             <div className="patient-select-overlay__list">
               {patients.map((patient) => {
