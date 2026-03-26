@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Button from '../../components/Button';
 import './ProfilePage.css';
 import bgImage1 from '../../images/BG-1.png';
-import profileAvatarMain from '../../images/TempH.png';
+import maleAvatar from '../../images/male-avatar.png';
+import femaleAvatar from '../../images/female-avatar.png';
 import editIcon from '../../images/Edit.svg';
 import healthRecordsIcon from '../../images/HealthRecords.svg';
 import supportIcon from '../../images/Support.svg';
@@ -141,6 +142,14 @@ const ProfilePage = ({
     : '';
   const genderAgeText = [genderText, age].filter(Boolean).join(', ') || '-';
   const linkedProfilesToRender = linkedProfiles.filter((item) => Number(item?.user_id || 0) !== Number(profile?.user_id || 0));
+  const isSwitchingProfile = switchingUserId !== null;
+
+  const getAvatarByGender = (genderValue) => {
+    const normalized = String(genderValue || '').trim().toLowerCase();
+    return normalized.startsWith('f') ? femaleAvatar : maleAvatar;
+  };
+
+  const profileAvatarSrc = getAvatarByGender(profile?.gender);
 
   const closeModal = () => {
     setActiveModal(null);
@@ -210,7 +219,7 @@ const ProfilePage = ({
   };
 
   return (
-    <div className="profile-page">
+    <div className={`profile-page${isSwitchingProfile ? ' profile-page--switching' : ''}`}>
       {/* Content */}
       <div className={`profile-page__content ${activeModal ? 'profile-page__content--blurred' : ''}`}>
         {/* Back Button Header */}
@@ -229,7 +238,7 @@ const ProfilePage = ({
         </div>
 
         {/* Account Card */}
-        <div className="profile-page__account-card">
+        <div className={`profile-page__account-card${isSwitchingProfile ? ' is-switching' : ''}`}>
           {profileLoading ? (
             <p className="profile-page__contact-item" style={{ width: '100%', justifyContent: 'center' }}>
               Loading profile...
@@ -244,7 +253,7 @@ const ProfilePage = ({
 
           <div className="profile-page__account-header">
             <div className="profile-page__avatar">
-              <img src={profileAvatarMain} alt="Profile avatar" />
+              <img src={profileAvatarSrc} alt="Profile avatar" />
             </div>
             <div className="profile-page__account-info">
               <h2 className="profile-page__full-name">{fullName}</h2>
@@ -288,12 +297,12 @@ const ProfilePage = ({
             const relationship = account?.relationship
               ? `${String(account.relationship).charAt(0).toUpperCase()}${String(account.relationship).slice(1)}`
               : 'Member';
-            const avatarLetter = String(account?.first_name || accountName || 'U').charAt(0).toUpperCase();
+            const linkedAvatarSrc = getAvatarByGender(account?.gender);
 
             return (
-              <div key={account.user_id} className="profile-page__linked-account-row">
+              <div key={account.user_id} className={`profile-page__linked-account-row${switchingUserId === account.user_id ? ' is-switching' : ''}`}>
                 <div className="profile-page__linked-account-avatar" aria-hidden="true">
-                  <span>{avatarLetter}</span>
+                  <img src={linkedAvatarSrc} alt="" />
                 </div>
                 <div className="profile-page__linked-account-meta">
                   <span className="profile-page__linked-account-name">{accountName}</span>
@@ -301,7 +310,7 @@ const ProfilePage = ({
                 </div>
                 <button
                   type="button"
-                  className="profile-page__switch-btn"
+                  className={`profile-page__switch-btn${switchingUserId === account.user_id ? ' is-loading' : ''}`}
                   onClick={() => handleSwitchProfile(account.user_id)}
                   disabled={switchingUserId === account.user_id}
                 >

@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './PatientSelectionOverlay.css';
+import maleAvatar from '../../images/male-avatar.png';
+import femaleAvatar from '../../images/female-avatar.png';
 
 const PATIENTS = [
   {
@@ -65,17 +67,9 @@ const PACKAGE_OPTIONS = [
   },
 ];
 
-const MaleIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="16" viewBox="0 0 18 16" fill="none" aria-hidden="true">
-    <path d="M0.185458 15.99C0.249491 16.0067 0.317521 15.9975 0.374801 15.9643C0.43208 15.9312 0.473994 15.8768 0.491458 15.813C1.00646 13.8915 3.09946 13.3935 4.35046 13.0955C4.66396 13.021 4.91146 12.962 5.07246 12.8925C6.49746 12.274 6.96196 11.279 7.10096 10.553C7.10922 10.5098 7.10595 10.4652 7.09146 10.4237C7.07698 10.3821 7.0518 10.3452 7.01846 10.3165C6.27646 9.676 5.65046 8.7145 5.25546 7.6085C5.24421 7.57683 5.2267 7.54775 5.20396 7.523C4.68146 6.955 4.38146 6.3545 4.38146 5.876C4.38146 5.5965 4.48696 5.409 4.72446 5.2675C4.76003 5.24623 4.78976 5.21645 4.81097 5.18084C4.83218 5.14523 4.8442 5.10491 4.84596 5.0635C4.95646 2.5165 6.77046 0.5115 8.99546 0.4985L9.04896 0.502C11.285 0.533 13.0875 2.581 13.152 5.164C13.1529 5.19929 13.1614 5.23398 13.1767 5.26578C13.192 5.29758 13.2139 5.32578 13.241 5.3485C13.3975 5.481 13.4705 5.649 13.4705 5.877C13.4705 6.2775 13.257 6.77 12.87 7.263C12.8513 7.28659 12.8371 7.31336 12.828 7.342C12.428 8.61 11.71 9.7295 10.859 10.4145C10.8236 10.4429 10.7967 10.4804 10.781 10.5229C10.7653 10.5655 10.7615 10.6115 10.77 10.656C10.909 11.3815 11.3735 12.376 12.7985 12.9955C12.967 13.0685 13.2285 13.1255 13.56 13.197C14.7985 13.465 16.871 13.9145 17.3795 15.813C17.388 15.8447 17.4027 15.8744 17.4227 15.9005C17.4427 15.9265 17.4677 15.9483 17.4962 15.9647C17.5246 15.9811 17.556 15.9917 17.5886 15.996C17.6212 16.0002 17.6542 15.998 17.686 15.9895C17.7177 15.981 17.7474 15.9663 17.7734 15.9462C17.7995 15.9262 17.8213 15.9013 17.8377 15.8728C17.8541 15.8443 17.8647 15.8129 17.8689 15.7804C17.8732 15.7478 17.871 15.7147 17.8625 15.683C17.275 13.4895 14.927 12.981 13.666 12.708C13.3735 12.6445 13.121 12.59 12.998 12.536C12.068 12.132 11.495 11.5165 11.2925 10.7035C12.156 9.962 12.8785 8.818 13.2915 7.535C13.73 6.965 13.971 6.378 13.971 5.8765C13.971 5.542 13.863 5.263 13.649 5.045C13.53 2.243 11.5305 0.0365 9.04896 0.001L8.97446 0C6.53796 0.013 4.52996 2.1615 4.35446 4.915C4.04146 5.145 3.88246 5.4675 3.88246 5.877C3.88246 6.4685 4.21696 7.176 4.80246 7.825C5.20696 8.9365 5.83396 9.913 6.58046 10.5965C6.37896 11.4125 5.80546 12.03 4.87346 12.4345C4.75296 12.487 4.51296 12.5445 4.23496 12.6105C2.96446 12.9125 0.600458 13.475 0.00845779 15.684C-0.00863897 15.748 0.000403151 15.8163 0.0335957 15.8737C0.0667882 15.931 0.121413 15.9729 0.185458 15.99Z" fill="white"/>
-  </svg>
-);
+const MaleIcon = () => <img src={maleAvatar} alt="" aria-hidden="true" className="patient-select-overlay__avatar-image" />;
 
-const FemaleIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="16" viewBox="0 0 18 16" fill="none" aria-hidden="true">
-    <path d="M11.046 10.362C11.007 10.3569 10.9673 10.3613 10.9303 10.3748C10.8933 10.3882 10.8601 10.4105 10.8335 10.4395C10.8066 10.4682 10.7869 10.5029 10.776 10.5407C10.765 10.5785 10.7632 10.6183 10.7705 10.657C10.9085 11.382 11.373 12.377 12.799 12.9965C12.968 13.0695 13.229 13.1265 13.56 13.198C14.799 13.466 16.871 13.915 17.38 15.814C17.3886 15.8457 17.4033 15.8755 17.4233 15.9016C17.4433 15.9276 17.4683 15.9495 17.4968 15.9659C17.5253 15.9823 17.5567 15.993 17.5893 15.9972C17.6219 16.0015 17.655 15.9993 17.6868 15.9907C17.7185 15.9822 17.7483 15.9675 17.7743 15.9475C17.8004 15.9274 17.8223 15.9025 17.8387 15.874C17.8551 15.8455 17.8657 15.8141 17.87 15.7815C17.8743 15.7489 17.8721 15.7157 17.8635 15.684C17.275 13.4905 14.9275 12.982 13.666 12.709C13.374 12.6455 13.1215 12.591 12.998 12.537C12.141 12.165 11.5875 11.613 11.3475 10.894C13.7285 11.071 14.8065 10.1225 14.854 10.0795C14.8833 10.053 14.9059 10.0199 14.9199 9.98296C14.9339 9.94603 14.939 9.9063 14.9347 9.86702C14.9304 9.82775 14.9169 9.79005 14.8952 9.75702C14.8735 9.72399 14.8443 9.69657 14.81 9.677C13.436 8.892 13.436 6.1795 13.436 5.158C13.436 2.3015 11.512 0.037 9.04552 0.0015L8.97502 0C6.47252 0.014 4.43602 2.281 4.43602 5.054C4.43602 6.0755 4.43602 8.7885 3.06202 9.573C3.0266 9.59357 2.99674 9.62248 2.97504 9.65722C2.95334 9.69196 2.94045 9.73147 2.93749 9.77232C2.93454 9.81318 2.9416 9.85413 2.95808 9.89163C2.97455 9.92913 2.99993 9.96204 3.03202 9.9875C3.10102 10.041 4.62602 11.208 6.50252 10.8535C6.25152 11.5425 5.70552 12.0725 4.87352 12.434C4.75302 12.4865 4.51302 12.544 4.23502 12.61C2.96502 12.912 0.600521 13.4745 0.00852111 15.6835C1.80174e-05 15.7152 -0.00214876 15.7484 0.00214449 15.7809C0.00643773 15.8135 0.0171069 15.8449 0.0335429 15.8734C0.0667368 15.9309 0.121405 15.9728 0.185521 15.99C0.249637 16.0072 0.317949 15.9982 0.375429 15.965C0.432909 15.9318 0.474848 15.8771 0.492021 15.813C1.00652 13.891 3.10052 13.3935 4.35102 13.0955C4.66452 13.021 4.91202 12.962 5.07302 12.8925C6.49902 12.273 6.96302 11.278 7.10152 10.553C7.10959 10.5105 7.10651 10.4667 7.09257 10.4258C7.07864 10.3848 7.05433 10.3482 7.02202 10.3195C6.98977 10.2907 6.95061 10.2708 6.90838 10.2617C6.86614 10.2526 6.82226 10.2546 6.78102 10.2675C5.42752 10.6935 4.17702 10.1075 3.63052 9.7825C4.93602 8.6895 4.93602 6.174 4.93602 5.054C4.93602 2.5555 6.74902 0.5125 8.99602 0.499L9.04902 0.502C11.265 0.5335 12.936 2.535 12.936 5.158C12.936 6.2785 12.936 8.7995 14.247 9.8925C13.7955 10.1505 12.766 10.568 11.046 10.362Z" fill="white"/>
-  </svg>
-);
+const FemaleIcon = () => <img src={femaleAvatar} alt="" aria-hidden="true" className="patient-select-overlay__avatar-image" />;
 
 const EditIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -267,14 +261,54 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
   }, [open]);
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
+    const { body, documentElement } = document;
+    const appScroll = document.querySelector('.app-scroll');
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyPosition = body.style.position;
+    const previousBodyTop = body.style.top;
+    const previousBodyWidth = body.style.width;
+    const previousBodyTouchAction = body.style.touchAction;
+    const previousHtmlOverflow = documentElement.style.overflow;
+    const previousHtmlTouchAction = documentElement.style.touchAction;
+    const previousAppScrollOverflow = appScroll ? appScroll.style.overflow : '';
+    const previousAppScrollTouchAction = appScroll ? appScroll.style.touchAction : '';
+    const previousAppScrollOverscroll = appScroll ? appScroll.style.overscrollBehavior : '';
+    const scrollY = window.scrollY;
 
     if (open) {
-      document.body.style.overflow = 'hidden';
+      documentElement.style.overflow = 'hidden';
+      documentElement.style.touchAction = 'none';
+      body.style.overflow = 'hidden';
+      body.style.position = 'fixed';
+      body.style.top = `-${scrollY}px`;
+      body.style.width = '100%';
+      body.style.touchAction = 'none';
+
+      if (appScroll) {
+        appScroll.style.overflow = 'hidden';
+        appScroll.style.touchAction = 'none';
+        appScroll.style.overscrollBehavior = 'none';
+      }
     }
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      documentElement.style.overflow = previousHtmlOverflow;
+      documentElement.style.touchAction = previousHtmlTouchAction;
+      body.style.overflow = previousBodyOverflow;
+      body.style.position = previousBodyPosition;
+      body.style.top = previousBodyTop;
+      body.style.width = previousBodyWidth;
+      body.style.touchAction = previousBodyTouchAction;
+
+      if (appScroll) {
+        appScroll.style.overflow = previousAppScrollOverflow;
+        appScroll.style.touchAction = previousAppScrollTouchAction;
+        appScroll.style.overscrollBehavior = previousAppScrollOverscroll;
+      }
+
+      if (open) {
+        window.scrollTo(0, scrollY);
+      }
     };
   }, [open]);
 
