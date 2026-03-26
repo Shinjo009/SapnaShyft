@@ -2,21 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './PatientSelectionOverlay.css';
 import maleAvatar from '../../images/male-avatar.png';
 import femaleAvatar from '../../images/female-avatar.png';
+import { getMyProfiles, createMySubProfile } from '../../services/usersService';
+import { getMyProfile } from '../../services/profileService';
 
-const PATIENTS = [
-  {
-    id: 'harshili',
-    name: 'Harshili Gada',
-    meta: 'F, 29  |  Primary',
-    gender: 'female',
-  },
-  {
-    id: 'harsh',
-    name: 'Harsh',
-    meta: 'M, 25  |  Spouse',
-    gender: 'male',
-  },
-];
+const PATIENTS = [];
 
 const PACKAGE_FILTERS = ['Full Body', 'Diabetes', 'Women Health', 'Cancer', 'Kidney'];
 
@@ -221,9 +210,106 @@ const SCHEDULE_TIME_SLOTS = [
   ['12:00 PM', '12:30 PM', '01:00 PM'],
 ];
 
+const DEFAULT_FORM_DATA = {
+  firstName: 'Ramesh',
+  lastName: 'Ramesh',
+  relation: 'Spouse',
+  age: '23',
+  gender: 'Male',
+  phone: '9987254209',
+  email: 'abc.de@example.com',
+};
+
+const DEFAULT_ADDRESS_DATA = {
+  house: '',
+  area: '',
+  landmark: '',
+  city: '',
+  pincode: '',
+};
+
+const getAgeFromProfile = (profile) => {
+  if (typeof profile?.age === 'number' && profile.age > 0) {
+    return String(profile.age);
+  }
+
+  if (!profile?.date_of_birth) {
+    return '--';
+  }
+
+  const dob = new Date(profile.date_of_birth);
+  if (Number.isNaN(dob.getTime())) {
+    return '--';
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age -= 1;
+  }
+
+  return age > 0 ? String(age) : '--';
+};
+
+const normalizeGenderType = (genderValue) => {
+  const normalizedGender = String(genderValue || '').trim().toLowerCase();
+  return normalizedGender.startsWith('f') ? 'female' : 'male';
+};
+
+const getRelationshipLabel = (value, fallback = 'Primary') => {
+  const relationship = String(value || '').trim();
+  if (!relationship) {
+    return fallback;
+  }
+
+  return relationship.charAt(0).toUpperCase() + relationship.slice(1);
+};
+
+const mapProfileToPatient = (profile, relationshipFallback = 'Primary') => {
+  const userId = Number(profile?.user_id || profile?.id || 0);
+  if (userId <= 0) {
+    return null;
+  }
+
+  const firstName = String(profile?.first_name || '').trim();
+  const lastName = String(profile?.last_name || '').trim();
+  const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'User';
+  const age = getAgeFromProfile(profile);
+  const genderType = normalizeGenderType(profile?.gender);
+  const genderCode = genderType === 'female' ? 'F' : 'M';
+  const relationship = getRelationshipLabel(profile?.relationship, relationshipFallback);
+
+  return {
+    id: `profile-${userId}`,
+    name: fullName,
+    meta: `${genderCode}, ${age}  |  ${relationship}`,
+    gender: genderType,
+  };
+};
+
+const buildAddressFromProfile = (profile) => {
+  const addressText = String(profile?.address || '').trim();
+  const addressParts = addressText
+    ? addressText.split(',').map((part) => part.trim()).filter(Boolean)
+    : [];
+  const city = String(profile?.city || profile?.state || '').trim();
+  const pincodeFromProfile = String(profile?.pincode || profile?.postal_code || '').trim();
+  const pincodeFromAddress = addressText.match(/\b\d{6}\b/)?.[0] || '';
+
+  return {
+    house: addressParts[0] || '',
+    area: addressParts[1] || '',
+    landmark: addressParts[2] || '',
+    city,
+    pincode: pincodeFromProfile || pincodeFromAddress,
+  };
+};
+
 const PatientSelectionOverlay = ({ open, onClose }) => {
   const [view, setView] = useState('select');
   const [patients, setPatients] = useState(PATIENTS);
+  const [profileData, setProfileData] = useState(null);
   const [activeFilter, setActiveFilter] = useState('Full Body');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
@@ -235,29 +321,90 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
   const [emailSame, setEmailSame] = useState(true);
   const [activeField, setActiveField] = useState('firstName');
   const [activeAddressField, setActiveAddressField] = useState('house');
-  const [formData, setFormData] = useState({
-    firstName: 'Ramesh',
-    lastName: 'Ramesh',
-    relation: 'Spouse',
-    age: '23',
-    gender: 'Male',
-    phone: '9987254209',
-    email: 'abc.de@example.com',
-  });
-  const [addressData, setAddressData] = useState({
-    house: '2403',
-    area: 'Vasant Blossoms, Marol Naka',
-    landmark: 'Marol Naka Metro Station',
-    city: 'Mumbai',
-    pincode: '400280',
-  });
+  const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
+  const [addressData, setAddressData] = useState(DEFAULT_ADDRESS_DATA);
+  const [savingPatient, setSavingPatient] = useState(false);
   const [selectedDateId, setSelectedDateId] = useState('mon-12');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('06:00 AM');
 
   useEffect(() => {
     if (!open) {
       setView('select');
+      setSelectedIds([]);
     }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    let mounted = true;
+
+    const loadOverlayData = async () => {
+      try {
+        const [profileResponse, linkedProfilesResponse] = await Promise.all([getMyProfile(), getMyProfiles()]);
+
+        const profile = profileResponse?.data && typeof profileResponse.data === 'object'
+          ? profileResponse.data
+          : profileResponse;
+        const linkedProfiles = Array.isArray(linkedProfilesResponse?.data)
+          ? linkedProfilesResponse.data
+          : Array.isArray(linkedProfilesResponse)
+            ? linkedProfilesResponse
+            : [];
+
+        if (!mounted) {
+          return;
+        }
+
+        setProfileData(profile || null);
+
+        const patientItems = [];
+        const uniqueUserIds = new Set();
+        const primaryPatient = mapProfileToPatient(profile, 'Primary');
+        if (primaryPatient) {
+          uniqueUserIds.add(primaryPatient.id);
+          patientItems.push(primaryPatient);
+        }
+
+        linkedProfiles.forEach((item) => {
+          const mapped = mapProfileToPatient(item, 'Member');
+          if (!mapped || uniqueUserIds.has(mapped.id)) {
+            return;
+          }
+
+          uniqueUserIds.add(mapped.id);
+          patientItems.push(mapped);
+        });
+
+        setPatients(patientItems);
+
+        const defaultAddress = buildAddressFromProfile(profile);
+        setAddressData((prev) => ({
+          ...prev,
+          ...defaultAddress,
+        }));
+
+        const phone = String(profile?.phone || '').trim();
+        const email = String(profile?.email || '').trim();
+        setFormData((prev) => ({
+          ...prev,
+          phone: phone || prev.phone,
+          email: email || prev.email,
+        }));
+      } catch (error) {
+        if (mounted) {
+          setPatients([]);
+        }
+      }
+    };
+
+    loadOverlayData();
+
+    return () => {
+      mounted = false;
+    };
   }, [open]);
 
   useEffect(() => {
@@ -523,34 +670,84 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
     );
   };
 
-  const handleSavePatient = () => {
-    const firstName = formData.firstName.trim();
-    const lastName = formData.lastName.trim();
+  const handleSavePatient = async () => {
+    try {
+      const firstName = formData.firstName.trim();
+      if (!firstName) {
+        throw new Error('First name is required.');
+      }
 
-    if (!firstName) {
-      return;
+      const lastName = formData.lastName.trim();
+      if (!lastName) {
+        throw new Error('Last name is required.');
+      }
+
+      const age = Number.parseInt(formData.age, 10);
+      if (Number.isNaN(age) || age < 1 || age > 120) {
+        throw new Error('Age must be between 1 and 120.');
+      }
+
+      setSavingPatient(true);
+
+      await createMySubProfile({
+        firstName,
+        lastName,
+        age: formData.age,
+        phone: formData.phone || '',
+        email: formData.email || '',
+        city: addressData.city || '',
+        organization: '',
+        gender: formData.gender || 'Female',
+        relation: formData.relation || 'Sibling',
+      });
+
+      const refreshedProfilesResponse = await getMyProfiles();
+      const refreshedProfiles = Array.isArray(refreshedProfilesResponse?.data)
+        ? refreshedProfilesResponse.data
+        : Array.isArray(refreshedProfilesResponse)
+          ? refreshedProfilesResponse
+          : [];
+
+      const refreshedPatients = [];
+      const uniqueUserIds = new Set();
+      const primaryPatient = mapProfileToPatient(profileData, 'Primary');
+      if (primaryPatient) {
+        uniqueUserIds.add(primaryPatient.id);
+        refreshedPatients.push(primaryPatient);
+      }
+
+      refreshedProfiles.forEach((item) => {
+        const mapped = mapProfileToPatient(item, 'Member');
+        if (!mapped || uniqueUserIds.has(mapped.id)) {
+          return;
+        }
+
+        uniqueUserIds.add(mapped.id);
+        refreshedPatients.push(mapped);
+      });
+
+      setPatients(refreshedPatients);
+
+      const createdPatient = [...refreshedPatients].reverse().find((item) => {
+        const name = item.name.toLowerCase();
+        return name.startsWith(firstName.toLowerCase()) && name.includes(lastName.toLowerCase());
+      });
+
+      if (createdPatient) {
+        setSelectedIds((prev) => {
+          if (prev.includes(createdPatient.id)) {
+            return prev;
+          }
+          return [...prev, createdPatient.id];
+        });
+      }
+
+      setView('select');
+    } catch (error) {
+      window.alert(error?.message || 'Failed to add account. Please try again.');
+    } finally {
+      setSavingPatient(false);
     }
-
-    const fullName = `${firstName}${lastName ? ` ${lastName}` : ''}`;
-    const normalizedGender = formData.gender.trim().toLowerCase();
-    const genderCode = normalizedGender.startsWith('f') ? 'F' : 'M';
-    const genderType = normalizedGender.startsWith('f') ? 'female' : 'male';
-    const age = formData.age.trim() || '--';
-    const relation = formData.relation.trim() || 'Primary';
-    const newId = `patient-${Date.now()}`;
-
-    setPatients((prev) => ([
-      ...prev,
-      {
-        id: newId,
-        name: fullName,
-        meta: `${genderCode}, ${age}  |  ${relation}`,
-        gender: genderType,
-      },
-    ]));
-
-    setSelectedIds((prev) => [...prev, newId]);
-    setView('select');
   };
 
   return (
@@ -706,7 +903,9 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
                 </button>
               </div>
 
-              <button type="button" className="patient-add__save-btn" onClick={handleSavePatient}>Save</button>
+              <button type="button" className="patient-add__save-btn" onClick={handleSavePatient} disabled={savingPatient}>
+                {savingPatient ? 'Saving...' : 'Save'}
+              </button>
             </div>
           </>
         ) : view === 'package' ? (
