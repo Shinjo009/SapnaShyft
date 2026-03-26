@@ -1,15 +1,33 @@
 # Node Modules Guide - MYREPOX Project
-**Last Updated:** February 3, 2026
+**Last Updated:** March 26, 2026
 
 ---
 
 ## 📋 Overview
 
-This document explains all the packages installed in the MYREPOX project. After cleanup, we have **3 direct dependencies** which pull in **~1299 transitive dependencies** total.
+This document explains the packages required for MYREPOX and how to set up the project cleanly after moving to a new machine (including macOS).
+
+Current project uses **6 direct dependencies/devDependencies** from `package.json`, while all transitive dependencies are resolved from `package-lock.json`.
 
 ---
 
-## 🎯 Direct Dependencies (3)
+## 🎯 Required Node Modules (Direct)
+
+Install source of truth:
+- `package.json` for declared packages
+- `package-lock.json` for exact resolved versions
+
+Required direct modules are:
+- `react` `^19.2.4`
+- `react-dom` `^19.2.4`
+- `react-scripts` `5.0.1`
+- `autoprefixer` `^10.4.23`
+- `postcss` `^8.5.6`
+- `tailwindcss` `^3.4.19`
+
+These six modules are all that must be declared directly. Everything else in `node_modules` is installed transitively from the lockfile.
+
+## 🎯 Runtime Dependencies (3)
 
 ### 1. **React** (v19.2.4)
 **NPM Package:** `react`  
@@ -111,6 +129,22 @@ The actual package manages ~1000+ dependencies including:
 
 ---
 
+## 🛠️ Build/Style Tooling Dependencies (3)
+
+### 4. **Autoprefixer** (v10.4.23)
+**NPM Package:** `autoprefixer`
+**Purpose:** Adds vendor prefixes to CSS during build.
+
+### 5. **PostCSS** (v8.5.6)
+**NPM Package:** `postcss`
+**Purpose:** CSS transformation pipeline used by CRA and Tailwind tooling.
+
+### 6. **Tailwind CSS** (v3.4.19)
+**NPM Package:** `tailwindcss`
+**Purpose:** Utility CSS framework used by the project styles and config.
+
+---
+
 ## 📦 Major Transitive Dependencies
 
 These are packages installed automatically by `react-scripts` and other packages:
@@ -158,7 +192,7 @@ These are packages installed automatically by `react-scripts` and other packages
 ---
 
 #### **Tailwind CSS** (v3.4.19)
-**Purpose:** Utility-first CSS framework (configured but not in main dependencies anymore)  
+**Purpose:** Utility-first CSS framework (actively listed in project dependencies)  
 **Used For:**
 - Responsive design utilities
 - Custom theme configuration
@@ -297,10 +331,81 @@ my-app (v0.1.0)
 
 | Category | Count | Purpose |
 |----------|-------|---------|
-| Direct Dependencies | 3 | Core packages we explicitly use |
-| Transitive Dependencies | ~1296 | Dependencies of our dependencies |
-| Total Packages | ~1299 | All installed packages |
+| Direct Dependencies | 3 | App runtime packages |
+| Tooling Dependencies | 3 | CSS/build tooling packages |
+| Total Direct Declared | 6 | All packages declared in package.json |
+| Transitive Dependencies | lockfile-resolved | Dependencies of declared packages |
 | Vulnerabilities | 23 | Security issues (mostly low priority) |
+
+---
+
+## 🍎 macOS Transfer Checklist (Required)
+
+When moving this folder from Windows to Mac, do this in order:
+
+1. Install Node.js LTS (recommend 20.x).
+2. Ensure npm is available (`npm -v`).
+3. Install Xcode Command Line Tools (required for native addon builds when needed):
+
+```bash
+xcode-select --install
+```
+
+4. Open terminal in project root and do a clean install from lockfile:
+
+```bash
+rm -rf node_modules
+npm ci
+```
+
+5. Start app:
+
+```bash
+npm start
+```
+
+6. If port 3000 is occupied on Mac, run with a different port:
+
+```bash
+PORT=3001 npm start
+```
+
+### Optional but Recommended on macOS
+- Use `nvm` to pin Node version per project.
+- Keep Git line endings safe across OSes:
+
+```bash
+git config --global core.autocrlf input
+```
+
+### If Install Fails on Mac
+- Try clearing npm cache and reinstalling:
+
+```bash
+npm cache verify
+rm -rf node_modules package-lock.json
+npm install
+```
+
+- If native module compile errors appear, verify:
+    - `xcode-select --install` completed
+    - Node version is LTS (20.x recommended)
+
+---
+
+## 📄 Full Node Modules List (Including Transitive)
+
+To generate a full list of every installed package on Mac:
+
+```bash
+npm ls --all --json > full-node-modules.json
+```
+
+To list only top-level installed modules:
+
+```bash
+npm ls --depth=0
+```
 
 ---
 
