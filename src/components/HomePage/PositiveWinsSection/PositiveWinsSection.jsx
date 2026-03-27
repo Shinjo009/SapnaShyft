@@ -72,37 +72,12 @@ const defaultCards = [
       { label: 'Obesity', percent: '12%' },
     ],
   },
-  {
-    title: 'Healthy\nHabits',
-    Icon: HealthyHabitsIcon,
-    aspects: [
-      { label: 'Improved Sleep' },
-      { label: 'Better Hydration' },
-      { label: 'Good Exercise' },
-    ],
-  },
-  {
-    title: 'Healthy\nProfiles',
-    Icon: HealthyProfilesIcon,
-    aspects: [
-      { label: 'Liver Profile' },
-      { label: 'Thyroid Profile' },
-      { label: 'Heart Profile' },
-    ],
-  },
-  {
-    title: 'Low Risk',
-    Icon: LowRiskIcon,
-    aspects: [
-      { label: 'Thyroid', percent: '12%' },
-      { label: 'Cardiac Health', percent: '12%' },
-      { label: 'Obesity', percent: '12%' },
-    ],
-  },
 ];
 
 const PositiveWinsSection = ({ cards = defaultCards }) => {
-  const [activeIndex, setActiveIndex] = useState(cards.length - 1);
+  const stackCards = cards.slice(0, 3);
+  const cardCount = stackCards.length;
+  const [activeIndex, setActiveIndex] = useState(Math.max(cardCount - 1, 0));
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -126,6 +101,7 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
   };
 
   const startAnimation = (direction) => {
+    if (cardCount <= 1) return;
     setIsDragging(false);
     resetDragOffset();
     setSwipeDirection(direction);
@@ -133,12 +109,12 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
   };
 
   const goPrev = () => {
-    if (isAnimating) return;
+    if (isAnimating || cardCount <= 1) return;
     startAnimation('prev');
   };
 
   const goNext = () => {
-    if (isAnimating) return;
+    if (isAnimating || cardCount <= 1) return;
     startAnimation('next');
   };
 
@@ -204,12 +180,7 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
     if (event.propertyName !== 'transform') return;
 
     setIsResetting(true);
-    setActiveIndex((prev) => {
-      if (swipeDirection === 'prev') {
-        return (prev - 1 + cards.length) % cards.length;
-      }
-      return (prev + 1) % cards.length;
-    });
+    setActiveIndex((prev) => (prev + 1) % cardCount);
     setIsAnimating(false);
     resetDragOffset();
 
@@ -243,9 +214,9 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
         data-dragging={isDragging ? 'true' : 'false'}
         data-resetting={isResetting ? 'true' : 'false'}
       >
-        {cards.map((card, index) => {
+        {stackCards.map((card, index) => {
           const CardIcon = card.Icon;
-          const distance = (index - activeIndex + cards.length) % cards.length;
+          const distance = (index - activeIndex + cardCount) % cardCount;
           const role = distance === 0
             ? 'front'
             : distance === 1

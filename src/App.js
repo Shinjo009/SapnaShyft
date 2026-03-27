@@ -8,6 +8,7 @@ import SplashScreen from './pages/SplashScreen';
 import HomePage from './pages/HomePage';
 import HealthScanIndexPage from './pages/HealthScanIndexPage';
 import ProfilePage from './pages/ProfilePage';
+import AllAppointmentsPage from './pages/AllAppointmentsPage';
 import ReportsPage from './pages/ReportsPage';
 import NutritionPage from './pages/NutritionPage';
 import CustomerSupportPage from './pages/CustomerSupportPage';
@@ -603,6 +604,10 @@ function App() {
             console.log('Navigate to Permissions');
             setCurrentPage('permissions');
           }}
+          onOpenAllAppointments={() => {
+            console.log('Navigate to All Appointments');
+            setCurrentPage('all-appointments');
+          }}
           onOpenAddAccount={() => {
             console.log('Navigate to Add Account');
             setCurrentPage('add-account');
@@ -652,6 +657,15 @@ function App() {
 
       {currentPage === 'permissions' && (
         <PermissionsPage
+          onBack={() => {
+            console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'all-appointments' && (
+        <AllAppointmentsPage
           onBack={() => {
             console.log('Back to Profile');
             setCurrentPage('profile');
