@@ -98,7 +98,7 @@ const RISK_ZONES = [
 
 const DOT_GAP = 2;
 const RISK_ZONE_COUNT = 4;
-const BASE_DOTS_PER_ZONE = 13;
+const BASE_DOTS_PER_ZONE = 11;
 const LIFESTYLE_BANDS = ['LOW', 'MODERATE', 'INCREASED', 'HIGH', 'VERY HIGH'];
 
 const getZoneIndexForScore = (score) => {
@@ -146,7 +146,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   const targetPercent = score;
   const dotsPerZone = useMemo(() => {
     if (!riskStripWidth) return BASE_DOTS_PER_ZONE;
-    return Math.max(BASE_DOTS_PER_ZONE, Math.round((riskStripWidth / RISK_ZONE_COUNT) / 8));
+    return Math.max(BASE_DOTS_PER_ZONE, Math.round((riskStripWidth / RISK_ZONE_COUNT) / 9));
   }, [riskStripWidth]);
   const totalDots = dotsPerZone * RISK_ZONE_COUNT;
   const initialMarkerIndex = Math.round((score / 100) * (totalDots - 1));
@@ -160,7 +160,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
       const totalRawDotWidth = rawDotSizes.reduce((sum, size) => sum + size, 0);
       const totalGapWidth = DOT_GAP * (totalDots - 1);
       const availableDotWidth = riskStripWidth ? Math.max(0, riskStripWidth - totalGapWidth) : totalRawDotWidth;
-      const dotSizeScale = totalRawDotWidth > 0 ? Math.min(1, availableDotWidth / totalRawDotWidth) : 1;
+      const dotSizeScale = totalRawDotWidth > 0 ? (availableDotWidth / totalRawDotWidth) : 1;
 
       const adjustedDotSizes = rawDotSizes.map((size) => size * dotSizeScale);
       const dotsTrackWidth = adjustedDotSizes.reduce((sum, size) => sum + size, 0) + totalGapWidth;

@@ -21,11 +21,12 @@ import QuestionnaireBlankPage from './pages/QuestionnaireBlankPage';
 import BloodMarkersPage from './pages/BloodMarkersPage/BloodMarkersPage';
 import PackagesPage from './pages/PackagesPage';
 import PackageDetailsPage from './pages/PackageDetailsPage';
+import AccountSelectionPage from './pages/AccountSelectionPage';
 
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
-import { sendOtp, verifyOtp, refreshToken, logout } from './services/authService';
-import { createUser } from './services/usersService';
+import { sendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
+import { createUser, getMyProfiles } from './services/usersService';
 import { getMyProfile } from './services/profileService';
 import { loadQuestionnaireContext } from './services/questionnaireService';
 import {
@@ -47,6 +48,9 @@ function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [selectedHealthScanTab, setSelectedHealthScanTab] = useState(0);
+  const [linkedAccounts, setLinkedAccounts] = useState([]);
+  const [selectedAccountId, setSelectedAccountId] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   const getProgressFromCategories = (categories) => {
     let completedCount = 0;
@@ -226,11 +230,106 @@ function App() {
         ? profileResponse.data
         : profileResponse;
       setUserName(profile?.first_name || '');
+
+      const activeUserId = Number(profile?.user_id || 0);
+      const normalizedCurrentUserId = activeUserId > 0 ? activeUserId : null;
+      setCurrentUserId(normalizedCurrentUserId);
+
+      const linkedProfilesResponse = await getMyProfiles();
+      const linkedProfiles = Array.isArray(linkedProfilesResponse?.data)
+        ? linkedProfilesResponse.data
+        : Array.isArray(linkedProfilesResponse)
+          ? linkedProfilesResponse
+          : [];
+
+      const normalizedLinkedAccounts = linkedProfiles
+        .map((item) => {
+          const accountId = Number(item?.user_id || item?.id || 0);
+          if (accountId <= 0) {
+            return null;
+          }
+
+          const firstName = String(item?.first_name || '').trim();
+          const lastName = String(item?.last_name || '').trim();
+          const relationship = String(item?.relationship || '').trim();
+          const relationshipLabel = relationship
+            ? relationship.charAt(0).toUpperCase() + relationship.slice(1)
+            : accountId === normalizedCurrentUserId
+              ? 'Primary Account'
+              : 'Linked Account';
+
+          return {
+            id: accountId,
+            name: [firstName, lastName].filter(Boolean).join(' ') || 'User',
+            relationshipLabel,
+            gender: item?.gender || '',
+            isPrimary: relationship.toLowerCase() === 'primary account' || accountId === normalizedCurrentUserId,
+          };
+        })
+        .filter(Boolean);
+
+      const hasCurrentInLinked = normalizedLinkedAccounts.some(
+        (account) => Number(account.id) === Number(normalizedCurrentUserId)
+      );
+
+      const currentAccount = normalizedCurrentUserId
+        ? {
+            id: normalizedCurrentUserId,
+            name: [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'User',
+            relationshipLabel: 'Primary Account',
+            gender: profile?.gender || '',
+            isPrimary: true,
+          }
+        : null;
+
+      const normalizedAccounts = hasCurrentInLinked || !currentAccount
+        ? normalizedLinkedAccounts
+        : [currentAccount, ...normalizedLinkedAccounts];
+
+      setLinkedAccounts(normalizedAccounts);
+      setSelectedAccountId(normalizedCurrentUserId || normalizedAccounts[0]?.id || null);
+
+      if (normalizedAccounts.length > 1) {
+        setCurrentPage('account-selection');
+        return;
+      }
     } catch (profileError) {
       console.error('Failed to fetch user profile:', profileError);
     }
 
     setCurrentPage('health-insights');
+  };
+
+  const handleAccountSelectionStart = async (targetAccountId) => {
+    const parsedTargetId = Number(targetAccountId || 0);
+    if (parsedTargetId <= 0) {
+      setCurrentPage('home');
+      return;
+    }
+
+    const shouldSwitch = currentUserId && parsedTargetId !== Number(currentUserId);
+
+    try {
+      if (shouldSwitch) {
+        const switchResponse = await switchAccount(parsedTargetId);
+        const tokens = extractTokensFromResponse(switchResponse);
+        saveAuthTokens(tokens);
+      }
+
+      const profileResponse = await getMyProfile();
+      const profile = profileResponse?.data && typeof profileResponse.data === 'object'
+        ? profileResponse.data
+        : profileResponse;
+
+      setUserName(profile?.first_name || '');
+      const refreshedUserId = Number(profile?.user_id || 0);
+      setCurrentUserId(refreshedUserId > 0 ? refreshedUserId : null);
+      setSelectedAccountId(parsedTargetId);
+    } catch (error) {
+      console.error('Failed to enter selected account:', error);
+    }
+
+    setCurrentPage('home');
   };
 
   const handleLogout = async () => {
@@ -332,6 +431,16 @@ function App() {
             console.log('Get Started clicked');
             setCurrentPage('home');
           }}
+        />
+      )}
+
+      {currentPage === 'account-selection' && (
+        <AccountSelectionPage
+          accounts={linkedAccounts}
+          selectedAccountId={selectedAccountId}
+          currentUserId={currentUserId}
+          onSelectAccount={(accountId) => setSelectedAccountId(accountId)}
+          onGetStarted={handleAccountSelectionStart}
         />
       )}
 

@@ -113,14 +113,14 @@
 }
 
 .disease-detail-risk-strip {
-  width: calc(100% + 16px);
+  width: 100%;
   margin-top: -18px;
   margin-left: 0;
-  margin-right: -16px;
+  margin-right: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding-right: 16px;
+  padding-right: 0;
   box-sizing: border-box;
 }
 
@@ -158,6 +158,7 @@
   height: 53px;
   margin-top: 0;
   position: relative;
+  overflow: hidden;
 }
 
 .disease-detail-risk-separator {
