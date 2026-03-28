@@ -145,6 +145,31 @@ const BIOMARKER_BENEFITS = [
   },
 ];
 
+const AI_SUGGESTED_TESTS = [
+  {
+    id: 'ai-liver-1',
+    label: 'Liver Test',
+    description: 'Your Liver markers were at high risk in previous Bio-AI Report',
+  },
+  {
+    id: 'ai-liver-2',
+    label: 'Liver Test',
+    description: 'Your Liver markers were at high risk in previous Bio-AI Report',
+  },
+];
+
+const AiSuggestedIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+    <path d="M11.7004 12.3859L10.9621 14.9684C10.6854 15.935 9.31542 15.935 9.03875 14.9684L8.30125 12.3859C8.25456 12.2225 8.16701 12.0737 8.04686 11.9536C7.92672 11.8335 7.77795 11.7459 7.61458 11.6992L5.03208 10.9617C4.06542 10.6851 4.06542 9.31505 5.03208 9.03838L7.61458 8.30088C7.77795 8.25419 7.92672 8.16664 8.04686 8.0465C8.16701 7.92635 8.25456 7.77758 8.30125 7.61422L9.03875 5.03172C9.31542 4.06505 10.6854 4.06505 10.9621 5.03172L11.6996 7.61422C11.7463 7.77758 11.8338 7.92635 11.954 8.0465C12.0741 8.16664 12.2229 8.25419 12.3862 8.30088L14.9687 9.03838C15.9354 9.31505 15.9354 10.6851 14.9687 10.9617L12.3862 11.6992C12.2229 11.7459 12.0741 11.8335 11.954 11.9536C11.8338 12.0737 11.7463 12.2225 11.6996 12.3859M16.3087 16.43L15.9954 17.6867C15.9537 17.8551 15.7146 17.8551 15.6721 17.6867L15.3579 16.43C15.3506 16.4009 15.3354 16.3742 15.3142 16.353C15.2929 16.3317 15.2663 16.3166 15.2371 16.3092L13.9804 15.9951C13.8121 15.9534 13.8121 15.7142 13.9804 15.6717L15.2371 15.3576C15.2663 15.3502 15.2929 15.3351 15.3142 15.3138C15.3354 15.2925 15.3506 15.2659 15.3579 15.2367L15.6721 13.98C15.7137 13.8117 15.9529 13.8117 15.9954 13.98L16.3096 15.2367C16.3169 15.2659 16.3321 15.2925 16.3533 15.3138C16.3746 15.3351 16.4012 15.3502 16.4304 15.3576L17.6871 15.6717C17.8554 15.7134 17.8554 15.9526 17.6871 15.9951L16.4304 16.3092C16.4012 16.3166 16.3746 16.3317 16.3533 16.353C16.3321 16.3742 16.3161 16.4009 16.3087 16.43ZM4.64208 4.76338L4.32875 6.02005C4.28708 6.18838 4.04708 6.18838 4.00542 6.02005L3.69125 4.76338C3.68389 4.73421 3.66877 4.70758 3.6475 4.6863C3.62622 4.66503 3.59959 4.64991 3.57042 4.64255L2.31375 4.32838C2.14542 4.28672 2.14542 4.04672 2.31375 4.00505L3.57042 3.69088C3.59959 3.68352 3.62622 3.66841 3.6475 3.64713C3.66877 3.62586 3.68389 3.59922 3.69125 3.57005L4.00542 2.31338C4.04708 2.14505 4.28708 2.14505 4.32875 2.31338L4.64292 3.57005C4.65028 3.59922 4.66539 3.62586 4.68667 3.64713C4.70794 3.66841 4.73458 3.68352 4.76375 3.69088L6.02042 4.00505C6.18875 4.04672 6.18875 4.28672 6.02042 4.32838L4.76375 4.64255C4.73458 4.64991 4.70794 4.66503 4.68667 4.6863C4.66539 4.70758 4.64944 4.73421 4.64208 4.76338Z" stroke="url(#paint0_linear_2977_9794)" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    <defs>
+      <linearGradient id="paint0_linear_2977_9794" x1="10.0004" y1="2.18713" x2="10.0004" y2="17.813" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#435FF6"/>
+        <stop offset="1" stopColor="#14AFAF"/>
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
 const FAQ_ITEMS = [
   {
     id: 'faq-water',
@@ -263,7 +288,10 @@ const PARAMETER_GROUPS = [
   },
 ];
 
-const PackageDetailsPage = ({ onBack }) => {
+const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User' }) => {
+  const isCustomReview = variant === 'custom-review';
+  const trimmedProfileName = String(profileName || '').trim() || 'User';
+  const customPackageTitle = `${trimmedProfileName}'s Custom Package`;
   const [activeTab, setActiveTab] = useState('Overview');
   const [order, setOrder] = useState([0, 1, 2]);
   const [dragX, setDragX] = useState(0);
@@ -477,9 +505,11 @@ const PackageDetailsPage = ({ onBack }) => {
             </div>
           </div>
 
-          <h2 className="package-details-page__pack-title">Advanced Full Body Health Checkup</h2>
+          <h2 className="package-details-page__pack-title">
+            {isCustomReview ? customPackageTitle : 'Advanced Full Body Health Checkup'}
+          </h2>
 
-          <div className="package-details-page__meta-row">
+          <div className={`package-details-page__meta-row${isCustomReview ? ' package-details-page__meta-row--compact' : ''}`}>
             <div className="package-details-page__meta-item">
               <MetaGenderIcon />
               <span>For men &amp; women</span>
@@ -561,25 +591,56 @@ const PackageDetailsPage = ({ onBack }) => {
           </div>
         </section>
 
-        <section className="package-details-page__biomarker-section" aria-label="Why biomarker tests matter">
-          <h3 className="package-details-page__biomarker-title">Why Biomarker-Tests Matter</h3>
+        {isCustomReview ? (
+          <section className="package-details-page__ai-section" aria-label="AI suggested tests">
+            <div className="package-details-page__ai-head">
+              <span className="package-details-page__ai-icon-box" aria-hidden="true">
+                <AiSuggestedIcon />
+              </span>
+              <h3 className="package-details-page__ai-title">AI Suggested Tests</h3>
+            </div>
 
-          <div className="package-details-page__biomarker-box">
-            {BIOMARKER_BENEFITS.map((item, index) => (
-              <div key={item.title} className="package-details-page__benefit-item">
-                <div className="package-details-page__benefit-marker-col" aria-hidden="true">
-                  <div className="package-details-page__benefit-index">{index + 1}</div>
-                  {index < BIOMARKER_BENEFITS.length - 1 ? <div className="package-details-page__benefit-line" /> : null}
-                </div>
+            <div className="package-details-page__ai-box">
+              {AI_SUGGESTED_TESTS.map((item) => (
+                <article key={item.id} className="package-details-page__ai-item">
+                  <div className="package-details-page__ai-item-copy">
+                    <div className="package-details-page__ai-item-head">
+                      <span className="package-details-page__ai-dot" aria-hidden="true" />
+                      <span className="package-details-page__ai-label">{item.label}</span>
+                    </div>
+                    <p className="package-details-page__ai-copy">{item.description}</p>
+                  </div>
 
-                <div className="package-details-page__benefit-copy">
-                  <h4>{item.title}</h4>
-                  <p>{item.description}</p>
+                  <button type="button" className="package-details-page__ai-add-btn">
+                    <span className="package-details-page__ai-add-text">Add</span>
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {!isCustomReview ? (
+          <section className="package-details-page__biomarker-section" aria-label="Why biomarker tests matter">
+            <h3 className="package-details-page__biomarker-title">Why Biomarker-Tests Matter</h3>
+
+            <div className="package-details-page__biomarker-box">
+              {BIOMARKER_BENEFITS.map((item, index) => (
+                <div key={item.title} className="package-details-page__benefit-item">
+                  <div className="package-details-page__benefit-marker-col" aria-hidden="true">
+                    <div className="package-details-page__benefit-index">{index + 1}</div>
+                    {index < BIOMARKER_BENEFITS.length - 1 ? <div className="package-details-page__benefit-line" /> : null}
+                  </div>
+
+                  <div className="package-details-page__benefit-copy">
+                    <h4>{item.title}</h4>
+                    <p>{item.description}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="package-details-page__faq-section" aria-label="Frequently asked questions" ref={faqSectionRef}>
           <h3 className="package-details-page__faq-title">Frequently Asked Questions</h3>
@@ -768,7 +829,11 @@ const PackageDetailsPage = ({ onBack }) => {
         </div>
       ) : null}
 
-      <PatientSelectionOverlay open={activeOverlay === 'patients'} onClose={() => setActiveOverlay('')} />
+      <PatientSelectionOverlay
+        open={activeOverlay === 'patients'}
+        onClose={() => setActiveOverlay('')}
+        customFlow={isCustomReview}
+      />
     </div>
   );
 };

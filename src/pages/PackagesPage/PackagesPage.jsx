@@ -40,7 +40,7 @@ const OpenIcon = () => (
 
 const FeatureChips = ['Biological Age', 'Kidney', 'Heart', '+ More'];
 
-const PackagesPage = ({ onNavigateHome, onOpenPackageDetails }) => {
+const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustomPackage }) => {
   const [activeFilter, setActiveFilter] = useState('All');
   const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
 
@@ -78,7 +78,16 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails }) => {
           <button type="button" className="packages-page__search-btn" aria-label="Search packages">
             <SearchIcon />
           </button>
-          <button type="button" className="packages-page__custom-btn" aria-label="Create custom package">
+          <button
+            type="button"
+            className="packages-page__custom-btn"
+            aria-label="Create custom package"
+            onClick={() => {
+              if (onOpenCreateCustomPackage) {
+                onOpenCreateCustomPackage();
+              }
+            }}
+          >
             <span>Create Custom Package</span>
             <CustomPackageIcon />
           </button>

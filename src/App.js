@@ -22,6 +22,7 @@ import QuestionnaireBlankPage from './pages/QuestionnaireBlankPage';
 import BloodMarkersPage from './pages/BloodMarkersPage/BloodMarkersPage';
 import PackagesPage from './pages/PackagesPage';
 import PackageDetailsPage from './pages/PackageDetailsPage';
+import CreateCustomPackagePage from './pages/CreateCustomPackagePage/CreateCustomPackagePage';
 import AccountSelectionPage from './pages/AccountSelectionPage';
 
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
@@ -495,6 +496,10 @@ function App() {
             console.log('Navigate to Package Details');
             setCurrentPage('package-details');
           }}
+          onOpenCreateCustomPackage={() => {
+            console.log('Navigate to Create Custom Package');
+            setCurrentPage('create-custom-package');
+          }}
         />
       )}
 
@@ -503,6 +508,30 @@ function App() {
           onBack={() => {
             console.log('Back to Packages');
             setCurrentPage('packages');
+          }}
+        />
+      )}
+
+      {currentPage === 'create-custom-package' && (
+        <CreateCustomPackagePage
+          onBack={() => {
+            console.log('Back to Packages');
+            setCurrentPage('packages');
+          }}
+          onCreatePackage={() => {
+            console.log('Navigate to Review Package');
+            setCurrentPage('review-package');
+          }}
+        />
+      )}
+
+      {currentPage === 'review-package' && (
+        <PackageDetailsPage
+          variant="custom-review"
+          profileName={userName}
+          onBack={() => {
+            console.log('Back to Create Custom Package');
+            setCurrentPage('create-custom-package');
           }}
         />
       )}

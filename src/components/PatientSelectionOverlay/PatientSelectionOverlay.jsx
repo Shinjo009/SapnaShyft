@@ -9,6 +9,35 @@ const PATIENTS = [];
 
 const PACKAGE_FILTERS = ['Full Body', 'Diabetes', 'Women Health', 'Cancer', 'Kidney'];
 
+const CUSTOM_TEST_FILTERS = ['General Health', 'Progressive Tests', 'Hormones', 'Vitamins', 'Cancer', 'Allergies'];
+
+const CUSTOM_TEST_CARDS = [
+  {
+    id: 'thyroid-tests',
+    title: 'Thyroid Tests',
+    salePrice: 249,
+    oldPrice: 449,
+    tags: ['General Health'],
+    tests: ['Bilirubin', 'Albumin', 'SGOT', 'SGPT', 'ALP'],
+  },
+  {
+    id: 'liver-function',
+    title: 'Liver Function',
+    salePrice: 149,
+    oldPrice: 349,
+    tags: ['General Health'],
+    tests: ['Bilirubin', 'Albumin', 'SGOT', 'SGPT', 'ALP'],
+  },
+  {
+    id: 'liver-function-plus',
+    title: 'Liver Function',
+    salePrice: 349,
+    oldPrice: 549,
+    tags: ['General Health'],
+    tests: ['Bilirubin', 'Albumin', 'SGOT', 'SGPT', 'ALP'],
+  },
+];
+
 const PACKAGE_OPTIONS = [
   {
     id: 'advanced',
@@ -138,6 +167,18 @@ const PackageDoctorIcon = () => (
 const PackageOpenIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
     <path d="M5.83203 5.8335H14.1654V14.1668M5.83203 14.1668L14.1654 5.8335" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const TestChevronDownIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M7 10L12 15L17 10" stroke="#E8ECEC" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const TestChevronUpIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M17 14L12 9L7 14" stroke="#90DF9E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -306,7 +347,7 @@ const buildAddressFromProfile = (profile) => {
   };
 };
 
-const PatientSelectionOverlay = ({ open, onClose }) => {
+const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
   const [view, setView] = useState('select');
   const [patients, setPatients] = useState(PATIENTS);
   const [profileData, setProfileData] = useState(null);
@@ -326,6 +367,10 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
   const [savingPatient, setSavingPatient] = useState(false);
   const [selectedDateId, setSelectedDateId] = useState('mon-12');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('06:00 AM');
+  const [customActiveFilter, setCustomActiveFilter] = useState('General Health');
+  const [customSearchQuery, setCustomSearchQuery] = useState('');
+  const [customExpandedIds, setCustomExpandedIds] = useState(() => new Set(['thyroid-tests', 'liver-function']));
+  const [customSelectedIds, setCustomSelectedIds] = useState(() => new Set(['thyroid-tests', 'liver-function']));
 
   useEffect(() => {
     if (!open) {
@@ -463,6 +508,17 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
     () => PACKAGE_OPTIONS.find((item) => item.id === selectedPackageId) || PACKAGE_OPTIONS[0],
     [selectedPackageId],
   );
+  const customPackageDisplayName = useMemo(() => {
+    const profileName = [profileData?.first_name, profileData?.last_name]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    const displayName = profileName || 'User';
+    const possessive = displayName.toLowerCase().endsWith('s') ? `${displayName}'` : `${displayName}'s`;
+    return `${possessive} Custom Package`;
+  }, [profileData]);
 
   const draftPackage = useMemo(
     () => PACKAGE_OPTIONS.find((item) => item.id === draftPackageId) || PACKAGE_OPTIONS[0],
@@ -485,6 +541,11 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
   const selectedCount = selectedIds.length;
   const canContinue = selectedCount > 0;
 
+  const customSelectedCards = useMemo(
+    () => CUSTOM_TEST_CARDS.filter((item) => customSelectedIds.has(item.id)),
+    [customSelectedIds],
+  );
+
   const selectedText = useMemo(() => {
     if (selectedCount === 1) {
       return '1 patient selected';
@@ -492,9 +553,25 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
     return `${selectedCount} patients selected`;
   }, [selectedCount]);
 
+  const customPackagePrice = useMemo(() => {
+    const current = customSelectedCards.reduce((sum, item) => sum + item.salePrice, 0);
+    const old = customSelectedCards.reduce((sum, item) => sum + item.oldPrice, 0);
+    const off = old > 0 ? Math.round(((old - current) / old) * 100) : 0;
+
+    return { current, old, off };
+  }, [customSelectedCards]);
+
   const pricing = useMemo(() => {
     if (selectedCount <= 0) {
       return null;
+    }
+
+    if (customFlow) {
+      return {
+        current: customPackagePrice.current * selectedCount,
+        old: customPackagePrice.old * selectedCount,
+        off: customPackagePrice.off,
+      };
     }
 
     if (selectedCount === 1) {
@@ -510,7 +587,21 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
       old: selectedPackage.oldPrice * selectedCount,
       off: selectedPackage.offPercent,
     };
-  }, [selectedCount, selectedPackage]);
+  }, [selectedCount, selectedPackage, customFlow, customPackagePrice]);
+
+  const paymentBreakdown = useMemo(() => {
+    const current = pricing?.current ?? 0;
+    const old = pricing?.old ?? 0;
+    const discount = Math.max(old - current, 0);
+
+    return {
+      totalMrp: old,
+      platformDiscount: discount,
+      subtotal: current,
+      totalOld: old,
+      totalNew: current,
+    };
+  }, [pricing]);
 
   const formatPrice = (value) => `₹ ${value.toLocaleString('en-IN')}`;
 
@@ -522,6 +613,32 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
     const patientMap = new Map(patients.map((item) => [item.id, item]));
     return selectedIds.map((id) => patientMap.get(id)).filter(Boolean);
   }, [patients, selectedIds]);
+
+  const normalizedCustomQuery = customSearchQuery.trim().toLowerCase();
+
+  const filteredCustomCards = useMemo(() => {
+    return CUSTOM_TEST_CARDS.filter((item) => {
+      const inTag = customActiveFilter === 'General Health'
+        ? true
+        : item.tags.some((tag) => tag.toLowerCase() === customActiveFilter.toLowerCase());
+
+      if (!inTag) {
+        return false;
+      }
+
+      if (!normalizedCustomQuery) {
+        return true;
+      }
+
+      const testsText = item.tests.join(' ').toLowerCase();
+      return item.title.toLowerCase().includes(normalizedCustomQuery) || testsText.includes(normalizedCustomQuery);
+    });
+  }, [customActiveFilter, normalizedCustomQuery]);
+
+  const customSelectedNames = useMemo(
+    () => customSelectedCards.map((item) => item.title.split(' ')[0]).join(', '),
+    [customSelectedCards],
+  );
 
   const getTimeRange = () => {
     if (!selectedTimeSlot) {
@@ -622,6 +739,30 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
   const handleConfirmPackage = () => {
     setSelectedPackageId(draftPackageId);
     setView(packageViewReturn);
+  };
+
+  const handleToggleCustomExpanded = (id) => {
+    setCustomExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleCustomSelected = (id) => {
+    setCustomSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   const renderInputField = (key, label, options = {}) => {
@@ -759,7 +900,7 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
         </svg>
       </button>
 
-      <div className={`patient-select-overlay__sheet${view === 'add' ? ' is-add' : ''}${view === 'package' ? ' is-package' : ''}${view === 'address' ? ' is-address' : ''}${view === 'schedule' ? ' is-schedule' : ''}${view === 'details' ? ' is-details' : ''}${view === 'payment' ? ' is-payment' : ''}${view === 'confirmed' ? ' is-confirmed' : ''}`}>
+      <div className={`patient-select-overlay__sheet${view === 'add' ? ' is-add' : ''}${view === 'package' ? ' is-package' : ''}${view === 'address' ? ' is-address' : ''}${view === 'schedule' ? ' is-schedule' : ''}${view === 'details' ? ' is-details' : ''}${view === 'payment' ? ' is-payment' : ''}${view === 'confirmed' ? ' is-confirmed' : ''}${view === 'package' && customFlow ? ' is-custom-package' : ''}`}>
         {view === 'select' ? (
           <>
             <h3 className="patient-select-overlay__title">Select members</h3>
@@ -802,14 +943,14 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
                       <div className="patient-select-overlay__selected-package">
                         <div className="patient-select-overlay__selected-package-left">
                           <SelectedRowPackageIcon />
-                          <span>{selectedPackage.name}</span>
+                          <span>{customFlow ? customPackageDisplayName : selectedPackage.name}</span>
                         </div>
                         <button
                           type="button"
-                          className="patient-select-overlay__selected-package-change"
+                          className={`patient-select-overlay__selected-package-change${customFlow ? ' is-custom' : ''}`}
                           onClick={() => openPackageSelector('select', patient.name.split(' ')[0] || 'User')}
                         >
-                          Change
+                          {customFlow ? 'Add tests' : 'Change'}
                         </button>
                       </div>
                     ) : null}
@@ -889,17 +1030,17 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
                 <div className="patient-add__package-left">
                   <PackagePulseIcon />
                   <div>
-                    <p className="patient-add__package-title">{selectedPackage.name}</p>
+                    <p className="patient-add__package-title">{customFlow ? customPackageDisplayName : selectedPackage.name}</p>
                     <p className="patient-add__package-subtitle">Current Package</p>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  className="patient-add__change-btn"
+                  className={`patient-add__change-btn${customFlow ? ' is-custom' : ''}`}
                   onClick={() => openPackageSelector('add', formData.firstName || 'User')}
                 >
-                  Change
+                  {customFlow ? 'Add tests' : 'Change'}
                 </button>
               </div>
 
@@ -910,81 +1051,178 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
           </>
         ) : view === 'package' ? (
           <>
-            <h3 className="patient-select-overlay__title">Select Package</h3>
+            <h3 className="patient-select-overlay__title">{customFlow ? 'Add tests' : 'Select Package'}</h3>
 
-            <div className="patient-package">
-              <div className="patient-package__search">
-                <PackageSearchIcon />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search tests or health goals"
-                  className="patient-package__search-input"
-                />
-              </div>
-
-              <div className="patient-package__tabs" aria-label="Package categories">
-                {PACKAGE_FILTERS.map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    className={`patient-package__tab${activeFilter === tab ? ' is-active' : ''}`}
-                    onClick={() => setActiveFilter(tab)}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              <div className="patient-package__cards-scroll">
-                {filteredPackages.map((item) => {
-                  const selectedCard = draftPackageId === item.id;
-                  return (
-                    <button
-                      type="button"
-                      key={item.id}
-                      className={`patient-package__card${selectedCard ? ' is-selected' : ''}`}
-                      onClick={() => setDraftPackageId(item.id)}
-                    >
-                      <div className="patient-package__card-main">
-                        <h4>{item.name}</h4>
-
-                        <div className="patient-package__price-row">
-                          <span className="patient-package__price-now">{formatPrice(item.currentPrice)}</span>
-                          <span className="patient-package__price-old">{formatPrice(item.oldPrice)}</span>
-                          <span className="patient-package__off-pill">{item.offPercent}% OFF</span>
-                        </div>
-
-                        <div className="patient-package__meta-row">
-                          <span className="patient-package__meta-item"><PackageTickIcon />{item.parameters}</span>
-                          <span className="patient-package__meta-item"><PackageStarIcon />{item.rating}</span>
-                        </div>
-
-                        {item.recommended ? (
-                          <div className="patient-package__doctor-row">
-                            <PackageDoctorIcon />
-                            <span>{item.recommended}</span>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <span className="patient-package__open-icon"><PackageOpenIcon /></span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="patient-package__bottom-bar">
-                <div className="patient-package__bottom-left">
-                  <span>SELECTED PACKAGE</span>
-                  <p>{draftPackage.name.replace(' Panel', '').replace(' Checkup', '')}</p>
+            {customFlow ? (
+              <div className="patient-custom-tests">
+                <div className="patient-package__search">
+                  <PackageSearchIcon />
+                  <input
+                    type="text"
+                    value={customSearchQuery}
+                    onChange={(event) => setCustomSearchQuery(event.target.value)}
+                    placeholder="Search tests or health goals"
+                    className="patient-package__search-input"
+                  />
                 </div>
-                <button type="button" className="patient-package__confirm-btn" onClick={handleConfirmPackage}>
-                  Confirm for {packageTargetName}
-                </button>
+
+                <div className="patient-package__tabs" aria-label="Test categories">
+                  {CUSTOM_TEST_FILTERS.map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      className={`patient-package__tab${customActiveFilter === tab ? ' is-active' : ''}`}
+                      onClick={() => setCustomActiveFilter(tab)}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="patient-custom-tests__cards-scroll">
+                  {filteredCustomCards.map((item) => {
+                    const selectedCard = customSelectedIds.has(item.id);
+                    const expanded = customExpandedIds.has(item.id);
+                    const discount = Math.round(((item.oldPrice - item.salePrice) / item.oldPrice) * 100);
+
+                    return (
+                      <article key={item.id} className={`patient-custom-tests__card${selectedCard ? ' is-selected' : ''}`}>
+                        <div className="patient-custom-tests__top-row">
+                          <button
+                            type="button"
+                            className={`patient-custom-tests__checkbox${selectedCard ? ' is-selected' : ''}`}
+                            onClick={() => handleToggleCustomSelected(item.id)}
+                            aria-label={`Select ${item.title}`}
+                          >
+                            {selectedCard ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="11" viewBox="0 0 15 11" fill="none" aria-hidden="true">
+                                <path d="M13.9154 0.583374L4.7487 9.75004L0.582031 5.58337" stroke="#90DF9E" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            ) : null}
+                          </button>
+
+                          <div className="patient-custom-tests__title-col">
+                            <h4>{item.title}</h4>
+                            <div className="patient-custom-tests__price-row">
+                              <span className="patient-custom-tests__price-now">Rs. {item.salePrice}</span>
+                              <span className="patient-custom-tests__price-old">Rs. {item.oldPrice}</span>
+                              <span className="patient-custom-tests__price-off">{discount}% off</span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="patient-custom-tests__expand-btn"
+                            onClick={() => handleToggleCustomExpanded(item.id)}
+                            aria-label={`Toggle details for ${item.title}`}
+                          >
+                            {expanded ? <TestChevronUpIcon /> : <TestChevronDownIcon />}
+                          </button>
+                        </div>
+
+                        {expanded ? (
+                          <>
+                            <div className="patient-custom-tests__divider" />
+                            <div className="patient-custom-tests__tests-grid">
+                              {item.tests.map((test) => (
+                                <span key={`${item.id}-${test}`} className="patient-custom-tests__test-item">
+                                  <span className="patient-custom-tests__dot" aria-hidden="true" />
+                                  {test}
+                                </span>
+                              ))}
+                            </div>
+                          </>
+                        ) : null}
+                      </article>
+                    );
+                  })}
+                </div>
+
+                <div className="patient-package__bottom-bar">
+                  <div className="patient-package__bottom-left">
+                    <span>SELECTED TESTS</span>
+                    <p>{customSelectedNames || 'None'}</p>
+                  </div>
+                  <button type="button" className="patient-package__confirm-btn patient-package__confirm-btn--compact" onClick={() => setView(packageViewReturn)}>
+                    Add All
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="patient-package">
+                <div className="patient-package__search">
+                  <PackageSearchIcon />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Search tests or health goals"
+                    className="patient-package__search-input"
+                  />
+                </div>
+
+                <div className="patient-package__tabs" aria-label="Package categories">
+                  {PACKAGE_FILTERS.map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      className={`patient-package__tab${activeFilter === tab ? ' is-active' : ''}`}
+                      onClick={() => setActiveFilter(tab)}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="patient-package__cards-scroll">
+                  {filteredPackages.map((item) => {
+                    const selectedCard = draftPackageId === item.id;
+                    return (
+                      <button
+                        type="button"
+                        key={item.id}
+                        className={`patient-package__card${selectedCard ? ' is-selected' : ''}`}
+                        onClick={() => setDraftPackageId(item.id)}
+                      >
+                        <div className="patient-package__card-main">
+                          <h4>{item.name}</h4>
+
+                          <div className="patient-package__price-row">
+                            <span className="patient-package__price-now">{formatPrice(item.currentPrice)}</span>
+                            <span className="patient-package__price-old">{formatPrice(item.oldPrice)}</span>
+                            <span className="patient-package__off-pill">{item.offPercent}% OFF</span>
+                          </div>
+
+                          <div className="patient-package__meta-row">
+                            <span className="patient-package__meta-item"><PackageTickIcon />{item.parameters}</span>
+                            <span className="patient-package__meta-item"><PackageStarIcon />{item.rating}</span>
+                          </div>
+
+                          {item.recommended ? (
+                            <div className="patient-package__doctor-row">
+                              <PackageDoctorIcon />
+                              <span>{item.recommended}</span>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <span className="patient-package__open-icon"><PackageOpenIcon /></span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="patient-package__bottom-bar">
+                  <div className="patient-package__bottom-left">
+                    <span>SELECTED PACKAGE</span>
+                    <p>{draftPackage.name.replace(' Panel', '').replace(' Checkup', '')}</p>
+                  </div>
+                  <button type="button" className="patient-package__confirm-btn" onClick={handleConfirmPackage}>
+                    {`Confirm for ${packageTargetName}`}
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         ) : view === 'address' ? (
           <>
@@ -1111,12 +1349,12 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
                     <div className="patient-confirm__patient-price-row">
                       <div className="patient-confirm__patient-package">
                         <SelectedRowPackageIcon />
-                        <span>{selectedPackage.name}</span>
+                        <span>{customFlow ? customPackageDisplayName : selectedPackage.name}</span>
                       </div>
 
                       <div className="patient-confirm__price-group">
-                        <span className="patient-confirm__price-old">{formatPrice(selectedPackage.oldPrice)}/-</span>
-                        <span className="patient-confirm__price-now">{formatPrice(selectedPackage.currentPrice)}/-</span>
+                        <span className="patient-confirm__price-old">{formatPrice(customFlow ? customPackagePrice.old : selectedPackage.oldPrice)}/-</span>
+                        <span className="patient-confirm__price-now">{formatPrice(customFlow ? customPackagePrice.current : selectedPackage.currentPrice)}/-</span>
                       </div>
                     </div>
                   </div>
@@ -1198,27 +1436,27 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
               <div className="patient-payment__box">
                 <div className="patient-payment__row">
                   <span className="patient-payment__label">Total MRP</span>
-                  <span className="patient-payment__value">Rs. 3,998</span>
+                  <span className="patient-payment__value">{formatPrice(paymentBreakdown.totalMrp)}</span>
                 </div>
 
                 <div className="patient-payment__row">
                   <span className="patient-payment__label">Platform Discount</span>
-                  <span className="patient-payment__value patient-payment__value--discount">- Rs. 1,499</span>
+                  <span className="patient-payment__value patient-payment__value--discount">- {formatPrice(paymentBreakdown.platformDiscount)}</span>
                 </div>
 
                 <div className="patient-payment__divider" />
 
                 <div className="patient-payment__row">
                   <span className="patient-payment__label">Subtotal</span>
-                  <span className="patient-payment__value patient-payment__value--subtotal">Rs. 2,499</span>
+                  <span className="patient-payment__value patient-payment__value--subtotal">{formatPrice(paymentBreakdown.subtotal)}</span>
                 </div>
               </div>
 
               <div className="patient-payment__total-row">
                 <span className="patient-payment__total-label">Total Amount</span>
                 <div className="patient-payment__total-right">
-                  <span className="patient-payment__total-old">Rs. 3,998/-</span>
-                  <span className="patient-payment__total-new">Rs. 2,499</span>
+                  <span className="patient-payment__total-old">{formatPrice(paymentBreakdown.totalOld)}/-</span>
+                  <span className="patient-payment__total-new">{formatPrice(paymentBreakdown.totalNew)}</span>
                 </div>
               </div>
 
@@ -1257,7 +1495,7 @@ const PatientSelectionOverlay = ({ open, onClose }) => {
 
                       <div className="patient-final__patient-package">
                         <span>Package</span>
-                        <p>Full Body Checkup</p>
+                        <p>{customFlow ? customPackageDisplayName : selectedPackage.name}</p>
                       </div>
                     </div>
 
