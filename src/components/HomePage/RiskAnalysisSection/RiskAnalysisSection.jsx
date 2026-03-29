@@ -92,6 +92,15 @@ const GaugeDial = ({ score }) => {
 
   return (
     <div className="risk-analysis-wins__dial-wrap" aria-label={`Risk score ${safeScore} out of 100`}>
+      <svg className="risk-analysis-wins__dial-dots" xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72" fill="none" aria-hidden="true">
+        <path d="M0.707031 35.7063C0.707031 55.0233 16.39 70.7063 35.707 70.7063C55.0241 70.7063 70.707 55.0233 70.707 35.7063C70.707 16.3893 55.0241 0.706299 35.707 0.706299C16.39 0.706299 0.707031 16.3893 0.707031 35.7063Z" stroke="url(#paint0_linear_1860_15381)" strokeOpacity="0.2" strokeWidth="1.4125" strokeDasharray="1.88 3.77"/>
+        <defs>
+          <linearGradient id="paint0_linear_1860_15381" x1="35.707" y1="0.706299" x2="35.707" y2="70.7063" gradientUnits="userSpaceOnUse">
+            <stop stopColor="white"/>
+            <stop offset="0.554351" stopColor="white" stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+      </svg>
       <svg className="risk-analysis-wins__dial" width="80" height="44" viewBox="0 0 80 44" fill="none" aria-hidden="true">
         <path d={pathD} className="risk-analysis-wins__dial-track" />
         <path
@@ -109,7 +118,9 @@ const GaugeDial = ({ score }) => {
 };
 
 const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore, onBloodMarkersSeeMore }) => {
-  const [activeIndex, setActiveIndex] = useState(cards.length - 1);
+  const stackCards = cards.slice(0, 3);
+  const cardCount = stackCards.length;
+  const [activeIndex, setActiveIndex] = useState(Math.max(cardCount - 1, 0));
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -133,6 +144,7 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
   };
 
   const startAnimation = (direction) => {
+    if (cardCount <= 1) return;
     setIsDragging(false);
     resetDragOffset();
     setSwipeDirection(direction);
@@ -140,12 +152,12 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
   };
 
   const goPrev = () => {
-    if (isAnimating) return;
+    if (isAnimating || cardCount <= 1) return;
     startAnimation('prev');
   };
 
   const goNext = () => {
-    if (isAnimating) return;
+    if (isAnimating || cardCount <= 1) return;
     startAnimation('next');
   };
 
@@ -164,8 +176,17 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
     }
 
     const deltaX = event.touches[0].clientX - touchStartXRef.current;
-    const clamped = Math.max(-28, Math.min(28, deltaX));
-    applyDragOffset(clamped);
+    const stackWidth = stackRef.current?.clientWidth || 260;
+    const softLimit = Math.max(120, stackWidth * 0.55);
+    const absDelta = Math.abs(deltaX);
+    const direction = deltaX < 0 ? -1 : 1;
+
+    // Apply soft resistance after the primary drag range to avoid abrupt edge sticking.
+    const dragValue = absDelta <= softLimit
+      ? deltaX
+      : direction * (softLimit + (absDelta - softLimit) * 0.18);
+
+    applyDragOffset(dragValue);
   };
 
   const handleTouchEnd = (event) => {
@@ -173,8 +194,10 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
       return;
     }
 
+    const stackWidth = stackRef.current?.clientWidth || 260;
+    const swipeThreshold = Math.max(30, stackWidth * 0.14);
     const deltaX = event.changedTouches[0].clientX - touchStartXRef.current;
-    if (Math.abs(deltaX) > 36) {
+    if (Math.abs(deltaX) > swipeThreshold) {
       if (deltaX < 0) {
         goNext();
       } else {
@@ -200,7 +223,7 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
     if (event.propertyName !== 'transform') return;
 
     setIsResetting(true);
-    setActiveIndex((prev) => (prev + 1) % cards.length);
+    setActiveIndex((prev) => (prev + 1) % cardCount);
     setIsAnimating(false);
     resetDragOffset();
 
@@ -247,9 +270,9 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
         data-dragging={isDragging ? 'true' : 'false'}
         data-resetting={isResetting ? 'true' : 'false'}
       >
-        {cards.map((card, index) => {
+        {stackCards.map((card, index) => {
           const CardIcon = card.icon;
-          const distance = (index - activeIndex + cards.length) % cards.length;
+          const distance = (index - activeIndex + cardCount) % cardCount;
           const role = distance === 0
             ? 'front'
             : distance === 1

@@ -7,6 +7,8 @@ import ques5Icon from '../../images/ques-5.svg';
 import quesArrow from '../../images/ques-arrow.svg';
 import tickIcon from '../../images/ques-tick.svg';
 import AnthInd from '../../images/Anth-Ind.svg';
+import waistGif from '../../images/waist-gif.gif';
+import hipGif from '../../images/hip-gif.gif';
 import './HealthAssessmentPage.css';
 
 const AnthropometryTriangleArrow = ({ direction = 'right' }) => {
@@ -21,6 +23,7 @@ const AnthropometryTriangleArrow = ({ direction = 'right' }) => {
 const AnthropometryDialIndicator = ({ angle = 0 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="25" viewBox="0 0 36 25" fill="none" aria-hidden="true">
     <path
+      className="anthropometry-page__indicator-needle"
       d="M19.7802 0L22.9881 23H36H0H16.1292L19.7802 0Z"
       fill="#CC203B"
       style={{ transform: `rotate(${angle}deg)`, transformOrigin: '19.5px 19.5px' }}
@@ -78,13 +81,17 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   const [waistUnit, setWaistUnit] = useState('In');
   const [heightFeet, setHeightFeet] = useState(5);
   const [heightInches, setHeightInches] = useState(8);
+  const [showWaistInfoPopup, setShowWaistInfoPopup] = useState(false);
 
   const heightTouchLastY = useRef(null);
+  const heightFeetTouchLastY = useRef(null);
+  const heightInchesTouchLastY = useRef(null);
   const waistTouchLastX = useRef(null);
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
   const handleHeightWheel = (e) => {
+    if (heightUnit === 'Ft/In') return;
     e.preventDefault();
     const delta = e.deltaY > 0 ? 1 : -1;
     setHeight((prev) => clamp(prev + delta, 120, 230));
@@ -95,6 +102,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   };
 
   const handleHeightTouchMove = (e) => {
+    if (heightUnit === 'Ft/In') return;
     const y = e.touches[0].clientY;
     const delta = heightTouchLastY.current - y;
     if (Math.abs(delta) >= 8) {
@@ -170,6 +178,44 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
     setHeight(Math.round(totalInches * 2.54));
   };
 
+  const handleFeetStep = (delta) => {
+    setHeightFeet((prev) => {
+      const nextFeet = clamp(prev + delta, 3, 8);
+      const totalInches = clamp(nextFeet * 12 + heightInches, 47, 91);
+      setHeight(Math.round(totalInches * 2.54));
+      return nextFeet;
+    });
+  };
+
+  const handleFeetWheel = (e) => {
+    if (heightUnit !== 'Ft/In') return;
+    e.preventDefault();
+    e.stopPropagation();
+    const delta = e.deltaY > 0 ? 1 : -1;
+    handleFeetStep(delta);
+  };
+
+  const handleFeetTouchStart = (e) => {
+    if (heightUnit !== 'Ft/In') return;
+    heightFeetTouchLastY.current = e.touches[0].clientY;
+  };
+
+  const handleFeetTouchMove = (e) => {
+    if (heightUnit !== 'Ft/In' || heightFeetTouchLastY.current === null) return;
+    const y = e.touches[0].clientY;
+    const delta = heightFeetTouchLastY.current - y;
+    if (Math.abs(delta) >= 8) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleFeetStep(Math.sign(delta));
+      heightFeetTouchLastY.current = y;
+    }
+  };
+
+  const handleFeetTouchEnd = () => {
+    heightFeetTouchLastY.current = null;
+  };
+
   const handleInchesChange = (e) => {
     const raw = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
     const nextInches = raw === '' ? 0 : clamp(Number(raw), 0, 11);
@@ -178,10 +224,48 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
     setHeight(Math.round(totalInches * 2.54));
   };
 
+  const handleInchesStep = (delta) => {
+    setHeightInches((prev) => {
+      const nextInches = clamp(prev + delta, 0, 11);
+      const totalInches = clamp(heightFeet * 12 + nextInches, 47, 91);
+      setHeight(Math.round(totalInches * 2.54));
+      return nextInches;
+    });
+  };
+
+  const handleInchesWheel = (e) => {
+    if (heightUnit !== 'Ft/In') return;
+    e.preventDefault();
+    e.stopPropagation();
+    const delta = e.deltaY > 0 ? 1 : -1;
+    handleInchesStep(delta);
+  };
+
+  const handleInchesTouchStart = (e) => {
+    if (heightUnit !== 'Ft/In') return;
+    heightInchesTouchLastY.current = e.touches[0].clientY;
+  };
+
+  const handleInchesTouchMove = (e) => {
+    if (heightUnit !== 'Ft/In' || heightInchesTouchLastY.current === null) return;
+    const y = e.touches[0].clientY;
+    const delta = heightInchesTouchLastY.current - y;
+    if (Math.abs(delta) >= 8) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleInchesStep(Math.sign(delta));
+      heightInchesTouchLastY.current = y;
+    }
+  };
+
+  const handleInchesTouchEnd = () => {
+    heightInchesTouchLastY.current = null;
+  };
+
   const parsedWeight = Number.parseInt(weight, 10);
-  const weightForIndicator = Number.isNaN(parsedWeight) ? 50 : clamp(parsedWeight, 0, 100);
+  const weightForIndicator = Number.isNaN(parsedWeight) ? 0 : clamp(parsedWeight, 0, 100);
   const indicatorProgress = weightForIndicator / 100;
-  const indicatorAngle = -85 + (indicatorProgress * 170);
+  const indicatorAngle = -90 + (indicatorProgress * 180);
 
   const getQuestionText = (keys, fallback) => {
     const match = questions.find((question) => keys.includes(String(question?.question_key || '').toLowerCase()));
@@ -230,7 +314,13 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
           <div className="anthropometry-page__arrow-wrap"><AnthropometryTriangleArrow direction="right" /></div>
           {heightUnit === 'Ft/In' ? (
             <div className="anthropometry-page__height-dual-boxes">
-              <div className="anthropometry-page__selected-box anthropometry-page__selected-box--height-dual">
+              <div
+                className="anthropometry-page__selected-box anthropometry-page__selected-box--height-dual anthropometry-page__height-dual-scroll"
+                onWheel={handleFeetWheel}
+                onTouchStart={handleFeetTouchStart}
+                onTouchMove={handleFeetTouchMove}
+                onTouchEnd={handleFeetTouchEnd}
+              >
                 <input
                   type="text"
                   inputMode="numeric"
@@ -242,7 +332,13 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
                 />
                 <span className="anthropometry-page__height-dual-mark">'</span>
               </div>
-              <div className="anthropometry-page__selected-box anthropometry-page__selected-box--height-dual">
+              <div
+                className="anthropometry-page__selected-box anthropometry-page__selected-box--height-dual anthropometry-page__height-dual-scroll"
+                onWheel={handleInchesWheel}
+                onTouchStart={handleInchesTouchStart}
+                onTouchMove={handleInchesTouchMove}
+                onTouchEnd={handleInchesTouchEnd}
+              >
                 <input
                   type="text"
                   inputMode="numeric"
@@ -294,7 +390,19 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
         </div>
       </div>
 
-      <p className="anthropometry-page__question anthropometry-page__question--low">{waistQuestion}</p>
+      <div className="anthropometry-page__question-row anthropometry-page__question-row--low">
+        <p className="anthropometry-page__question anthropometry-page__question--inline">{waistQuestion}</p>
+        <button
+          type="button"
+          className="anthropometry-page__info-btn"
+          aria-label="Open waist size information"
+          onClick={() => setShowWaistInfoPopup((prev) => !prev)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M7 0C8.85652 0 10.637 0.737498 11.9497 2.05025C13.2625 3.36301 14 5.14348 14 7C14 8.85652 13.2625 10.637 11.9497 11.9497C10.637 13.2625 8.85652 14 7 14C5.14348 14 3.36301 13.2625 2.05025 11.9497C0.737498 10.637 0 8.85652 0 7C0 5.14348 0.737498 3.36301 2.05025 2.05025C3.36301 0.737498 5.14348 0 7 0ZM8.05 4.29688C8.57031 4.29688 8.99219 3.9375 8.99219 3.40156C8.99219 2.86563 8.57031 2.50625 8.05 2.50625C7.52969 2.50625 7.10938 2.86563 7.10938 3.40156C7.10938 3.9375 7.53125 4.29844 8.05 4.29844M8.23281 9.925C8.23281 9.81875 8.27031 9.54063 8.24844 9.38125L7.42656 10.3281C7.25625 10.5063 7.04375 10.6312 6.94375 10.5984C6.89862 10.5816 6.86096 10.5492 6.83749 10.5071C6.81403 10.4651 6.80627 10.416 6.81563 10.3687L8.18437 6.04063C8.29688 5.49062 7.98906 4.99062 7.33594 4.92656C6.64844 4.92656 5.63281 5.625 5.01562 6.5125C5.01562 6.61875 4.99531 6.88125 5.01562 7.04062L5.8375 6.09375C6.00938 5.91563 6.20625 5.79062 6.30625 5.825C6.35491 5.84336 6.39467 5.87968 6.41734 5.92648C6.44002 5.97328 6.44387 6.027 6.42812 6.07656L5.06875 10.3844C4.9125 10.8875 5.20937 11.3812 5.92969 11.4937C6.99062 11.4937 7.61719 10.8125 8.23438 9.925H8.23281Z" fill="white"/>
+          </svg>
+        </button>
+      </div>
       <div
         className="anthropometry-page__box anthropometry-page__waist-box"
         onWheel={handleWaistWheel}
@@ -305,19 +413,42 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
         <AnthropometryUnitDropdown value={waistUnit} options={['In', 'Cm']} onChange={setWaistUnit} />
         <div className="anthropometry-page__arrow-wrap"><AnthropometryTriangleArrow direction="down" /></div>
         <div className="anthropometry-page__waist-h-row">
-          <span className="anthropometry-page__faded anthropometry-page__faded--inline">{waist - 2}</span>
-          <span className="anthropometry-page__faded anthropometry-page__faded--inline">{waist - 1}</span>
+          <span className="anthropometry-page__faded anthropometry-page__faded--inline anthropometry-page__faded--far">{waist - 2}</span>
+          <span className="anthropometry-page__faded anthropometry-page__faded--inline anthropometry-page__faded--near">{waist - 1}</span>
           <div className="anthropometry-page__selected-box">
             <span className="anthropometry-page__selected-value">{waist}</span>
           </div>
-          <span className="anthropometry-page__faded anthropometry-page__faded--inline">{waist + 1}</span>
-          <span className="anthropometry-page__faded anthropometry-page__faded--inline">{waist + 2}</span>
+          <span className="anthropometry-page__faded anthropometry-page__faded--inline anthropometry-page__faded--near">{waist + 1}</span>
+          <span className="anthropometry-page__faded anthropometry-page__faded--inline anthropometry-page__faded--far">{waist + 2}</span>
         </div>
         <div className="anthropometry-page__arrow-wrap"><AnthropometryTriangleArrow direction="up" /></div>
       </div>
+
       </div>
 
       <button type="button" className="anthropometry-page__continue" onClick={onContinue}>Continue</button>
+
+      {showWaistInfoPopup ? (
+        <div className="family-history-page__info-popup anthropometry-page__waist-info-popup" role="dialog" aria-label="Waist size information">
+          <div className="family-history-page__info-handle" aria-hidden="true" />
+          <button
+            type="button"
+            className="family-history-page__info-close"
+            onClick={() => setShowWaistInfoPopup(false)}
+            aria-label="Close waist size information"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M12 4L4 12M4 4L12 12" stroke="#9A9A9A" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+
+          <div
+            className="anthropometry-page__waist-info-gif"
+            style={{ backgroundImage: `url(${waistGif})` }}
+            aria-label="Waist size guide"
+          />
+        </div>
+      ) : null}
     </div>
   );
 };
@@ -360,6 +491,7 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone }) => {
   const [hipSize, setHipSize] = useState(33);
   const [bodyFat, setBodyFat] = useState(45);
   const [hipUnit, setHipUnit] = useState('in');
+  const [showHipInfoPopup, setShowHipInfoPopup] = useState(false);
   const hipTouchLastX = useRef(null);
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -403,7 +535,19 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone }) => {
       </p>
 
       <div className="anthropometry-followup-page__content">
-      <p className="anthropometry-followup-page__question anthropometry-followup-page__question--hip">What is your hip size?</p>
+      <div className="anthropometry-followup-page__question-row anthropometry-followup-page__question-row--hip">
+        <p className="anthropometry-followup-page__question anthropometry-followup-page__question--inline">What is your hip size?</p>
+        <button
+          type="button"
+          className="anthropometry-followup-page__info-btn"
+          aria-label="Open hip size information"
+          onClick={() => setShowHipInfoPopup((prev) => !prev)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M7 0C8.85652 0 10.637 0.737498 11.9497 2.05025C13.2625 3.36301 14 5.14348 14 7C14 8.85652 13.2625 10.637 11.9497 11.9497C10.637 13.2625 8.85652 14 7 14C5.14348 14 3.36301 13.2625 2.05025 11.9497C0.737498 10.637 0 8.85652 0 7C0 5.14348 0.737498 3.36301 2.05025 2.05025C3.36301 0.737498 5.14348 0 7 0ZM8.05 4.29688C8.57031 4.29688 8.99219 3.9375 8.99219 3.40156C8.99219 2.86563 8.57031 2.50625 8.05 2.50625C7.52969 2.50625 7.10938 2.86563 7.10938 3.40156C7.10938 3.9375 7.53125 4.29844 8.05 4.29844M8.23281 9.925C8.23281 9.81875 8.27031 9.54063 8.24844 9.38125L7.42656 10.3281C7.25625 10.5063 7.04375 10.6312 6.94375 10.5984C6.89862 10.5816 6.86096 10.5492 6.83749 10.5071C6.81403 10.4651 6.80627 10.416 6.81563 10.3687L8.18437 6.04063C8.29688 5.49062 7.98906 4.99062 7.33594 4.92656C6.64844 4.92656 5.63281 5.625 5.01562 6.5125C5.01562 6.61875 4.99531 6.88125 5.01562 7.04062L5.8375 6.09375C6.00938 5.91563 6.20625 5.79062 6.30625 5.825C6.35491 5.84336 6.39467 5.87968 6.41734 5.92648C6.44002 5.97328 6.44387 6.027 6.42812 6.07656L5.06875 10.3844C4.9125 10.8875 5.20937 11.3812 5.92969 11.4937C6.99062 11.4937 7.61719 10.8125 8.23438 9.925H8.23281Z" fill="white"/>
+          </svg>
+        </button>
+      </div>
       <div
         className="anthropometry-followup-page__box anthropometry-followup-page__hip-box"
         onWheel={handleHipWheel}
@@ -414,13 +558,13 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone }) => {
         <FollowupUnitDropdown value={hipUnit} options={['In', 'Cm']} onChange={setHipUnit} />
         <div className="anthropometry-followup-page__arrow-wrap"><AnthropometryTriangleArrow direction="down" /></div>
         <div className="anthropometry-followup-page__hip-h-row">
-          <span className="anthropometry-followup-page__faded">{hipSize - 2}</span>
-          <span className="anthropometry-followup-page__faded">{hipSize - 1}</span>
+          <span className="anthropometry-followup-page__faded anthropometry-followup-page__faded--far">{hipSize - 2}</span>
+          <span className="anthropometry-followup-page__faded anthropometry-followup-page__faded--near">{hipSize - 1}</span>
           <div className="anthropometry-followup-page__selected-box">
             <span className="anthropometry-followup-page__selected-value">{hipSize}</span>
           </div>
-          <span className="anthropometry-followup-page__faded">{hipSize + 1}</span>
-          <span className="anthropometry-followup-page__faded">{hipSize + 2}</span>
+          <span className="anthropometry-followup-page__faded anthropometry-followup-page__faded--near">{hipSize + 1}</span>
+          <span className="anthropometry-followup-page__faded anthropometry-followup-page__faded--far">{hipSize + 2}</span>
         </div>
         <div className="anthropometry-followup-page__arrow-wrap"><AnthropometryTriangleArrow direction="up" /></div>
       </div>
@@ -428,22 +572,52 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone }) => {
       <p className="anthropometry-followup-page__question anthropometry-followup-page__question--fat">What is you body-fat percent ?</p>
       <div className="anthropometry-followup-page__box anthropometry-followup-page__fat-box">
         <div className="anthropometry-followup-page__fat-value">{bodyFat}%</div>
-        <input
-          className="anthropometry-followup-page__fat-slider"
-          type="range"
-          min="5"
-          max="70"
-          value={bodyFat}
-          onChange={(e) => setBodyFat(Number(e.target.value))}
-          style={{ '--val': bodyFat }}
-          aria-label="Body fat percentage"
-        />
+        <div
+          className="anthropometry-followup-page__fat-slider-wrap"
+          style={{
+            '--fat-progress': (bodyFat - 5) / 65,
+            '--fat-thumb-size': '14px',
+            '--fat-red-edge-offset': '4px',
+          }}
+        >
+          <input
+            className="anthropometry-followup-page__fat-slider"
+            type="range"
+            min="5"
+            max="70"
+            value={bodyFat}
+            onChange={(e) => setBodyFat(Number(e.target.value))}
+            aria-label="Body fat percentage"
+          />
+        </div>
       </div>
 
       <button type="button" className="anthropometry-followup-page__skip" onClick={onDone}>Skip</button>
       </div>
 
       <button type="button" className="anthropometry-followup-page__done" onClick={onDone}>Done</button>
+
+      {showHipInfoPopup ? (
+        <div className="family-history-page__info-popup anthropometry-followup-page__hip-info-popup" role="dialog" aria-label="Hip size information">
+          <div className="family-history-page__info-handle" aria-hidden="true" />
+          <button
+            type="button"
+            className="family-history-page__info-close"
+            onClick={() => setShowHipInfoPopup(false)}
+            aria-label="Close hip size information"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M12 4L4 12M4 4L12 12" stroke="#9A9A9A" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+
+          <div
+            className="anthropometry-followup-page__hip-info-gif"
+            style={{ backgroundImage: `url(${hipGif})` }}
+            aria-label="Hip size guide"
+          />
+        </div>
+      ) : null}
     </div>
   );
 };
@@ -535,7 +709,7 @@ const toFamilyApiCards = (questions = []) => {
   });
 };
 
-const shouldUseFullWidthOption = (label) => String(label || '').length > 25;
+const shouldUseFullWidthOption = (label) => String(label || '').length > 20;
 
 const normalizeInfoLines = (infoLines = []) => {
   return infoLines.flatMap((line) => {

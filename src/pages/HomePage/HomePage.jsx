@@ -90,9 +90,9 @@ const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealt
       {/* Health Parameters Section */}
       <HealthParametersSection 
         data={[
-          { percentage: 75, label: 'Lifestyle score' },
+          { percentage: 20, label: 'Fitness score' },
           { percentage: 45, label: 'Nutrition score' },
-          { percentage: 20, label: 'Fitness score' }
+          { percentage: 75, label: 'Lifestyle score' }
         ]}
         onSeeMore={handleHealthScanSeeMore}
         onCardClick={handleHealthScanCircleClick}

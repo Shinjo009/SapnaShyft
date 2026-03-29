@@ -448,7 +448,7 @@
 /* Responsive adjustments */
 @media (max-width: 480px) {
   .health-scan-page__content {
-    padding-top: 8px;
+    padding-top: 24px;
   }
 
   .health-scan-page__header {

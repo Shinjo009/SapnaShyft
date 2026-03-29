@@ -15,8 +15,8 @@
 
 .positive-wins__header-icon-box {
   display: flex;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   justify-content: center;
   align-items: center;
   aspect-ratio: 1 / 1;
@@ -29,7 +29,7 @@
 .positive-wins__header-copy {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 5px;
 }
 
 .positive-wins__title {
@@ -58,6 +58,8 @@
   --positive-wins-front-left: 14px;
   --positive-wins-back-one-left: 0px;
   --positive-wins-back-two-left: -14px;
+  --positive-wins-back-one-fade: 0.42;
+  --positive-wins-back-two-fade: 0.68;
   position: relative;
   margin-top: 20px;
   width: calc(100% - 30px);
@@ -84,12 +86,11 @@
   backdrop-filter: blur(40px);
   box-sizing: border-box;
   overflow: hidden;
-  will-change: transform, opacity;
+  will-change: transform;
   backface-visibility: hidden;
   transition:
     left 680ms cubic-bezier(0.19, 1, 0.22, 1),
-    transform 680ms cubic-bezier(0.19, 1, 0.22, 1),
-    opacity 620ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform 680ms cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .positive-wins__stack[data-dragging='true'] .positive-wins__stack-card {
@@ -110,6 +111,16 @@
   pointer-events: none;
 }
 
+.positive-wins__stack-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(4, 10, 9, 0.35) 0%, rgba(4, 10, 9, 0.72) 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 620ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .positive-wins__stack-card--front {
   top: 0;
   transform: translate3d(var(--positive-wins-drag-x), 0, 0);
@@ -122,8 +133,11 @@
   top: 0;
   transform: translate3d(0, 0, 0);
   z-index: 2;
-  opacity: 1;
   pointer-events: none;
+}
+
+.positive-wins__stack-card--back-one::after {
+  opacity: var(--positive-wins-back-one-fade);
 }
 
 .positive-wins__stack-card--back-two {
@@ -131,8 +145,11 @@
   top: 0;
   transform: translate3d(0, 0, 0);
   z-index: 1;
-  opacity: 1;
   pointer-events: none;
+}
+
+.positive-wins__stack-card--back-two::after {
+  opacity: var(--positive-wins-back-two-fade);
 }
 
 .positive-wins__stack-card--hidden {
@@ -156,42 +173,60 @@
   left: var(--positive-wins-back-two-left);
   transform: translate3d(0, 0, 0);
   z-index: 1;
-  opacity: 1;
+}
+
+.positive-wins__stack--moving-next .positive-wins__stack-card--front::after {
+  opacity: var(--positive-wins-back-two-fade);
 }
 
 .positive-wins__stack--moving-next .positive-wins__stack-card--back-one {
   left: var(--positive-wins-front-left);
   transform: translate3d(0, 0, 0);
   z-index: 4;
-  opacity: 1;
+}
+
+.positive-wins__stack--moving-next .positive-wins__stack-card--back-one::after {
+  opacity: 0;
 }
 
 .positive-wins__stack--moving-next .positive-wins__stack-card--back-two {
   left: var(--positive-wins-back-one-left);
   transform: translate3d(0, 0, 0);
   z-index: 2;
-  opacity: 1;
+}
+
+.positive-wins__stack--moving-next .positive-wins__stack-card--back-two::after {
+  opacity: var(--positive-wins-back-one-fade);
 }
 
 .positive-wins__stack--moving-prev .positive-wins__stack-card--front {
   left: var(--positive-wins-back-two-left);
   transform: translate3d(0, 0, 0);
   z-index: 1;
-  opacity: 1;
+}
+
+.positive-wins__stack--moving-prev .positive-wins__stack-card--front::after {
+  opacity: var(--positive-wins-back-two-fade);
 }
 
 .positive-wins__stack--moving-prev .positive-wins__stack-card--back-one {
   left: var(--positive-wins-front-left);
   transform: translate3d(0, 0, 0);
   z-index: 4;
-  opacity: 1;
+}
+
+.positive-wins__stack--moving-prev .positive-wins__stack-card--back-one::after {
+  opacity: 0;
 }
 
 .positive-wins__stack--moving-prev .positive-wins__stack-card--back-two {
   left: var(--positive-wins-back-one-left);
   transform: translate3d(0, 0, 0);
   z-index: 2;
-  opacity: 1;
+}
+
+.positive-wins__stack--moving-prev .positive-wins__stack-card--back-two::after {
+  opacity: var(--positive-wins-back-one-fade);
 }
 
 .positive-wins__card-top-row,
@@ -261,7 +296,7 @@
 }
 
 .positive-wins__risk-title {
-  margin: 0;
+  margin-top: 2px;
   color: #fff;
   font-family: Lato, sans-serif;
   font-size: 20px;

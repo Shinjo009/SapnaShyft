@@ -1,5 +1,5 @@
 import './App.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import LoginPage from './pages/LoginPage';
 import OTPPage from './pages/OTPPage';
 import SignupPage from './pages/SignupPage';
@@ -53,6 +53,17 @@ function App() {
   const [linkedAccounts, setLinkedAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const appScrollRef = useRef(null);
+
+  useEffect(() => {
+    if (appScrollRef.current) {
+      appScrollRef.current.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
+
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [currentPage]);
 
   const getProgressFromCategories = (categories) => {
     let completedCount = 0;
@@ -402,7 +413,7 @@ function App() {
           </div>
         </div>
       )}
-      <div className="app-scroll">
+      <div className="app-scroll" ref={appScrollRef}>
       {currentPage === 'login' && (
         <LoginPage 
           onSuccess={handleSendOtp}

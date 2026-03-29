@@ -10,9 +10,9 @@ import CircularProgressCard from '../CircularProgressCard';
  * - onSeeMore: Callback when "See more" is clicked
  */
 const HealthParametersSection = ({ data = [
-  { percentage: 100, label: 'Lifestyle score' },
+  { percentage: 75, label: 'Fitness score' },
   { percentage: 75, label: 'Nutrition score' },
-  { percentage: 75, label: 'Fitness score' }
+  { percentage: 100, label: 'Lifestyle score' }
 ], onSeeMore, onCardClick }) => {
   const handleSeeMore = (e) => {
     e.preventDefault();

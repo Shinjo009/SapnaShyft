@@ -2,7 +2,7 @@
   height: 100vh;
   width: 100%;
   box-sizing: border-box;
-  padding-top: 44px;
+  padding-top: 56px;
   display: flex;
   flex-direction: column;
   overscroll-behavior: none;
@@ -441,6 +441,54 @@
   margin-top: 16px;
 }
 
+.anthropometry-page__question-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.anthropometry-page__question-row--low {
+  margin-top: 16px;
+}
+
+.anthropometry-page__question--inline {
+  margin-top: 0;
+}
+
+.anthropometry-page__info-btn {
+  position: absolute;
+  right: 45px;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.anthropometry-page__info-btn svg {
+  display: block;
+}
+
+.anthropometry-page__waist-info-gif {
+  width: 200px;
+  height: 200px;
+  margin-top: 18px;
+  aspect-ratio: 1 / 1;
+  background-position: 50%;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.anthropometry-page__waist-info-popup {
+  z-index: 120;
+}
+
 .anthropometry-page__box {
   margin: 12px 45px 0 45px;
   border-radius: 16px;
@@ -568,6 +616,14 @@
   min-width: 24px;
 }
 
+.anthropometry-page__faded--near {
+  font-size: 20px;
+}
+
+.anthropometry-page__faded--far {
+  font-size: 16px;
+}
+
 .anthropometry-page__row-centered {
   display: flex;
   align-items: center;
@@ -639,8 +695,9 @@
   height: 25px;
 }
 
-.anthropometry-page__indicator svg {
-  transition: transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+.anthropometry-page__indicator-needle {
+  transition: transform 1600ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .anthropometry-page__waist-row {
@@ -728,11 +785,22 @@
   gap: 0;
 }
 
+.anthropometry-page__height-dual-scroll {
+  touch-action: none;
+}
+
 .anthropometry-page__height-dual-input {
   width: 100%;
+  height: 24px;
+  display: block;
+  margin: 0;
+  padding: 0;
   border: none;
   outline: none;
   background: transparent;
+  line-height: 24px;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
   appearance: textfield;
   -moz-appearance: textfield;
 }
@@ -886,6 +954,40 @@
 
 .anthropometry-followup-page__question--hip {
   margin-top: 16px;
+}
+
+.anthropometry-followup-page__question-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.anthropometry-followup-page__question-row--hip {
+  margin-top: 16px;
+}
+
+.anthropometry-followup-page__question--inline {
+  margin-top: 0;
+}
+
+.anthropometry-followup-page__info-btn {
+  position: absolute;
+  right: 45px;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.anthropometry-followup-page__info-btn svg {
+  display: block;
 }
 
 .anthropometry-followup-page__question--fat {
@@ -1050,6 +1152,14 @@
   line-height: 25.38px;
 }
 
+.anthropometry-followup-page__faded--near {
+  font-size: 20px;
+}
+
+.anthropometry-followup-page__faded--far {
+  font-size: 16px;
+}
+
 .anthropometry-followup-page__selected-box {
   display: inline-flex;
   min-width: 52px;
@@ -1065,28 +1175,62 @@
   margin-top: 14px;
 }
 
-.anthropometry-followup-page__fat-slider {
+.anthropometry-followup-page__fat-slider-wrap {
+  position: relative;
   margin-top: 24px;
   margin-left: 12px;
   margin-right: 12px;
   width: calc(100% - 24px);
-  height: 23px;
-  appearance: none;
+  height: 24px;
   border-radius: 100px;
   border: 1px solid rgba(204, 32, 59, 0.8);
   background: rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.anthropometry-followup-page__hip-info-gif {
+  width: 200px;
+  height: 200px;
+  margin-top: 18px;
+  aspect-ratio: 1 / 1;
+  background-position: 50%;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.anthropometry-followup-page__hip-info-popup {
+  z-index: 120;
+}
+
+.anthropometry-followup-page__fat-slider-wrap::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: calc((100% - var(--fat-thumb-size, 14px)) * var(--fat-progress, 0.6154) + var(--fat-thumb-size, 14px) + var(--fat-red-edge-offset, 4px));
+  background: rgba(204, 32, 59, 0.85);
+  border-radius: 100px;
+  pointer-events: none;
+}
+
+.anthropometry-followup-page__fat-slider {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  appearance: none;
+  border: none;
+  border-radius: 100px;
+  background: transparent;
   outline: none;
 }
 
 .anthropometry-followup-page__fat-slider::-webkit-slider-runnable-track {
-  height: 23px;
+  height: 24px;
   border-radius: 100px;
-  background: linear-gradient(
-    90deg,
-    rgba(204, 32, 59, 0.85) 0%,
-    rgba(204, 32, 59, 0.85) calc((var(--val, 45) - 5) * 100% / 65),
-    rgba(0, 0, 0, 0) calc((var(--val, 45) - 5) * 100% / 65)
-  );
+  background: transparent;
 }
 
 .anthropometry-followup-page__fat-slider::-webkit-slider-thumb {
@@ -1102,16 +1246,16 @@
 }
 
 .anthropometry-followup-page__fat-slider::-moz-range-track {
-  height: 23px;
+  height: 24px;
   border-radius: 100px;
-  border: 1px solid rgba(204, 32, 59, 0.8);
-  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  background: transparent;
 }
 
 .anthropometry-followup-page__fat-slider::-moz-range-progress {
-  height: 23px;
+  height: 24px;
   border-radius: 100px;
-  background: rgba(204, 32, 59, 0.85);
+  background: transparent;
 }
 
 .anthropometry-followup-page__fat-slider::-moz-range-thumb {

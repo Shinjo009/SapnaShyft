@@ -36,8 +36,8 @@
 
 .risk-analysis-wins__header-icon-box {
   display: flex;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   justify-content: center;
   align-items: center;
   aspect-ratio: 1 / 1;
@@ -76,6 +76,11 @@
 .risk-analysis-wins__stack {
   --risk-analysis-wins-card-height: 202px;
   --risk-analysis-wins-drag-x: 0px;
+  --risk-analysis-wins-front-left: 14px;
+  --risk-analysis-wins-back-one-left: 0px;
+  --risk-analysis-wins-back-two-left: -14px;
+  --risk-analysis-wins-back-one-fade: 0.42;
+  --risk-analysis-wins-back-two-fade: 0.68;
   position: relative;
   margin-top: 20px;
   width: calc(100% - 30px);
@@ -88,23 +93,23 @@
 
 .risk-analysis-wins__stack-card {
   position: absolute;
-  left: 0;
+  left: var(--risk-analysis-wins-front-left);
   width: 100%;
   top: 0;
   height: var(--risk-analysis-wins-card-height);
   border-radius: 24px;
   display: block;
   padding: 24px;
-  border: 1px solid rgba(233, 93, 92, 0.1);
-  background: linear-gradient(110deg, #3e2e2d -0.8%, #101413 100.17%);
+  border: 1px solid rgba(233, 93, 92, 0.35);
+  background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(233, 93, 92, 0.05) 100%);
+  backdrop-filter: blur(40px);
   box-sizing: border-box;
   overflow: hidden;
-  will-change: transform, opacity;
+  will-change: transform;
   backface-visibility: hidden;
   transition:
-    left 560ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    width 560ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    transform 560ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    left 680ms cubic-bezier(0.19, 1, 0.22, 1),
+    transform 680ms cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .risk-analysis-wins__stack[data-dragging='true'] .risk-analysis-wins__stack-card {
@@ -113,7 +118,8 @@
 }
 
 .risk-analysis-wins__stack[data-resetting='true'] .risk-analysis-wins__stack-card {
-  transition: none;
+  transition-property: left, transform;
+  transition-duration: 0ms;
 }
 
 .risk-analysis-wins__stack-card::before {
@@ -124,111 +130,127 @@
   pointer-events: none;
 }
 
+.risk-analysis-wins__stack-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(8, 5, 5, 0.35) 0%, rgba(8, 5, 5, 0.72) 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 620ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .risk-analysis-wins__stack-card--front {
   top: 0;
   transform: translate3d(var(--risk-analysis-wins-drag-x), 0, 0);
   z-index: 3;
-  border-color: rgba(233, 93, 92, 0.35);
-  background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(233, 93, 92, 0.05) 100%);
-  opacity: 1;
 }
 
 .risk-analysis-wins__stack-card--back-one {
-  left: -7px;
-  width: calc(100% + 14px);
+  left: var(--risk-analysis-wins-back-one-left);
   top: 0;
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: translate3d(0, 0, 0);
   z-index: 2;
-  border: 1px solid rgba(233, 93, 92, 0.2);
-  background: radial-gradient(192.2% 117.1% at 0% 0%, rgba(233, 93, 92, 0.15) 0%, rgba(233, 93, 92, 0) 70%);
-  opacity: 1;
   pointer-events: none;
+}
+
+.risk-analysis-wins__stack-card--back-one::after {
+  opacity: var(--risk-analysis-wins-back-one-fade);
 }
 
 .risk-analysis-wins__stack-card--back-two {
-  left: -14px;
-  width: calc(100% + 28px);
+  left: var(--risk-analysis-wins-back-two-left);
   top: 0;
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: translate3d(0, 0, 0);
   z-index: 1;
-  border: 1px solid rgba(233, 93, 92, 0.2);
-  background: radial-gradient(192.2% 117.1% at 0% 0%, rgba(233, 93, 92, 0.15) 0%, rgba(233, 93, 92, 0) 70%);
-  opacity: 1;
   pointer-events: none;
 }
 
+.risk-analysis-wins__stack-card--back-two::after {
+  opacity: var(--risk-analysis-wins-back-two-fade);
+}
+
 .risk-analysis-wins__stack-card--hidden {
-  left: 0;
-  width: 100%;
+  left: var(--risk-analysis-wins-front-left);
   top: 0;
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: translate3d(0, 0, 0);
   z-index: 0;
   opacity: 0;
   pointer-events: none;
 }
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--hidden {
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: translate3d(0, 0, 0);
 }
 
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--hidden {
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: translate3d(0, 0, 0);
 }
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--front {
-  transform: translate3d(-112%, 0, 0);
+  left: var(--risk-analysis-wins-back-two-left);
+  transform: translate3d(0, 0, 0);
+  z-index: 1;
+}
+
+.risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--front::after {
+  opacity: var(--risk-analysis-wins-back-two-fade);
 }
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-one {
-  left: 0;
-  width: 100%;
+  left: var(--risk-analysis-wins-front-left);
   transform: translate3d(0, 0, 0);
   z-index: 4;
+}
+
+.risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-one::after {
+  opacity: 0;
 }
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-two {
-  left: -7px;
-  width: calc(100% + 14px);
+  left: var(--risk-analysis-wins-back-one-left);
   transform: translate3d(0, 0, 0);
+  z-index: 2;
+}
+
+.risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-two::after {
+  opacity: var(--risk-analysis-wins-back-one-fade);
 }
 
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--front {
-  transform: translate3d(112%, 0, 0);
+  left: var(--risk-analysis-wins-back-two-left);
+  transform: translate3d(0, 0, 0);
+  z-index: 1;
+}
+
+.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--front::after {
+  opacity: var(--risk-analysis-wins-back-two-fade);
 }
 
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-one {
-  left: 0;
-  width: 100%;
+  left: var(--risk-analysis-wins-front-left);
   transform: translate3d(0, 0, 0);
   z-index: 4;
 }
 
+.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-one::after {
+  opacity: 0;
+}
+
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-two {
-  left: -7px;
-  width: calc(100% + 14px);
+  left: var(--risk-analysis-wins-back-one-left);
   transform: translate3d(0, 0, 0);
+  z-index: 2;
+}
+
+.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-two::after {
+  opacity: var(--risk-analysis-wins-back-one-fade);
 }
 
 .risk-analysis-wins__card-top-row,
 .risk-analysis-wins__card-content {
   position: relative;
   z-index: 1;
-  opacity: 1;
-}
-
-.risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-top-row,
-.risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-content,
-.risk-analysis-wins__stack-card--back-two .risk-analysis-wins__card-top-row,
-.risk-analysis-wins__stack-card--back-two .risk-analysis-wins__card-content,
-.risk-analysis-wins__stack-card--hidden .risk-analysis-wins__card-top-row,
-.risk-analysis-wins__stack-card--hidden .risk-analysis-wins__card-content {
-  opacity: 0;
-}
-
-.risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-top-row,
-.risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-content,
-.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-top-row,
-.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-one .risk-analysis-wins__card-content {
   opacity: 1;
 }
 
@@ -242,15 +264,14 @@
 
 .risk-analysis-wins__badge-icon {
   display: flex;
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   justify-content: center;
   align-items: center;
-  aspect-ratio: 1 / 1;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.10);
-  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  border: 1px solid rgba(233, 93, 92, 0.15);
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.00) 0%, rgba(0, 0, 0, 0.00) 100%);
+  box-shadow: 0 4px 12px 0 rgba(16, 185, 129, 0.10);
   flex-shrink: 0;
 }
 
@@ -315,12 +336,27 @@
   height: 46px;
   position: relative;
   margin-top: 5px;
+  overflow: hidden;
+}
+
+.risk-analysis-wins__dial-dots {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 60px;
+  display: block;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .risk-analysis-wins__dial {
   width: 89px;
   height: 44px;
   display: block;
+  position: relative;
+  z-index: 1;
 }
 
 .risk-analysis-wins__dial-track {
@@ -341,6 +377,7 @@
   left: 50%;
   top: 28px;
   transform: translateX(-50%);
+  z-index: 2;
   display: inline-flex;
   align-items: baseline;
   gap: 2px;
@@ -408,7 +445,7 @@
   object-fit: contain;
   display: block;
   position: absolute;
-  right: 0;
+  right: 6px;
   bottom: 0;
   margin: 0;
   pointer-events: none;
