@@ -7,7 +7,7 @@ import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/P
 import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 
-const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealthScanTab, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers, onNavigateToPackages }) => {
+const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealthScanTab, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers, onNavigateToPackages, onNavigateToDoctors }) => {
   const handleMenuClick = () => {
     console.log('Menu clicked');
     if (onNavigateToProfile) {
@@ -26,6 +26,11 @@ const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealt
     console.log('Navigating to:', itemId);
     if (itemId === 'packages' && onNavigateToPackages) {
       onNavigateToPackages();
+      return;
+    }
+
+    if (itemId === 'super-club' && onNavigateToDoctors) {
+      onNavigateToDoctors();
       return;
     }
 

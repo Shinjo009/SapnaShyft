@@ -1,0 +1,453 @@
+.doctors-page {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.doctors-page__fixed-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 68;
+  padding: 39px 16px 0;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(6, 20, 27, 0.46) 0%, rgba(6, 20, 27, 0.3) 70%, rgba(6, 20, 27, 0) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow: visible;
+}
+
+.doctors-page__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  box-sizing: border-box;
+  height: 56px;
+  position: static;
+  margin-top: 0;
+}
+
+.doctors-page__header-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+}
+
+.doctors-page__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.doctors-page__icon-btn {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doctors-page__icon-btn svg {
+  width: 100%;
+  height: 100%;
+}
+
+.doctors-page__title {
+  color: #fff;
+  text-align: left;
+  font-family: Lato, sans-serif;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doctors-page__search-row {
+  margin-top: 0;
+  display: flex;
+  padding: 8px 12px;
+  align-items: center;
+  gap: 6px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.doctors-page__search-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.doctors-page__search-input::placeholder {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.doctors-page__search-input:focus {
+  outline: none;
+}
+
+.doctors-page__pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% + 32px);
+  margin-left: -16px;
+  margin-right: -16px;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 14px 10px 16px;
+  box-sizing: border-box;
+  scrollbar-width: none;
+}
+
+.doctors-page__pills::-webkit-scrollbar {
+  display: none;
+}
+
+.doctors-page__pill {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  padding: 8px 16px;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  border-radius: 30px;
+  border: 1px solid #999;
+  background: transparent;
+  color: #ccc;
+  text-align: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.doctors-page__pill.is-active {
+  gap: 12px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(144, 223, 158, 0.2);
+  box-shadow: 0 0 10px 0 rgba(144, 223, 158, 0.4);
+  color: #fff;
+  font-weight: 400;
+}
+
+.doctors-page__pill.is-active::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(144, 223, 158, 0.32) 0%, rgba(144, 223, 158, 0) 72%);
+  filter: blur(4px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.doctors-page__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 198px 16px 92px;
+  box-sizing: border-box;
+}
+
+.doctors-page__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.doctors-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.doctors-card__top {
+  display: flex;
+  padding: 16px 16px 12px 16px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  align-self: stretch;
+  background: linear-gradient(118deg, rgba(124, 58, 237, 0.17) 0.01%, rgba(47, 210, 176, 0.25) 99.99%);
+}
+
+.doctors-card__rating {
+  display: flex;
+  padding: 4px 8px;
+  align-items: center;
+  gap: 3.99px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.doctors-card__rating-text {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.doctors-card__avatars {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  align-self: stretch;
+  margin-top: 4px;
+}
+
+.doctors-card__avatar {
+  width: 68px;
+  height: 68px;
+  aspect-ratio: 1 / 1;
+  border-radius: 999px;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  background: lightgray;
+  object-fit: cover;
+}
+
+.doctors-card__title {
+  margin: 12px 0 0;
+  align-self: stretch;
+  color: #fff;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 22px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 26.4px;
+  letter-spacing: -0.22px;
+}
+
+.doctors-card__subtitle {
+  margin: 0;
+  align-self: stretch;
+  color: #90df9e;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 21px;
+}
+
+.doctors-card__bottom {
+  display: flex;
+  padding: 0 16px 16px 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  align-self: stretch;
+}
+
+.doctors-card__tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doctors-card__tag {
+  display: flex;
+  padding: 2px 8px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 30px;
+  border: 0.5px solid #c4c4c4;
+  color: #c4c4c4;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+}
+
+.doctors-card__metrics {
+  width: 100%;
+  display: flex;
+  padding: 0 6px;
+  justify-content: space-between;
+  align-items: stretch;
+  box-sizing: border-box;
+}
+
+.doctors-card__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.doctors-card__metric-value {
+  color: #90df9e;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+}
+
+.doctors-card__metric-label {
+  color: #c4c4c4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.doctors-card__metric-separator {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.doctors-card__cta {
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  align-self: stretch;
+  border-radius: 36px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 24px;
+  cursor: pointer;
+}
+
+.doctors-card--sarah {
+  display: flex;
+  padding: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  border-radius: 16px;
+  background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(47, 210, 176, 0.2) 99.99%);
+}
+
+.doctors-card__doctor-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  align-self: stretch;
+}
+
+.doctors-card__photo-wrap {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.doctors-card__photo {
+  width: 96px;
+  height: 96px;
+  border-radius: 20px;
+  object-fit: cover;
+  display: block;
+}
+
+.doctors-card__photo--nutritionist {
+  object-fit: cover;
+}
+
+.doctors-card__verified {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 24px;
+  height: 24px;
+}
+
+.doctors-card__doctor-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 96px;
+  justify-content: center;
+}
+
+.doctors-card__doctor-name {
+  margin: 0;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.doctors-card__doctor-role {
+  margin: 8px 0 0;
+  color: #90df9e;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0.35px;
+}
+
+.doctors-card__doctor-exp {
+  margin: 0;
+  color: #ccc;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.doctors-card--sarah .doctors-card__rating {
+  flex-shrink: 0;
+}
+
+.doctors-card--sarah .doctors-card__tags {
+  width: 100%;
+  flex-wrap: wrap;
+}

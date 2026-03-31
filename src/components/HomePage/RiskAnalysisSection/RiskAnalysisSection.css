@@ -74,11 +74,17 @@
 }
 
 .risk-analysis-wins__stack {
-  --risk-analysis-wins-card-height: 202px;
+  --risk-analysis-wins-card-height: 214px;
+  --risk-analysis-wins-card-width-boost: 12px;
   --risk-analysis-wins-drag-x: 0px;
-  --risk-analysis-wins-front-left: 14px;
-  --risk-analysis-wins-back-one-left: 0px;
-  --risk-analysis-wins-back-two-left: -14px;
+  --risk-analysis-wins-front-left: 2px;
+  --risk-analysis-wins-stack-gap: 8px;
+  --risk-analysis-wins-back-one-left: calc(var(--risk-analysis-wins-front-left) - var(--risk-analysis-wins-stack-gap));
+  --risk-analysis-wins-back-two-left: calc(var(--risk-analysis-wins-front-left) - (var(--risk-analysis-wins-stack-gap) * 2));
+  --risk-analysis-wins-front-top: 0px;
+  --risk-analysis-wins-back-one-top: var(--risk-analysis-wins-stack-gap);
+  --risk-analysis-wins-back-two-top: calc(var(--risk-analysis-wins-stack-gap) * 2);
+  --risk-analysis-wins-stack-tail: calc((var(--risk-analysis-wins-stack-gap) * 2) + 4px);
   --risk-analysis-wins-back-one-fade: 0.42;
   --risk-analysis-wins-back-two-fade: 0.68;
   position: relative;
@@ -86,7 +92,7 @@
   width: calc(100% - 30px);
   margin-left: auto;
   margin-right: auto;
-  height: var(--risk-analysis-wins-card-height);
+  height: calc(var(--risk-analysis-wins-card-height) + var(--risk-analysis-wins-stack-tail));
   overflow: visible;
   touch-action: pan-y;
 }
@@ -94,7 +100,7 @@
 .risk-analysis-wins__stack-card {
   position: absolute;
   left: var(--risk-analysis-wins-front-left);
-  width: 100%;
+  width: calc(100% + var(--risk-analysis-wins-card-width-boost));
   top: 0;
   height: var(--risk-analysis-wins-card-height);
   border-radius: 24px;
@@ -141,14 +147,14 @@
 }
 
 .risk-analysis-wins__stack-card--front {
-  top: 0;
+  top: var(--risk-analysis-wins-front-top);
   transform: translate3d(var(--risk-analysis-wins-drag-x), 0, 0);
   z-index: 3;
 }
 
 .risk-analysis-wins__stack-card--back-one {
   left: var(--risk-analysis-wins-back-one-left);
-  top: 0;
+  top: var(--risk-analysis-wins-back-one-top);
   transform: translate3d(0, 0, 0);
   z-index: 2;
   pointer-events: none;
@@ -160,7 +166,7 @@
 
 .risk-analysis-wins__stack-card--back-two {
   left: var(--risk-analysis-wins-back-two-left);
-  top: 0;
+  top: var(--risk-analysis-wins-back-two-top);
   transform: translate3d(0, 0, 0);
   z-index: 1;
   pointer-events: none;
@@ -172,7 +178,7 @@
 
 .risk-analysis-wins__stack-card--hidden {
   left: var(--risk-analysis-wins-front-left);
-  top: 0;
+  top: var(--risk-analysis-wins-front-top);
   transform: translate3d(0, 0, 0);
   z-index: 0;
   opacity: 0;
@@ -189,6 +195,7 @@
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--front {
   left: var(--risk-analysis-wins-back-two-left);
+  top: var(--risk-analysis-wins-back-two-top);
   transform: translate3d(0, 0, 0);
   z-index: 1;
 }
@@ -199,6 +206,7 @@
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-one {
   left: var(--risk-analysis-wins-front-left);
+  top: var(--risk-analysis-wins-front-top);
   transform: translate3d(0, 0, 0);
   z-index: 4;
 }
@@ -209,6 +217,7 @@
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-two {
   left: var(--risk-analysis-wins-back-one-left);
+  top: var(--risk-analysis-wins-back-one-top);
   transform: translate3d(0, 0, 0);
   z-index: 2;
 }
@@ -219,6 +228,7 @@
 
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--front {
   left: var(--risk-analysis-wins-back-two-left);
+  top: var(--risk-analysis-wins-back-two-top);
   transform: translate3d(0, 0, 0);
   z-index: 1;
 }
@@ -229,6 +239,7 @@
 
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-one {
   left: var(--risk-analysis-wins-front-left);
+  top: var(--risk-analysis-wins-front-top);
   transform: translate3d(0, 0, 0);
   z-index: 4;
 }
@@ -239,6 +250,7 @@
 
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-two {
   left: var(--risk-analysis-wins-back-one-left);
+  top: var(--risk-analysis-wins-back-one-top);
   transform: translate3d(0, 0, 0);
   z-index: 2;
 }

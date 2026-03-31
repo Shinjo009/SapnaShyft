@@ -40,7 +40,7 @@ const OpenIcon = () => (
 
 const FeatureChips = ['Biological Age', 'Kidney', 'Heart', '+ More'];
 
-const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustomPackage }) => {
+const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustomPackage, onNavigateToDoctors }) => {
   const [activeFilter, setActiveFilter] = useState('All');
   const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
 
@@ -61,6 +61,11 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
   const handleNav = (itemId) => {
     if (itemId === 'home' && onNavigateHome) {
       onNavigateHome();
+      return;
+    }
+
+    if (itemId === 'super-club' && onNavigateToDoctors) {
+      onNavigateToDoctors();
     }
   };
 

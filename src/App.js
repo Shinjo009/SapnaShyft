@@ -24,6 +24,8 @@ import PackagesPage from './pages/PackagesPage';
 import PackageDetailsPage from './pages/PackageDetailsPage';
 import CreateCustomPackagePage from './pages/CreateCustomPackagePage/CreateCustomPackagePage';
 import AccountSelectionPage from './pages/AccountSelectionPage';
+import DoctorsPage from './pages/DoctorsPage';
+import ExpertDetailsPage from './pages/ExpertDetailsPage';
 
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
@@ -494,6 +496,10 @@ function App() {
             console.log('Navigate to Packages');
             setCurrentPage('packages');
           }}
+          onNavigateToDoctors={() => {
+            console.log('Navigate to Doctors');
+            setCurrentPage('doctors');
+          }}
         />
       )}
 
@@ -503,6 +509,10 @@ function App() {
             console.log('Back to Home');
             setCurrentPage('home');
           }}
+          onNavigateToDoctors={() => {
+            console.log('Navigate to Doctors');
+            setCurrentPage('doctors');
+          }}
           onOpenPackageDetails={() => {
             console.log('Navigate to Package Details');
             setCurrentPage('package-details');
@@ -510,6 +520,43 @@ function App() {
           onOpenCreateCustomPackage={() => {
             console.log('Navigate to Create Custom Package');
             setCurrentPage('create-custom-package');
+          }}
+        />
+      )}
+
+      {currentPage === 'doctors' && (
+        <DoctorsPage
+          onBack={() => {
+            console.log('Back to Home');
+            setCurrentPage('home');
+          }}
+          onOpenDoctorProfile={() => {
+            console.log('Navigate to Doctor Expert Details');
+            setCurrentPage('expert-details-doctor');
+          }}
+          onOpenNutritionistProfile={() => {
+            console.log('Navigate to Nutritionist Expert Details');
+            setCurrentPage('expert-details-nutritionist');
+          }}
+        />
+      )}
+
+      {currentPage === 'expert-details-doctor' && (
+        <ExpertDetailsPage
+          expertType="doctor"
+          onBack={() => {
+            console.log('Back to Doctors');
+            setCurrentPage('doctors');
+          }}
+        />
+      )}
+
+      {currentPage === 'expert-details-nutritionist' && (
+        <ExpertDetailsPage
+          expertType="nutritionist"
+          onBack={() => {
+            console.log('Back to Doctors');
+            setCurrentPage('doctors');
           }}
         />
       )}

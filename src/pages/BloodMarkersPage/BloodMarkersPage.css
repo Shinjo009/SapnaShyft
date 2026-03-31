@@ -6,6 +6,33 @@
   overflow-y: auto;
 }
 
+.blood-markers-page__fixed-cta {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 45px;
+  z-index: 120;
+  display: flex;
+  height: 41px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 36px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41AB99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.28px;
+  cursor: pointer;
+}
+
 .blood-markers-page__header {
   width: 100%;
   display: flex;

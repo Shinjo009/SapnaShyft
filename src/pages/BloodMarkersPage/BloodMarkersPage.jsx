@@ -6,15 +6,15 @@ const FILTERS = ['Optimal', 'Marginal', 'Critical'];
 
 const RISK_META = {
   low: {
-    label: 'LOW RISK',
+    label: 'OPTIMAL',
     color: '#4ADE80',
   },
   moderate: {
-    label: 'MODERATE RISK',
+    label: 'LOW RISK',
     color: '#DAC15A',
   },
   increased: {
-    label: 'INCREASED RISK',
+    label: 'MODERATE RISK',
     color: '#EE8B48',
   },
   high: {
@@ -77,18 +77,19 @@ const METER_SEGMENTS = {
 const SCENARIOS = {
   Optimal: [
     { id: 'optimal-liver-low', organ: 'Liver', parameters: '3 parameters', theme: 'low' },
-    { id: 'optimal-liver-increased', organ: 'Liver', parameters: '3 parameters', theme: 'increased' },
-    { id: 'optimal-thyroid-moderate', organ: 'Thyroid', parameters: '4 parameters', theme: 'moderate' },
+    { id: 'optimal-thyroid-low', organ: 'Thyroid', parameters: '4 parameters', theme: 'low' },
+    { id: 'optimal-kidney-low', organ: 'Kidney', parameters: '3 parameters', theme: 'low' },
   ],
   Marginal: [
     { id: 'marginal-liver-moderate', organ: 'Liver', parameters: '3 parameters', theme: 'moderate' },
-    { id: 'marginal-liver-low', organ: 'Liver', parameters: '3 parameters', theme: 'low' },
-    { id: 'marginal-thyroid-high', organ: 'Thyroid', parameters: '4 parameters', theme: 'high' },
+    { id: 'marginal-thyroid-moderate', organ: 'Thyroid', parameters: '4 parameters', theme: 'moderate' },
+    { id: 'marginal-liver-increased', organ: 'Liver', parameters: '3 parameters', theme: 'increased' },
+    { id: 'marginal-thyroid-increased', organ: 'Thyroid', parameters: '4 parameters', theme: 'increased' },
   ],
   Critical: [
-    { id: 'critical-liver-low', organ: 'Liver', parameters: '3 parameters', theme: 'low' },
     { id: 'critical-liver-high', organ: 'Liver', parameters: '3 parameters', theme: 'high' },
     { id: 'critical-thyroid-high', organ: 'Thyroid', parameters: '4 parameters', theme: 'high' },
+    { id: 'critical-kidney-high', organ: 'Kidney', parameters: '3 parameters', theme: 'high' },
   ],
 };
 
@@ -657,6 +658,9 @@ const BloodMarkersPage = ({ onBack }) => {
     return (
       <div className="blood-markers-page">
         <BloodMarkerDetailView marker={selectedMarker} onBack={() => setSelectedMarker(null)} />
+        <button type="button" className="blood-markers-page__fixed-cta">
+          Download the full report here
+        </button>
       </div>
     );
   }
@@ -730,6 +734,10 @@ const BloodMarkersPage = ({ onBack }) => {
           <BloodMarkerStackSection key={section.id} section={section} onOpenDetail={setSelectedMarker} />
         ))}
       </div>
+
+      <button type="button" className="blood-markers-page__fixed-cta">
+        Download the full report here
+      </button>
     </div>
   );
 };
