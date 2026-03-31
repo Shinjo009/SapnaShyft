@@ -197,6 +197,10 @@
   background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(255, 128, 136, 0.2) 99.99%);
 }
 
+.packages-card--custom {
+  background: linear-gradient(118deg, rgba(84, 124, 255, 0.2) 0.01%, rgba(20, 175, 175, 0.24) 99.99%);
+}
+
 .packages-card__badges {
   display: flex;
   align-items: center;
@@ -219,6 +223,11 @@
 .packages-card__badge--popular {
   background: rgba(144, 223, 158, 0.2);
   color: #fff;
+}
+
+.packages-card__badge--custom {
+  background: rgba(20, 175, 175, 0.2);
+  color: #e6f6f4;
 }
 
 .packages-card__badge--type {

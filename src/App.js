@@ -26,6 +26,7 @@ import CreateCustomPackagePage from './pages/CreateCustomPackagePage/CreateCusto
 import AccountSelectionPage from './pages/AccountSelectionPage';
 import DoctorsPage from './pages/DoctorsPage';
 import ExpertDetailsPage from './pages/ExpertDetailsPage';
+import IntegratedHealthProgramPage from './pages/IntegratedHealthProgramPage';
 
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
@@ -55,6 +56,7 @@ function App() {
   const [linkedAccounts, setLinkedAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [customPackageCard, setCustomPackageCard] = useState(null);
   const appScrollRef = useRef(null);
 
   useEffect(() => {
@@ -344,7 +346,7 @@ function App() {
       console.error('Failed to enter selected account:', error);
     }
 
-    setCurrentPage('home');
+    setCurrentPage('packages');
   };
 
   const handleLogout = async () => {
@@ -359,6 +361,40 @@ function App() {
     setQuestionnaireProgress(0);
     setExpandedQuestionnaireStep(null);
     setCurrentPage('login');
+  };
+
+  const getPossessiveLabel = (name) => {
+    const trimmed = String(name || '').trim();
+    if (!trimmed) {
+      return 'Your';
+    }
+    return trimmed.toLowerCase().endsWith('s') ? `${trimmed}'` : `${trimmed}'s`;
+  };
+
+  const handleCreateCustomPackage = (payload = {}) => {
+    const selectedTests = Array.isArray(payload.selectedTests)
+      ? payload.selectedTests.filter(Boolean)
+      : [];
+
+    setCustomPackageCard({
+      id: `custom-${Date.now()}`,
+      theme: 'custom',
+      badges: ['Custom Built', 'Male', 'Female'],
+      title: `${getPossessiveLabel(userName)} Custom Package`,
+      chips: selectedTests.length > 0 ? selectedTests.slice(0, 4) : ['General health', 'Progressive tests'],
+      metrics: {
+        parameters: String(Math.max(1, Number(payload.selectedParameters || 0))),
+        reportsIn: '12 hrs',
+        fasting: '8-12 hrs',
+      },
+      pricing: {
+        now: Number(payload.totalSale || 0),
+        old: Number(payload.totalOld || 0),
+        off: payload.offText || '',
+      },
+    });
+
+    setCurrentPage('packages');
   };
 
   return (
@@ -505,6 +541,7 @@ function App() {
 
       {currentPage === 'packages' && (
         <PackagesPage
+          customPackageCard={customPackageCard}
           onNavigateHome={() => {
             console.log('Back to Home');
             setCurrentPage('home');
@@ -537,6 +574,19 @@ function App() {
           onOpenNutritionistProfile={() => {
             console.log('Navigate to Nutritionist Expert Details');
             setCurrentPage('expert-details-nutritionist');
+          }}
+          onOpenIntegratedProfile={() => {
+            console.log('Navigate to Integrated Health Program');
+            setCurrentPage('integrated-health-program');
+          }}
+        />
+      )}
+
+      {currentPage === 'integrated-health-program' && (
+        <IntegratedHealthProgramPage
+          onBack={() => {
+            console.log('Back to Doctors');
+            setCurrentPage('doctors');
           }}
         />
       )}
@@ -576,10 +626,7 @@ function App() {
             console.log('Back to Packages');
             setCurrentPage('packages');
           }}
-          onCreatePackage={() => {
-            console.log('Navigate to Review Package');
-            setCurrentPage('review-package');
-          }}
+          onCreatePackage={handleCreateCustomPackage}
         />
       )}
 

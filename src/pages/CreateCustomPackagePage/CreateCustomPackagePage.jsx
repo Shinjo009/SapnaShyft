@@ -166,6 +166,7 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
   const selectedCount = selectedCategories.length;
   const totalSale = selectedCategories.reduce((sum, item) => sum + item.salePrice, 0);
   const totalOld = selectedCategories.reduce((sum, item) => sum + item.oldPrice, 0);
+  const selectedParameters = selectedCategories.reduce((sum, item) => sum + item.tests.length, 0);
 
   const selectedTokens = selectedCategories.map((item) => ({
     id: item.id,
@@ -462,7 +463,15 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
           className="create-custom-page__create-btn"
           onClick={() => {
             if (onCreatePackage) {
-              onCreatePackage();
+              const offPercent = totalOld > 0 ? Math.max(0, Math.round(((totalOld - totalSale) / totalOld) * 100)) : 0;
+              onCreatePackage({
+                selectedCount,
+                selectedParameters,
+                selectedTests: selectedCategories.map((item) => item.title),
+                totalSale,
+                totalOld,
+                offText: offPercent > 0 ? `${offPercent}% OFF` : '',
+              });
             }
           }}
         >

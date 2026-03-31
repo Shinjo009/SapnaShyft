@@ -1003,7 +1003,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(118deg, rgba(124, 58, 237, 0.21) 0.01%, rgba(47, 210, 176, 0.3) 99.99%);
 }
 
 .package-details-page__sample-item h4 {

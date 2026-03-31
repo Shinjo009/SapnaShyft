@@ -1,7 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import './ExpertDetailsPage.css';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import './IntegratedHealthProgramPage.css';
+import '../ExpertDetailsPage/ExpertDetailsPage.css';
+import doctorAvatar from '../../images/doc.svg';
+import nutritionistAvatar from '../../images/nutritionist.svg';
 import sarahPhoto from '../../images/sarah.svg';
 import lizzyPhoto from '../../images/lizzy.png';
+import verifiedBadge from '../../images/verified.svg';
 
 const BackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -25,9 +29,9 @@ const CartIcon = () => (
   </svg>
 );
 
-const StarIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="9" height="8" viewBox="0 0 9 8" fill="none" aria-hidden="true">
-    <path d="M1.72125 8L2.4525 5.04211L0 3.05263L3.24 2.78947L4.5 0L5.76 2.78947L9 3.05263L6.5475 5.04211L7.27875 8L4.5 6.43158L1.72125 8Z" fill="#4ADE80"/>
+const RatingStarIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+    <path d="M2.23125 11.0833L3.17917 6.98542L0 4.22917L4.2 3.86458L5.83333 0L7.46667 3.86458L11.6667 4.22917L8.4875 6.98542L9.43542 11.0833L5.83333 8.91042L2.23125 11.0833Z" fill="#90DF9E" />
   </svg>
 );
 
@@ -46,18 +50,6 @@ const ConsultationLanguageIcon = () => (
 const ConsultationClockIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
     <path d="M15.9993 2.66666C23.3633 2.66666 29.3327 8.63599 29.3327 16C29.3327 23.364 23.3633 29.3333 15.9993 29.3333C8.63535 29.3333 2.66602 23.364 2.66602 16C2.66602 8.63599 8.63535 2.66666 15.9993 2.66666ZM15.9993 5.33332C13.1704 5.33332 10.4573 6.45713 8.45688 8.45752C6.45649 10.4579 5.33268 13.171 5.33268 16C5.33268 18.829 6.45649 21.5421 8.45688 23.5425C10.4573 25.5428 13.1704 26.6667 15.9993 26.6667C18.8283 26.6667 21.5414 25.5428 23.5418 23.5425C25.5422 21.5421 26.666 18.829 26.666 16C26.666 13.171 25.5422 10.4579 23.5418 8.45752C21.5414 6.45713 18.8283 5.33332 15.9993 5.33332ZM15.9993 7.99999C16.3259 8.00003 16.6411 8.11993 16.8852 8.33694C17.1292 8.55396 17.2851 8.85299 17.3233 9.17732L17.3327 9.33332V15.448L20.942 19.0573C21.1811 19.2973 21.32 19.6192 21.3303 19.9578C21.3407 20.2964 21.2217 20.6263 20.9977 20.8804C20.7736 21.1344 20.4613 21.2937 20.124 21.3259C19.7868 21.358 19.45 21.2605 19.182 21.0533L19.0567 20.9427L15.0567 16.9427C14.8495 16.7353 14.7164 16.4653 14.678 16.1747L14.666 16V9.33332C14.666 8.9797 14.8065 8.64056 15.0565 8.39051C15.3066 8.14047 15.6457 7.99999 15.9993 7.99999Z" fill="#CCCCCC"/>
-  </svg>
-);
-
-const ReviewStarIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-    <path d="M2.23125 11.0833L3.17917 6.98542L0 4.22917L4.2 3.86458L5.83333 0L7.46667 3.86458L11.6667 4.22917L8.4875 6.98542L9.43542 11.0833L5.83333 8.91042L2.23125 11.0833V11.0833" fill="#00E8C9"/>
-  </svg>
-);
-
-const VerifiedIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
-    <path d="M3.8 10.5L2.85 8.9L1.05 8.5L1.225 6.65L0 5.25L1.225 3.85L1.05 2L2.85 1.6L3.8 0L5.5 0.725L7.2 0L8.15 1.6L9.95 2L9.775 3.85L11 5.25L9.775 6.65L9.95 8.5L8.15 8.9L7.2 10.5L5.5 9.775L3.8 10.5V10.5M4.975 7.025L7.8 4.2L7.1 3.475L4.975 5.6L3.9 4.55L3.2 5.25L4.975 7.025V7.025" fill="#00E8C9"/>
   </svg>
 );
 
@@ -85,12 +77,6 @@ const PreferredDateIcon = () => (
 const PreferredTimeIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="19" viewBox="0 0 20 19" fill="none" aria-hidden="true">
     <path d="M10 0C15.523 0 20 4.1045 20 9.16798C20 14.2315 15.523 18.336 10 18.336C4.477 18.336 0 14.2315 0 9.16798C0 4.1045 4.477 0 10 0ZM10 1.8336C7.87827 1.8336 5.84344 2.60632 4.34315 3.98179C2.84285 5.35725 2 7.22278 2 9.16798C2 11.1132 2.84285 12.9787 4.34315 14.3542C5.84344 15.7296 7.87827 16.5024 10 16.5024C12.1217 16.5024 14.1566 15.7296 15.6569 14.3542C17.1571 12.9787 18 11.1132 18 9.16798C18 7.22278 17.1571 5.35725 15.6569 3.98179C14.1566 2.60632 12.1217 1.8336 10 1.8336ZM10 3.66719C10.2449 3.66722 10.4813 3.74966 10.6644 3.89888C10.8474 4.0481 10.9643 4.25371 10.993 4.47672L11 4.58399V8.78842L13.707 11.2702C13.8863 11.4352 13.9905 11.6566 13.9982 11.8894C14.006 12.1222 13.9168 12.349 13.7488 12.5237C13.5807 12.6984 13.3464 12.8079 13.0935 12.83C12.8406 12.8521 12.588 12.7851 12.387 12.6426L12.293 12.5665L9.293 9.81615C9.13758 9.67354 9.03776 9.48794 9.009 9.28808L9 9.16798V4.58399C9 4.34084 9.10536 4.10765 9.29289 3.93571C9.48043 3.76378 9.73478 3.66719 10 3.66719Z" fill="#9A9A9A" />
-  </svg>
-);
-
-const ReviewStarIconTiny = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-    <path d="M1.9125 9.5L2.725 5.9875L0 3.625L3.6 3.3125L5 0L6.4 3.3125L10 3.625L7.275 5.9875L8.0875 9.5L5 7.6375L1.9125 9.5Z" fill="#90DF9E" />
   </svg>
 );
 
@@ -144,29 +130,180 @@ const APPOINTMENT_SLOT_ROWS = [
 
 const getDayWithOrdinal = (dayValue) => {
   const dayNumber = Number(dayValue);
-  if (!Number.isFinite(dayNumber) || dayNumber <= 0) {
-    return String(dayValue);
-  }
+  if (!Number.isFinite(dayNumber) || dayNumber <= 0) return String(dayValue);
 
   const remainder = dayNumber % 10;
   const teenCheck = dayNumber % 100;
-
-  if (teenCheck >= 11 && teenCheck <= 13) {
-    return `${dayNumber}th`;
-  }
-
+  if (teenCheck >= 11 && teenCheck <= 13) return `${dayNumber}th`;
   if (remainder === 1) return `${dayNumber}st`;
   if (remainder === 2) return `${dayNumber}nd`;
   if (remainder === 3) return `${dayNumber}rd`;
   return `${dayNumber}th`;
 };
 
-const toTitleCase = (value = '') => value
-  .toLowerCase()
-  .split(/\s+/)
-  .filter(Boolean)
-  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-  .join(' ');
+const DOCTOR_PROFILES = [
+  {
+    id: 'doc-sarah',
+    name: 'Dr. Sarah Jenkins',
+    role: 'General Physician',
+    experienceText: '8+ years experience',
+    image: sarahPhoto,
+    rating: '4.9',
+    reviewCount: '1.2k reviews',
+    tags: ['Diabetes', 'Hypertension', 'Thyroid', '+ More'],
+    availability: 'Mon- Fri',
+    timings: '5 - 9 PM',
+    appointment: '20 mins',
+    category: 'GENERAL PHYSICIAN',
+    stats: [
+      { label: 'Experience', value: '6+ Years' },
+      { label: 'Qualifications', value: 'MSc' },
+      { label: 'Patients', value: '2.4k+' },
+    ],
+    expertise: ['Weight Loss', 'Muscle Gain', 'Thyroid', 'PCOS', 'Gut Health'],
+    about: 'Dr. Julian Vance is a world-renowned specialist in preventative cardiology and cardiovascular imaging. With a patient-first philosophy, he integrates advanced diagnostic tech with personalized lifestyle strategies.',
+    consultation: [
+      { id: 'video', icon: <ConsultationVideoIcon />, label: 'Video / Chat' },
+      { id: 'duration', icon: <ConsultationClockIcon />, label: '30 minutes' },
+      { id: 'language', icon: <ConsultationLanguageIcon />, label: 'English / Hindi' },
+    ],
+    reviews: [
+      {
+        id: 'doc-r1',
+        text: '"Dr. Sarah was incredibly attentive and practical. I left the consultation with a clear action plan."',
+        author: 'Neha S.',
+      },
+      {
+        id: 'doc-r2',
+        text: '"Very thorough and easy to understand. The follow-up guidance was exactly what I needed."',
+        author: 'Karan M.',
+      },
+    ],
+  },
+  {
+    id: 'doc-arjun',
+    name: 'Dr. Arjun Rao',
+    role: 'General Physician',
+    experienceText: '10+ years experience',
+    image: sarahPhoto,
+    rating: '4.8',
+    reviewCount: '940 reviews',
+    tags: ['Cardiac', 'BP', 'Stress', '+ More'],
+    availability: 'Mon- Sat',
+    timings: '10 AM - 4 PM',
+    appointment: '25 mins',
+    category: 'GENERAL PHYSICIAN',
+    stats: [
+      { label: 'Experience', value: '10 Years' },
+      { label: 'Qualifications', value: 'MBBS, MD' },
+      { label: 'Patients', value: '2.1k+' },
+    ],
+    expertise: ['Cardiac Risk', 'Diabetes', 'Hypertension', 'Lifestyle'],
+    about: 'Dr. Arjun Rao focuses on preventive care and long-term metabolic health planning, helping patients build practical routines backed by diagnostics.',
+    consultation: [
+      { id: 'video', icon: <ConsultationVideoIcon />, label: 'Video / Chat' },
+      { id: 'duration', icon: <ConsultationClockIcon />, label: '25 minutes' },
+      { id: 'language', icon: <ConsultationLanguageIcon />, label: 'English / Hindi / Telugu' },
+    ],
+    reviews: [
+      {
+        id: 'doc-r3',
+        text: '"Great consultation quality and very patient in explaining every concern."',
+        author: 'Vikas P.',
+      },
+      {
+        id: 'doc-r4',
+        text: '"Structured, practical and reassuring. Highly recommend for preventive care."',
+        author: 'Aditi G.',
+      },
+    ],
+  },
+];
+
+const NUTRITIONIST_PROFILES = [
+  {
+    id: 'nut-anaya',
+    name: 'Dr. Anaya Mehta',
+    role: 'Nutritionist',
+    experienceText: '7+ years experience',
+    image: lizzyPhoto,
+    rating: '4.9',
+    reviewCount: '980 reviews',
+    tags: ['Weight Loss', 'PCOS', 'Thyroid', '+ More'],
+    availability: 'Mon- Sat',
+    timings: '8 AM - 2 PM',
+    appointment: '25 mins',
+    category: 'NUTRITIONIST',
+    stats: [
+      { label: 'Experience', value: '7 Years' },
+      { label: 'Qualifications', value: 'MSc Nutrition' },
+      { label: 'Patients', value: '1.8k+' },
+    ],
+    expertise: ['Weight Loss', 'PCOS', 'Thyroid', 'Gut Health'],
+    about: 'Dr. Anaya builds practical nutrition plans around your blood markers, food preferences, and daily routine for sustainable outcomes.',
+    consultation: [
+      { id: 'video', icon: <ConsultationVideoIcon />, label: 'Video / Chat' },
+      { id: 'duration', icon: <ConsultationClockIcon />, label: '30 minutes' },
+      { id: 'language', icon: <ConsultationLanguageIcon />, label: 'English / Hindi' },
+    ],
+    reviews: [
+      {
+        id: 'nut-r1',
+        text: '"Simple, realistic meal plan and clear goals. I could actually follow it daily."',
+        author: 'Priya R.',
+      },
+      {
+        id: 'nut-r2',
+        text: '"Very supportive and data-driven. My digestion and energy improved within weeks."',
+        author: 'Aman T.',
+      },
+    ],
+  },
+  {
+    id: 'nut-rhea',
+    name: 'Rhea Kapoor',
+    role: 'Nutritionist',
+    experienceText: '6+ years experience',
+    image: lizzyPhoto,
+    rating: '4.8',
+    reviewCount: '760 reviews',
+    tags: ['Fat Loss', 'Gut Health', 'PCOS', '+ More'],
+    availability: 'Tue- Sun',
+    timings: '11 AM - 5 PM',
+    appointment: '20 mins',
+    category: 'NUTRITIONIST',
+    stats: [
+      { label: 'Experience', value: '6 Years' },
+      { label: 'Qualifications', value: 'BSc, PG Dip' },
+      { label: 'Patients', value: '1.3k+' },
+    ],
+    expertise: ['Gut Health', 'PCOS', 'Sports Nutrition', 'Metabolic Care'],
+    about: 'Rhea helps you align nutrition with energy, hormones, and long-term goals using data-backed recommendations and easy meal systems.',
+    consultation: [
+      { id: 'video', icon: <ConsultationVideoIcon />, label: 'Video / Chat' },
+      { id: 'duration', icon: <ConsultationClockIcon />, label: '20 minutes' },
+      { id: 'language', icon: <ConsultationLanguageIcon />, label: 'English / Hindi' },
+    ],
+    reviews: [
+      {
+        id: 'nut-r3',
+        text: '"Rhea gave me a plan that matched my routine perfectly. Super practical guidance."',
+        author: 'Sneha V.',
+      },
+      {
+        id: 'nut-r4',
+        text: '"Clear macro and lifestyle recommendations. Easy to execute and effective."',
+        author: 'Rahul D.',
+      },
+    ],
+  },
+];
+
+const formatSelectedAppointment = (selectedDateId, selectedTimeSlot) => {
+  const selectedDate = APPOINTMENT_DATES.find((item) => item.id === selectedDateId);
+  if (!selectedDate || !selectedTimeSlot) return 'Select date and time';
+  return `${getDayWithOrdinal(selectedDate.date)} ${selectedDate.month}  |  ${selectedTimeSlot}`;
+};
 
 const formatAmount = (amount) => {
   const numericAmount = Number(amount);
@@ -179,120 +316,43 @@ const formatAmount = (amount) => {
     : numericAmount.toFixed(2);
 };
 
-const formatSelectedAppointment = (selectedDateId, selectedTimeSlot) => {
-  const selectedDate = APPOINTMENT_DATES.find((item) => item.id === selectedDateId);
-  if (!selectedDate || !selectedTimeSlot) {
-    return 'Select date and time';
-  }
+const IntegratedHealthProgramPage = ({ onBack }) => {
+  const [activeTab, setActiveTab] = useState('doctor');
+  const [expandedByTab, setExpandedByTab] = useState({
+    doctor: null,
+    nutritionist: null,
+  });
+  const [selectedDoctorId, setSelectedDoctorId] = useState(null);
+  const [selectedNutritionistId, setSelectedNutritionistId] = useState(null);
 
-  const prettyTime = selectedTimeSlot.replace(/^0(\d:)/, '$1');
-  return `${getDayWithOrdinal(selectedDate.date)} ${selectedDate.month}  |  ${prettyTime}`;
-};
-
-const EXPERT_DATA = {
-  doctor: {
-    category: 'GENERAL PHYSICIAN',
-    role: 'General Physician',
-    reviewCountText: '1.2k reviews',
-    name: 'Dr. Sarah Jenkins',
-    image: sarahPhoto,
-    consultationFee: 320,
-    taxRate: 0.05,
-    footerFeeNow: '₹ 499/-',
-    footerFeeOld: '₹ 898/-',
-    footerFeeOff: '44% OFF',
-    stats: [
-      { label: 'Experience', value: '12 Years' },
-      { label: 'Qualifications', value: 'MBBS, MD' },
-      { label: 'Patients', value: '2.4k+' },
-    ],
-    expertise: ['Diabetes', 'Hypertension', 'Stress', 'Heart Failure'],
-    about: 'Dr. Sarah Jenkins is a specialist in preventive and general medicine. With a patient-first approach, she combines diagnostic insights with practical lifestyle guidance for long-term health.',
-    consultation: [
-      { id: 'video', icon: <ConsultationVideoIcon />, label: 'Video / Chat' },
-      { id: 'language', icon: <ConsultationLanguageIcon />, label: 'English, Hindi, Tamil, Telugu, Malayalam' },
-      { id: 'duration', icon: <ConsultationClockIcon />, label: '15 minutes' },
-    ],
-    reviews: [
-      {
-        id: 'r1',
-        text: '"Dr. Vance was incredibly thorough and attentive. He explained everything in a way I could finally understand."',
-        author: 'Sarah M.',
-      },
-      {
-        id: 'r2',
-        text: '"The consultation was clear and practical. I have a concrete routine now and can already feel the difference."',
-        author: 'James R.',
-      },
-    ],
-  },
-  nutritionist: {
-    category: 'NUTRITIONIST',
-    role: 'Nutritionist',
-    reviewCountText: '980 reviews',
-    name: 'Dr. Anaya Mehta',
-    image: lizzyPhoto,
-    consultationFee: 280,
-    taxRate: 0.05,
-    footerFeeNow: '₹ 399/-',
-    footerFeeOld: '₹ 699/-',
-    footerFeeOff: '43% OFF',
-    stats: [
-      { label: 'Experience', value: '7 Years' },
-      { label: 'Qualifications', value: 'MSc Nutrition' },
-      { label: 'Patients', value: '1.8k+' },
-    ],
-    expertise: ['Weight Loss', 'PCOS', 'Thyroid', 'Gut Health'],
-    about: 'Dr. Anaya Mehta is a specialist in clinical nutrition with a prevention-first approach. She creates practical, personalized plans built around your labs, lifestyle, and long-term goals.',
-    consultation: [
-      { id: 'video', icon: <ConsultationVideoIcon />, label: 'Video / Chat' },
-      { id: 'language', icon: <ConsultationLanguageIcon />, label: 'English, Hindi, Tamil, Telugu, Malayalam' },
-      { id: 'duration', icon: <ConsultationClockIcon />, label: '20 minutes' },
-    ],
-    reviews: [
-      {
-        id: 'r1',
-        text: '"I got a realistic meal plan that fits my schedule. The guidance was specific and easy to follow."',
-        author: 'Nikita P.',
-      },
-      {
-        id: 'r2',
-        text: '"Very supportive and data-driven. My energy and digestion improved noticeably within a few weeks."',
-        author: 'Arjun K.',
-      },
-    ],
-  },
-};
-
-const ExpertDetailsPage = ({ onBack, expertType = 'doctor' }) => {
-  const data = EXPERT_DATA[expertType] || EXPERT_DATA.doctor;
-  const consultationFee = Number(data.consultationFee || 0);
-  const taxRate = Number(data.taxRate || 0);
-  const serviceTax = consultationFee * taxRate;
-  const totalAmount = consultationFee + serviceTax;
-  const roleText = data.role || toTitleCase(data.category);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [scheduleStep, setScheduleStep] = useState('schedule');
   const [selectedDateId, setSelectedDateId] = useState('mon-12');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('09:00 - 11:00 AM');
 
-  const closeScheduleOverlay = () => {
-    setIsScheduleOpen(false);
-    setScheduleStep('schedule');
-  };
+  const detailsRef = useRef(null);
+  const cardsRowRef = useRef(null);
 
-  useEffect(() => {
-    if (!isScheduleOpen) {
-      return undefined;
+  const currentProfiles = activeTab === 'doctor' ? DOCTOR_PROFILES : NUTRITIONIST_PROFILES;
+  const activeExpandedId = expandedByTab[activeTab];
+  const hasActiveProfileOpen = Boolean(activeExpandedId);
+
+  const expandedProfile = useMemo(() => {
+    const targetId = expandedByTab[activeTab];
+    if (!targetId) {
+      return null;
     }
+    return currentProfiles.find((item) => item.id === targetId) || null;
+  }, [activeTab, currentProfiles, expandedByTab]);
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+  const selectedDoctor = DOCTOR_PROFILES.find((item) => item.id === selectedDoctorId) || null;
+  const selectedNutritionist = NUTRITIONIST_PROFILES.find((item) => item.id === selectedNutritionistId) || null;
 
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isScheduleOpen]);
+  const canBook = Boolean(selectedDoctor && selectedNutritionist);
+  const consultationFee = (selectedDoctor ? 320 : 0) + (selectedNutritionist ? 280 : 0);
+  const taxRate = 0.05;
+  const serviceTax = consultationFee * taxRate;
+  const totalAmount = consultationFee + serviceTax;
 
   const selectedAppointmentText = useMemo(
     () => formatSelectedAppointment(selectedDateId, selectedTimeSlot),
@@ -315,124 +375,310 @@ const ExpertDetailsPage = ({ onBack, expertType = 'doctor' }) => {
     return `${selectedDate.month} ${selectedDate.date}, ${selectedDate.day}`;
   }, [selectedDateId]);
 
+  useEffect(() => {
+    if (!isScheduleOpen) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isScheduleOpen]);
+
+  const closeScheduleOverlay = () => {
+    setIsScheduleOpen(false);
+    setScheduleStep('schedule');
+  };
+
+  const centerCardInRow = (profileId) => {
+    const row = cardsRowRef.current;
+    if (!row) {
+      return;
+    }
+
+    const targetCard = row.querySelector(`[data-profile-id="${profileId}"]`);
+    if (!targetCard) {
+      return;
+    }
+
+    const computedStyle = window.getComputedStyle(row);
+    const paddingLeft = parseFloat(computedStyle.paddingLeft || '0') || 0;
+    const maxScrollLeft = Math.max(0, row.scrollWidth - row.clientWidth);
+    const centeredLeft = targetCard.offsetLeft - paddingLeft - ((row.clientWidth - targetCard.clientWidth) / 2);
+    const nextScrollLeft = Math.min(maxScrollLeft, Math.max(0, centeredLeft));
+    row.scrollTo({ left: nextScrollLeft, behavior: 'smooth' });
+  };
+
+  const openProfile = (profileId) => {
+    const currentExpandedId = expandedByTab[activeTab];
+    const nextId = currentExpandedId === profileId ? null : profileId;
+
+    setExpandedByTab((prev) => ({ ...prev, [activeTab]: nextId }));
+
+    if (!nextId) {
+      return;
+    }
+
+    centerCardInRow(profileId);
+
+    setTimeout(() => {
+      detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+
+  const handleSelectCurrentExpert = () => {
+    if (!expandedProfile) return;
+
+    if (activeTab === 'doctor') {
+      setSelectedDoctorId(expandedProfile.id);
+      setActiveTab('nutritionist');
+      return;
+    }
+
+    setSelectedNutritionistId(expandedProfile.id);
+  };
+
+  const handleBookClick = () => {
+    if (!canBook) return;
+    setScheduleStep('schedule');
+    setIsScheduleOpen(true);
+  };
+
+  const doctorAvatarImage = selectedDoctor?.image || doctorAvatar;
+  const nutritionAvatarImage = selectedNutritionist?.image || nutritionistAvatar;
+
   return (
-    <div className="expert-details-page">
-      <header className="expert-details-page__header">
-        <div className="expert-details-page__header-left">
-          <button type="button" className="expert-details-page__icon-btn" onClick={onBack} aria-label="Go back">
+    <div className="ihp-page">
+      <header className="ihp-page__header">
+        <div className="ihp-page__header-left">
+          <button type="button" className="ihp-page__icon-btn" onClick={onBack} aria-label="Go back">
             <BackIcon />
           </button>
-          <h1 className="expert-details-page__title">Expert Details</h1>
+          <h1 className="ihp-page__title">Expert Details</h1>
         </div>
 
-        <div className="expert-details-page__header-actions">
-          <button type="button" className="expert-details-page__icon-btn" aria-label="Share profile">
+        <div className="ihp-page__header-actions">
+          <button type="button" className="ihp-page__icon-btn" aria-label="Share profile">
             <ShareIcon />
           </button>
-          <button type="button" className="expert-details-page__icon-btn" aria-label="Open cart">
+          <button type="button" className="ihp-page__icon-btn" aria-label="Open cart">
             <CartIcon />
           </button>
         </div>
       </header>
 
-      <section className="expert-details-page__identity" aria-label="Expert identity">
-        <div className="expert-details-page__photo-wrap">
-          <div className="expert-details-page__photo-box">
-            <img src={data.image} alt={data.name} className="expert-details-page__photo" />
+      <section className="ihp-page__hero">
+        <div className="ihp-page__avatars-wrap">
+          <div className="ihp-page__avatars">
+            <img className="ihp-page__hero-avatar" src={doctorAvatarImage} alt="Selected doctor" />
+            <img className="ihp-page__hero-avatar" src={nutritionAvatarImage} alt="Selected nutritionist" />
           </div>
-          <div className="expert-details-page__rating-box" aria-label="Rating 4.9">
-            <StarIcon />
-            <span className="expert-details-page__rating-text">4.9</span>
+          <span className="ihp-page__care-pill">Care Team</span>
+        </div>
+
+        <div className="ihp-page__hero-copy">
+          <h2 className="ihp-page__hero-title">Integrated Health Program</h2>
+          <p className="ihp-page__hero-text">
+            A combined approach to diagnose, guide, and transform your health through expert medical and nutritional care.
+          </p>
+        </div>
+      </section>
+
+      <section className="ihp-page__meet-section">
+        <h3 className="ihp-page__meet-title">Meet Your Experts</h3>
+
+        <div className="ihp-page__tabs" role="tablist" aria-label="Expert type tabs">
+          <button
+            type="button"
+            className={`ihp-page__tab ${activeTab === 'doctor' ? 'is-active' : ''}`}
+            role="tab"
+            aria-selected={activeTab === 'doctor'}
+            onClick={() => setActiveTab('doctor')}
+          >
+            Doctor
+          </button>
+          <button
+            type="button"
+            className={`ihp-page__tab ${activeTab === 'nutritionist' ? 'is-active' : ''}`}
+            role="tab"
+            aria-selected={activeTab === 'nutritionist'}
+            onClick={() => setActiveTab('nutritionist')}
+          >
+            Nutritionist
+          </button>
+        </div>
+
+        <div className="ihp-page__divider" />
+
+        <div ref={cardsRowRef} className={`ihp-page__cards-row${hasActiveProfileOpen ? ' is-locked' : ''}`} aria-label="Expert cards">
+          {currentProfiles.map((profile) => {
+            const isOpen = expandedByTab[activeTab] === profile.id;
+            return (
+              <article key={profile.id} data-profile-id={profile.id} className={`ihp-card ${isOpen ? 'is-open' : ''}`}>
+                <div className="ihp-card__top">
+                  <div className="ihp-card__photo-wrap">
+                    <img className="ihp-card__photo" src={profile.image} alt={profile.name} />
+                    <img className="ihp-card__verified" src={verifiedBadge} alt="Verified" />
+                  </div>
+
+                  <div className="ihp-card__copy">
+                    <h4 className="ihp-card__name">{profile.name}</h4>
+                    <p className="ihp-card__role">{profile.role}</p>
+                    <p className="ihp-card__exp">{profile.experienceText}</p>
+                  </div>
+
+                  <div className="ihp-card__rating">
+                    <RatingStarIcon />
+                    <span>{profile.rating}</span>
+                  </div>
+                </div>
+
+                <div className="ihp-card__tags">
+                  {profile.tags.map((tag) => (
+                    <span key={`${profile.id}-${tag}`} className="ihp-card__tag">{tag}</span>
+                  ))}
+                </div>
+
+                <div className="ihp-card__metrics">
+                  <div className="ihp-card__metric">
+                    <span className="ihp-card__metric-value">{profile.availability}</span>
+                    <span className="ihp-card__metric-label">Available</span>
+                  </div>
+                  <div className="ihp-card__metric-separator" aria-hidden="true" />
+                  <div className="ihp-card__metric">
+                    <span className="ihp-card__metric-value">{profile.timings}</span>
+                    <span className="ihp-card__metric-label">Timings</span>
+                  </div>
+                  <div className="ihp-card__metric-separator" aria-hidden="true" />
+                  <div className="ihp-card__metric">
+                    <span className="ihp-card__metric-value">{profile.appointment}</span>
+                    <span className="ihp-card__metric-label">Appointment</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className={`ihp-card__view-btn ${isOpen ? 'is-open' : ''}`}
+                  onClick={() => openProfile(profile.id)}
+                >
+                  View Profile
+                </button>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="ihp-page__divider ihp-page__divider--below" />
+      </section>
+
+      {expandedProfile ? (
+      <section className="ihp-page__details" ref={detailsRef}>
+        <div className="expert-details-page__identity" aria-label="Expert identity">
+          <div className="expert-details-page__photo-wrap">
+            <div className="expert-details-page__photo-box">
+              <img src={expandedProfile.image} alt={expandedProfile.name} className="expert-details-page__photo" />
+            </div>
+            <div className="expert-details-page__rating-box" aria-label={`Rating ${expandedProfile.rating}`}>
+              <RatingStarIcon />
+              <span className="expert-details-page__rating-text">{expandedProfile.rating}</span>
+            </div>
+          </div>
+
+          <div className="expert-details-page__identity-content">
+            <p className="expert-details-page__category">{expandedProfile.category}</p>
+            <h2 className="expert-details-page__name">{expandedProfile.name}</h2>
           </div>
         </div>
 
-        <div className="expert-details-page__identity-content">
-          <p className="expert-details-page__category">{data.category}</p>
-          <h2 className="expert-details-page__name">{data.name}</h2>
-        </div>
-      </section>
-
-      <section className="expert-details-page__stats" aria-label="Experience and details">
-        {data.stats.map((item) => (
-          <article key={item.label} className="expert-details-page__stat-card">
-            <p className="expert-details-page__stat-label">{item.label}</p>
-            <p className="expert-details-page__stat-value">{item.value}</p>
-          </article>
-        ))}
-      </section>
-
-      <section className="expert-details-page__expertise" aria-label="Expertise">
-        <h3 className="expert-details-page__section-title">Expertise</h3>
-        <div className="expert-details-page__pills">
-          {data.expertise.map((item) => (
-            <span key={item} className="expert-details-page__pill">{item}</span>
-          ))}
-        </div>
-      </section>
-
-      <section className="expert-details-page__about" aria-label="About">
-        <h3 className="expert-details-page__section-title">About</h3>
-        <p className="expert-details-page__about-text">{data.about}</p>
-      </section>
-
-      <section className="expert-details-page__consultation" aria-label="Consultation details">
-        <h3 className="expert-details-page__section-title">Consultation Details</h3>
-        <div className="expert-details-page__consultation-items">
-          {data.consultation.map((item) => (
-            <article key={item.id} className="expert-details-page__consultation-item">
-              <div className="expert-details-page__consultation-circle">{item.icon}</div>
-              <p className="expert-details-page__consultation-text">{item.label}</p>
+        <section className="expert-details-page__stats" aria-label="Experience and details">
+          {expandedProfile.stats.map((item) => (
+            <article key={item.label} className="expert-details-page__stat-card">
+              <p className="expert-details-page__stat-label">{item.label}</p>
+              <p className="expert-details-page__stat-value">{item.value}</p>
             </article>
           ))}
-        </div>
-      </section>
+        </section>
 
-      <section className="expert-details-page__reviews" aria-label="Reviews">
-        <h3 className="expert-details-page__section-title">Reviews</h3>
-        <div className="expert-details-page__reviews-viewport">
-          <div className="expert-details-page__reviews-track">
-            {[...data.reviews, ...data.reviews].map((review, index) => (
-              <article key={`${review.id}-${index}`} className="expert-details-page__review-card">
-                <div className="expert-details-page__review-stars" aria-hidden="true">
-                  <ReviewStarIcon />
-                  <ReviewStarIcon />
-                  <ReviewStarIcon />
-                  <ReviewStarIcon />
-                  <ReviewStarIcon />
-                </div>
+        <section className="expert-details-page__expertise" aria-label="Expertise">
+          <h3 className="expert-details-page__section-title">Expertise</h3>
+          <div className="expert-details-page__pills">
+            {expandedProfile.expertise.map((item) => (
+              <span key={`${expandedProfile.id}-${item}`} className="expert-details-page__pill">{item}</span>
+            ))}
+          </div>
+        </section>
 
-                <p className="expert-details-page__review-text">{review.text}</p>
+        <section className="expert-details-page__about" aria-label="About">
+          <h3 className="expert-details-page__section-title">About</h3>
+          <p className="expert-details-page__about-text">{expandedProfile.about}</p>
+        </section>
 
-                <div className="expert-details-page__review-footer">
-                  <span className="expert-details-page__review-author">{review.author}</span>
-                  <span className="expert-details-page__verified-pill">
-                    <VerifiedIcon />
-                    <span>Verified</span>
-                  </span>
-                </div>
+        <section className="expert-details-page__consultation" aria-label="Consultation details">
+          <h3 className="expert-details-page__section-title">Consultation Details</h3>
+          <div className="expert-details-page__consultation-items">
+            {expandedProfile.consultation.map((item) => (
+              <article key={item.id} className="expert-details-page__consultation-item">
+                <div className="expert-details-page__consultation-circle">{item.icon}</div>
+                <p className="expert-details-page__consultation-text">{item.label}</p>
               </article>
             ))}
           </div>
+        </section>
+
+        <section className="expert-details-page__reviews" aria-label="Reviews">
+          <h3 className="expert-details-page__section-title">Reviews</h3>
+          <div className="expert-details-page__reviews-viewport">
+            <div className="expert-details-page__reviews-track">
+              {[...(expandedProfile.reviews || []), ...(expandedProfile.reviews || [])].map((review, index) => (
+                <article key={`${review.id}-${index}`} className="expert-details-page__review-card">
+                  <div className="expert-details-page__review-stars" aria-hidden="true">
+                    <RatingStarIcon />
+                    <RatingStarIcon />
+                    <RatingStarIcon />
+                    <RatingStarIcon />
+                    <RatingStarIcon />
+                  </div>
+
+                  <p className="expert-details-page__review-text">{review.text}</p>
+
+                  <div className="expert-details-page__review-footer">
+                    <span className="expert-details-page__review-author">{review.author}</span>
+                    <span className="expert-details-page__verified-pill">
+                      <span>Verified</span>
+                    </span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <div className="ihp-page__select-wrap">
+          <button type="button" className="ihp-page__select-btn" onClick={handleSelectCurrentExpert}>
+            {activeTab === 'doctor' ? 'Select Doctor' : 'Select Nutritionist'}
+          </button>
         </div>
       </section>
+      ) : null}
 
       <footer className="expert-details-page__fixed-cta" aria-label="Appointment fee and booking">
         <div className="expert-details-page__fee-wrap">
           <p className="expert-details-page__fee-label">Appointment Fee</p>
           <div className="expert-details-page__fee-row">
-            <span className="expert-details-page__fee-now">{data.footerFeeNow}</span>
-            <span className="expert-details-page__fee-old">{data.footerFeeOld}</span>
-            <span className="expert-details-page__fee-off">{data.footerFeeOff}</span>
+            <span className="expert-details-page__fee-now">₹ 499/-</span>
+            <span className="expert-details-page__fee-old">₹ 898/-</span>
+            <span className="expert-details-page__fee-off">44% OFF</span>
           </div>
         </div>
 
         <button
           type="button"
-          className="expert-details-page__book-btn"
-          onClick={() => {
-            setScheduleStep('schedule');
-            setIsScheduleOpen(true);
-          }}
+          className="expert-details-page__book-btn ihp-page__book-btn"
+          disabled={!canBook}
+          onClick={handleBookClick}
         >
           BOOK
         </button>
@@ -462,7 +708,7 @@ const ExpertDetailsPage = ({ onBack, expertType = 'doctor' }) => {
                   <div className="expert-details-page__choose-copy">
                     <p className="expert-details-page__choose-title">Choose a 2-hour window.</p>
                     <p className="expert-details-page__choose-text">
-                      The doctor will connect anytime during this period. Please ensure you are available in a quiet environment.
+                      Your doctor and nutritionist will connect in this period. Please keep your phone available.
                     </p>
                   </div>
                 </div>
@@ -530,18 +776,20 @@ const ExpertDetailsPage = ({ onBack, expertType = 'doctor' }) => {
               <div className="expert-details-page__review-flow">
                 <h3 className="expert-details-page__schedule-title">Review Appointment</h3>
 
-                <section className="expert-details-page__review-doctor-card" aria-label="Expert summary">
-                  <div className="expert-details-page__review-doctor-row">
-                    <img src={data.image} alt={data.name} className="expert-details-page__review-doctor-photo" />
+                <section className="expert-details-page__review-doctor-card" aria-label="Care team summary">
+                  <div className="ihp-booking-team-row">
+                    <img src={selectedDoctor?.image || doctorAvatar} alt={selectedDoctor?.name || 'Doctor'} className="ihp-booking-team-photo" />
+                    <div className="ihp-booking-team-copy">
+                      <h4 className="ihp-booking-team-name">{selectedDoctor?.name || 'Doctor'}</h4>
+                      <p className="ihp-booking-team-role">{selectedDoctor?.role || 'General Physician'}</p>
+                    </div>
+                  </div>
 
-                    <div className="expert-details-page__review-doctor-copy">
-                      <h4 className="expert-details-page__review-doctor-name">{data.name}</h4>
-                      <p className="expert-details-page__review-doctor-role">{roleText}</p>
-                      <div className="expert-details-page__review-rating-row">
-                        <ReviewStarIconTiny />
-                        <span className="expert-details-page__review-rating-value">4.9</span>
-                        <span className="expert-details-page__review-rating-count">({data.reviewCountText})</span>
-                      </div>
+                  <div className="ihp-booking-team-row">
+                    <img src={selectedNutritionist?.image || nutritionistAvatar} alt={selectedNutritionist?.name || 'Nutritionist'} className="ihp-booking-team-photo" />
+                    <div className="ihp-booking-team-copy">
+                      <h4 className="ihp-booking-team-name">{selectedNutritionist?.name || 'Nutritionist'}</h4>
+                      <p className="ihp-booking-team-role">{selectedNutritionist?.role || 'Nutritionist'}</p>
                     </div>
                   </div>
 
@@ -569,7 +817,7 @@ const ExpertDetailsPage = ({ onBack, expertType = 'doctor' }) => {
 
                 <section className="expert-details-page__review-payment-card" aria-label="Payment summary card">
                   <div className="expert-details-page__review-payment-row">
-                    <span className="expert-details-page__review-payment-label">Consultation Fee</span>
+                    <span className="expert-details-page__review-payment-label">Consultation Fee (Both Experts)</span>
                     <span className="expert-details-page__review-payment-value">Rs. {formatAmount(consultationFee)}/-</span>
                   </div>
                   <div className="expert-details-page__review-payment-row">
@@ -591,7 +839,7 @@ const ExpertDetailsPage = ({ onBack, expertType = 'doctor' }) => {
                 <section className="expert-details-page__review-refund-card" aria-label="Refund policy">
                   <ReviewRefundIcon />
                   <p className="expert-details-page__review-refund-text">
-                    <strong>Full refund</strong> if the doctor is unavailable during your selected window. Your health and peace of mind are our priority.
+                    <strong>Full refund</strong> if either expert is unavailable during your selected window.
                   </p>
                 </section>
 
@@ -606,16 +854,23 @@ const ExpertDetailsPage = ({ onBack, expertType = 'doctor' }) => {
                 </div>
 
                 <p className="expert-details-page__confirmed-title">Booking Confirmed</p>
-                <p className="expert-details-page__confirmed-text">The expert will notify you when they&rsquo;re available within your selected time.</p>
+                <p className="expert-details-page__confirmed-text">Your integrated care team consultation is confirmed.</p>
 
-                <section className="expert-details-page__confirmed-doctor" aria-label="Confirmed doctor">
-                  <div className="expert-details-page__confirmed-doctor-photo-wrap">
-                    <img src={data.image} alt={data.name} className="expert-details-page__confirmed-doctor-photo" />
+                <section className="ihp-confirmed-team" aria-label="Selected care team">
+                  <div className="ihp-confirmed-team-row">
+                    <img src={selectedDoctor?.image || doctorAvatar} alt={selectedDoctor?.name || 'Doctor'} className="ihp-confirmed-team-photo" />
+                    <div>
+                      <h4 className="ihp-confirmed-team-name">{selectedDoctor?.name || 'Doctor'}</h4>
+                      <p className="ihp-confirmed-team-role">{selectedDoctor?.role || 'General Physician'}</p>
+                    </div>
                   </div>
 
-                  <div className="expert-details-page__confirmed-doctor-copy">
-                    <h4 className="expert-details-page__confirmed-doctor-name">{data.name}</h4>
-                    <p className="expert-details-page__confirmed-doctor-role">{roleText}</p>
+                  <div className="ihp-confirmed-team-row">
+                    <img src={selectedNutritionist?.image || nutritionistAvatar} alt={selectedNutritionist?.name || 'Nutritionist'} className="ihp-confirmed-team-photo" />
+                    <div>
+                      <h4 className="ihp-confirmed-team-name">{selectedNutritionist?.name || 'Nutritionist'}</h4>
+                      <p className="ihp-confirmed-team-role">{selectedNutritionist?.role || 'Nutritionist'}</p>
+                    </div>
                   </div>
                 </section>
 
@@ -647,4 +902,4 @@ const ExpertDetailsPage = ({ onBack, expertType = 'doctor' }) => {
   );
 };
 
-export default ExpertDetailsPage;
+export default IntegratedHealthProgramPage;

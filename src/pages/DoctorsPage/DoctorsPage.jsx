@@ -53,7 +53,7 @@ const shouldShowCard = (activePill, cardType) => {
   return false;
 };
 
-const DoctorsPage = ({ onBack, onOpenDoctorProfile, onOpenNutritionistProfile }) => {
+const DoctorsPage = ({ onBack, onOpenDoctorProfile, onOpenNutritionistProfile, onOpenIntegratedProfile }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activePill, setActivePill] = useState('All');
 
@@ -148,7 +148,7 @@ const DoctorsPage = ({ onBack, onOpenDoctorProfile, onOpenNutritionistProfile })
               </div>
             </div>
 
-            <button type="button" className="doctors-card__cta">View Profile</button>
+            <button type="button" className="doctors-card__cta" onClick={onOpenIntegratedProfile}>View Profile</button>
           </div>
         </article>
         ) : null}

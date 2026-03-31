@@ -12,6 +12,22 @@ const PACKAGE_CARDS = [
   { id: 4, theme: 'pink' },
 ];
 
+const DEFAULT_CARD_DATA = {
+  badges: ['Most Popular', 'Male', 'Female'],
+  title: 'Comprehensive Health Check',
+  chips: ['Biological Age', 'Kidney', 'Heart', '+ More'],
+  metrics: {
+    parameters: '150',
+    reportsIn: '12 hrs',
+    fasting: '8-12 hrs',
+  },
+  pricing: {
+    now: 2499,
+    old: 4498,
+    off: '44% OFF',
+  },
+};
+
 const SearchIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
     <path d="M13.9988 13.9998L11.1055 11.1064" stroke="white" strokeLinecap="round" strokeLinejoin="round"/>
@@ -38,9 +54,9 @@ const OpenIcon = () => (
   </svg>
 );
 
-const FeatureChips = ['Biological Age', 'Kidney', 'Heart', '+ More'];
+const formatPrice = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 
-const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustomPackage, onNavigateToDoctors }) => {
+const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustomPackage, onNavigateToDoctors, customPackageCard }) => {
   const [activeFilter, setActiveFilter] = useState('All');
   const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
 
@@ -56,7 +72,18 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
     };
   }, [isPatientOverlayOpen]);
 
-  const visibleCards = useMemo(() => PACKAGE_CARDS, []);
+  const visibleCards = useMemo(() => {
+    const staticCards = PACKAGE_CARDS.map((pkg) => ({
+      ...pkg,
+      ...DEFAULT_CARD_DATA,
+    }));
+
+    if (!customPackageCard) {
+      return staticCards;
+    }
+
+    return [{ ...customPackageCard }, ...staticCards];
+  }, [customPackageCard]);
 
   const handleNav = (itemId) => {
     if (itemId === 'home' && onNavigateHome) {
@@ -131,13 +158,20 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
               }}
             >
               <div className="packages-card__badges">
-                <span className="packages-card__badge packages-card__badge--popular">Most Popular</span>
-                <span className="packages-card__badge packages-card__badge--type">Male</span>
-                <span className="packages-card__badge packages-card__badge--type">Female</span>
+                {(pkg.badges || []).map((badge, index) => {
+                  const badgeClass = index === 0
+                    ? (badge === 'Custom Built' ? 'packages-card__badge--custom' : 'packages-card__badge--popular')
+                    : 'packages-card__badge--type';
+                  return (
+                    <span key={`${pkg.id}-${badge}`} className={`packages-card__badge ${badgeClass}`}>
+                      {badge}
+                    </span>
+                  );
+                })}
               </div>
 
               <div className="packages-card__title-row">
-                <h2 className="packages-card__title">Comprehensive Health Check</h2>
+                <h2 className="packages-card__title">{pkg.title}</h2>
                 <button
                   type="button"
                   className="packages-card__open-btn"
@@ -154,24 +188,24 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
               </div>
 
               <div className="packages-card__feature-chips">
-                {FeatureChips.map((chip) => (
+                {(pkg.chips || []).map((chip) => (
                   <span key={chip} className="packages-card__feature-chip">{chip}</span>
                 ))}
               </div>
 
               <div className="packages-card__metrics">
                 <div className="packages-card__metric">
-                  <span className="packages-card__metric-value">150</span>
+                  <span className="packages-card__metric-value">{pkg.metrics?.parameters}</span>
                   <span className="packages-card__metric-label">Parameters</span>
                 </div>
                 <div className="packages-card__metric-separator" aria-hidden="true" />
                 <div className="packages-card__metric">
-                  <span className="packages-card__metric-value">12 hrs</span>
+                  <span className="packages-card__metric-value">{pkg.metrics?.reportsIn}</span>
                   <span className="packages-card__metric-label">Reports in</span>
                 </div>
                 <div className="packages-card__metric-separator" aria-hidden="true" />
                 <div className="packages-card__metric">
-                  <span className="packages-card__metric-value">8-12 hrs</span>
+                  <span className="packages-card__metric-value">{pkg.metrics?.fasting}</span>
                   <span className="packages-card__metric-label">Fasting</span>
                 </div>
               </div>
@@ -179,10 +213,10 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
               <div className="packages-card__book-row">
                 <div className="packages-card__price-wrap">
                   <div className="packages-card__price-top">
-                    <span className="packages-card__price-now">₹2,499</span>
-                    <span className="packages-card__off-pill">44% OFF</span>
+                    <span className="packages-card__price-now">{formatPrice(pkg.pricing?.now)}</span>
+                    {pkg.pricing?.off ? <span className="packages-card__off-pill">{pkg.pricing.off}</span> : null}
                   </div>
-                  <span className="packages-card__price-old">₹4,498</span>
+                  <span className="packages-card__price-old">{formatPrice(pkg.pricing?.old)}</span>
                 </div>
                 <button
                   type="button"
