@@ -346,7 +346,7 @@ function App() {
       console.error('Failed to enter selected account:', error);
     }
 
-    setCurrentPage('packages');
+    setCurrentPage('home');
   };
 
   const handleLogout = async () => {
@@ -566,6 +566,10 @@ function App() {
           onBack={() => {
             console.log('Back to Home');
             setCurrentPage('home');
+          }}
+          onOpenPackages={() => {
+            console.log('Navigate to Packages');
+            setCurrentPage('packages');
           }}
           onOpenDoctorProfile={() => {
             console.log('Navigate to Doctor Expert Details');

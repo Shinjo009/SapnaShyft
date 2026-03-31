@@ -10,16 +10,14 @@ import './NavItem.css';
  * - icon: SVG icon path
  * - isActive: Boolean indicating if this item is currently active
  * - onClick: Callback when item is clicked
- * - width: Optional custom width for icon
- * - height: Optional custom height for icon
- * - flexShrink: Optional flex-shrink value
  */
-const NavItem = ({ id, label, icon, isActive, onClick, width, height, flexShrink }) => {
+const NavItem = ({ id, label, icon, isActive, onClick, iconSize = 23 }) => {
   const iconStyle = {
-    filter: isActive ? 'brightness(0) saturate(100%) invert(31%) sepia(10%) saturate(2239%) hue-rotate(131deg) brightness(94%) contrast(92%)' : 'none',
-    ...(width && { width }),
-    ...(height && { height }),
-    ...(flexShrink !== undefined && { flexShrink }),
+    width: `${iconSize}px`,
+    height: `${iconSize}px`,
+    filter: isActive
+      ? 'brightness(0) saturate(100%) invert(18%) sepia(18%) saturate(1454%) hue-rotate(145deg) brightness(96%) contrast(93%)'
+      : 'none',
   };
 
   return (
@@ -28,6 +26,7 @@ const NavItem = ({ id, label, icon, isActive, onClick, width, height, flexShrink
       onClick={() => onClick(id)}
       aria-label={label}
       aria-current={isActive ? 'page' : undefined}
+      type="button"
     >
       <div className="nav-item__icon-wrapper">
         {isActive && <div className="nav-item__circle" />}
@@ -38,7 +37,7 @@ const NavItem = ({ id, label, icon, isActive, onClick, width, height, flexShrink
           style={iconStyle}
         />
       </div>
-      <span className="nav-item__label">{label}</span>
+      <span className="nav-item__label" aria-hidden={isActive}>{label}</span>
     </button>
   );
 };

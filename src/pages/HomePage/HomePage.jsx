@@ -29,7 +29,7 @@ const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealt
       return;
     }
 
-    if (itemId === 'super-club' && onNavigateToDoctors) {
+    if (itemId === 'super-sync' && onNavigateToDoctors) {
       onNavigateToDoctors();
       return;
     }

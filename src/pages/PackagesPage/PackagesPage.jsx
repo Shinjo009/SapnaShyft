@@ -91,7 +91,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
       return;
     }
 
-    if (itemId === 'super-club' && onNavigateToDoctors) {
+    if (itemId === 'super-sync' && onNavigateToDoctors) {
       onNavigateToDoctors();
     }
   };
