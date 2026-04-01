@@ -80,7 +80,7 @@ const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealt
         onSearchClick={handleSearchClick}
       />
 
-      <MetabolicAgeOrb value="0" currentAge={19} label="METABOLIC AGE" detail="5 years older" />
+      <MetabolicAgeOrb value="10" currentAge={19} label="METABOLIC AGE" detail="5 years older" />
 
       {/* Health Parameters Section */}
       <HealthParametersSection 
