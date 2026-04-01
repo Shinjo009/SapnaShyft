@@ -665,6 +665,21 @@
   box-shadow: -1px 0 4px 0 rgba(233, 93, 92, 0.25);
 }
 
+.risk-analysis-wins__blood-marker-card--high {
+  border-color: rgba(233, 93, 92, 0.50);
+  box-shadow: -1px 0 4px 0 rgba(233, 93, 92, 0.25);
+}
+
+.risk-analysis-wins__blood-marker-card--low {
+  border-color: rgba(218, 193, 90, 0.55);
+  box-shadow: -1px 0 4px 0 rgba(218, 193, 90, 0.25);
+}
+
+.risk-analysis-wins__blood-marker-card--optimal {
+  border-color: rgba(74, 222, 128, 0.55);
+  box-shadow: -1px 0 4px 0 rgba(74, 222, 128, 0.22);
+}
+
 .risk-analysis-wins__blood-marker-left {
   display: flex;
   flex-direction: column;
@@ -695,6 +710,18 @@
   font-style: normal;
   font-weight: 600;
   line-height: 20px;
+}
+
+.risk-analysis-wins__blood-marker-divider--high {
+  color: #E95D5C;
+}
+
+.risk-analysis-wins__blood-marker-divider--low {
+  color: #DAC15A;
+}
+
+.risk-analysis-wins__blood-marker-divider--optimal {
+  color: #4ADE80;
 }
 
 .risk-analysis-wins__blood-marker-value {
@@ -744,4 +771,16 @@
   font-weight: 400;
   line-height: normal;
   box-sizing: border-box;
+}
+
+.risk-analysis-wins__blood-marker-risk-pill--high {
+  background: rgba(233, 93, 92, 0.20);
+}
+
+.risk-analysis-wins__blood-marker-risk-pill--low {
+  background: rgba(218, 193, 90, 0.20);
+}
+
+.risk-analysis-wins__blood-marker-risk-pill--optimal {
+  background: rgba(74, 222, 128, 0.20);
 }

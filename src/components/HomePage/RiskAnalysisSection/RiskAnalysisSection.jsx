@@ -1,5 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './RiskAnalysisSection.css';
+import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../../config/appConfig';
+import { getAccessToken } from '../../../utils/authStorage';
 import ObesityIcon from '../../../images/Obesity-RA.svg';
 import ThyroidHealthIcon from '../../../images/Thyroid-RA.svg';
 import NAFLDIcon from '../../../images/NAFLD-RA.svg';
@@ -26,10 +28,10 @@ const SwipeArrow = () => (
   </svg>
 );
 
-const MarkerTrendIcon = () => (
+const MarkerTrendIcon = ({ color = '#EF4444' }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
     <g clipPath="url(#clip0_2394_17328)">
-      <path d="M11.787 3.65514L12.9743 4.78469L8.99102 8.57417L6.30999 6.02356C6.00359 5.69562 5.46738 5.69562 5.16098 6.02356L0.258528 10.6875C-0.0861759 10.979 -0.0861759 11.4891 0.258528 11.7806C0.564931 12.0721 1.10114 12.0721 1.40754 11.7806L5.73549 7.66324L8.41652 10.2138C8.72292 10.5418 9.25913 10.5418 9.56553 10.2138L14.1233 5.87781L15.3106 7.00736C15.5787 7.22599 16 7.08024 16 6.71587V3.40008C16 3.18145 15.8468 2.99927 15.617 2.99927H12.0934C11.7487 2.99927 11.5572 3.43651 11.787 3.65514Z" fill="#EF4444"/>
+      <path d="M11.787 3.65514L12.9743 4.78469L8.99102 8.57417L6.30999 6.02356C6.00359 5.69562 5.46738 5.69562 5.16098 6.02356L0.258528 10.6875C-0.0861759 10.979 -0.0861759 11.4891 0.258528 11.7806C0.564931 12.0721 1.10114 12.0721 1.40754 11.7806L5.73549 7.66324L8.41652 10.2138C8.72292 10.5418 9.25913 10.5418 9.56553 10.2138L14.1233 5.87781L15.3106 7.00736C15.5787 7.22599 16 7.08024 16 6.71587V3.40008C16 3.18145 15.8468 2.99927 15.617 2.99927H12.0934C11.7487 2.99927 11.5572 3.43651 11.787 3.65514Z" fill={color}/>
     </g>
     <defs>
       <clipPath id="clip0_2394_17328">
@@ -78,11 +80,219 @@ const defaultCards = DISEASES_DATA
     healthRankLabel: `${HEALTH_RANK_SCORE_FROM_DISEASE_DETAIL}th`,
   }));
 
-const BLOOD_MARKERS_DATA = [
-  { id: 1, name: 'Albumin', value: '23.5 mg/dL', profile: 'Liver Profile', risk: 'High Risk' },
-  { id: 2, name: 'Albumin', value: '23.5 mg/dL', profile: 'Liver Profile', risk: 'High Risk' },
-  { id: 3, name: 'Albumin', value: '23.5 mg/dL', profile: 'Liver Profile', risk: 'High Risk' },
-];
+const BLOOD_MARKER_RISK_PRIORITY = {
+  'high risk': 0,
+  'critical': 0,
+  high: 0,
+  'low risk': 1,
+  'marginal': 1,
+  low: 1,
+  optimal: 2,
+};
+
+const getBloodMarkerRiskPriority = (risk = '') => {
+  const key = String(risk).trim().toLowerCase();
+  return BLOOD_MARKER_RISK_PRIORITY[key] ?? Number.MAX_SAFE_INTEGER;
+};
+
+const BLOOD_MARKER_COLOR_BY_RISK = {
+  high: '#EF4444',
+  low: '#DAC15A',
+  optimal: '#4ADE80',
+};
+
+const toTimestamp = (value) => {
+  const timestamp = new Date(value || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+const parseResponseBody = async (response) => {
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
+const extractArray = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.results)) return payload.results;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.data?.items)) return payload.data.items;
+  if (Array.isArray(payload?.data?.results)) return payload.data.results;
+  return [];
+};
+
+const extractAssessmentIdFromRow = (row) => {
+  if (!row || typeof row !== 'object') return null;
+
+  return row.assessment_id
+    || row.assessment_instance_id
+    || row.id
+    || row.assessment?.assessment_id
+    || row.assessment?.assessment_instance_id
+    || row.assessment?.id
+    || row.assessment?.assessment?.assessment_id
+    || row.assessment?.assessment?.id
+    || null;
+};
+
+const getSortedAssessmentIds = (assessments) => {
+  const rows = Array.isArray(assessments) ? assessments : [];
+
+  const sorted = [...rows].sort((a, b) => {
+    const aTime = Math.max(
+      toTimestamp(a?.assigned_at),
+      toTimestamp(a?.assessment?.assigned_at),
+      toTimestamp(a?.updated_at),
+      toTimestamp(a?.assessment?.updated_at),
+      toTimestamp(a?.created_at),
+      toTimestamp(a?.assessment?.created_at)
+    );
+    const bTime = Math.max(
+      toTimestamp(b?.assigned_at),
+      toTimestamp(b?.assessment?.assigned_at),
+      toTimestamp(b?.updated_at),
+      toTimestamp(b?.assessment?.updated_at),
+      toTimestamp(b?.created_at),
+      toTimestamp(b?.assessment?.created_at)
+    );
+
+    if (bTime !== aTime) return bTime - aTime;
+
+    const aId = Number(extractAssessmentIdFromRow(a) || 0);
+    const bId = Number(extractAssessmentIdFromRow(b) || 0);
+    return bId - aId;
+  });
+
+  return Array.from(new Set(sorted.map((row) => extractAssessmentIdFromRow(row)).filter(Boolean)));
+};
+
+const authorizedGet = async (path) => {
+  if (!BACKEND_ENABLED) {
+    throw new Error('Backend base URL is not configured.');
+  }
+
+  const accessToken = getAccessToken();
+  if (!accessToken) {
+    throw new Error('You are not logged in.');
+  }
+
+  const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    throw new Error(body?.message || body?.detail || 'Request failed.');
+  }
+
+  return body;
+};
+
+const getRiskTypeFromBounds = (value, lowerRange, upperRange) => {
+  const numericValue = Number(value);
+  const lower = Number(lowerRange);
+  const upper = Number(upperRange);
+
+  if (!Number.isFinite(numericValue) || !Number.isFinite(lower) || !Number.isFinite(upper)) {
+    return 'optimal';
+  }
+
+  if (numericValue >= lower && numericValue <= upper) {
+    return 'optimal';
+  }
+
+  const isBelowRange = numericValue < lower;
+  const boundary = isBelowRange ? lower : upper;
+  const deviation = isBelowRange ? (lower - numericValue) : (numericValue - upper);
+  const deviationPercent = (deviation / Math.max(Math.abs(boundary), 1e-6)) * 100;
+
+  if (deviationPercent <= 15) {
+    return 'low';
+  }
+
+  return 'high';
+};
+
+const formatValue = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return String(value ?? '--');
+  return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2).replace(/\.00$/, '');
+};
+
+const toDiseaseName = (groupName = '') => {
+  const raw = String(groupName).trim();
+  return raw.replace(/\s*profile\s*$/i, '').trim() || 'General';
+};
+
+const toRiskLabel = (riskKey) => {
+  if (riskKey === 'high') return 'High Risk';
+  if (riskKey === 'low') return 'Low Risk';
+  return 'Optimal';
+};
+
+const buildBloodMarkersFromGroups = (groups) => {
+  return (Array.isArray(groups) ? groups : []).map((group, groupIndex) => {
+    const disease = toDiseaseName(group?.group_name);
+    const tests = Array.isArray(group?.tests) ? group.tests : [];
+
+    const enrichedTests = tests.map((test) => {
+      const value = Number(test?.value);
+      const lower = Number(test?.lower_range);
+      const upper = Number(test?.higher_range);
+      const hasBounds = Number.isFinite(value) && Number.isFinite(lower) && Number.isFinite(upper);
+
+      return {
+        name: String(test?.test_name || 'Test'),
+        value: Number.isFinite(value) ? value : null,
+        unit: String(test?.unit || '').trim(),
+        riskKey: hasBounds ? getRiskTypeFromBounds(value, lower, upper) : 'optimal',
+      };
+    });
+
+    const hasHigh = enrichedTests.some((test) => test.riskKey === 'high');
+    const hasLow = enrichedTests.some((test) => test.riskKey === 'low');
+    const riskKey = hasHigh ? 'high' : hasLow ? 'low' : 'optimal';
+
+    const representative = enrichedTests.find((test) => test.riskKey === riskKey)
+      || enrichedTests[0]
+      || { name: 'Test', value: null, unit: '' };
+
+    return {
+      id: `api-bm-${groupIndex}`,
+      name: representative.name,
+      value: representative.value === null ? '--' : `${formatValue(representative.value)}${representative.unit ? ` ${representative.unit}` : ''}`,
+      profile: String(group?.group_name || 'Blood Marker'),
+      disease,
+      risk: toRiskLabel(riskKey),
+      riskKey,
+    };
+  });
+};
+
+const orderByHierarchy = (markers) => {
+  const source = Array.isArray(markers) ? markers : [];
+  const high = source.filter((item) => item.riskKey === 'high');
+  const low = source.filter((item) => item.riskKey === 'low');
+  const optimal = source.filter((item) => item.riskKey === 'optimal');
+
+  if (high.length === 0 && low.length === 0) {
+    return optimal;
+  }
+
+  return [...high, ...low, ...optimal];
+};
 
 const GaugeDial = ({ score }) => {
   const safeScore = Math.max(0, Math.min(100, score ?? 0));
@@ -119,6 +329,20 @@ const GaugeDial = ({ score }) => {
 
 const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore, onBloodMarkersSeeMore }) => {
   const stackCards = cards.slice(0, 3);
+  const [apiBloodMarkers, setApiBloodMarkers] = useState([]);
+  const bloodMarkers = useMemo(() => {
+    const normalized = apiBloodMarkers.map((item) => {
+      const normalizedRiskKey = item.riskKey
+        || (getBloodMarkerRiskPriority(item.risk) === 0 ? 'high' : getBloodMarkerRiskPriority(item.risk) === 1 ? 'low' : 'optimal');
+
+      return {
+        ...item,
+        riskKey: normalizedRiskKey,
+      };
+    });
+
+    return orderByHierarchy(normalized);
+  }, [apiBloodMarkers]);
   const cardCount = stackCards.length;
   const [activeIndex, setActiveIndex] = useState(Math.max(cardCount - 1, 0));
   const [swipeDirection, setSwipeDirection] = useState('next');
@@ -240,6 +464,51 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
     }
   };
 
+  useEffect(() => {
+    let isActive = true;
+
+    const loadHomepageBloodMarkers = async () => {
+      try {
+        const assessmentsResponse = await authorizedGet('/assessments/me');
+        const assessments = extractArray(assessmentsResponse);
+        const candidateAssessmentIds = getSortedAssessmentIds(assessments);
+
+        if (candidateAssessmentIds.length === 0) {
+          if (isActive) setApiBloodMarkers([]);
+          return;
+        }
+
+        let groups = [];
+        for (const assessmentId of candidateAssessmentIds) {
+          try {
+            const reportResponse = await authorizedGet(`/reports/${assessmentId}/blood-parameters`);
+            groups = extractArray(reportResponse);
+            if (groups.length > 0) {
+              break;
+            }
+          } catch {
+            // Try next latest assessment if current one is unavailable.
+          }
+        }
+
+        if (isActive) {
+          setApiBloodMarkers(buildBloodMarkersFromGroups(groups));
+        }
+      } catch (error) {
+        console.error('Failed to load homepage blood markers:', error);
+        if (isActive) {
+          setApiBloodMarkers([]);
+        }
+      }
+    };
+
+    loadHomepageBloodMarkers();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   return (
     <section className="risk-analysis-wins">
       <div className="risk-analysis-wins__header">
@@ -351,19 +620,19 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
         </div>
 
         <div className="risk-analysis-wins__blood-markers-list">
-          {BLOOD_MARKERS_DATA.map((marker) => (
-            <article className="risk-analysis-wins__blood-marker-card" key={marker.id}>
+          {bloodMarkers.map((marker) => (
+            <article className={`risk-analysis-wins__blood-marker-card risk-analysis-wins__blood-marker-card--${marker.riskKey}`} key={marker.id}>
               <div className="risk-analysis-wins__blood-marker-left">
                 <div className="risk-analysis-wins__blood-marker-main-row">
                   <span className="risk-analysis-wins__blood-marker-name">{marker.name}</span>
-                  <span className="risk-analysis-wins__blood-marker-divider" aria-hidden="true">|</span>
+                  <span className={`risk-analysis-wins__blood-marker-divider risk-analysis-wins__blood-marker-divider--${marker.riskKey}`} aria-hidden="true">|</span>
                   <span className="risk-analysis-wins__blood-marker-value">{marker.value}</span>
-                  <span className="risk-analysis-wins__blood-marker-trend" aria-hidden="true"><MarkerTrendIcon /></span>
+                  <span className="risk-analysis-wins__blood-marker-trend" aria-hidden="true"><MarkerTrendIcon color={BLOOD_MARKER_COLOR_BY_RISK[marker.riskKey] || '#EF4444'} /></span>
                 </div>
-                <span className="risk-analysis-wins__blood-marker-profile">{marker.profile}</span>
+                <span className="risk-analysis-wins__blood-marker-profile">{marker.disease || marker.profile}</span>
               </div>
 
-              <span className="risk-analysis-wins__blood-marker-risk-pill">{marker.risk}</span>
+              <span className={`risk-analysis-wins__blood-marker-risk-pill risk-analysis-wins__blood-marker-risk-pill--${marker.riskKey}`}>{marker.risk}</span>
             </article>
           ))}
         </div>

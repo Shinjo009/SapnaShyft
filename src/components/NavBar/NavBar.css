@@ -20,9 +20,16 @@
   pointer-events: none;
 }
 
-.navbar__notch-svg path {
-  transition: d 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+.navbar__notch-path {
   will-change: d;
+}
+
+.navbar__notch-cap {
+  will-change: auto;
+}
+
+.navbar__notch-path--ready {
+  transition: d 0.26s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .navbar__container {
@@ -70,9 +77,9 @@
 /* Small Desktop: 769px - 1024px - Centered with max-width */
 @media (min-width: 769px) and (max-width: 1024px) {
   .navbar {
-    left: 50%;
-    transform: translateX(-50%);
-    width: 520px;
+    left: 0;
+    right: 0;
+    width: 100%;
   }
 
   .navbar__container {
@@ -83,9 +90,9 @@
 /* Large Desktop: 1025px+ - Centered with max-width */
 @media (min-width: 1025px) {
   .navbar {
-    left: 50%;
-    transform: translateX(-50%);
-    width: 560px;
+    left: 0;
+    right: 0;
+    width: 100%;
   }
 
   .navbar__container {
