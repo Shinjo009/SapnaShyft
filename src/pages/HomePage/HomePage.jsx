@@ -1,13 +1,13 @@
 import React from 'react';
 import './HomePage.css';
 import Header from '../../components/HomePage/Header';
-import MetabolicAgeCard from '../../components/HomePage/MetabolicAgeCard';
+import MetabolicAgeOrb from '../../metabolic-age-orb/MetabolicAgeOrb.jsx';
 import HealthParametersSection from '../../components/HomePage/HealthParametersSection';
 import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/PositiveWinsSection';
 import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 
-const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealthScanTab, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers, onNavigateToPackages, onNavigateToDoctors }) => {
+const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealthScanTab, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers, onNavigateToPackages }) => {
   const handleMenuClick = () => {
     console.log('Menu clicked');
     if (onNavigateToProfile) {
@@ -26,11 +26,6 @@ const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealt
     console.log('Navigating to:', itemId);
     if (itemId === 'packages' && onNavigateToPackages) {
       onNavigateToPackages();
-      return;
-    }
-
-    if (itemId === 'super-sync' && onNavigateToDoctors) {
-      onNavigateToDoctors();
       return;
     }
 
@@ -85,19 +80,14 @@ const HomePage = ({ userName = 'User', onNavigateToHealthScan, onNavigateToHealt
         onSearchClick={handleSearchClick}
       />
 
-      {/* Metabolic Age Card */}
-      <MetabolicAgeCard 
-        age={28}
-        label="Metabolic age"
-        detail="5 years older"
-      />
+      <MetabolicAgeOrb value="5" currentAge={19} label="METABOLIC AGE" detail="5 years older" />
 
       {/* Health Parameters Section */}
       <HealthParametersSection 
         data={[
-          { percentage: 20, label: 'Fitness score' },
+          { percentage: 75, label: 'Lifestyle score' },
           { percentage: 45, label: 'Nutrition score' },
-          { percentage: 75, label: 'Lifestyle score' }
+          { percentage: 20, label: 'Fitness score' }
         ]}
         onSeeMore={handleHealthScanSeeMore}
         onCardClick={handleHealthScanCircleClick}
