@@ -718,16 +718,26 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
   const riskStripRef = useRef(null);
   const indicatorRef = useRef(null);
   const [diagnosticDetail, setDiagnosticDetail] = useState(null);
+  const [isDiagnosticLoading, setIsDiagnosticLoading] = useState(Boolean(marker?.diagnosticTestId));
 
   useEffect(() => {
     let isActive = true;
 
     const loadDiagnosticDetail = async () => {
+      if (isActive) {
+        setDiagnosticDetail(null);
+      }
+
       if (!marker?.diagnosticTestId) {
         if (isActive) {
+          setIsDiagnosticLoading(false);
           setDiagnosticDetail(null);
         }
         return;
+      }
+
+      if (isActive) {
+        setIsDiagnosticLoading(true);
       }
 
       try {
@@ -736,10 +746,12 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
 
         if (isActive) {
           setDiagnosticDetail(detailPayload);
+          setIsDiagnosticLoading(false);
         }
       } catch (error) {
         if (isActive) {
           setDiagnosticDetail(null);
+          setIsDiagnosticLoading(false);
         }
       }
     };
@@ -752,6 +764,7 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
   }, [marker?.diagnosticTestId]);
 
   const baseDetail = BLOOD_MARKER_DETAIL_CONTENT[marker?.marker] || BLOOD_MARKER_DETAIL_CONTENT.ALBUMIN;
+  const shouldWaitForDiagnosticData = Boolean(marker?.diagnosticTestId);
   const diagnosticDescription = pickFirstText(diagnosticDetail, [
     'meaning',
     'top_one_liner',
@@ -768,7 +781,9 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
   const detail = {
     ...baseDetail,
     title: marker?.marker ? String(marker.marker).charAt(0) + String(marker.marker).slice(1).toLowerCase() : baseDetail.title,
-    description: diagnosticDescription || baseDetail.description,
+    description: shouldWaitForDiagnosticData
+      ? (isDiagnosticLoading ? '' : (diagnosticDescription || 'No details provided in report.'))
+      : baseDetail.description,
     normalMin: Number.isFinite(Number(marker?.normalMin)) ? Number(marker.normalMin) : baseDetail.normalMin,
     normalMax: Number.isFinite(Number(marker?.normalMax)) ? Number(marker.normalMax) : baseDetail.normalMax,
     causes: [],
@@ -992,7 +1007,11 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
         <h1 className="blood-marker-detail__title">{detail.title}</h1>
       </header>
 
-      <p className="blood-marker-detail__description">{detail.description}</p>
+      {shouldWaitForDiagnosticData && isDiagnosticLoading ? (
+        <p className="blood-marker-detail__description">Loading marker details...</p>
+      ) : (
+        <p className="blood-marker-detail__description">{detail.description}</p>
+      )}
 
       <section className="blood-marker-detail__scale-section" aria-label="Blood marker range scale">
         <div className="blood-marker-detail__risk-strip" ref={riskStripRef}>
@@ -1081,7 +1100,9 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
 
       <section className="blood-marker-detail__info-section">
         <h3 className="blood-marker-detail__section-heading">Causes</h3>
-        {detail.causes.length > 0 ? detail.causes.map((item) => (
+        {shouldWaitForDiagnosticData && isDiagnosticLoading ? (
+          <p className="blood-marker-detail__body-text">Loading causes...</p>
+        ) : detail.causes.length > 0 ? detail.causes.map((item) => (
           <p key={item} className="blood-marker-detail__body-text">{item}</p>
         )) : (
           <p className="blood-marker-detail__body-text">No causes provided in report.</p>
@@ -1089,7 +1110,9 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
 
         <h3 className="blood-marker-detail__section-heading blood-marker-detail__effects-heading">Effects</h3>
         <div className="blood-marker-detail__effects-list">
-          {detail.effects.length > 0 ? detail.effects.map((effect) => (
+          {shouldWaitForDiagnosticData && isDiagnosticLoading ? (
+            <p className="blood-marker-detail__effect-item">Loading effects...</p>
+          ) : detail.effects.length > 0 ? detail.effects.map((effect) => (
             <p key={effect} className="blood-marker-detail__effect-item">{effect}</p>
           )) : (
             <p className="blood-marker-detail__effect-item">No effects provided in report.</p>
@@ -1113,6 +1136,8 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
   const [isResetting, setIsResetting] = useState(false);
   const stackRef = useRef(null);
   const touchStartXRef = useRef(null);
+  const touchStartYRef = useRef(null);
+  const isHorizontalSwipeRef = useRef(false);
   const latestDragXRef = useRef(0);
 
   const resetDragOffset = () => {
@@ -1152,16 +1177,36 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
       return;
     }
     touchStartXRef.current = event.touches[0].clientX;
-    setIsDragging(true);
+    touchStartYRef.current = event.touches[0].clientY;
+    isHorizontalSwipeRef.current = false;
+    setIsDragging(false);
     resetDragOffset();
   };
 
   const handleTouchMove = (event) => {
-    if (touchStartXRef.current == null || isAnimating) {
+    if (touchStartXRef.current == null || touchStartYRef.current == null || isAnimating) {
       return;
     }
 
     const deltaX = event.touches[0].clientX - touchStartXRef.current;
+    const deltaY = event.touches[0].clientY - touchStartYRef.current;
+
+    if (!isHorizontalSwipeRef.current) {
+      const hasEnoughMovement = Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6;
+      if (!hasEnoughMovement) {
+        return;
+      }
+
+      isHorizontalSwipeRef.current = Math.abs(deltaX) > Math.abs(deltaY);
+      if (!isHorizontalSwipeRef.current) {
+        return;
+      }
+
+      setIsDragging(true);
+    }
+
+    event.preventDefault();
+
     const stackWidth = stackRef.current?.clientWidth || 260;
     const softLimit = Math.max(120, stackWidth * 0.55);
     const absDelta = Math.abs(deltaX);
@@ -1176,6 +1221,14 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
 
   const handleTouchEnd = (event) => {
     if (touchStartXRef.current == null) {
+      return;
+    }
+
+    if (!isHorizontalSwipeRef.current) {
+      touchStartXRef.current = null;
+      touchStartYRef.current = null;
+      setIsDragging(false);
+      resetDragOffset();
       return;
     }
 
@@ -1194,10 +1247,14 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
     }
 
     touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    isHorizontalSwipeRef.current = false;
   };
 
   const handleTouchCancel = () => {
     touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    isHorizontalSwipeRef.current = false;
     setIsDragging(false);
     resetDragOffset();
   };
@@ -1319,6 +1376,11 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
       <div
         ref={stackRef}
         className={`blood-markers-page__stack${isAnimating ? ` blood-markers-page__stack--moving-${swipeDirection}` : ''}`}
+        style={cardCount === 2 ? {
+          '--blood-markers-back-two-left': 'var(--blood-markers-back-one-left)',
+          '--blood-markers-back-two-top': 'var(--blood-markers-back-one-top)',
+          '--blood-markers-back-two-fade': 'var(--blood-markers-back-one-fade)',
+        } : undefined}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -1326,6 +1388,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
         onTransitionEnd={handleStackTransitionEnd}
         data-dragging={isDragging ? 'true' : 'false'}
         data-resetting={isResetting ? 'true' : 'false'}
+        data-card-count={cardCount}
       >
         {cards.map((card, index) => {
           const distance = (index - activeIndex + cards.length) % cards.length;

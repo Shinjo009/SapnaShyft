@@ -34,6 +34,12 @@ const ProfilePage = ({
   onOpenTerms,
   onLogout,
 }) => {
+  const UnlinkAccountIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="30" viewBox="0 0 28 30" fill="none" aria-hidden="true">
+      <path d="M17.7382 13L21.6402 9.098C23.0772 7.661 23.1252 5.38 21.7472 4.003C20.3702 2.625 18.0892 2.673 16.6522 4.11L12.7502 8.012M14.7502 15.962L10.8582 19.842C9.42624 21.272 7.21824 21.457 5.77624 19.949C4.33424 18.442 4.45024 16.31 5.88324 14.881L9.77524 11M10.7502 15L16.7502 9" stroke="#CCCCCC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+
   const [activeModal, setActiveModal] = useState(null);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [error, setError] = useState('');
@@ -159,12 +165,6 @@ const ProfilePage = ({
   };
 
   const handleConfirmAction = async () => {
-    if (activeModal === 'delete') {
-      console.log('Delete account confirmation clicked');
-      closeModal();
-      return;
-    }
-
     try {
       setLogoutLoading(true);
       setError('');
@@ -298,6 +298,7 @@ const ProfilePage = ({
             const relationship = account?.relationship
               ? `${String(account.relationship).charAt(0).toUpperCase()}${String(account.relationship).slice(1)}`
               : 'Member';
+            const isSelfRelationship = String(account?.relationship || '').trim().toLowerCase() === 'self';
             const linkedAvatarSrc = getAvatarByGender(account?.gender);
 
             return (
@@ -309,14 +310,21 @@ const ProfilePage = ({
                   <span className="profile-page__linked-account-name">{accountName}</span>
                   <span className="profile-page__linked-account-relation">{relationship}</span>
                 </div>
-                <button
-                  type="button"
-                  className={`profile-page__switch-btn${switchingUserId === account.user_id ? ' is-loading' : ''}`}
-                  onClick={() => handleSwitchProfile(account.user_id)}
-                  disabled={switchingUserId === account.user_id}
-                >
-                  {switchingUserId === account.user_id ? 'Switching...' : 'Switch'}
-                </button>
+                <div className="profile-page__linked-account-actions">
+                  {!isSelfRelationship ? (
+                    <button type="button" className="profile-page__unlink-btn" aria-label="Unlink account">
+                      <UnlinkAccountIcon />
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className={`profile-page__switch-btn${switchingUserId === account.user_id ? ' is-loading' : ''}`}
+                    onClick={() => handleSwitchProfile(account.user_id)}
+                    disabled={switchingUserId === account.user_id}
+                  >
+                    {switchingUserId === account.user_id ? 'Switching...' : 'Switch'}
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -395,12 +403,6 @@ const ProfilePage = ({
                   <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
-              <button type="button" className="profile-page__menu-sub-item" onClick={() => setActiveModal('delete')}>
-                <span>Delete Account</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
-                  <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
             </div>
           </div>
 
@@ -458,21 +460,12 @@ const ProfilePage = ({
               ×
             </button>
 
-            {activeModal === 'delete' ? (
-              <>
-                <h3 className="profile-page__modal-title">Leaving so soon?</h3>
-                <p className="profile-page__modal-description">
-                  Your progress is too good to delete. Are you sure you want to delete your account?
-                </p>
-              </>
-            ) : (
-              <>
-                <h3 className="profile-page__modal-title">Log Out?</h3>
-                <p className="profile-page__modal-description">
-                  You will be signed out of your account. You can sign back in anytime to continue where you left off.
-                </p>
-              </>
-            )}
+            <>
+              <h3 className="profile-page__modal-title">Log Out?</h3>
+              <p className="profile-page__modal-description">
+                You will be signed out of your account. You can sign back in anytime to continue where you left off.
+              </p>
+            </>
 
             <div className="profile-page__modal-buttons">
               <button
@@ -488,7 +481,7 @@ const ProfilePage = ({
                 disabled={logoutLoading}
                 onClick={handleConfirmAction}
               >
-                {logoutLoading && activeModal === 'logout' ? 'Logging out...' : 'YES'}
+                {logoutLoading ? 'Logging out...' : 'YES'}
               </button>
             </div>
 

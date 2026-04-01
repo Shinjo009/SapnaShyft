@@ -348,6 +348,8 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
   const [isResetting, setIsResetting] = useState(false);
   const stackRef = useRef(null);
   const touchStartXRef = useRef(null);
+  const touchStartYRef = useRef(null);
+  const isHorizontalSwipeRef = useRef(false);
   const latestDragXRef = useRef(0);
 
   const resetDragOffset = () => {
@@ -387,16 +389,36 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
       return;
     }
     touchStartXRef.current = event.touches[0].clientX;
-    setIsDragging(true);
+    touchStartYRef.current = event.touches[0].clientY;
+    isHorizontalSwipeRef.current = false;
+    setIsDragging(false);
     resetDragOffset();
   };
 
   const handleTouchMove = (event) => {
-    if (touchStartXRef.current == null || isAnimating) {
+    if (touchStartXRef.current == null || touchStartYRef.current == null || isAnimating) {
       return;
     }
 
     const deltaX = event.touches[0].clientX - touchStartXRef.current;
+    const deltaY = event.touches[0].clientY - touchStartYRef.current;
+
+    if (!isHorizontalSwipeRef.current) {
+      const hasEnoughMovement = Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6;
+      if (!hasEnoughMovement) {
+        return;
+      }
+
+      isHorizontalSwipeRef.current = Math.abs(deltaX) > Math.abs(deltaY);
+      if (!isHorizontalSwipeRef.current) {
+        return;
+      }
+
+      setIsDragging(true);
+    }
+
+    event.preventDefault();
+
     const stackWidth = stackRef.current?.clientWidth || 260;
     const softLimit = Math.max(120, stackWidth * 0.55);
     const absDelta = Math.abs(deltaX);
@@ -415,6 +437,14 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
       return;
     }
 
+    if (!isHorizontalSwipeRef.current) {
+      touchStartXRef.current = null;
+      touchStartYRef.current = null;
+      setIsDragging(false);
+      resetDragOffset();
+      return;
+    }
+
     const stackWidth = stackRef.current?.clientWidth || 260;
     const swipeThreshold = Math.max(30, stackWidth * 0.14);
     const deltaX = event.changedTouches[0].clientX - touchStartXRef.current;
@@ -430,10 +460,14 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
     }
 
     touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    isHorizontalSwipeRef.current = false;
   };
 
   const handleTouchCancel = () => {
     touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    isHorizontalSwipeRef.current = false;
     setIsDragging(false);
     resetDragOffset();
   };
@@ -528,6 +562,11 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
       <div
         ref={stackRef}
         className={`risk-analysis-wins__stack${isAnimating ? ` risk-analysis-wins__stack--moving-${swipeDirection}` : ''}`}
+        style={cardCount === 2 ? {
+          '--risk-analysis-wins-back-two-left': 'var(--risk-analysis-wins-back-one-left)',
+          '--risk-analysis-wins-back-two-top': 'var(--risk-analysis-wins-back-one-top)',
+          '--risk-analysis-wins-back-two-fade': 'var(--risk-analysis-wins-back-one-fade)',
+        } : undefined}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -622,7 +661,7 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
               <div className="risk-analysis-wins__blood-marker-left">
                 <div className="risk-analysis-wins__blood-marker-main-row">
                   <span className="risk-analysis-wins__blood-marker-name">{marker.name}</span>
-                  <span className={`risk-analysis-wins__blood-marker-divider risk-analysis-wins__blood-marker-divider--${marker.riskKey}`} aria-hidden="true">|</span>
+                  <span className={`risk-analysis-wins__blood-marker-divider risk-analysis-wins__blood-marker-divider--${marker.riskKey}`} aria-hidden="true" />
                   <span className="risk-analysis-wins__blood-marker-value">{marker.value}</span>
                   <span className="risk-analysis-wins__blood-marker-trend" aria-hidden="true"><MarkerTrendIcon color={BLOOD_MARKER_COLOR_BY_RISK[marker.riskKey] || '#EF4444'} /></span>
                 </div>

@@ -74,7 +74,7 @@
 }
 
 .risk-analysis-wins__stack {
-  --risk-analysis-wins-card-height: 214px;
+  --risk-analysis-wins-card-height: flex;
   --risk-analysis-wins-card-width-boost: 12px;
   --risk-analysis-wins-drag-x: 0px;
   --risk-analysis-wins-front-left: 2px;
@@ -104,7 +104,8 @@
   top: 0;
   height: var(--risk-analysis-wins-card-height);
   border-radius: 24px;
-  display: block;
+  display: flex;
+  flex-direction: column;
   padding: 24px;
   border: 1px solid rgba(233, 93, 92, 0.35);
   background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(233, 93, 92, 0.05) 100%);
@@ -310,7 +311,7 @@
   justify-content: flex-start;
   align-items: stretch;
   gap: 10px;
-  margin-top: 6px;
+  margin-top: auto;
 }
 
 .risk-analysis-wins__left-column {

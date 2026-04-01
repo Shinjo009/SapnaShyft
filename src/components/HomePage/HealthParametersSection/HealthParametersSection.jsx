@@ -33,7 +33,7 @@ const HealthParametersSection = ({ data = [
             <p className="health-parameters__subheading">Health Scan Index</p>
             <button type="button" onClick={handleSeeMore} className="health-parameters__see-more">See more</button>
           </div>
-          <p className="health-parameters__note">Tap the card to know more</p>
+          <p className="health-parameters__note">Tap the score to know more</p>
         </div>
 
         <div className="health-parameters__cards">

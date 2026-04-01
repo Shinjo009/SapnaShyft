@@ -16,7 +16,6 @@ import packagesIcon from '../../images/Packages.svg';
 const NavBar = ({ defaultActive = 'home', onNavigate }) => {
   const [activeItem, setActiveItem] = useState(defaultActive);
   const [navbarWidth, setNavbarWidth] = useState(null);
-  const [isNotchReady, setIsNotchReady] = useState(false);
   const navRef = useRef(null);
   const navigateTimerRef = useRef(null);
 
@@ -50,7 +49,6 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
     const measured = navRef.current.getBoundingClientRect().width;
     if (measured > 0) {
       setNavbarWidth(measured);
-      setIsNotchReady(true);
     }
   }, []);
 
@@ -64,7 +62,6 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
       const measured = entry?.contentRect?.width || 0;
       if (measured > 0) {
         setNavbarWidth(measured);
-        setIsNotchReady(true);
       }
     });
 
@@ -136,27 +133,9 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
     return { navWidth, wedgeDepth, x1, cx1, cy1, cx2, cy2, x2, cx3, cy3, cx4, cy4, x3, x4 };
   };
 
-  const getNavbarMiddlePath = () => {
-    const sideStaticWidth = 8;
+  const getNavbarPath = () => {
     const { navWidth, wedgeDepth, x1, cx1, cy1, cx2, cy2, x2, cx3, cy3, cx4, cy4, x3, x4 } = getNotchGeometry();
-    const middleStart = sideStaticWidth;
-    const middleEnd = navWidth - sideStaticWidth;
-
-    return `M${middleEnd} 43H${middleStart}V0H${x1}C${cx1} ${cy1} ${cx2} ${cy2} ${x2} ${wedgeDepth}C${cx3} ${cy3} ${cx4} ${cy4} ${x3} 0.00585938L${x4} 0H${middleEnd}V43Z`;
-  };
-
-  const getNavbarLeftCapPath = () => {
-    const navWidth = navbarWidth || 360;
-    const sideStaticWidth = 8;
-    const leftEnd = Math.min(sideStaticWidth, navWidth / 2);
-    return `M${leftEnd} 43H0V0H${leftEnd}V43Z`;
-  };
-
-  const getNavbarRightCapPath = () => {
-    const navWidth = navbarWidth || 360;
-    const sideStaticWidth = 8;
-    const rightStart = Math.max(navWidth - sideStaticWidth, navWidth / 2);
-    return `M${navWidth} 43H${rightStart}V0H${navWidth}V43Z`;
+    return `M${navWidth} 43H0V0H${x1}C${cx1} ${cy1} ${cx2} ${cy2} ${x2} ${wedgeDepth}C${cx3} ${cy3} ${cx4} ${cy4} ${x3} 0.00585938L${x4} 0H${navWidth}V43Z`;
   };
 
   return (
@@ -169,20 +148,8 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
           </linearGradient>
         </defs>
         <path
-          className="navbar__notch-cap"
-          d={getNavbarLeftCapPath()}
-          fill="url(#navbar-gradient)"
-          fillOpacity="0.65"
-        />
-        <path
-          className={`navbar__notch-path ${isNotchReady ? 'navbar__notch-path--ready' : ''}`}
-          d={getNavbarMiddlePath()}
-          fill="url(#navbar-gradient)"
-          fillOpacity="0.65"
-        />
-        <path
-          className="navbar__notch-cap"
-          d={getNavbarRightCapPath()}
+          className="navbar__notch-path"
+          d={getNavbarPath()}
           fill="url(#navbar-gradient)"
           fillOpacity="0.65"
         />

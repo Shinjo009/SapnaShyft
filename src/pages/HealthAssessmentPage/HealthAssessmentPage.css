@@ -489,6 +489,12 @@
   z-index: 120;
 }
 
+.anthropometry-page__waist-info-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 119;
+}
+
 .anthropometry-page__box {
   margin: 12px 45px 0 45px;
   border-radius: 16px;
@@ -662,6 +668,8 @@
   left: 50%;
   top: 55px;
   transform: translateX(-50%);
+  width: 64px;
+  min-width: 64px;
 }
 
 .anthropometry-page__selected-value,
@@ -765,6 +773,10 @@
   border: none;
   width: 100%;
   outline: none;
+  text-align: center;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
   appearance: textfield;
   -moz-appearance: textfield;
 }
@@ -1725,9 +1737,8 @@
   align-items: center;
   gap: 24px;
   align-self: stretch;
-  border-radius: 8px;
-  background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(255, 128, 136, 0.20) 99.99%);
-  border: 0.8px solid rgba(221, 219, 219, 0.12);
+border-radius: 8px;
+background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(144, 223, 158, 0.20) 99.99%);  border: 0.8px solid rgba(221, 219, 219, 0.12);
   position: relative;
   z-index: 3;
   animation: questionnaire-card-enter 620ms cubic-bezier(0.19, 1, 0.22, 1);
@@ -2421,7 +2432,7 @@
   align-self: stretch;
   border-radius: 16px;
   border: 0.838px solid rgba(221, 219, 219, 0.1);
-  background: linear-gradient(123deg, rgba(144, 223, 158, 0.30) 0.03%, rgba(0, 0, 0, 0.15) 50%, rgba(137, 244, 203, 0.30) 99.97%);
+  background: linear-gradient(123deg, rgba(144, 223, 158, 0.30) 0.03%, rgba(0, 0, 0, 0.15) 50%, rgba(137, 244, 203, 0.30) 100%);
   position: relative;
 }
 
@@ -2431,7 +2442,7 @@
   justify-content: center;
   align-items: center;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0);
+  background: rgba(0, 0, 0, 0.22);
   border: 1px solid rgba(255, 255, 255, 0.18);
   min-width: 48px;
   position: relative;

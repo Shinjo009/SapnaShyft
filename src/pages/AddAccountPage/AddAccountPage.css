@@ -145,7 +145,7 @@
 
 .add-account-page__submit {
   display: flex;
-  width: 100%;
+  width: auto;
   height: 40px;
   padding: 10px 24px;
   justify-content: center;
@@ -165,4 +165,9 @@
   line-height: normal;
   letter-spacing: 0.28px;
   cursor: pointer;
+  position: fixed;
+  left: 24px;
+  right: 24px;
+  bottom: 40px;
+  z-index: 120;
 }

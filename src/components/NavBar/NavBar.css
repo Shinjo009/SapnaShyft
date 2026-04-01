@@ -22,13 +22,6 @@
 
 .navbar__notch-path {
   will-change: d;
-}
-
-.navbar__notch-cap {
-  will-change: auto;
-}
-
-.navbar__notch-path--ready {
   transition: d 0.26s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

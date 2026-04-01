@@ -1,6 +1,11 @@
 .health-scan-page {
+  --hs-neutral-text: rgba(232, 234, 236, 0.84);
+  --hs-highlight-warning: #d9c15a;
+  --hs-highlight-critical: #ef6a68;
+  --hs-highlight-positive: #8fe6a8;
   position: relative;
   width: 100%;
+  height: 100vh;
   min-height: 100vh;
   background: transparent;
   overflow: hidden;
@@ -26,9 +31,9 @@
   display: flex;
   flex-direction: column;
   padding-top: 12px;
-  padding-bottom: 80px;
+  padding-bottom: 0;
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 /* Header with Back Button */
@@ -89,12 +94,12 @@
 .health-scan-page__tab-content {
   flex: 1;
   width: 100%;
-  padding: 0 16px 120px 16px;
+  padding: 0 16px 24px 16px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow-y: auto;
+  overflow: hidden;
   margin-top: 45px;
 }
 
@@ -187,7 +192,11 @@
 
 .health-scan-page__divider {
   width: 100%;
-  border-top: 1px dotted rgba(255, 255, 255, 0.45);
+  height: 1px;
+  border: 0;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.45) 1px, transparent 1px);
+  background-size: 6px 1px;
+  background-repeat: repeat-x;
   margin-top: 24px;
 }
 
@@ -227,6 +236,11 @@
   margin-top: 20px;
 }
 
+.health-scan-page__metrics-grid > .health-scan-page__metric-card {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .health-scan-page__metric-card {
   flex: 1;
   display: flex;
@@ -238,6 +252,11 @@
   background: rgba(255, 255, 255, 0.05);
   box-sizing: border-box;
   --metric-icon-offset: 26px;
+}
+
+.health-scan-page__metric-card--lifestyle {
+  background: linear-gradient(112deg, rgba(255, 255, 255, 0.1) 0%, rgba(59, 128, 114, 0.2) 54%, rgba(38, 98, 91, 0.15) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .health-scan-page__metric-card--physical-activity {
@@ -275,10 +294,10 @@
   align-self: flex-start;
   padding-left: var(--metric-icon-offset);
   font-family: "DM Sans", sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   font-style: normal;
   font-weight: 500;
-  line-height: 10px;
+  line-height: 1.2;
 }
 
 .health-scan-page__metric-value--within {
@@ -333,7 +352,8 @@
 .health-scan-page__metric-range-container--sleep {
   width: 100%;
   margin-left: 0;
-  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.08);
+  border: 0.4px solid rgba(255, 255, 255, 0.18);
   box-sizing: border-box;
 }
 
@@ -355,13 +375,46 @@
 }
 
 .health-scan-page__family-history span {
-  color: #DAC15A;
+  color: var(--hs-highlight-warning);
   font-family: "DM Sans";
   font-size: 12px;
   font-style: normal;
   font-weight: 500;
   line-height: normal;
   text-align: left;
+}
+
+.health-scan-page__metric-value--mixed {
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.health-scan-page__metric-value-neutral {
+  color: var(--hs-neutral-text);
+  font-size: 11px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.health-scan-page__metric-value-highlight-warning {
+  color: var(--hs-highlight-warning);
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.health-scan-page__metric-value-highlight-critical {
+  color: var(--hs-highlight-critical);
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.health-scan-page__metric-value-highlight-positive {
+  color: var(--hs-highlight-positive);
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .health-scan-page__title {

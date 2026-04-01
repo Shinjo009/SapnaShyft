@@ -5,6 +5,7 @@ import trendsImage from '../../images/trends.svg';
 
 const DEFAULT_DESCRIPTION =
   'Oxidative stress is an imbalance in your body where there are too many unstable molecules called free radicals and not enough antioxidants to neutralize them.';
+const DEFAULT_TREND_SUMMARY = '40 % Worse than last result';
 
 const DISEASE_CONTENT = {
   obesity: {
@@ -138,6 +139,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   const [animatedHealthRankScore, setAnimatedHealthRankScore] = useState(0);
   const title = disease?.name?.replace('\n', ' ') || 'Oxidative Stress';
   const diseaseContent = DISEASE_CONTENT[getDiseaseKey(title)] || DISEASE_CONTENT['oxidative stress'];
+  const trendSummary = diseaseContent?.trendSummary || DEFAULT_TREND_SUMMARY;
   const score = Math.max(0, Math.min(100, disease?.score ?? 85));
   const healthRankScore = 55;
   const scoreZoneIndex = getZoneIndexForScore(score);
@@ -565,6 +567,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
           <div className="disease-detail-trends-chart-shell">
             <img src={trendsImage} alt="Trends chart" className="disease-detail-trends-chart-image" />
           </div>
+          <p className="disease-detail-trend-summary">{trendSummary}</p>
         </section>
       </section>
       </div>

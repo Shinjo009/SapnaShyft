@@ -67,9 +67,9 @@ const defaultCards = [
     title: 'Low Risk',
     Icon: LowRiskIcon,
     aspects: [
-      { label: 'Thyroid', percent: '12%' },
-      { label: 'Cardiac Health', percent: '12%' },
-      { label: 'Obesity', percent: '12%' },
+      { label: 'Thyroid', percent: '12/100' },
+      { label: 'Cardiac Health', percent: '12/100' },
+      { label: 'Obesity', percent: '12/100' },
     ],
   },
 ];
@@ -84,6 +84,8 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
   const [isResetting, setIsResetting] = useState(false);
   const stackRef = useRef(null);
   const touchStartXRef = useRef(null);
+  const touchStartYRef = useRef(null);
+  const isHorizontalSwipeRef = useRef(false);
   const latestDragXRef = useRef(0);
 
   const resetDragOffset = () => {
@@ -123,16 +125,36 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
       return;
     }
     touchStartXRef.current = event.touches[0].clientX;
-    setIsDragging(true);
+    touchStartYRef.current = event.touches[0].clientY;
+    isHorizontalSwipeRef.current = false;
+    setIsDragging(false);
     resetDragOffset();
   };
 
   const handleTouchMove = (event) => {
-    if (touchStartXRef.current == null || isAnimating) {
+    if (touchStartXRef.current == null || touchStartYRef.current == null || isAnimating) {
       return;
     }
 
     const deltaX = event.touches[0].clientX - touchStartXRef.current;
+    const deltaY = event.touches[0].clientY - touchStartYRef.current;
+
+    if (!isHorizontalSwipeRef.current) {
+      const hasEnoughMovement = Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6;
+      if (!hasEnoughMovement) {
+        return;
+      }
+
+      isHorizontalSwipeRef.current = Math.abs(deltaX) > Math.abs(deltaY);
+      if (!isHorizontalSwipeRef.current) {
+        return;
+      }
+
+      setIsDragging(true);
+    }
+
+    event.preventDefault();
+
     const stackWidth = stackRef.current?.clientWidth || 260;
     const softLimit = Math.max(120, stackWidth * 0.55);
     const absDelta = Math.abs(deltaX);
@@ -151,6 +173,14 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
       return;
     }
 
+    if (!isHorizontalSwipeRef.current) {
+      touchStartXRef.current = null;
+      touchStartYRef.current = null;
+      setIsDragging(false);
+      resetDragOffset();
+      return;
+    }
+
     const stackWidth = stackRef.current?.clientWidth || 260;
     const swipeThreshold = Math.max(30, stackWidth * 0.14);
     const deltaX = event.changedTouches[0].clientX - touchStartXRef.current;
@@ -166,10 +196,14 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
     }
 
     touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    isHorizontalSwipeRef.current = false;
   };
 
   const handleTouchCancel = () => {
     touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    isHorizontalSwipeRef.current = false;
     setIsDragging(false);
     resetDragOffset();
   };

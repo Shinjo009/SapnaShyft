@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Input from '../../components/Input';
-import editProfileAvatar from '../../images/Icon-AddAcc.png';
+import maleAvatar from '../../images/male-avatar.png';
+import femaleAvatar from '../../images/female-avatar.png';
 import './EditProfilePage.css';
 import { getMyProfile, updateMyProfile } from '../../services/profileService';
 
@@ -134,6 +135,8 @@ const EditProfilePage = ({ onBack }) => {
     }
   };
 
+  const topAvatar = formData.gender === 'male' ? maleAvatar : femaleAvatar;
+
   return (
     <div className="edit-profile-page">
       <div className="edit-profile-page__header">
@@ -153,7 +156,7 @@ const EditProfilePage = ({ onBack }) => {
 
       <div className="edit-profile-page__content">
         <div className="edit-profile-page__avatar-wrap">
-          <img src={editProfileAvatar} alt="Profile avatar" className="edit-profile-page__avatar" />
+          <img src={topAvatar} alt="Profile avatar" className="edit-profile-page__avatar" />
         </div>
 
         <div className="edit-profile-page__form">

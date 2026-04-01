@@ -73,14 +73,14 @@ const AnthropometryUnitDropdown = ({ value, options, onChange }) => {
 };
 
 const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
-  const [height, setHeight] = useState(172);
-  const [weight, setWeight] = useState('');
-  const [waist, setWaist] = useState(33);
-  const [heightUnit, setHeightUnit] = useState('Cm');
+  const [height, setHeight] = useState(152);
+  const [weight, setWeight] = useState('0');
+  const [waist, setWaist] = useState(32);
+  const [heightUnit, setHeightUnit] = useState('Ft/In');
   const [weightUnit, setWeightUnit] = useState('Kg');
   const [waistUnit, setWaistUnit] = useState('In');
   const [heightFeet, setHeightFeet] = useState(5);
-  const [heightInches, setHeightInches] = useState(8);
+  const [heightInches, setHeightInches] = useState(0);
   const [showWaistInfoPopup, setShowWaistInfoPopup] = useState(false);
 
   const heightTouchLastY = useRef(null);
@@ -429,24 +429,35 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
       <button type="button" className="anthropometry-page__continue" onClick={onContinue}>Continue</button>
 
       {showWaistInfoPopup ? (
-        <div className="family-history-page__info-popup anthropometry-page__waist-info-popup" role="dialog" aria-label="Waist size information">
-          <div className="family-history-page__info-handle" aria-hidden="true" />
-          <button
-            type="button"
-            className="family-history-page__info-close"
-            onClick={() => setShowWaistInfoPopup(false)}
-            aria-label="Close waist size information"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M12 4L4 12M4 4L12 12" stroke="#9A9A9A" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-
+        <div
+          className="anthropometry-page__waist-info-overlay"
+          onClick={() => setShowWaistInfoPopup(false)}
+          aria-hidden="true"
+        >
           <div
-            className="anthropometry-page__waist-info-gif"
-            style={{ backgroundImage: `url(${waistGif})` }}
-            aria-label="Waist size guide"
-          />
+            className="family-history-page__info-popup anthropometry-page__waist-info-popup"
+            role="dialog"
+            aria-label="Waist size information"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="family-history-page__info-handle" aria-hidden="true" />
+            <button
+              type="button"
+              className="family-history-page__info-close"
+              onClick={() => setShowWaistInfoPopup(false)}
+              aria-label="Close waist size information"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M12 4L4 12M4 4L12 12" stroke="#9A9A9A" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+
+            <div
+              className="anthropometry-page__waist-info-gif"
+              style={{ backgroundImage: `url(${waistGif})` }}
+              aria-label="Waist size guide"
+            />
+          </div>
         </div>
       ) : null}
     </div>
@@ -489,7 +500,7 @@ const FollowupUnitDropdown = ({ value, options, onChange }) => {
 
 const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone }) => {
   const [hipSize, setHipSize] = useState(33);
-  const [bodyFat, setBodyFat] = useState(45);
+  const [bodyFat, setBodyFat] = useState(20);
   const [hipUnit, setHipUnit] = useState('in');
   const [showHipInfoPopup, setShowHipInfoPopup] = useState(false);
   const hipTouchLastX = useRef(null);

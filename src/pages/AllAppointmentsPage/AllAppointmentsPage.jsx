@@ -23,12 +23,16 @@ const APPOINTMENTS_BY_TAB = {
       title: 'Dr. Sarah Jenkins',
       dateTime: 'Oct 24, 2023 • 10:00 AM',
       mode: 'Video Call',
-      amount: 'Rs. 299',
+      amount: 'Rs. 299/-',
       accent: 'green',
       action: 'Join Call',
       actionVariant: 'green',
       categoryIcon: 'doctor',
       actionIcon: 'video',
+      showInfo: true,
+      secondaryAction: 'Reschedule',
+      secondaryActionVariant: 'green',
+      secondaryActionIcon: 'clock',
     },
     {
       id: 'u-2',
@@ -42,6 +46,7 @@ const APPOINTMENTS_BY_TAB = {
       actionVariant: 'green',
       categoryIcon: 'blood',
       actionIcon: 'clock',
+      showInfo: true,
     },
   ],
   [TAB_KEYS.COMPLETED]: [
@@ -52,9 +57,9 @@ const APPOINTMENTS_BY_TAB = {
       dateTime: 'Oct 24, 2023 • 10:00 AM',
       mode: 'Video Call',
       amount: 'Rs. 299',
-      accent: 'blue',
+      accent: 'yellow',
       action: 'View Prescription',
-      actionVariant: 'blue',
+      actionVariant: 'yellow',
       categoryIcon: 'doctor',
       actionIcon: 'document',
     },
@@ -70,6 +75,7 @@ const APPOINTMENTS_BY_TAB = {
       actionVariant: 'blue',
       categoryIcon: 'blood',
       actionIcon: 'document',
+      showInfo: true,
     },
   ],
   [TAB_KEYS.CANCELLED]: [
@@ -168,10 +174,10 @@ const ActionClockIcon = () => (
   </svg>
 );
 
-const ActionDocumentIcon = () => (
+const ActionDocumentIcon = ({ color = '#60A5FA' }) => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <path d="M4.5 16.5C3.67213 16.5 3 15.8279 3 15V3C3 2.17213 3.67213 1.5 4.5 1.5H10.5C10.9795 1.49923 11.4395 1.68982 11.778 2.0295L14.469 4.7205C14.8096 5.05909 15.0008 5.51974 15 6V15C15 15.8279 14.3279 16.5 13.5 16.5H4.5" stroke="#60A5FA" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M10.5 1.5V5.25C10.5 5.66394 10.8361 6 11.25 6H15M7.5 6.75H6M12 9.75H6M12 12.75H6" stroke="#60A5FA" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M4.5 16.5C3.67213 16.5 3 15.8279 3 15V3C3 2.17213 3.67213 1.5 4.5 1.5H10.5C10.9795 1.49923 11.4395 1.68982 11.778 2.0295L14.469 4.7205C14.8096 5.05909 15.0008 5.51974 15 6V15C15 15.8279 14.3279 16.5 13.5 16.5H4.5" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10.5 1.5V5.25C10.5 5.66394 10.8361 6 11.25 6H15M7.5 6.75H6M12 9.75H6M12 12.75H6" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -186,6 +192,19 @@ const ActionInfoIcon = () => (
         <rect width="18" height="18" fill="white" />
       </clipPath>
     </defs>
+  </svg>
+);
+
+const CardInfoIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <path d="M7 0C8.85652 0 10.637 0.737498 11.9497 2.05025C13.2625 3.36301 14 5.14348 14 7C14 8.85652 13.2625 10.637 11.9497 11.9497C10.637 13.2625 8.85652 14 7 14C5.14348 14 3.36301 13.2625 2.05025 11.9497C0.737498 10.637 0 8.85652 0 7C0 5.14348 0.737498 3.36301 2.05025 2.05025C3.36301 0.737498 5.14348 0 7 0ZM8.05 4.29688C8.57031 4.29688 8.99219 3.9375 8.99219 3.40156C8.99219 2.86563 8.57031 2.50625 8.05 2.50625C7.52969 2.50625 7.10938 2.86563 7.10938 3.40156C7.10938 3.9375 7.53125 4.29844 8.05 4.29844M8.23281 9.925C8.23281 9.81875 8.27031 9.54063 8.24844 9.38125L7.42656 10.3281C7.25625 10.5063 7.04375 10.6312 6.94375 10.5984C6.89862 10.5816 6.86096 10.5492 6.83749 10.5071C6.81403 10.4651 6.80627 10.416 6.81563 10.3687L8.18437 6.04063C8.29688 5.49062 7.98906 4.99062 7.33594 4.92656C6.64844 4.92656 5.63281 5.625 5.01562 6.5125C5.01562 6.61875 4.99531 6.88125 5.01562 7.04062L5.8375 6.09375C6.00938 5.91563 6.20625 5.79062 6.30625 5.825C6.35491 5.84336 6.39467 5.87968 6.41734 5.92648C6.44002 5.97328 6.44387 6.027 6.42812 6.07656L5.06875 10.3844C4.9125 10.8875 5.20937 11.3812 5.92969 11.4937C6.99062 11.4937 7.61719 10.8125 8.23438 9.925H8.23281Z" fill="white"/>
+  </svg>
+);
+
+const InfoBubbleShape = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="226" height="73" viewBox="0 0 226 73" fill="none" aria-hidden="true">
+    <path d="M0 21.2254C0 14.598 5.37258 9.22539 12 9.22539H200.979C200.979 9.22539 207.978 9.22539 212.978 9.22539C216.477 9.22539 218.977 6.21686 224.476 0.802322C224.981 0.305929 225.321 0.0825171 225.549 0.019497C226.257 -0.175756 225.844 1.14597 225.583 1.83194C224.719 4.09427 222.644 9.55775 221.477 12.8353C220.3 16.1388 219.977 27.2748 219.977 27.2748V61C219.977 67.6274 214.604 73 207.977 73H12C5.37257 73 0 67.6274 0 61V21.2254Z" fill="#063533"/>
+    <path d="M219.477 27.2676V61C219.477 67.3513 214.328 72.5 207.977 72.5H12C5.64873 72.5 0.500002 67.3513 0.5 61V21.2256C0.5 14.8743 5.64873 9.72559 12 9.72559H212.978C214.894 9.72559 216.504 8.89272 218.293 7.43164C220.067 5.98311 222.098 3.84487 224.827 1.1582C225.08 0.909277 225.272 0.750719 225.412 0.651367C225.356 0.963272 225.23 1.35317 225.115 1.65332C224.252 3.9146 222.175 9.38423 221.006 12.668C220.692 13.5488 220.446 14.911 220.25 16.4209C220.053 17.9428 219.901 19.6556 219.787 21.2588C219.673 22.8628 219.595 24.3625 219.546 25.4609C219.521 26.0101 219.504 26.4593 219.493 26.7715C219.488 26.9276 219.484 27.0499 219.481 27.1328C219.48 27.1743 219.479 27.2061 219.479 27.2275C219.478 27.2382 219.478 27.2465 219.478 27.252V27.2598L219.977 27.2744L219.478 27.2607L219.477 27.2676Z" stroke="white" strokeOpacity="0.3"/>
   </svg>
 );
 
@@ -205,13 +224,13 @@ const getModeIcon = (mode) => {
   return <VideoCallIcon />;
 };
 
-const getActionIcon = (actionIcon) => {
+const getActionIcon = (actionIcon, actionVariant) => {
   if (actionIcon === 'clock') {
     return <ActionClockIcon />;
   }
 
   if (actionIcon === 'document') {
-    return <ActionDocumentIcon />;
+    return <ActionDocumentIcon color={actionVariant === 'yellow' ? '#DAC15A' : '#60A5FA'} />;
   }
 
   if (actionIcon === 'info') {
@@ -223,6 +242,7 @@ const getActionIcon = (actionIcon) => {
 
 const AllAppointmentsPage = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState(TAB_KEYS.UPCOMING);
+  const [infoOpenAppointmentId, setInfoOpenAppointmentId] = useState(null);
 
   const visibleAppointments = useMemo(() => {
     return APPOINTMENTS_BY_TAB[activeTab] || [];
@@ -262,7 +282,10 @@ const AllAppointmentsPage = ({ onBack }) => {
               type="button"
               role="tab"
               aria-selected={isActive}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => {
+                setActiveTab(tab.key);
+                setInfoOpenAppointmentId(null);
+              }}
             >
               {tab.label}
             </button>
@@ -271,17 +294,50 @@ const AllAppointmentsPage = ({ onBack }) => {
       </div>
 
       <div className="all-appointments-page__cards">
-        {visibleAppointments.map((appointment) => (
-          <article className="all-appointments-page__card" key={appointment.id}>
+        {visibleAppointments.map((appointment) => {
+          const canShowInfo = activeTab === TAB_KEYS.UPCOMING && appointment.showInfo;
+          const isInfoOpen = canShowInfo && infoOpenAppointmentId === appointment.id;
+
+          return (
+          <article className={`all-appointments-page__card ${isInfoOpen ? 'all-appointments-page__card--info-open' : ''}`} key={appointment.id}>
             <span
               className={`all-appointments-page__card-accent all-appointments-page__card-accent--${appointment.accent}`}
               aria-hidden="true"
             />
 
-            <div className="all-appointments-page__category">
-              {getCategoryIcon(appointment.categoryIcon)}
-              <span>{appointment.category}</span>
+            <div className="all-appointments-page__card-top-row">
+              <div className="all-appointments-page__category">
+                {getCategoryIcon(appointment.categoryIcon)}
+                <span>{appointment.category}</span>
+              </div>
+
+              {canShowInfo ? (
+                <button
+                  type="button"
+                  className="all-appointments-page__card-info-btn"
+                  aria-label="Appointment details"
+                  onClick={() => setInfoOpenAppointmentId((prev) => (prev === appointment.id ? null : appointment.id))}
+                >
+                  <CardInfoIcon />
+                </button>
+              ) : null}
             </div>
+
+            {isInfoOpen ? (
+              <div className="all-appointments-page__info-popup" role="status" aria-live="polite">
+                <span className="all-appointments-page__info-popup-bg" aria-hidden="true">
+                  <InfoBubbleShape />
+                </span>
+                <div className="all-appointments-page__info-popup-content">
+                  <span className="all-appointments-page__info-popup-icon" aria-hidden="true">
+                    <CardInfoIcon />
+                  </span>
+                  <p className="all-appointments-page__info-popup-text">
+                    Rescheduling or cancellation is allowed till 4 hours before the appointment
+                  </p>
+                </div>
+              </div>
+            ) : null}
 
             <h2 className="all-appointments-page__doctor-name">{appointment.title}</h2>
 
@@ -308,11 +364,21 @@ const AllAppointmentsPage = ({ onBack }) => {
               className={`all-appointments-page__action-btn all-appointments-page__action-btn--${appointment.actionVariant}`}
               type="button"
             >
-              {getActionIcon(appointment.actionIcon)}
+              {getActionIcon(appointment.actionIcon, appointment.actionVariant)}
               <span>{appointment.action}</span>
             </button>
+
+            {appointment.secondaryAction ? (
+              <button
+                className={`all-appointments-page__action-btn all-appointments-page__action-btn--${appointment.secondaryActionVariant || 'green'}`}
+                type="button"
+              >
+                {getActionIcon(appointment.secondaryActionIcon || 'clock', appointment.secondaryActionVariant || 'green')}
+                <span>{appointment.secondaryAction}</span>
+              </button>
+            ) : null}
           </article>
-        ))}
+        );})}
       </div>
     </div>
   );

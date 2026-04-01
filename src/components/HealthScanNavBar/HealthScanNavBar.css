@@ -34,15 +34,36 @@
   background: #000;
   backdrop-filter: blur(2px);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition:
+    color 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 380ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 380ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
   color: #C4C4C4;
   text-align: center;
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 12px;
   font-style: normal;
-  font-weight: 500;
+  font-weight: 600;
   line-height: normal;
   white-space: nowrap;
+  will-change: transform;
+}
+
+.health-scan-navbar__tab::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 100px;
+  border: 2px solid #90DF9E;
+  filter: blur(2.5px);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .health-scan-navbar__tab:hover {
@@ -55,17 +76,13 @@
   border: 1px solid #FFF;
   background: #000;
   color: #FFF;
-  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(63, 181, 158, 0.18);
+  transform: translateY(-1px);
 }
 
 .health-scan-navbar__tab--active::before {
-  content: "";
-  position: absolute;
-  inset: -3px;
-  border-radius: 100px;
-  border: 2px solid #90DF9E;
-  filter: blur(2.5px);
-  pointer-events: none;
+  opacity: 1;
+  transform: scale(1);
 }
 
 .health-scan-navbar__tab:not(.health-scan-navbar__tab--active) {
@@ -73,6 +90,8 @@
   border: 0.5px solid #C9C9C9;
   background: #000;
   backdrop-filter: blur(2px);
+  box-shadow: none;
+  transform: translateY(0);
 }
 
 /* Responsive adjustments */

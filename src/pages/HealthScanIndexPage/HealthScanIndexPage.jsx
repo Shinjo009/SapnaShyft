@@ -391,28 +391,31 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                 <span className="health-scan-page__metrics-date">As on {formattedDate}</span>
               </div>
 
-              <div className="health-scan-page__metric-card health-scan-page__metric-card--full health-scan-page__metric-card--physical-activity">
+              <div className="health-scan-page__metric-card health-scan-page__metric-card--full health-scan-page__metric-card--physical-activity health-scan-page__metric-card--lifestyle">
                 <div className="health-scan-page__metric-title">
                   <img src={physicalActivityIcon} alt="" aria-hidden="true" />
                   <span>Physical Activity</span>
                 </div>
-                <div className="health-scan-page__metric-value health-scan-page__metric-value--within">
-                  <span>Exercises 2-3 times a week</span>
+                <div className="health-scan-page__metric-value health-scan-page__metric-value--mixed">
+                  <span className="health-scan-page__metric-value-neutral">Exercises</span>
+                  <span className="health-scan-page__metric-value-highlight-warning">2-3 times</span>
+                  <span className="health-scan-page__metric-value-neutral">a week</span>
                 </div>
               </div>
 
               <div className="health-scan-page__metrics-grid">
-                <div className="health-scan-page__metric-card">
+                <div className="health-scan-page__metric-card health-scan-page__metric-card--lifestyle">
                   <div className="health-scan-page__metric-title">
                     <img src={smokeIcon} alt="" aria-hidden="true" />
                     <span>Smoke</span>
                   </div>
-                  <div className="health-scan-page__metric-value health-scan-page__metric-value--above">
-                    <span>3-5 ciggarets / day</span>
+                  <div className="health-scan-page__metric-value health-scan-page__metric-value--mixed">
+                    <span className="health-scan-page__metric-value-highlight-critical">3-5</span>
+                    <span className="health-scan-page__metric-value-neutral">cigarettes/day</span>
                   </div>
                 </div>
 
-                <div className="health-scan-page__metric-card">
+                <div className="health-scan-page__metric-card health-scan-page__metric-card--lifestyle">
                   <div className="health-scan-page__metric-title">
                     <img src={alcoholIcon} alt="" aria-hidden="true" />
                     <span>Alcohol</span>
@@ -424,21 +427,22 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
               </div>
 
               <div className="health-scan-page__metrics-grid">
-                <div className="health-scan-page__metric-card">
+                <div className="health-scan-page__metric-card health-scan-page__metric-card--lifestyle">
                   <div className="health-scan-page__metric-title">
                     <img src={sleepIcon} alt="" aria-hidden="true" />
                     <span>Sleep</span>
                   </div>
-                  <div className="health-scan-page__metric-value health-scan-page__metric-value--below">
-                    <span>5-7 hours / day</span>
+                  <div className="health-scan-page__metric-value health-scan-page__metric-value--mixed">
+                    <span className="health-scan-page__metric-value-highlight-positive">5-7 hours</span>
+                    <span className="health-scan-page__metric-value-neutral">/ day</span>
                   </div>
                   <span className="health-scan-page__metric-range-container health-scan-page__metric-range-container--sleep">
-                    <span className="health-scan-page__metric-range-label">Ideal range</span>
+                    <span className="health-scan-page__metric-range-label">Ideal</span>
                     <span className="health-scan-page__metric-range-value">6-8 hours / day</span>
                   </span>
                 </div>
 
-                <div className="health-scan-page__metric-card">
+                <div className="health-scan-page__metric-card health-scan-page__metric-card--lifestyle">
                   <div className="health-scan-page__metric-title">
                     <img src={familyHistoryIcon} alt="" aria-hidden="true" />
                     <span>Family History</span>

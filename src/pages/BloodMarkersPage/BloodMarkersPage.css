@@ -421,6 +421,11 @@
   transform: translate3d(0, 0, 0);
 }
 
+.blood-markers-page__stack[data-card-count='2'] .blood-markers-page__stack-card--back-two,
+.blood-markers-page__stack[data-card-count='2'] .blood-markers-page__stack-card--hidden {
+  display: none;
+}
+
 .blood-markers-page__stack-card--optimal-in-stack .blood-markers-page__card-bottom-row {
   display: flex;
   flex-wrap: wrap;
@@ -505,6 +510,19 @@
   opacity: var(--blood-markers-back-one-fade);
 }
 
+.blood-markers-page__stack[data-card-count='2'].blood-markers-page__stack--moving-next .blood-markers-page__stack-card--front,
+.blood-markers-page__stack[data-card-count='2'].blood-markers-page__stack--moving-prev .blood-markers-page__stack-card--front {
+  left: var(--blood-markers-back-one-left);
+  top: var(--blood-markers-back-one-top);
+  transform: translate3d(0, 0, 0);
+  z-index: 1;
+}
+
+.blood-markers-page__stack[data-card-count='2'].blood-markers-page__stack--moving-next .blood-markers-page__stack-card--front::after,
+.blood-markers-page__stack[data-card-count='2'].blood-markers-page__stack--moving-prev .blood-markers-page__stack-card--front::after {
+  opacity: var(--blood-markers-back-one-fade);
+}
+
 .blood-markers-page__card-top-row,
 .blood-markers-page__card-bottom-row {
   width: 100%;
@@ -518,6 +536,11 @@
 .blood-markers-page__stack-card--back-one .blood-markers-page__card-bottom-row,
 .blood-markers-page__stack-card--back-two .blood-markers-page__card-top-row,
 .blood-markers-page__stack-card--back-two .blood-markers-page__card-bottom-row,
+.blood-markers-page__stack-card--hidden .blood-markers-page__card-top-row,
+.blood-markers-page__stack-card--hidden .blood-markers-page__card-bottom-row {
+  opacity: 1;
+}
+
 .blood-markers-page__stack-card--hidden .blood-markers-page__card-top-row,
 .blood-markers-page__stack-card--hidden .blood-markers-page__card-bottom-row {
   opacity: 0;
