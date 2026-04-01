@@ -90,7 +90,7 @@ export default function MetabolicAgeOrb({
       tealTintColor: activeTint,
       starColor: riskGlow.stars
     };
-  }, [value, currentAge, detail]);
+  }, [metabolicDelta, detail]);
 
   return (
     <div className="metabolic-orb">

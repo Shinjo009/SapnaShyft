@@ -130,17 +130,7 @@ function drawOrb(ctx, config, rotation) {
   ctx.fillStyle = bottomBlue;
   ctx.fillRect(0, 0, size, size);
 
-  // Always-on health shades (match the reference spread):
-  // green  #90DF9E (right side), yellow #DAC15A (center), red #E95D5C (left side).
-  // Active band:
-  // - <=0  -> green darker/expanded
-  // - 1-4  -> yellow darker/expanded
-  // - 5-8  -> "orange" made by boosting both yellow + red slightly
-  // - >8    -> red darker/expanded
-  const isGreenActive = riskBand === 0;
-  const isYellowActive = riskBand === 1;
-  const isOrangeBand = riskBand === 2;
-  const isRedActive = riskBand === 3;
+  // Always-on health shades (match the reference spread); intensity follows riskBand below.
 
   const tones = [
     // Same spread, but all tones switch to the active range color.
