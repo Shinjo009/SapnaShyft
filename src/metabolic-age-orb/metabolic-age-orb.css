@@ -8,13 +8,32 @@
   justify-content: center;
   align-items: center;
   padding: 14px 0 6px;
+  /* Detail line tint matches metabolic risk band (set via data-risk-band). */
+  --orb-detail-color: rgba(255, 255, 255, 0.68);
+}
+
+.metabolic-orb[data-risk-band="0"] {
+  --orb-detail-color: rgba(170, 235, 188, 0.92);
+}
+
+.metabolic-orb[data-risk-band="1"] {
+  --orb-detail-color: rgba(244, 224, 120, 0.95);
+}
+
+.metabolic-orb[data-risk-band="2"] {
+  --orb-detail-color: rgba(255, 188, 130, 0.96);
+}
+
+.metabolic-orb[data-risk-band="3"] {
+  --orb-detail-color: rgba(255, 160, 158, 0.97);
 }
 
 .metabolic-orb__container {
   position: relative;
   width: var(--metabolic-orb-size);
   height: var(--metabolic-orb-size);
-  filter: drop-shadow(0 20px 36px rgba(0, 0, 0, 0.32));
+  /* Softer shadow avoids a harsh dark “ring” around the canvas blob. */
+  filter: drop-shadow(0 18px 32px rgba(8, 14, 22, 0.22));
 }
 
 .metabolic-orb__canvas {
@@ -59,11 +78,12 @@
 }
 
 .metabolic-orb__detail {
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--orb-detail-color);
   font-size: clamp(0.60rem, 1.6vw, 0.82rem);
   font-weight: 500;
   line-height: 1.2;
   margin: 0;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);
 }
 
 /* Desktop-only typography tuning (keep mobile unchanged). */

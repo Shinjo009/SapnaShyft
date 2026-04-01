@@ -1,5 +1,9 @@
 import { useRef, useEffect, useCallback } from "react";
 
+// Outer limit of the center fade (fraction of blob radius). Inner clarity is mostly from the gradient stops below.
+const DEFAULT_CENTER_HOLE_RADIUS = 0.72;
+const MAX_CENTER_HOLE_RADIUS = 0.92;
+
 const defaultConfig = {
   size: 500,
   baseColor: "rgba(30, 45, 55, 1)",
@@ -20,7 +24,9 @@ const defaultConfig = {
   blueGlowRadius: 0.35,
   outerRingGap: 10,
   rotationSpeed: 0.65,
-  ageGap: 0
+  ageGap: 0,
+  /** Outer radius of the center fade (fraction of orb radius). */
+  centerHoleRadius: DEFAULT_CENTER_HOLE_RADIUS
 };
 
 const withAlpha = (rgba, alpha) =>
@@ -67,6 +73,8 @@ function drawOrb(ctx, config, rotation) {
   const cy = size / 2;
   const radius = (size - config.outerRingGap * 2) / 2 - 4;
   const riskBand = getRiskBand(config.ageGap ?? 0);
+  // One phase for clip + outer edge so the silhouette never "slides" apart (avoids a dark seam).
+  const blobPhase = rotation * 5.0;
 
   ctx.clearRect(0, 0, size, size);
   const greenRgb = [144, 223, 158]; // #90DF9E
@@ -85,8 +93,7 @@ function drawOrb(ctx, config, rotation) {
 
   ctx.save();
   ctx.beginPath();
-  // Faster wobble makes the "water blob" feel more alive.
-  drawBlobPath(ctx, cx, cy, radius, rotation * 5.0);
+  drawBlobPath(ctx, cx, cy, radius, blobPhase);
   ctx.clip();
 
   ctx.fillStyle = config.baseColor;
@@ -132,23 +139,32 @@ function drawOrb(ctx, config, rotation) {
 
   // Always-on health shades (match the reference spread); intensity follows riskBand below.
 
+  // Soft full-orb wash so the active health range reads clearly at a glance.
+  const washGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 0.92);
+  washGrad.addColorStop(0, rgba(activeToneRgb[0], activeToneRgb[1], activeToneRgb[2], riskBand >= 2 ? 0.14 : 0.10));
+  washGrad.addColorStop(0.55, rgba(activeToneRgb[0], activeToneRgb[1], activeToneRgb[2], riskBand >= 2 ? 0.08 : 0.05));
+  washGrad.addColorStop(1, "transparent");
+  ctx.globalCompositeOperation = "source-over";
+  ctx.fillStyle = washGrad;
+  ctx.fillRect(0, 0, size, size);
+
   const tones = [
     // Same spread, but all tones switch to the active range color.
     // radii are fractions of canvas size to match the "yellow blob" feel.
-    { key: "shade-a", rgb: activeToneRgb, x: 0.72, y: 0.62, radius: 0.28, baseAlpha: 0.26 }, // right/lower
-    { key: "shade-b", rgb: activeToneRgb, x: 0.50, y: 0.58, radius: 0.24, baseAlpha: 0.22 }, // center
-    { key: "shade-c", rgb: activeToneRgb, x: 0.82, y: 0.50, radius: 0.30, baseAlpha: 0.26 }  // right/upper
+    { key: "shade-a", rgb: activeToneRgb, x: 0.72, y: 0.62, radius: 0.30, baseAlpha: 0.34 }, // right/lower
+    { key: "shade-b", rgb: activeToneRgb, x: 0.50, y: 0.58, radius: 0.27, baseAlpha: 0.30 }, // center
+    { key: "shade-c", rgb: activeToneRgb, x: 0.82, y: 0.50, radius: 0.33, baseAlpha: 0.34 }  // right/upper
   ];
 
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   tones.forEach((tone) => {
     let radiusScale = 1.0;
-    // Whole-orb tinting by range.
-    let alphaScale = riskBand === 3 ? 1.25 : riskBand === 2 ? 1.15 : riskBand === 1 ? 1.10 : 1.10;
-    let darkenFactor = riskBand === 3 ? 0.58 : riskBand === 2 ? 0.64 : riskBand === 1 ? 0.70 : 0.72;
-    // Slight coverage increase for red band.
-    if (riskBand === 3) radiusScale = 1.10;
+    // Whole-orb tinting by range — higher bands read as more urgent.
+    let alphaScale = riskBand === 3 ? 1.42 : riskBand === 2 ? 1.32 : riskBand === 1 ? 1.22 : 1.18;
+    let darkenFactor = riskBand === 3 ? 0.62 : riskBand === 2 ? 0.68 : riskBand === 1 ? 0.74 : 0.78;
+    if (riskBand === 3) radiusScale = 1.14;
+    if (riskBand === 2) radiusScale = 1.06;
 
     const [dr, dg, db] = darkenFactor < 1 ? darken(tone.rgb, darkenFactor) : tone.rgb;
 
@@ -223,9 +239,9 @@ function drawOrb(ctx, config, rotation) {
   const tintCy = riskBand === 3 ? cy * 0.52 : cy * 0.33;
   const tintCx2 = riskBand === 3 ? cx * 0.80 : cx * 0.70;
   const tintCy2 = riskBand === 3 ? cy * 0.56 : cy * 0.40;
-  const tintR = riskBand === 3 ? radius * 0.18 : radius * 0.22;
-  const tintA0 = riskBand === 3 ? 0.26 : 0.44;
-  const tintA1 = riskBand === 3 ? 0.13 : 0.22;
+  const tintR = riskBand === 3 ? radius * 0.22 : radius * 0.26;
+  const tintA0 = riskBand === 3 ? 0.34 : riskBand === 2 ? 0.40 : riskBand === 1 ? 0.38 : 0.36;
+  const tintA1 = riskBand === 3 ? 0.18 : riskBand === 2 ? 0.22 : 0.24;
 
   const tintGrad = ctx.createRadialGradient(tintCx, tintCy, 0, tintCx2, tintCy2, tintR);
   tintGrad.addColorStop(0, rgba(activeTint[0], activeTint[1], activeTint[2], tintA0));
@@ -244,20 +260,63 @@ function drawOrb(ctx, config, rotation) {
 
   ctx.restore();
 
+  // Edge shading: avoid near-black (reads as a "black border"); match blob phase to clip.
   ctx.beginPath();
-  drawBlobPath(ctx, cx, cy, radius, rotation * 3.5);
-  const edgeGrad = ctx.createRadialGradient(cx, cy, radius * 0.85, cx, cy, radius);
+  drawBlobPath(ctx, cx, cy, radius, blobPhase);
+  const edgeGrad = ctx.createRadialGradient(cx, cy, radius * 0.78, cx, cy, radius);
   edgeGrad.addColorStop(0, "transparent");
-  edgeGrad.addColorStop(1, "rgba(5, 10, 15, 0.6)");
+  edgeGrad.addColorStop(0.88, "transparent");
+  edgeGrad.addColorStop(
+    0.96,
+    rgba(
+      Math.round(activeToneRgb[0] * 0.45),
+      Math.round(activeToneRgb[1] * 0.45),
+      Math.round(activeToneRgb[2] * 0.45),
+      riskBand >= 2 ? 0.22 : 0.14
+    )
+  );
+  edgeGrad.addColorStop(1, "rgba(32, 48, 62, 0.22)");
   ctx.fillStyle = edgeGrad;
   ctx.fill();
 
-  // Final crisp glossy rim highlight.
+  // Final soft rim — no harsh dark outline.
   ctx.beginPath();
-  drawBlobPath(ctx, cx, cy, radius * 0.996, rotation * 5.0);
-  ctx.strokeStyle = "rgba(238, 244, 252, 0.16)";
-  ctx.lineWidth = 1.1;
+  drawBlobPath(ctx, cx, cy, radius * 0.998, blobPhase);
+  ctx.strokeStyle = "rgba(236, 244, 255, 0.22)";
+  ctx.lineWidth = 0.85;
   ctx.stroke();
+
+  // Center “donut hole”: destination-out alpha must stay high across most of holeR or the clear area
+  // stays tiny even when holeR is large (old stops dropped to ~0.4 alpha by 28% of holeR).
+  const holeFrac = Math.min(
+    MAX_CENTER_HOLE_RADIUS,
+    Math.max(0.14, config.centerHoleRadius ?? DEFAULT_CENTER_HOLE_RADIUS)
+  );
+  const holeR = radius * holeFrac;
+  ctx.save();
+  ctx.beginPath();
+  drawBlobPath(ctx, cx, cy, radius, blobPhase);
+  ctx.clip();
+  ctx.globalCompositeOperation = "destination-out";
+
+  // Fully open core (guarantees a large truly transparent disc, not a pinprick).
+  const coreR = holeR * 0.30;
+  ctx.fillStyle = "rgba(255, 255, 255, 1)";
+  ctx.beginPath();
+  ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Feather from core edge to holeR so color smokes back in at the rim only.
+  const holeGrad = ctx.createRadialGradient(cx, cy, coreR * 0.98, cx, cy, holeR);
+  holeGrad.addColorStop(0, "rgba(255, 255, 255, 1)");
+  holeGrad.addColorStop(0.22, "rgba(255, 255, 255, 0.72)");
+  holeGrad.addColorStop(0.48, "rgba(255, 255, 255, 0.32)");
+  holeGrad.addColorStop(0.72, "rgba(255, 255, 255, 0.09)");
+  holeGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = holeGrad;
+  ctx.fillRect(0, 0, size, size);
+
+  ctx.restore();
 }
 
 export { defaultConfig };

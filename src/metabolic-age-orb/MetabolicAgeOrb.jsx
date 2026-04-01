@@ -70,16 +70,18 @@ export default function MetabolicAgeOrb({
   const combinedAge = metabolicDelta !== null && ageBase !== null ? ageBase + metabolicDelta : null;
   const centerValue = combinedAge !== null ? `${combinedAge}` : `${value}`;
 
-  const config = useMemo(() => {
-    const ageGap = metabolicDelta !== null
-      ? metabolicDelta
-      : parseAgeGapFromDetail(detail);
+  const ageGap = useMemo(
+    () => (metabolicDelta !== null ? metabolicDelta : parseAgeGapFromDetail(detail)),
+    [metabolicDelta, detail]
+  );
+  const riskBand = getRiskBand(ageGap);
 
+  const config = useMemo(() => {
     const riskGlow = getRiskGlow(ageGap);
     const band = getRiskBand(ageGap);
     const [r, g, b] = bandToRgb(band);
-    const activeGlow = `rgba(${r}, ${g}, ${b}, 0.78)`;
-    const activeTint = `rgba(${r}, ${g}, ${b}, 0.32)`;
+    const activeGlow = `rgba(${r}, ${g}, ${b}, 0.88)`;
+    const activeTint = `rgba(${r}, ${g}, ${b}, 0.46)`;
 
     return {
       ...defaultConfig,
@@ -90,10 +92,10 @@ export default function MetabolicAgeOrb({
       tealTintColor: activeTint,
       starColor: riskGlow.stars
     };
-  }, [metabolicDelta, detail]);
+  }, [ageGap]);
 
   return (
-    <div className="metabolic-orb">
+    <div className="metabolic-orb" data-risk-band={riskBand}>
       <div className="metabolic-orb__container" aria-label="Metabolic age">
         <Orb config={config} className="metabolic-orb__canvas" />
 
