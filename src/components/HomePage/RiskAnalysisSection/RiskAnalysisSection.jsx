@@ -243,42 +243,39 @@ const toRiskLabel = (riskKey) => {
 };
 
 const buildBloodMarkersFromGroups = (groups) => {
-  return (Array.isArray(groups) ? groups : []).map((group, groupIndex) => {
+  const rows = [];
+
+  (Array.isArray(groups) ? groups : []).forEach((group, groupIndex) => {
     const disease = toDiseaseName(group?.group_name);
     const tests = Array.isArray(group?.tests) ? group.tests : [];
 
-    const enrichedTests = tests.map((test) => {
+    tests.forEach((test, testIndex) => {
       const value = Number(test?.value);
       const lower = Number(test?.lower_range);
       const upper = Number(test?.higher_range);
-      const hasBounds = Number.isFinite(value) && Number.isFinite(lower) && Number.isFinite(upper);
+      const hasClassifiableData = Number.isFinite(value) && Number.isFinite(lower) && Number.isFinite(upper);
 
-      return {
+      // Homepage list should only show actual report parameters with usable ranges.
+      if (!hasClassifiableData) {
+        return;
+      }
+
+      const unit = String(test?.unit || '').trim();
+      const riskKey = getRiskTypeFromBounds(value, lower, upper);
+
+      rows.push({
+        id: `api-bm-${groupIndex}-${testIndex}`,
         name: String(test?.test_name || 'Test'),
-        value: Number.isFinite(value) ? value : null,
-        unit: String(test?.unit || '').trim(),
-        riskKey: hasBounds ? getRiskTypeFromBounds(value, lower, upper) : 'optimal',
-      };
+        value: `${formatValue(value)}${unit ? ` ${unit}` : ''}`,
+        profile: String(group?.group_name || 'Blood Marker'),
+        disease,
+        risk: toRiskLabel(riskKey),
+        riskKey,
+      });
     });
-
-    const hasHigh = enrichedTests.some((test) => test.riskKey === 'high');
-    const hasLow = enrichedTests.some((test) => test.riskKey === 'low');
-    const riskKey = hasHigh ? 'high' : hasLow ? 'low' : 'optimal';
-
-    const representative = enrichedTests.find((test) => test.riskKey === riskKey)
-      || enrichedTests[0]
-      || { name: 'Test', value: null, unit: '' };
-
-    return {
-      id: `api-bm-${groupIndex}`,
-      name: representative.name,
-      value: representative.value === null ? '--' : `${formatValue(representative.value)}${representative.unit ? ` ${representative.unit}` : ''}`,
-      profile: String(group?.group_name || 'Blood Marker'),
-      disease,
-      risk: toRiskLabel(riskKey),
-      riskKey,
-    };
   });
+
+  return rows;
 };
 
 const orderByHierarchy = (markers) => {
@@ -341,7 +338,7 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
       };
     });
 
-    return orderByHierarchy(normalized);
+    return orderByHierarchy(normalized).slice(0, 3);
   }, [apiBloodMarkers]);
   const cardCount = stackCards.length;
   const [activeIndex, setActiveIndex] = useState(Math.max(cardCount - 1, 0));
