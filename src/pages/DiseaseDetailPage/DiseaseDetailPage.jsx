@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './DiseaseDetailPage.css';
 import lifestyleTick from '../../images/tick(lifestyle).svg';
 import trendsImage from '../../images/trends.svg';
+import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
+import { getAccessToken } from '../../utils/authStorage';
+import { fetchLatestAssessmentReport } from '../../services/reportService';
 
-const DEFAULT_DESCRIPTION =
-  'Oxidative stress is an imbalance in your body where there are too many unstable molecules called free radicals and not enough antioxidants to neutralize them.';
-const DEFAULT_TREND_SUMMARY = '40 % Worse than last result';
 
 const DISEASE_CONTENT = {
   obesity: {
@@ -102,6 +102,177 @@ const RISK_ZONE_COUNT = 4;
 const BASE_DOTS_PER_ZONE = 11;
 const LIFESTYLE_BANDS = ['LOW', 'MODERATE', 'INCREASED', 'HIGH', 'VERY HIGH'];
 
+const parseResponseBody = async (response) => {
+  const text = await response.text();
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
+const extractArray = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.results)) return payload.results;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.data?.items)) return payload.data.items;
+  if (Array.isArray(payload?.data?.results)) return payload.data.results;
+  return [];
+};
+
+const toTimestamp = (value) => {
+  const timestamp = new Date(value || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+const extractAssessmentIdFromRow = (row) => {
+  if (!row || typeof row !== 'object') return null;
+
+  return row.assessment_id
+    || row.assessment_instance_id
+    || row.id
+    || row.assessment?.assessment_id
+    || row.assessment?.assessment_instance_id
+    || row.assessment?.id
+    || row.assessment?.assessment?.assessment_id
+    || row.assessment?.assessment?.id
+    || null;
+};
+
+const getSortedAssessmentIds = (assessments) => {
+  const rows = Array.isArray(assessments) ? assessments : [];
+
+  const sorted = [...rows].sort((a, b) => {
+    const aTime = Math.max(
+      toTimestamp(a?.assigned_at),
+      toTimestamp(a?.assessment?.assigned_at),
+      toTimestamp(a?.updated_at),
+      toTimestamp(a?.assessment?.updated_at),
+      toTimestamp(a?.created_at),
+      toTimestamp(a?.assessment?.created_at)
+    );
+    const bTime = Math.max(
+      toTimestamp(b?.assigned_at),
+      toTimestamp(b?.assessment?.assigned_at),
+      toTimestamp(b?.updated_at),
+      toTimestamp(b?.assessment?.updated_at),
+      toTimestamp(b?.created_at),
+      toTimestamp(b?.assessment?.created_at)
+    );
+
+    if (bTime !== aTime) return bTime - aTime;
+
+    const aId = Number(extractAssessmentIdFromRow(a) || 0);
+    const bId = Number(extractAssessmentIdFromRow(b) || 0);
+    return bId - aId;
+  });
+
+  return Array.from(new Set(sorted.map((row) => extractAssessmentIdFromRow(row)).filter(Boolean)));
+};
+
+const authorizedGet = async (path) => {
+  if (!BACKEND_ENABLED) {
+    throw new Error('Backend base URL is not configured.');
+  }
+
+  const accessToken = getAccessToken();
+  if (!accessToken) {
+    throw new Error('You are not logged in.');
+  }
+
+  const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    throw new Error(body?.message || body?.detail || 'Request failed.');
+  }
+
+  return body;
+};
+
+const resolveRiskPayloadRoot = (payload) => {
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload.data && typeof payload.data === 'object') return payload.data;
+  if (payload.result && typeof payload.result === 'object') return payload.result;
+  if (payload.item && typeof payload.item === 'object') return payload.item;
+  return payload;
+};
+
+const normalizeDiseaseCode = (code) => String(code || '')
+  .trim()
+  .toLowerCase();
+
+const diseaseCodeFromName = (name = '') => {
+  const key = String(name).replace(/\n/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+
+  if (!key) return '';
+  if (key === 'type 2 diabetes') return 'diabetes';
+  if (key === 'metabolic syndrome') return 'metabolic_syndrome';
+  if (key === 'oxidative stress') return 'oxidative_stress';
+  if (key === 'thyroid health') return 'thyroid_health';
+  if (key === 'cardiac health') return 'cardiac_health';
+  if (key === 'pcos/pcod' || key === 'pcos' || key === 'pcod') return 'pcos_pcod';
+
+  return key.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+};
+
+const toStringArray = (value) => {
+  const splitCommaSeparated = (text) => String(text)
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === 'string') {
+          return splitCommaSeparated(item);
+        }
+
+        if (item && typeof item === 'object') {
+          const text = item.text || item.label || item.title || item.description || item.value;
+          return typeof text === 'string' ? splitCommaSeparated(text) : [];
+        }
+
+        return [];
+      })
+      .flat()
+      .filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    return splitCommaSeparated(value);
+  }
+
+  return [];
+};
+
+const toClampedScore = (value, fallback = 0) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.max(0, Math.min(100, Math.round(numeric)));
+};
+
+const lifestyleBandFromPercent = (value) => {
+  if (value <= 20) return 'LOW';
+  if (value <= 40) return 'MODERATE';
+  if (value <= 60) return 'INCREASED';
+  if (value <= 80) return 'HIGH';
+  return 'VERY HIGH';
+};
+
 const getZoneIndexForScore = (score) => {
   if (score <= 25) return 0;
   if (score <= 50) return 1;
@@ -137,11 +308,19 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   const [animatedLifestyleLeftPercent, setAnimatedLifestyleLeftPercent] = useState(0);
   const [activeInfoPopup, setActiveInfoPopup] = useState(null);
   const [animatedHealthRankScore, setAnimatedHealthRankScore] = useState(0);
+  const [apiDetail, setApiDetail] = useState(null);
   const title = disease?.name?.replace('\n', ' ') || 'Oxidative Stress';
-  const diseaseContent = DISEASE_CONTENT[getDiseaseKey(title)] || DISEASE_CONTENT['oxidative stress'];
-  const trendSummary = diseaseContent?.trendSummary || DEFAULT_TREND_SUMMARY;
-  const score = Math.max(0, Math.min(100, disease?.score ?? 85));
-  const healthRankScore = 55;
+  const diseaseCode = useMemo(() => {
+    const rawCode = normalizeDiseaseCode(disease?.code);
+    if (rawCode) return rawCode;
+    return diseaseCodeFromName(title);
+  }, [disease?.code, title]);
+  const hasScore = apiDetail?.risk_score_scaled !== null && apiDetail?.risk_score_scaled !== undefined;
+  const score = hasScore ? toClampedScore(apiDetail?.risk_score_scaled, 0) : 0;
+  const scoreLabel = hasScore ? String(score) : '-';
+  const hasHealthRank = apiDetail?.disease_percentile !== null && apiDetail?.disease_percentile !== undefined;
+  const healthRankScore = hasHealthRank ? toClampedScore(apiDetail?.disease_percentile, 0) : 0;
+  const trendSummary = '-';
   const scoreZoneIndex = getZoneIndexForScore(score);
   const healthRankZoneIndex = getZoneIndexForScore(healthRankScore);
   const [animatedMarkerLeftPercent, setAnimatedMarkerLeftPercent] = useState(0);
@@ -243,7 +422,74 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   const currentZone = RISK_ZONES[currentZoneIndex];
   const currentZoneColor = RISK_ZONES[currentZoneIndex].color;
   const healthRankColor = RISK_ZONES[healthRankZoneIndex].color;
-  const lifestyleTargetPercent = 22;
+  const hasLifestyle = apiDetail?.lifestyle_contribution !== null && apiDetail?.lifestyle_contribution !== undefined;
+  const lifestyleTargetPercent = hasLifestyle ? toClampedScore(apiDetail?.lifestyle_contribution, 0) : 0;
+  const lifestyleBand = hasLifestyle ? lifestyleBandFromPercent(lifestyleTargetPercent) : '-';
+  const healthRankLabel = hasHealthRank ? `${healthRankScore}th` : '-';
+  const currentZoneDisplayColor = hasScore ? currentZoneColor : '#C4C4C4';
+  const currentZoneLabel = hasScore ? currentZone.label : '-';
+  const healthRankDisplayColor = hasHealthRank ? healthRankColor : '#C4C4C4';
+  const healthRankScoreLabel = hasHealthRank ? String(animatedHealthRankScore) : '-';
+  const detailTopLine = (typeof apiDetail?.meaning === 'string' && apiDetail.meaning.trim())
+    ? apiDetail.meaning.trim()
+    : '-';
+
+  const causes = useMemo(() => {
+    const highValues = toStringArray(apiDetail?.causes_when_high);
+    const lowValues = toStringArray(apiDetail?.causes_when_low);
+    const sideSpecific = hasScore
+      ? (score > 50 ? highValues : lowValues)
+      : [];
+    const fallbackValues = highValues.length > 0 ? highValues : lowValues;
+
+    if (sideSpecific.length > 0) {
+      return sideSpecific;
+    }
+
+    if (fallbackValues.length > 0) {
+      return fallbackValues;
+    }
+
+    return ['-'];
+  }, [apiDetail?.causes_when_high, apiDetail?.causes_when_low, hasScore, score]);
+
+  const effects = useMemo(() => {
+    const highValues = toStringArray(apiDetail?.effects_when_high);
+    const lowValues = toStringArray(apiDetail?.effects_when_low);
+    const sideSpecific = hasScore
+      ? (score > 50 ? highValues : lowValues)
+      : [];
+    const fallbackValues = highValues.length > 0 ? highValues : lowValues;
+
+    if (sideSpecific.length > 0) {
+      return sideSpecific;
+    }
+
+    if (fallbackValues.length > 0) {
+      return fallbackValues;
+    }
+
+    return ['-'];
+  }, [apiDetail?.effects_when_high, apiDetail?.effects_when_low, hasScore, score]);
+
+  const actionableInsights = useMemo(() => {
+    const highValues = toStringArray(apiDetail?.what_to_do_when_high);
+    const lowValues = toStringArray(apiDetail?.what_to_do_when_low);
+    const sideSpecific = hasScore
+      ? (score > 50 ? highValues : lowValues)
+      : [];
+    const fallbackValues = highValues.length > 0 ? highValues : lowValues;
+
+    if (sideSpecific.length > 0) {
+      return sideSpecific;
+    }
+
+    if (fallbackValues.length > 0) {
+      return fallbackValues;
+    }
+
+    return ['-'];
+  }, [apiDetail?.what_to_do_when_high, apiDetail?.what_to_do_when_low, hasScore, score]);
 
   const infoPopupContent = {
     lifestyle: {
@@ -259,6 +505,45 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   };
 
   const popupData = activeInfoPopup ? infoPopupContent[activeInfoPopup] : null;
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadDiseaseRiskDetail = async () => {
+      if (!diseaseCode) {
+        if (isActive) {
+          setApiDetail(null);
+        }
+        return;
+      }
+
+      try {
+        const { response } = await fetchLatestAssessmentReport(
+          (assessmentId) => `/reports/${assessmentId}/risk-analysis?disease=${encodeURIComponent(diseaseCode)}`
+        );
+        const detail = resolveRiskPayloadRoot(response);
+
+        if (detail && isActive) {
+          setApiDetail(detail);
+          return;
+        }
+
+        if (isActive) {
+          setApiDetail(null);
+        }
+      } catch {
+        if (isActive) {
+          setApiDetail(null);
+        }
+      }
+    };
+
+    loadDiseaseRiskDetail();
+
+    return () => {
+      isActive = false;
+    };
+  }, [diseaseCode]);
 
   useEffect(() => {
     const element = riskStripRef.current;
@@ -371,7 +656,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
           aria-label="Toggle full description"
         >
           <p className={`disease-detail-description ${isDescriptionExpanded ? 'expanded' : ''}`}>
-            {diseaseContent?.topLine || DEFAULT_DESCRIPTION}
+            {detailTopLine}
           </p>
         </button>
       </div>
@@ -433,14 +718,14 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
                 className="disease-detail-risk-marker-line"
                 style={{
                   height: `${markerLineHeight}px`,
-                  borderLeftColor: currentZoneColor
+                    borderLeftColor: currentZoneDisplayColor
                 }}
               />
 
               <div className="disease-detail-risk-score-row">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <g clipPath="url(#clip0_1404_7240)">
-                    <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill={currentZoneColor} />
+                    <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill={currentZoneDisplayColor} />
                   </g>
                   <defs>
                     <clipPath id="clip0_1404_7240">
@@ -448,14 +733,14 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
                     </clipPath>
                   </defs>
                 </svg>
-                <span className="disease-detail-risk-score-value">{score}</span>
+                <span className="disease-detail-risk-score-value">{scoreLabel}</span>
               </div>
 
               <div className="disease-detail-risk-level-row">
                 <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden="true">
-                  <path d="M4 8C6.20914 8 8 6.20914 8 4C8 1.79086 6.20914 0 4 0C1.79086 0 0 1.79086 0 4C0 6.20914 1.79086 8 4 8Z" fill={currentZoneColor} />
+                  <path d="M4 8C6.20914 8 8 6.20914 8 4C8 1.79086 6.20914 0 4 0C1.79086 0 0 1.79086 0 4C0 6.20914 1.79086 8 4 8Z" fill={currentZoneDisplayColor} />
                 </svg>
-                <span className="disease-detail-risk-level-text">{currentZone.label}</span>
+                <span className="disease-detail-risk-level-text">{currentZoneLabel}</span>
               </div>
             </div>
           </div>
@@ -482,7 +767,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
             className="disease-detail-lifestyle-status disease-detail-tap-value"
             onClick={() => setActiveInfoPopup('lifestyle')}
           >
-            LOW
+            {lifestyleBand}
           </button>
         </div>
 
@@ -529,12 +814,12 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
             className="disease-detail-health-rank-rank disease-detail-tap-value"
             onClick={() => setActiveInfoPopup('rank')}
           >
-            55th
+            {healthRankLabel}
           </button>
         </div>
 
         <div className="disease-detail-health-rank-score-row">
-          <span className="disease-detail-health-rank-score-value" style={{ color: healthRankColor }}>{animatedHealthRankScore}</span>
+          <span className="disease-detail-health-rank-score-value" style={{ color: healthRankDisplayColor }}>{healthRankScoreLabel}</span>
           <span className="disease-detail-health-rank-score-max">/100</span>
         </div>
       </section>
@@ -542,21 +827,21 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
       <section className="disease-detail-info-section">
         <h3 className="disease-detail-info-heading">Causes</h3>
         <div className="disease-detail-chip-row">
-          {diseaseContent.causes.map((item) => (
+          {causes.map((item) => (
             <span key={`cause-${item}`} className="disease-detail-chip">{item}</span>
           ))}
         </div>
 
         <h3 className="disease-detail-info-heading disease-detail-effects-heading">Effects</h3>
         <div className="disease-detail-effects-list">
-          {diseaseContent.effects.map((item) => (
+          {effects.map((item) => (
             <p key={`effect-${item}`} className="disease-detail-effect-text">{item}</p>
           ))}
         </div>
 
         <h3 className="disease-detail-info-heading disease-detail-insights-heading">Actionable Insights</h3>
         <div className="disease-detail-chip-row">
-          {diseaseContent.actionableInsights.map((item) => (
+          {actionableInsights.map((item) => (
             <span key={`insight-${item}`} className="disease-detail-chip">{item}</span>
           ))}
         </div>

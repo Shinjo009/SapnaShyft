@@ -3,6 +3,7 @@ import './BloodMarkersPage.css';
 import trendsImage from '../../images/trends.svg';
 import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
 import { getAccessToken } from '../../utils/authStorage';
+import { fetchLatestAssessmentReport } from '../../services/reportService';
 import haematologyIcon from '../../images/Haemotology.svg';
 import liverIcon from '../../images/Liver.svg';
 import kidneyIcon from '../../images/Kidney.svg';
@@ -191,11 +192,6 @@ const authorizedGet = async (path) => {
   return body;
 };
 
-const toTimestamp = (value) => {
-  const timestamp = new Date(value || 0).getTime();
-  return Number.isFinite(timestamp) ? timestamp : 0;
-};
-
 const extractArray = (payload) => {
   if (Array.isArray(payload)) {
     return payload;
@@ -222,59 +218,6 @@ const extractArray = (payload) => {
   }
 
   return [];
-};
-
-const extractAssessmentIdFromRow = (row) => {
-  if (!row || typeof row !== 'object') {
-    return null;
-  }
-
-  return row.assessment_id
-    || row.assessment_instance_id
-    || row.id
-    || row.assessment?.assessment_id
-    || row.assessment?.assessment_instance_id
-    || row.assessment?.id
-    || row.assessment?.assessment?.assessment_id
-    || row.assessment?.assessment?.id
-    || null;
-};
-
-const getSortedAssessmentIds = (assessments) => {
-  const rows = Array.isArray(assessments) ? assessments : [];
-
-  const sorted = [...rows].sort((a, b) => {
-    const aTime = Math.max(
-      toTimestamp(a?.assigned_at),
-      toTimestamp(a?.assessment?.assigned_at),
-      toTimestamp(a?.updated_at),
-      toTimestamp(a?.assessment?.updated_at),
-      toTimestamp(a?.created_at),
-      toTimestamp(a?.assessment?.created_at)
-    );
-    const bTime = Math.max(
-      toTimestamp(b?.assigned_at),
-      toTimestamp(b?.assessment?.assigned_at),
-      toTimestamp(b?.updated_at),
-      toTimestamp(b?.assessment?.updated_at),
-      toTimestamp(b?.created_at),
-      toTimestamp(b?.assessment?.created_at)
-    );
-
-    if (bTime !== aTime) {
-      return bTime - aTime;
-    }
-
-    const aId = Number(extractAssessmentIdFromRow(a) || 0);
-    const bId = Number(extractAssessmentIdFromRow(b) || 0);
-    return bId - aId;
-  });
-
-  const ids = sorted
-    .map((row) => extractAssessmentIdFromRow(row))
-    .filter(Boolean);
-
-  return Array.from(new Set(ids));
 };
 
 const toOrganName = (groupName) => {
@@ -453,6 +396,10 @@ const buildSectionsFromApi = (groups) => {
       const mappedTests = tests
         .map((test, index) => {
           const valueRaw = test?.value;
+          if (valueRaw === null || valueRaw === undefined) {
+            return null;
+          }
+
           const lowerRaw = test?.lower_range;
           const higherRaw = test?.higher_range;
           const value = Number(valueRaw);
@@ -741,7 +688,7 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
       }
 
       try {
-        const response = await authorizedGet(`/diagnostic-tests/${marker.diagnosticTestId}`);
+        const response = await authorizedGet(`/diagnostics/health-parameters/${marker.diagnosticTestId}`);
         const detailPayload = extractDiagnosticTestPayload(response);
 
         if (isActive) {
@@ -1528,29 +1475,10 @@ const BloodMarkersPage = ({ onBack }) => {
 
     const loadBloodMarkers = async () => {
       try {
-        const assessmentsResponse = await authorizedGet('/assessments/me');
-        const assessments = extractArray(assessmentsResponse);
-
-        const candidateAssessmentIds = getSortedAssessmentIds(assessments);
-        if (candidateAssessmentIds.length === 0) {
-          if (isActive) {
-            setApiSections([]);
-          }
-          return;
-        }
-
-        let groups = [];
-        for (const assessmentId of candidateAssessmentIds) {
-          try {
-            const reportResponse = await authorizedGet(`/reports/${assessmentId}/blood-parameters`);
-            groups = extractArray(reportResponse);
-            if (groups.length > 0) {
-              break;
-            }
-          } catch {
-            // Try next latest assessment if current one has no report yet.
-          }
-        }
+        const { response } = await fetchLatestAssessmentReport(
+          (assessmentId) => `/reports/${assessmentId}/blood-parameters`
+        );
+        const groups = extractArray(response);
 
         if (isActive) {
           setApiSections(buildSectionsFromApi(groups));

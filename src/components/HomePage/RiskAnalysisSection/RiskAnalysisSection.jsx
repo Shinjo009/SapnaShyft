@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './RiskAnalysisSection.css';
-import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../../config/appConfig';
-import { getAccessToken } from '../../../utils/authStorage';
+import { fetchLatestAssessmentReport } from '../../../services/reportService';
 import ObesityIcon from '../../../images/Obesity-RA.svg';
 import ThyroidHealthIcon from '../../../images/Thyroid-RA.svg';
 import NAFLDIcon from '../../../images/NAFLD-RA.svg';
@@ -76,9 +75,73 @@ const defaultCards = DISEASES_DATA
   .slice(0, 3)
   .map((disease) => ({
     ...disease,
+    code: normalizeDiseaseKey(disease.name).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''),
     action: TOP_LINE_BY_DISEASE[normalizeDiseaseKey(disease.name)] || TOP_LINE_BY_DISEASE['oxidative stress'],
     healthRankLabel: `${HEALTH_RANK_SCORE_FROM_DISEASE_DETAIL}th`,
   }));
+
+const DISEASE_ICON_BY_CODE = {
+  obesity: ObesityIcon,
+  oxidative_stress: OxidativeIcon,
+  metabolic_syndrome: MetabolicIcon,
+  hypertension: HyperTensionIcon,
+  pcos_pcod: PCOSIcon,
+  diabetes: Type2Icon,
+  type_2_diabetes: Type2Icon,
+  dyslipidemia: DyslipidemiaIcon,
+  cardiac_health: CardiacHealthIcon,
+  nafld: NAFLDIcon,
+  thyroid_health: ThyroidHealthIcon,
+};
+
+const normalizeCodeFromName = (name = '') => normalizeDiseaseKey(name)
+  .replace(/[^a-z0-9]+/g, '_')
+  .replace(/^_+|_+$/g, '');
+
+const toRiskAnalysisCardsFromApi = (riskAnalysis) => {
+  const rows = Array.isArray(riskAnalysis) ? riskAnalysis : [];
+
+  const mapped = rows.map((item, index) => {
+    const code = String(item?.code || '').trim().toLowerCase() || normalizeCodeFromName(item?.name);
+    const name = String(item?.name || '').trim() || '-';
+    const scoreNumeric = Number(item?.risk_score_scaled);
+    const hasScore = Number.isFinite(scoreNumeric);
+    const score = hasScore ? Math.max(0, Math.min(100, Math.round(scoreNumeric))) : 0;
+    const healthyPercentile = Number(item?.healthy_percentile);
+    const hasHealthRank = Number.isFinite(healthyPercentile);
+    const keyFromName = normalizeDiseaseKey(name);
+
+    return {
+      id: `api-risk-${code || index}`,
+      code,
+      name,
+      icon: DISEASE_ICON_BY_CODE[code] || MetabolicIcon,
+      score,
+      scoreDisplay: hasScore ? String(score) : '-',
+      action: TOP_LINE_BY_DISEASE[keyFromName] || '-',
+      healthRankLabel: hasHealthRank ? `${Math.max(0, Math.min(100, Math.round(healthyPercentile)))}th` : '-',
+      isPlaceholder: false,
+    };
+  });
+
+  if (mapped.length > 0) {
+    return mapped.slice(0, 3);
+  }
+
+  return [
+    {
+      id: 'api-risk-placeholder',
+      code: '',
+      name: '-',
+      icon: MetabolicIcon,
+      score: 0,
+      scoreDisplay: '-',
+      action: '-',
+      healthRankLabel: '-',
+      isPlaceholder: true,
+    },
+  ];
+};
 
 const BLOOD_MARKER_RISK_PRIORITY = {
   'high risk': 0,
@@ -101,24 +164,6 @@ const BLOOD_MARKER_COLOR_BY_RISK = {
   optimal: '#4ADE80',
 };
 
-const toTimestamp = (value) => {
-  const timestamp = new Date(value || 0).getTime();
-  return Number.isFinite(timestamp) ? timestamp : 0;
-};
-
-const parseResponseBody = async (response) => {
-  const text = await response.text();
-  if (!text) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-};
-
 const extractArray = (payload) => {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.data)) return payload.data;
@@ -127,77 +172,6 @@ const extractArray = (payload) => {
   if (Array.isArray(payload?.data?.items)) return payload.data.items;
   if (Array.isArray(payload?.data?.results)) return payload.data.results;
   return [];
-};
-
-const extractAssessmentIdFromRow = (row) => {
-  if (!row || typeof row !== 'object') return null;
-
-  return row.assessment_id
-    || row.assessment_instance_id
-    || row.id
-    || row.assessment?.assessment_id
-    || row.assessment?.assessment_instance_id
-    || row.assessment?.id
-    || row.assessment?.assessment?.assessment_id
-    || row.assessment?.assessment?.id
-    || null;
-};
-
-const getSortedAssessmentIds = (assessments) => {
-  const rows = Array.isArray(assessments) ? assessments : [];
-
-  const sorted = [...rows].sort((a, b) => {
-    const aTime = Math.max(
-      toTimestamp(a?.assigned_at),
-      toTimestamp(a?.assessment?.assigned_at),
-      toTimestamp(a?.updated_at),
-      toTimestamp(a?.assessment?.updated_at),
-      toTimestamp(a?.created_at),
-      toTimestamp(a?.assessment?.created_at)
-    );
-    const bTime = Math.max(
-      toTimestamp(b?.assigned_at),
-      toTimestamp(b?.assessment?.assigned_at),
-      toTimestamp(b?.updated_at),
-      toTimestamp(b?.assessment?.updated_at),
-      toTimestamp(b?.created_at),
-      toTimestamp(b?.assessment?.created_at)
-    );
-
-    if (bTime !== aTime) return bTime - aTime;
-
-    const aId = Number(extractAssessmentIdFromRow(a) || 0);
-    const bId = Number(extractAssessmentIdFromRow(b) || 0);
-    return bId - aId;
-  });
-
-  return Array.from(new Set(sorted.map((row) => extractAssessmentIdFromRow(row)).filter(Boolean)));
-};
-
-const authorizedGet = async (path) => {
-  if (!BACKEND_ENABLED) {
-    throw new Error('Backend base URL is not configured.');
-  }
-
-  const accessToken = getAccessToken();
-  if (!accessToken) {
-    throw new Error('You are not logged in.');
-  }
-
-  const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  const body = await parseResponseBody(response);
-  if (!response.ok) {
-    throw new Error(body?.message || body?.detail || 'Request failed.');
-  }
-
-  return body;
 };
 
 const getRiskTypeFromBounds = (value, lowerRange, upperRange) => {
@@ -250,6 +224,10 @@ const buildBloodMarkersFromGroups = (groups) => {
     const tests = Array.isArray(group?.tests) ? group.tests : [];
 
     tests.forEach((test, testIndex) => {
+      if (test?.value === null || test?.value === undefined) {
+        return;
+      }
+
       const value = Number(test?.value);
       const lower = Number(test?.lower_range);
       const upper = Number(test?.higher_range);
@@ -291,7 +269,7 @@ const orderByHierarchy = (markers) => {
   return [...high, ...low, ...optimal];
 };
 
-const GaugeDial = ({ score }) => {
+const GaugeDial = ({ score, scoreDisplay }) => {
   const safeScore = Math.max(0, Math.min(100, score ?? 0));
   const pathD = 'M4 40 A36 36 0 0 1 76 40';
   const approxLength = 113.1;
@@ -317,15 +295,21 @@ const GaugeDial = ({ score }) => {
         />
       </svg>
       <div className="risk-analysis-wins__dial-score">
-        <span className="risk-analysis-wins__dial-score-value">{safeScore}</span>
+        <span className="risk-analysis-wins__dial-score-value">{scoreDisplay ?? safeScore}</span>
         <span className="risk-analysis-wins__dial-score-max">/100</span>
       </div>
     </div>
   );
 };
 
-const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore, onBloodMarkersSeeMore }) => {
-  const stackCards = cards.slice(0, 3);
+const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseSelect, onSeeMore, onBloodMarkersSeeMore }) => {
+  const stackCards = useMemo(() => {
+    if (apiRiskAnalysis !== undefined) {
+      return toRiskAnalysisCardsFromApi(apiRiskAnalysis);
+    }
+
+    return cards.slice(0, 3);
+  }, [apiRiskAnalysis, cards]);
   const [apiBloodMarkers, setApiBloodMarkers] = useState([]);
   const bloodMarkers = useMemo(() => {
     const normalized = apiBloodMarkers.map((item) => {
@@ -490,6 +474,10 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
   };
 
   const handleCardClick = (card) => {
+    if (card?.isPlaceholder) {
+      return;
+    }
+
     if (onDiseaseSelect) {
       onDiseaseSelect(card);
     }
@@ -500,27 +488,10 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
 
     const loadHomepageBloodMarkers = async () => {
       try {
-        const assessmentsResponse = await authorizedGet('/assessments/me');
-        const assessments = extractArray(assessmentsResponse);
-        const candidateAssessmentIds = getSortedAssessmentIds(assessments);
-
-        if (candidateAssessmentIds.length === 0) {
-          if (isActive) setApiBloodMarkers([]);
-          return;
-        }
-
-        let groups = [];
-        for (const assessmentId of candidateAssessmentIds) {
-          try {
-            const reportResponse = await authorizedGet(`/reports/${assessmentId}/blood-parameters`);
-            groups = extractArray(reportResponse);
-            if (groups.length > 0) {
-              break;
-            }
-          } catch {
-            // Try next latest assessment if current one is unavailable.
-          }
-        }
+        const { response } = await fetchLatestAssessmentReport(
+          (assessmentId) => `/reports/${assessmentId}/blood-parameters`
+        );
+        const groups = extractArray(response);
 
         if (isActive) {
           setApiBloodMarkers(buildBloodMarkersFromGroups(groups));
@@ -615,7 +586,7 @@ const RiskAnalysisSection = ({ cards = defaultCards, onDiseaseSelect, onSeeMore,
               <div className="risk-analysis-wins__card-content">
                 <div className="risk-analysis-wins__left-column">
                   <div className="risk-analysis-wins__gauge-rank-row">
-                    <GaugeDial score={card.score} />
+                    <GaugeDial score={card.score} scoreDisplay={card.scoreDisplay} />
                     <div className="risk-analysis-wins__health-rank-box" aria-hidden="true">
                       <span className="risk-analysis-wins__health-rank-text">Health Rank</span>
                       <span className="risk-analysis-wins__health-rank-value">{card.healthRankLabel}</span>

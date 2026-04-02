@@ -1,6 +1,10 @@
 import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../config/appConfig';
 import { getAccessToken } from '../utils/authStorage';
 
+const PROFILE_CACHE_TTL_MS = 30000;
+let myProfileCache = null;
+let myProfileInFlight = null;
+
 const parseResponseBody = async (response) => {
   const text = await response.text();
 
@@ -69,6 +73,49 @@ const authorizedRequest = async (path, method = 'GET', payload) => {
   return parsedBody;
 };
 
-export const getMyProfile = () => authorizedRequest('/users/me');
+export const getMyProfile = (options) => getMyProfileCached(options);
+
+export const getMyProfileCached = async ({ forceRefresh = false } = {}) => {
+  const accessToken = getAccessToken();
+
+  if (!forceRefresh
+    && myProfileCache
+    && myProfileCache.token === accessToken
+    && myProfileCache.expiresAt > Date.now()) {
+    return myProfileCache.value;
+  }
+
+  if (!forceRefresh
+    && myProfileInFlight
+    && myProfileInFlight.token === accessToken) {
+    return myProfileInFlight.promise;
+  }
+
+  const promise = authorizedRequest('/users/me')
+    .then((value) => {
+      myProfileCache = {
+        token: accessToken,
+        value,
+        expiresAt: Date.now() + PROFILE_CACHE_TTL_MS,
+      };
+
+      return value;
+    })
+    .finally(() => {
+      if (myProfileInFlight?.token === accessToken) {
+        myProfileInFlight = null;
+      }
+    });
+
+  myProfileInFlight = { token: accessToken, promise };
+  return promise;
+};
+
+export const getMyProfileWithCache = getMyProfileCached;
+
+export const invalidateMyProfileCache = () => {
+  myProfileCache = null;
+  myProfileInFlight = null;
+};
 
 export const updateMyProfile = (payload) => authorizedRequest('/users/me', 'PUT', payload);

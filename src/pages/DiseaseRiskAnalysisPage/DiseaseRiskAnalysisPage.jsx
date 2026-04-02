@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import './DiseaseRiskAnalysisPage.css';
+import { fetchLatestAssessmentReport } from '../../services/reportService';
 
 // Import disease icons
 import ObesityIcon from '../../images/Obesity-RA.svg';
@@ -20,18 +21,142 @@ import E3 from '../../images/E3.png';
 import E4 from '../../images/E4.png';
 import E5 from '../../images/E5.svg';
 
-const DISEASES_DATA = [
-  { id: 1, name: 'Obesity', icon: ObesityIcon, score: 55 },
-  { id: 2, name: 'Oxidative Stress', icon: OxidativeIcon, score: 85 },
-  { id: 3, name: 'Metabolic\nSyndrome', icon: MetabolicIcon, score: 78 },
-  { id: 4, name: 'Hypertension', icon: HyperTensionIcon, score: 45 },
-  { id: 5, name: 'PCOS/PCOD', icon: PCOSIcon, score: 30 },
-  { id: 6, name: 'Type 2 Diabetes', icon: Type2Icon, score: 24 },
-  { id: 7, name: 'Dyslipidemia', icon: DyslipidemiaIcon, score: 55 },
-  { id: 8, name: 'Cardiac Health', icon: CardiacHealthIcon, score: 65 },
-  { id: 9, name: 'NAFLD', icon: NAFLDIcon, score: 38 },
-  { id: 10, name: 'Thyroid Health', icon: ThyroidHealthIcon, score: 20 }
-];
+const DISEASE_ICON_BY_KEY = {
+  obesity: ObesityIcon,
+  'oxidative stress': OxidativeIcon,
+  'metabolic syndrome': MetabolicIcon,
+  hypertension: HyperTensionIcon,
+  'pcos/pcod': PCOSIcon,
+  pcos: PCOSIcon,
+  pcod: PCOSIcon,
+  'type 2 diabetes': Type2Icon,
+  diabetes: Type2Icon,
+  dyslipidemia: DyslipidemiaIcon,
+  'cardiac health': CardiacHealthIcon,
+  cardiac: CardiacHealthIcon,
+  heart: CardiacHealthIcon,
+  nafld: NAFLDIcon,
+  'thyroid health': ThyroidHealthIcon,
+  thyroid: ThyroidHealthIcon,
+};
+
+const extractArray = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.results)) return payload.results;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.data?.items)) return payload.data.items;
+  if (Array.isArray(payload?.data?.results)) return payload.data.results;
+  return [];
+};
+
+const normalizeDiseaseKey = (name = '') => String(name)
+  .replace(/\s+/g, ' ')
+  .trim()
+  .toLowerCase();
+
+const normalizeDiseaseLabel = (name = '') => String(name)
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const toDiseaseScore = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return Math.max(0, Math.min(100, Math.round(numeric)));
+};
+
+const getApiDiseaseScore = (item) => {
+  if (item?.risk_score_scaled === null) {
+    return 0;
+  }
+
+  const preferredScore = item?.risk_score_scaled;
+  const fallbackScore = item?.score
+    ?? item?.risk_score
+    ?? item?.disease_score
+    ?? item?.value
+    ?? item?.percentage;
+
+  const resolved = preferredScore ?? fallbackScore;
+  return toDiseaseScore(resolved);
+};
+
+const resolveRiskPayloadRoot = (payload) => {
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload.data && typeof payload.data === 'object') return payload.data;
+  if (payload.result && typeof payload.result === 'object') return payload.result;
+  if (payload.item && typeof payload.item === 'object') return payload.item;
+  return payload;
+};
+
+const extractDiseaseRows = (payload) => {
+  const root = resolveRiskPayloadRoot(payload);
+  if (!root) return [];
+
+  const candidates = [
+    extractArray(root.diseases),
+    extractArray(root.disease_scores),
+    extractArray(root.risk_analysis),
+    extractArray(root.scores),
+    extractArray(root.conditions),
+  ];
+
+  const source = candidates.find((items) => Array.isArray(items) && items.length > 0) || [];
+
+  const fallbackSource = source.length > 0 ? source : extractArray(payload);
+
+  return fallbackSource
+    .map((item, index) => {
+      const rawName = item?.disease_name
+        || item?.disease
+        || item?.name
+        || item?.condition
+        || item?.title
+        || '';
+      const score = getApiDiseaseScore(item);
+
+      const label = normalizeDiseaseLabel(rawName);
+      if (!label || score === null) {
+        return null;
+      }
+
+      const key = normalizeDiseaseKey(label);
+      const icon = DISEASE_ICON_BY_KEY[key] || MetabolicIcon;
+      const code = String(item?.code || '').trim().toLowerCase()
+        || key.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+      return {
+        id: Number(item?.id) || `api-${index}`,
+        code,
+        name: key === 'metabolic syndrome' ? 'Metabolic\nSyndrome' : label,
+        icon,
+        score,
+      };
+    })
+    .filter(Boolean);
+};
+
+const extractMetabolicScore = (payload, diseaseRows) => {
+  const root = resolveRiskPayloadRoot(payload);
+  const directScore = toDiseaseScore(
+    root?.metabolic_score
+    ?? root?.metabolicScore
+    ?? root?.metabolic_risk_score
+    ?? root?.metabolicRiskScore
+    ?? root?.overall_score
+    ?? root?.overallScore
+  );
+
+  if (directScore !== null) return directScore;
+
+  if (diseaseRows.length === 0) {
+    return null;
+  }
+
+  return Math.round(
+    diseaseRows.reduce((sum, disease) => sum + disease.score, 0) / diseaseRows.length
+  );
+};
 
 const VISIBLE_ARC_START = Math.PI * 0.5;
 const VISIBLE_ARC_END = (Math.PI * 1.5) + (Math.PI / 9); // +20deg so bottom appears clearly earlier
@@ -53,6 +178,8 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
   const e1Ref = useRef(null);
   const e3Ref = useRef(null);
   const [scoreAnchor, setScoreAnchor] = useState(null);
+  const [diseasesData, setDiseasesData] = useState([]);
+  const [metabolicScore, setMetabolicScore] = useState(null);
 
   // Get risk color based on score
   const getRiskColor = (score) => {
@@ -63,9 +190,8 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
   };
 
   // Calculate position on ellipse with custom radii for each direction
-  const getPosition = (index, radii, centerX, centerY, rotationOffset) => {
+  const getPosition = (index, totalDiseases, radii, centerX, centerY, rotationOffset) => {
     const { top, right, bottom, left } = radii;
-    const totalDiseases = DISEASES_DATA.length;
     const baseAngle = (index / totalDiseases) * 2 * Math.PI;
     const angle = baseAngle + rotationOffset;
     
@@ -207,6 +333,44 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
   }, []);
 
   useEffect(() => {
+    let isActive = true;
+
+    const loadRiskAnalysis = async () => {
+      try {
+        const { response } = await fetchLatestAssessmentReport(
+          (assessmentId) => `/reports/${assessmentId}/risk-analysis`
+        );
+
+        const apiDiseases = extractDiseaseRows(response);
+        const nextMetabolicScore = extractMetabolicScore(response, apiDiseases);
+
+        if ((apiDiseases.length > 0 || nextMetabolicScore !== null) && isActive) {
+          setDiseasesData(apiDiseases);
+          setMetabolicScore(nextMetabolicScore);
+          return;
+        }
+
+        if (isActive) {
+          setDiseasesData([]);
+          setMetabolicScore(null);
+        }
+      } catch (error) {
+        console.error('Failed to load risk analysis:', error);
+        if (isActive) {
+          setDiseasesData([]);
+          setMetabolicScore(null);
+        }
+      }
+    };
+
+    loadRiskAnalysis();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const updateScoreAnchor = () => {
       const e1Rect = e1Ref.current?.getBoundingClientRect();
       const containerRect = containerRef.current?.getBoundingClientRect();
@@ -283,8 +447,10 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
       left: 365  * e3ScaleX
     };
 
-    return DISEASES_DATA.map((disease, index) => {
-      const position = getPosition(index, radii, centerX, centerY, rotationRef.current);
+    const totalDiseases = Math.max(1, diseasesData.length);
+
+    return diseasesData.map((disease, index) => {
+      const position = getPosition(index, totalDiseases, radii, centerX, centerY, rotationRef.current);
       const opacity = getOpacity(position.angle);
       const riskColor = getRiskColor(disease.score);
 
@@ -318,11 +484,6 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
       );
     });
   };
-
-  // Calculate average metabolic score (for center display)
-  const metabolicScore = Math.round(
-    DISEASES_DATA.reduce((sum, disease) => sum + disease.score, 0) / DISEASES_DATA.length
-  );
 
   return (
     <div className="disease-risk-analysis-page">
@@ -365,8 +526,8 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
           style={scoreAnchor ? { left: `${scoreAnchor.x}px`, top: `${scoreAnchor.y}px` } : undefined}
         >
           <div className="metabolic-score-value">
-            <span className="score-number" style={{ color: getRiskColor(metabolicScore) }}>
-              {metabolicScore}
+            <span className="score-number" style={{ color: getRiskColor(metabolicScore ?? 0) }}>
+              {metabolicScore ?? '--'}
             </span>
           </div>
           <div className="score-max-large">/100</div>

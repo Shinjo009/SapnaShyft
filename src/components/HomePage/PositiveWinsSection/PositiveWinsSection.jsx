@@ -74,8 +74,74 @@ const defaultCards = [
   },
 ];
 
-const PositiveWinsSection = ({ cards = defaultCards }) => {
-  const stackCards = cards.slice(0, 3);
+const toArray = (value) => (Array.isArray(value) ? value : []);
+
+const toLabel = (value) => {
+  const text = String(value || '').trim();
+  return text || '-';
+};
+
+const toRiskPercent = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return '-';
+  }
+
+  return `${Math.max(0, Math.min(100, Math.round(numeric)))}/100`;
+};
+
+const buildPositiveWinsCardsFromApi = (positiveWins) => {
+  const lowRiskRows = toArray(positiveWins?.low_risk)
+    .map((item) => ({
+      label: toLabel(item?.name),
+      percent: toRiskPercent(item?.risk_score_scaled),
+    }));
+
+  const healthyHabitRows = toArray(positiveWins?.healthy_habits)
+    .map((item) => {
+      if (typeof item === 'string') {
+        return { label: toLabel(item) };
+      }
+
+      return { label: toLabel(item?.name || item?.label || item?.title || item?.value) };
+    });
+
+  const healthyProfileRows = toArray(positiveWins?.healthy_profiles)
+    .map((item) => {
+      if (typeof item === 'string') {
+        return { label: toLabel(item) };
+      }
+
+      return { label: toLabel(item?.name || item?.label || item?.title || item?.value) };
+    });
+
+  return [
+    {
+      title: 'Healthy\nHabits',
+      Icon: HealthyHabitsIcon,
+      aspects: healthyHabitRows.length > 0 ? healthyHabitRows : [{ label: '-' }],
+      statusLabel: healthyHabitRows.length > 0 ? 'Optimal' : '-',
+    },
+    {
+      title: 'Healthy\nProfiles',
+      Icon: HealthyProfilesIcon,
+      aspects: healthyProfileRows.length > 0 ? healthyProfileRows : [{ label: '-' }],
+      statusLabel: healthyProfileRows.length > 0 ? 'Optimal' : '-',
+    },
+    {
+      title: 'Low Risk',
+      Icon: LowRiskIcon,
+      aspects: lowRiskRows.length > 0 ? lowRiskRows : [{ label: '-', percent: '-' }],
+      statusLabel: lowRiskRows.length > 0 ? 'Optimal' : '-',
+    },
+  ];
+};
+
+const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
+  const stackCards = (apiPositiveWins !== undefined
+    ? buildPositiveWinsCardsFromApi(apiPositiveWins)
+    : cards.slice(0, 3)
+  ).slice(0, 3);
   const cardCount = stackCards.length;
   const [activeIndex, setActiveIndex] = useState(Math.max(cardCount - 1, 0));
   const [swipeDirection, setSwipeDirection] = useState('next');
@@ -268,7 +334,7 @@ const PositiveWinsSection = ({ cards = defaultCards }) => {
                 <div className="positive-wins__badge-icon">
                   <CardIcon />
                 </div>
-                <span className="positive-wins__status-pill">Optimal</span>
+                <span className="positive-wins__status-pill">{card.statusLabel || 'Optimal'}</span>
               </div>
 
               <div className="positive-wins__card-content">

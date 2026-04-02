@@ -45,6 +45,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
   const [phoneNumber, setPhoneNumber] = useState('');
   const [userName, setUserName] = useState('');
+  const [userAge, setUserAge] = useState(null);
   const [selectedDisease, setSelectedDisease] = useState(null);
   const [questionnaireProgress, setQuestionnaireProgress] = useState(0);
   const [expandedQuestionnaireStep, setExpandedQuestionnaireStep] = useState(null);
@@ -85,6 +86,31 @@ function App() {
 
   const getCategoryByRoute = (routeId) => {
     return questionnaireSteps.find((step) => step.routeId === routeId) || null;
+  };
+
+  const getAgeFromProfile = (profile) => {
+    if (typeof profile?.age === 'number' && profile.age > 0) {
+      return Math.floor(profile.age);
+    }
+
+    if (!profile?.date_of_birth) {
+      return null;
+    }
+
+    const dob = new Date(profile.date_of_birth);
+    if (Number.isNaN(dob.getTime())) {
+      return null;
+    }
+
+    const today = new Date();
+    let calculatedAge = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      calculatedAge -= 1;
+    }
+
+    return calculatedAge > 0 ? calculatedAge : null;
   };
 
   const getQuestionsByRoute = (routeId) => {
@@ -247,6 +273,7 @@ function App() {
         ? profileResponse.data
         : profileResponse;
       setUserName(profile?.first_name || '');
+      setUserAge(getAgeFromProfile(profile));
 
       const activeUserId = Number(profile?.user_id || 0);
       const normalizedCurrentUserId = activeUserId > 0 ? activeUserId : null;
@@ -339,6 +366,7 @@ function App() {
         : profileResponse;
 
       setUserName(profile?.first_name || '');
+      setUserAge(getAgeFromProfile(profile));
       const refreshedUserId = Number(profile?.user_id || 0);
       setCurrentUserId(refreshedUserId > 0 ? refreshedUserId : null);
       setSelectedAccountId(parsedTargetId);
@@ -356,6 +384,7 @@ function App() {
 
     clearAuthTokens();
     setPhoneNumber('');
+    setUserAge(null);
     setQuestionnaireSteps([]);
     setQuestionnaireQuestionsByCategoryId({});
     setQuestionnaireProgress(0);
@@ -498,6 +527,7 @@ function App() {
       {currentPage === 'home' && (
         <HomePage 
           userName={userName}
+          userAge={userAge}
           onNavigateToHealthScan={() => {
             console.log('Navigate to Health Scan Index');
             setSelectedHealthScanTab(0);

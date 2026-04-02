@@ -15,7 +15,7 @@ import proLocIcon from '../../images/Pro-Loc.svg';
 import proGenAgeIcon from '../../images/Pro-GenAge.svg';
 import { switchAccount } from '../../services/authService';
 import { getMyProfile } from '../../services/profileService';
-import { getMyProfiles } from '../../services/usersService';
+import { getMyProfiles, unlinkMyProfile } from '../../services/usersService';
 import { clearAuthTokens, extractTokensFromResponse, saveAuthTokens } from '../../utils/authStorage';
 
 /**
@@ -42,6 +42,7 @@ const ProfilePage = ({
 
   const [activeModal, setActiveModal] = useState(null);
   const [logoutLoading, setLogoutLoading] = useState(false);
+  const [unlinkLoading, setUnlinkLoading] = useState(false);
   const [error, setError] = useState('');
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState('');
@@ -50,6 +51,7 @@ const ProfilePage = ({
   const [linkedProfilesError, setLinkedProfilesError] = useState('');
   const [linkedProfiles, setLinkedProfiles] = useState([]);
   const [switchingUserId, setSwitchingUserId] = useState(null);
+  const [pendingUnlinkAccount, setPendingUnlinkAccount] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -161,10 +163,36 @@ const ProfilePage = ({
   const closeModal = () => {
     setActiveModal(null);
     setLogoutLoading(false);
+    setUnlinkLoading(false);
+    setPendingUnlinkAccount(null);
     setError('');
   };
 
   const handleConfirmAction = async () => {
+    if (activeModal === 'unlink') {
+      try {
+        const email = String(pendingUnlinkAccount?.email || '').trim();
+
+        if (!email) {
+          throw new Error('Unable to unlink this account because email is missing.');
+        }
+
+        setUnlinkLoading(true);
+        setError('');
+        await unlinkMyProfile(email);
+
+        const response = await getMyProfiles({ forceRefresh: true });
+        const data = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
+        setLinkedProfiles(data);
+
+        closeModal();
+      } catch (unlinkError) {
+        setError(unlinkError?.message || 'Unlink failed. Please try again.');
+        setUnlinkLoading(false);
+      }
+      return;
+    }
+
     try {
       setLogoutLoading(true);
       setError('');
@@ -195,7 +223,10 @@ const ProfilePage = ({
       setProfileLoading(true);
       setLinkedProfilesLoading(true);
 
-      const [profileResponse, profilesResponse] = await Promise.all([getMyProfile(), getMyProfiles()]);
+      const [profileResponse, profilesResponse] = await Promise.all([
+        getMyProfile({ forceRefresh: true }),
+        getMyProfiles({ forceRefresh: true })
+      ]);
 
       const profileData = profileResponse?.data && typeof profileResponse.data === 'object'
         ? profileResponse.data
@@ -299,6 +330,7 @@ const ProfilePage = ({
               ? `${String(account.relationship).charAt(0).toUpperCase()}${String(account.relationship).slice(1)}`
               : 'Member';
             const isSelfRelationship = String(account?.relationship || '').trim().toLowerCase() === 'self';
+            const isChildRelationship = String(account?.relationship || '').trim().toLowerCase() === 'child';
             const linkedAvatarSrc = getAvatarByGender(account?.gender);
 
             return (
@@ -311,8 +343,17 @@ const ProfilePage = ({
                   <span className="profile-page__linked-account-relation">{relationship}</span>
                 </div>
                 <div className="profile-page__linked-account-actions">
-                  {!isSelfRelationship ? (
-                    <button type="button" className="profile-page__unlink-btn" aria-label="Unlink account">
+                  {!isSelfRelationship && isChildRelationship ? (
+                    <button
+                      type="button"
+                      className="profile-page__unlink-btn"
+                      aria-label="Unlink account"
+                      onClick={() => {
+                        setPendingUnlinkAccount(account);
+                        setActiveModal('unlink');
+                        setError('');
+                      }}
+                    >
                       <UnlinkAccountIcon />
                     </button>
                   ) : null}
@@ -460,12 +501,21 @@ const ProfilePage = ({
               ×
             </button>
 
-            <>
-              <h3 className="profile-page__modal-title">Log Out?</h3>
-              <p className="profile-page__modal-description">
-                You will be signed out of your account. You can sign back in anytime to continue where you left off.
-              </p>
-            </>
+            {activeModal === 'unlink' ? (
+              <>
+                <h3 className="profile-page__modal-title">Unlink Account?</h3>
+                <p className="profile-page__modal-description">
+                  This linked account will be removed from your profile. You can add it again later if needed.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="profile-page__modal-title">Log Out?</h3>
+                <p className="profile-page__modal-description">
+                  You will be signed out of your account. You can sign back in anytime to continue where you left off.
+                </p>
+              </>
+            )}
 
             <div className="profile-page__modal-buttons">
               <button
@@ -478,10 +528,12 @@ const ProfilePage = ({
               <button
                 className="profile-page__modal-btn profile-page__modal-btn--yes"
                 type="button"
-                disabled={logoutLoading}
+                disabled={logoutLoading || unlinkLoading}
                 onClick={handleConfirmAction}
               >
-                {logoutLoading ? 'Logging out...' : 'YES'}
+                {activeModal === 'unlink'
+                  ? (unlinkLoading ? 'Unlinking...' : 'YES')
+                  : (logoutLoading ? 'Logging out...' : 'YES')}
               </button>
             </div>
 
