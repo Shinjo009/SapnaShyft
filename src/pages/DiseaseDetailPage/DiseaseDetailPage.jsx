@@ -2,73 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './DiseaseDetailPage.css';
 import lifestyleTick from '../../images/tick(lifestyle).svg';
 import trendsImage from '../../images/trends.svg';
-import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
-import { getAccessToken } from '../../utils/authStorage';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
-
-
-const DISEASE_CONTENT = {
-  obesity: {
-    topLine: 'Excess body fat accumulation that increases long-term metabolic and cardiovascular risk.',
-    causes: ['caloric excess', 'sedentary lifestyle', 'genetics'],
-    effects: ['increased risk of diabetes', 'heart disease', 'NAFLD'],
-    actionableInsights: ['gradual weight loss', 'balanced diet', '150 min/week exercise', 'behavioral support']
-  },
-  'metabolic syndrome': {
-    topLine: 'Cluster of high blood pressure, blood sugar, fat around waist and abnormal lipids that together raise heart risk.',
-    causes: ['insulin resistance', 'poor diet', 'inactivity'],
-    effects: ['higher diabetes risk', 'higher heart disease risk'],
-    actionableInsights: ['diet changes', 'exercise', 'weight loss', 'treat BP/lipids/glucose']
-  },
-  dyslipidemia: {
-    topLine: 'Unhealthy blood fat levels that increase artery clogging risk.',
-    causes: ['diet', 'obesity', 'genetics'],
-    effects: ['higher risk of heart attack', 'higher risk of stroke'],
-    actionableInsights: ['reduce saturated fats', 'exercise', 'consider statins (if high risk)']
-  },
-  'pcos/pcod': {
-    topLine: 'Hormonal imbalance in women causing irregular periods, acne and ovarian cysts.',
-    causes: ['insulin resistance', 'genetics'],
-    effects: ['fertility issues', 'metabolic risk'],
-    actionableInsights: ['weight loss', 'regulate cycles with meds', 'insulin-sensitizing strategies']
-  },
-  'oxidative stress': {
-    topLine: 'When harmful molecules damage cells faster than antioxidants can repair them.',
-    causes: ['smoking', 'poor diet', 'pollution'],
-    effects: ['contributes to aging', 'contributes to chronic diseases'],
-    actionableInsights: ['antioxidant-rich diet', 'quit smoking', 'exercise', 'manage stress']
-  },
-  nafld: {
-    topLine: 'Fat build-up in liver not due to alcohol, linked to overweight.',
-    causes: ['obesity', 'insulin resistance'],
-    effects: ['can progress to inflammation', 'can progress to liver scarring'],
-    actionableInsights: ['weight loss', 'control diabetes', 'avoid alcohol', 'monitor LFTs/imaging']
-  },
-  hypertension: {
-    topLine: 'Persistently high blood pressure that strains the heart and vessels.',
-    causes: ['high salt intake', 'obesity', 'stress', 'genetics'],
-    effects: ['heart attack risk', 'stroke risk', 'kidney disease risk'],
-    actionableInsights: ['reduce salt', 'lose weight', 'exercise', 'home BP monitoring']
-  },
-  'thyroid health': {
-    topLine: 'Thyroid hormones control metabolism, energy and temperature.',
-    causes: ['autoimmune disease', 'iodine imbalance'],
-    effects: ['weight changes', 'fatigue', 'mood problems'],
-    actionableInsights: ['test TSH/T4', 'treat with specialist guidance', 'routine thyroid follow-up']
-  },
-  'type 2 diabetes': {
-    topLine: 'Body resists insulin causing high blood sugar over time.',
-    causes: ['obesity', 'inactivity', 'genetics'],
-    effects: ['nerve complications', 'eye complications', 'kidney complications', 'heart complications'],
-    actionableInsights: ['lifestyle changes', 'monitor glucose', 'medications/insulin as advised']
-  },
-  'cardiac health': {
-    topLine: 'Overall state of heart and blood vessels — influenced by lifestyle and genes.',
-    causes: ['smoking', 'poor diet', 'high BP', 'diabetes'],
-    effects: ['heart attack risk', 'heart failure risk'],
-    actionableInsights: ['control BP/lipids/diabetes', 'quit smoking', 'exercise', 'cardiology follow-up']
-  }
-};
 
 const RISK_ZONES = [
   {
@@ -102,105 +36,6 @@ const RISK_ZONE_COUNT = 4;
 const BASE_DOTS_PER_ZONE = 11;
 const LIFESTYLE_BANDS = ['LOW', 'MODERATE', 'INCREASED', 'HIGH', 'VERY HIGH'];
 
-const parseResponseBody = async (response) => {
-  const text = await response.text();
-
-  if (!text) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-};
-
-const extractArray = (payload) => {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.results)) return payload.results;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload?.data?.items)) return payload.data.items;
-  if (Array.isArray(payload?.data?.results)) return payload.data.results;
-  return [];
-};
-
-const toTimestamp = (value) => {
-  const timestamp = new Date(value || 0).getTime();
-  return Number.isFinite(timestamp) ? timestamp : 0;
-};
-
-const extractAssessmentIdFromRow = (row) => {
-  if (!row || typeof row !== 'object') return null;
-
-  return row.assessment_id
-    || row.assessment_instance_id
-    || row.id
-    || row.assessment?.assessment_id
-    || row.assessment?.assessment_instance_id
-    || row.assessment?.id
-    || row.assessment?.assessment?.assessment_id
-    || row.assessment?.assessment?.id
-    || null;
-};
-
-const getSortedAssessmentIds = (assessments) => {
-  const rows = Array.isArray(assessments) ? assessments : [];
-
-  const sorted = [...rows].sort((a, b) => {
-    const aTime = Math.max(
-      toTimestamp(a?.assigned_at),
-      toTimestamp(a?.assessment?.assigned_at),
-      toTimestamp(a?.updated_at),
-      toTimestamp(a?.assessment?.updated_at),
-      toTimestamp(a?.created_at),
-      toTimestamp(a?.assessment?.created_at)
-    );
-    const bTime = Math.max(
-      toTimestamp(b?.assigned_at),
-      toTimestamp(b?.assessment?.assigned_at),
-      toTimestamp(b?.updated_at),
-      toTimestamp(b?.assessment?.updated_at),
-      toTimestamp(b?.created_at),
-      toTimestamp(b?.assessment?.created_at)
-    );
-
-    if (bTime !== aTime) return bTime - aTime;
-
-    const aId = Number(extractAssessmentIdFromRow(a) || 0);
-    const bId = Number(extractAssessmentIdFromRow(b) || 0);
-    return bId - aId;
-  });
-
-  return Array.from(new Set(sorted.map((row) => extractAssessmentIdFromRow(row)).filter(Boolean)));
-};
-
-const authorizedGet = async (path) => {
-  if (!BACKEND_ENABLED) {
-    throw new Error('Backend base URL is not configured.');
-  }
-
-  const accessToken = getAccessToken();
-  if (!accessToken) {
-    throw new Error('You are not logged in.');
-  }
-
-  const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  const body = await parseResponseBody(response);
-  if (!response.ok) {
-    throw new Error(body?.message || body?.detail || 'Request failed.');
-  }
-
-  return body;
-};
 
 const resolveRiskPayloadRoot = (payload) => {
   if (!payload || typeof payload !== 'object') return null;
@@ -285,8 +120,6 @@ const getDotSizeForMarker = (index, markerIndex) => {
   if (distanceFromMarker === 0) return 12;
   return Math.max(4, 11 - distanceFromMarker);
 };
-
-const getDiseaseKey = (name = '') => name.replace(/\s+/g, ' ').trim().toLowerCase();
 
 const LifestyleInfoIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
