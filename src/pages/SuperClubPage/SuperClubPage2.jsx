@@ -1,13 +1,14 @@
 import React from 'react';
-import './SuperClubPage.css';
+import './SuperClubPage2.css';
 import Header from '../../components/HomePage/Header';
 import NavBar from '../../components/NavBar';
 import { SUPER_CLUB_SPORTS } from './superClubSportImages';
 
 /**
- * Super Club — “You’ll love what’s coming” screen with horizontal sport carousel (Figma reference).
+ * SuperClubPage 2 — “You’ll love what’s coming” + sport carousel (parked; not mounted from App).
+ * Re-enable via App.js when needed.
  */
-export default function SuperClubPage({
+export default function SuperClubPage2({
   userName = 'there',
   onMenuClick,
   onSearchClick,
@@ -15,6 +16,7 @@ export default function SuperClubPage({
   onNavigateToDoctors,
   onNavigateToPackages,
   onStayUpdated,
+  onSelectSport,
 }) {
   const handleNav = (itemId) => {
     if (itemId === 'home' && onNavigateHome) {
@@ -54,16 +56,21 @@ export default function SuperClubPage({
         <h1 className="super-club-page__headline">Those were some Interesting Choices!</h1>
         <p className="super-club-page__lede">Something built for your active life is on its way.</p>
 
-        <div className="super-club-page__cards-scroll" role="list" aria-label="Sports">
+        <ul className="super-club-page__cards-scroll" aria-label="Sports">
           {SUPER_CLUB_SPORTS.map((sport) => (
-            <div key={sport.id} className="super-club-card" role="listitem">
-              <div className="super-club-card__art">
-                <img src={sport.image} alt={sport.name} className="super-club-card__img" />
-              </div>
-              <span className="super-club-card__label">{sport.name}</span>
-            </div>
+            <li key={sport.id} className="super-club-page__cards-item">
+              <button
+                type="button"
+                className="super-club-tile-btn"
+                aria-label={sport.name}
+                onClick={() => onSelectSport?.(sport)}
+              >
+                <img src={sport.image} alt="" className="super-club-tile-btn__img" draggable={false} />
+                <span className="super-club-tile-btn__label">{sport.name}</span>
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
 
         <button type="button" className="super-club-page__cta" onClick={handleStayUpdated}>
           Stay Updated

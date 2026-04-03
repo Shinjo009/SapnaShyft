@@ -1,0 +1,261 @@
+/* Styles for SuperClubPage2 (parked). */
+
+.super-club-page {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  background: transparent;
+}
+
+.super-club-page ::selection {
+  background-color: hsla(0, 0%, 100%, 0.35);
+  color: #0c1816;
+}
+
+.super-club-page__glow {
+  position: fixed;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  filter: blur(72px);
+  opacity: 0.42;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.super-club-page__glow--tl {
+  top: 8%;
+  left: -48px;
+  background: radial-gradient(circle, rgba(144, 223, 158, 0.55) 0%, transparent 72%);
+}
+
+.super-club-page__glow--br {
+  bottom: 18%;
+  right: -36px;
+  background: radial-gradient(circle, rgba(90, 50, 45, 0.45) 0%, transparent 70%);
+}
+
+.super-club-page__header-wrap {
+  position: relative;
+  z-index: 2;
+}
+
+.super-club-page__header-wrap .header {
+  padding-bottom: 16px;
+}
+
+.super-club-page__main {
+  position: relative;
+  z-index: 1;
+  padding: 0 20px 108px;
+  box-sizing: border-box;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* "You'll love what's coming" */
+.super-club-page__kicker {
+  margin: 0 0 39px;
+  max-width: 100%;
+  text-align: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  background: linear-gradient(90deg, #3b82f6 0%, #90df9e 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* "Those were some Interesting Choices!" */
+.super-club-page__headline {
+  margin: 0 auto 12px;
+  width: 100%;
+  max-width: 282px;
+  box-sizing: border-box;
+  color: #fff;
+  text-align: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 36.8px;
+  letter-spacing: -1px;
+}
+
+/* Subline */
+.super-club-page__lede {
+  margin: 0 auto 26px;
+  width: 100%;
+  max-width: 326px;
+  box-sizing: border-box;
+  color: #8b949e;
+  text-align: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.super-club-page__cards-scroll {
+  display: flex;
+  gap: 14px;
+  align-self: stretch;
+  justify-content: flex-start;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 0;
+  margin: 0 0 26px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  list-style: none;
+}
+
+.super-club-page__cards-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.super-club-page__cards-item {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+}
+
+/* Sport tile — 142×182 full-bleed card (Figma ref): image fills rounded rect; label over bottom band. */
+.super-club-tile-btn {
+  position: relative;
+  display: block;
+  width: 142px;
+  min-width: 142px;
+  height: 182px;
+  box-sizing: border-box;
+  scroll-snap-align: start;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  cursor: pointer;
+  border-radius: 26px;
+  overflow: hidden;
+  line-height: normal;
+  appearance: none;
+  -webkit-appearance: none;
+  background: linear-gradient(165deg, #1a4a44 0%, #143835 42%, #0f2a28 100%);
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+/* Bottom fade so DM Sans label reads on any export (matches in-card caption in ref). */
+.super-club-tile-btn::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 52px;
+  background: linear-gradient(to top, rgba(12, 32, 30, 0.88) 0%, rgba(12, 32, 30, 0.35) 55%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.super-club-tile-btn:hover {
+  opacity: 0.95;
+}
+
+.super-club-tile-btn:active {
+  transform: scale(0.98) translateZ(0);
+}
+
+.super-club-tile-btn:focus-visible {
+  outline: 2px solid rgba(144, 223, 158, 0.75);
+  outline-offset: 2px;
+}
+
+/* Cover + slight scale pulls past rounded clip to hide typical 1px white fringe on PNG exports. */
+.super-club-tile-btn__img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  transform: scale(1.055);
+  transform-origin: center center;
+  pointer-events: none;
+  user-select: none;
+  border: none;
+  outline: none;
+}
+
+.super-club-tile-btn__label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 0 8px 14px;
+  box-sizing: border-box;
+  color: #ccc;
+  text-align: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+/* Stay Updated — spec; no extra white ring */
+.super-club-page__cta {
+  display: flex;
+  width: 300px;
+  max-width: 100%;
+  height: 40px;
+  padding: 10px 24px;
+  box-sizing: border-box;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto;
+  border-radius: 36px;
+  border: 1px solid #969696;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: normal;
+  color: #fff;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 10px 28px 0 rgba(41, 99, 89, 0.45);
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.super-club-page__cta:hover {
+  opacity: 0.96;
+}
+
+.super-club-page__cta:active {
+  transform: scale(0.99);
+}
+
+.super-club-page__cta:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}

@@ -152,6 +152,7 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
           d={getNavbarPath()}
           fill="url(#navbar-gradient)"
           fillOpacity="0.65"
+          stroke="none"
         />
       </svg>
       <div className="navbar__container">

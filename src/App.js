@@ -27,7 +27,10 @@ import AccountSelectionPage from './pages/AccountSelectionPage';
 import DoctorsPage from './pages/DoctorsPage';
 import ExpertDetailsPage from './pages/ExpertDetailsPage';
 import IntegratedHealthProgramPage from './pages/IntegratedHealthProgramPage';
-import SuperClubPage from './pages/SuperClubPage/SuperClubPage';
+/* SuperClubPage 2 + sport detail — parked; uncomment to restore.
+import SuperClubPage2 from './pages/SuperClubPage/SuperClubPage2';
+import SuperClubSportPage from './pages/SuperClubPage/SuperClubSportPage';
+*/
 
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
@@ -59,6 +62,8 @@ function App() {
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [customPackageCard, setCustomPackageCard] = useState(null);
+  // SuperClubPage 2 (parked): restore with super-club routes below
+  // const [superClubSportId, setSuperClubSportId] = useState(null);
   const appScrollRef = useRef(null);
 
   useEffect(() => {
@@ -568,13 +573,14 @@ function App() {
             setCurrentPage('doctors');
           }}
           onNavigateToSuperClub={() => {
-            setCurrentPage('super-club');
+            /* Parked: SuperClubPage2 — was setCurrentPage('super-club'); */
           }}
         />
       )}
 
+      {/* SuperClubPage 2 + SuperClubSportPage — parked
       {currentPage === 'super-club' && (
-        <SuperClubPage
+        <SuperClubPage2
           userName={userName}
           onMenuClick={() => {
             setCurrentPage('profile');
@@ -595,8 +601,35 @@ function App() {
           onStayUpdated={() => {
             setCurrentPage('home');
           }}
+          onSelectSport={(sport) => {
+            setSuperClubSportId(sport?.id || null);
+            setCurrentPage('super-club-sport');
+          }}
         />
       )}
+
+      {currentPage === 'super-club-sport' && (
+        <SuperClubSportPage
+          sportId={superClubSportId}
+          onBack={() => {
+            setSuperClubSportId(null);
+            setCurrentPage('super-club');
+          }}
+          onNavigateHome={() => {
+            setSuperClubSportId(null);
+            setCurrentPage('home');
+          }}
+          onNavigateToDoctors={() => {
+            setSuperClubSportId(null);
+            setCurrentPage('doctors');
+          }}
+          onNavigateToPackages={() => {
+            setSuperClubSportId(null);
+            setCurrentPage('packages');
+          }}
+        />
+      )}
+      */}
 
       {currentPage === 'packages' && (
         <PackagesPage
@@ -606,7 +639,7 @@ function App() {
             setCurrentPage('home');
           }}
           onNavigateToSuperClub={() => {
-            setCurrentPage('super-club');
+            /* Parked: SuperClubPage2 */
           }}
           onNavigateToDoctors={() => {
             console.log('Navigate to Doctors');
@@ -630,7 +663,7 @@ function App() {
             setCurrentPage('home');
           }}
           onNavigateToSuperClub={() => {
-            setCurrentPage('super-club');
+            /* Parked: SuperClubPage2 */
           }}
           onOpenPackages={() => {
             console.log('Navigate to Packages');

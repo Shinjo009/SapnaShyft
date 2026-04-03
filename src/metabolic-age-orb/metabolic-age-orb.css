@@ -1,0 +1,129 @@
+:root {
+  --metabolic-orb-size: min(82vw, 265px);
+}
+
+.metabolic-orb {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 6px 0 6px;
+}
+
+.metabolic-orb__container {
+  position: relative;
+  width: var(--metabolic-orb-size);
+  height: var(--metabolic-orb-size);
+  /* Softer shadow avoids a harsh dark “ring” around the canvas blob. */
+  filter: drop-shadow(0 18px 32px rgba(8, 14, 22, 0.22));
+}
+
+.metabolic-orb__canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.metabolic-orb__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  pointer-events: none;
+  transform: translateY(11px);
+}
+
+.metabolic-orb__value {
+  color: rgba(255, 255, 255, 0.98);
+  font-size: clamp(2.55rem, 8.2vw, 4.7rem);
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  text-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.40),
+    0 2px 10px rgba(0, 0, 0, 0.22);
+  margin: 0;
+}
+
+.metabolic-orb__label {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: clamp(0.74rem, 2.3vw, 1.22rem);
+  font-weight: 500;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.metabolic-orb__detail {
+  color: rgba(178, 186, 198, 0.95);
+  font-size: clamp(0.78rem, 2.1vw, 1.02rem);
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* Desktop-only typography tuning (keep mobile unchanged). */
+@media (min-width: 769px) {
+  .metabolic-orb__value {
+    font-size: clamp(2.05rem, 3.6vw, 3.0rem);
+  }
+
+  .metabolic-orb__label {
+    font-size: clamp(0.62rem, 1.1vw, 0.90rem);
+  }
+
+  .metabolic-orb__detail {
+    font-size: clamp(0.72rem, 1.25vw, 0.92rem);
+  }
+}
+
+/* Optional editor styles for the new OrbEditor component */
+.orb-editor {
+  background: rgba(8, 14, 21, 0.9);
+  border: 1px solid rgba(170, 190, 210, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  width: 360px;
+  max-height: 80vh;
+  overflow-y: auto;
+  color: #d8e4f2;
+}
+
+.orb-editor h3 {
+  margin: 0 0 12px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.orb-editor__section {
+  margin-bottom: 12px;
+}
+
+.orb-editor__section h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(212, 228, 246, 0.7);
+}
+
+.orb-editor__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.orb-editor__label {
+  min-width: 120px;
+}
+

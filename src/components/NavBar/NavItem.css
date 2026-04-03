@@ -35,8 +35,8 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #FFF;
-  box-shadow: 0 10px 26px rgba(255, 255, 255, 0.38);
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);

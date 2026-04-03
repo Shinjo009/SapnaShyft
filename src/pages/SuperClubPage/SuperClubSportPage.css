@@ -1,0 +1,54 @@
+.super-club-sport-page {
+  min-height: 100%;
+  padding: 48px 20px 100px;
+  box-sizing: border-box;
+}
+
+.super-club-sport-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.super-club-sport-page__back {
+  width: 44px;
+  height: 44px;
+  margin: -8px 0 -8px -10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.super-club-sport-page__back:focus-visible {
+  outline: 2px solid rgba(144, 223, 158, 0.65);
+  outline-offset: 2px;
+}
+
+.super-club-sport-page__title {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.super-club-sport-page__spacer {
+  width: 44px;
+}
+
+.super-club-sport-page__hint {
+  margin: 0;
+  color: rgba(210, 220, 228, 0.78);
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}

@@ -12,6 +12,7 @@ import volleyballImg from '../../images/Superclub/vollyball.png';
 import yogaImg from '../../images/Superclub/yoga.png';
 
 /**
+ * `image` = full-card PNG (rounded art + panel). Button fills 142×182 with cover + label overlaid at bottom.
  * Carousel order: Cricket & Cycling first (design reference), then remaining sports A–Z by label.
  */
 export const SUPER_CLUB_SPORTS = [

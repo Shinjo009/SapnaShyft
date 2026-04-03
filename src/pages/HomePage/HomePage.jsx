@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './HomePage.css';
 import Header from '../../components/HomePage/Header';
-import MetabolicAgeCard from '../../components/HomePage/MetabolicAgeCard';
+import MetabolicAgeOrb from '../../metabolic-age-orb/MetabolicAgeOrb.jsx';
 import HealthParametersSection from '../../components/HomePage/HealthParametersSection';
 import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/PositiveWinsSection';
 import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
@@ -41,6 +41,40 @@ const HomePage = ({ userName = 'User', userAge = null, onNavigateToHealthScan, o
 
     return 'Same as your age';
   }, [metabolicAgeValue, userAge]);
+
+  /** MetabolicAgeOrb: delta + currentAge when both known; else absoluteMetabolicAge + detail; else demo defaults. */
+  const metabolicOrbProps = useMemo(() => {
+    const metabolic = Number(metabolicAgeValue);
+    const chrono = Number(userAge);
+
+    if (Number.isFinite(metabolic) && Number.isFinite(chrono) && chrono > 0) {
+      return {
+        value: String(Math.round(metabolic - chrono)),
+        currentAge: chrono,
+        label: 'Metabolic age',
+        detail: metabolicAgeDetail,
+        absoluteMetabolicAge: undefined,
+      };
+    }
+
+    if (Number.isFinite(metabolic)) {
+      return {
+        value: '0',
+        currentAge: undefined,
+        label: 'Metabolic age',
+        detail: metabolicAgeDetail,
+        absoluteMetabolicAge: metabolic,
+      };
+    }
+
+    return {
+      value: '5',
+      currentAge: 23,
+      label: 'Metabolic age',
+      detail: '5 years older',
+      absoluteMetabolicAge: undefined,
+    };
+  }, [metabolicAgeValue, userAge, metabolicAgeDetail]);
 
   useEffect(() => {
     let isActive = true;
@@ -167,11 +201,12 @@ const HomePage = ({ userName = 'User', userAge = null, onNavigateToHealthScan, o
         onSearchClick={handleSearchClick}
       />
 
-      {/* Metabolic Age Card */}
-      <MetabolicAgeCard 
-        age={metabolicAgeValue}
-        label="Metabolic age"
-        detail={metabolicAgeDetail}
+      <MetabolicAgeOrb
+        value={metabolicOrbProps.value}
+        currentAge={metabolicOrbProps.currentAge}
+        label={metabolicOrbProps.label}
+        detail={metabolicOrbProps.detail}
+        absoluteMetabolicAge={metabolicOrbProps.absoluteMetabolicAge}
       />
 
       {/* Health Parameters Section */}
