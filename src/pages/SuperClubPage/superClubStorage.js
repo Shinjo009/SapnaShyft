@@ -29,3 +29,13 @@ export function getSuperClubLikedSportIds() {
     return [];
   }
 }
+
+/** Clears saved onboarding so Super Club page 1 always starts fresh on next visit. */
+export function clearSuperClubOnboardingStorage() {
+  try {
+    window.localStorage.removeItem(KEY_DONE);
+    window.localStorage.removeItem(KEY_LIKED);
+  } catch {
+    /* ignore */
+  }
+}

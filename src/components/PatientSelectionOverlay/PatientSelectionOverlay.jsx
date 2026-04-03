@@ -1,9 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './PatientSelectionOverlay.css';
 import maleAvatar from '../../images/male-avatar.png';
 import femaleAvatar from '../../images/female-avatar.png';
 import { getMyProfiles, createMySubProfile } from '../../services/usersService';
 import { getMyProfile } from '../../services/profileService';
+import {
+  loadRazorpayScript,
+  createPackageRazorpayOrder,
+  verifyPackageRazorpayPayment,
+  getDefaultRazorpayKeyId,
+} from '../../services/paymentService';
+import { PAYMENT_DEMO_MODE, BACKEND_ENABLED } from '../../config/appConfig';
 
 const PATIENTS = [];
 
@@ -371,13 +378,27 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
   const [customSearchQuery, setCustomSearchQuery] = useState('');
   const [customExpandedIds, setCustomExpandedIds] = useState(() => new Set(['thyroid-tests', 'liver-function']));
   const [customSelectedIds, setCustomSelectedIds] = useState(() => new Set(['thyroid-tests', 'liver-function']));
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [paymentError, setPaymentError] = useState(null);
+  const [confirmedBookingId, setConfirmedBookingId] = useState(null);
+  const paymentSuccessRef = useRef(false);
 
   useEffect(() => {
     if (!open) {
       setView('select');
       setSelectedIds([]);
+      setPaymentError(null);
+      setPaymentSubmitting(false);
+      setConfirmedBookingId(null);
+      paymentSuccessRef.current = false;
     }
   }, [open]);
+
+  useEffect(() => {
+    if (view === 'payment') {
+      setPaymentError(null);
+    }
+  }, [view]);
 
   useEffect(() => {
     if (!open) {
@@ -709,6 +730,106 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
 
     const dayWithSuffix = `${selectedDate.date}th`;
     return `${dayWithSuffix} Feb | ${format12(startDate)} - ${format12(endDate)} ${endDate.getHours() >= 12 ? 'PM' : 'AM'}`;
+  };
+
+  const handlePayWithRazorpay = async () => {
+    setPaymentError(null);
+    paymentSuccessRef.current = false;
+    setPaymentSubmitting(true);
+    try {
+      const apptDateRow = SCHEDULE_DATES.find((item) => item.id === selectedDateId);
+      const dateLabel = apptDateRow ? `${apptDateRow.day}, ${apptDateRow.date}th Feb` : '';
+
+      const bookingDraft = {
+        customFlow,
+        packageId: customFlow ? null : selectedPackage.id,
+        customTestIds: customFlow ? Array.from(customSelectedIds) : [],
+        packageName: customFlow ? customPackageDisplayName : selectedPackage.name,
+        patientIds: selectedPatients.map((p) => p.id),
+        patients: selectedPatients.map((p) => ({ id: p.id, name: p.name, meta: p.meta })),
+        address: { ...addressData },
+        appointment: {
+          dateId: selectedDateId,
+          dateLabel,
+          timeSlot: selectedTimeSlot,
+          timeRange: getTimeRange(),
+        },
+        pricing: { ...paymentBreakdown, currency: 'INR' },
+      };
+
+      if (PAYMENT_DEMO_MODE && !BACKEND_ENABLED) {
+        const r = await verifyPackageRazorpayPayment({});
+        setConfirmedBookingId(r.bookingId || 'DEMO');
+        paymentSuccessRef.current = true;
+        setView('confirmed');
+        return;
+      }
+
+      await loadRazorpayScript();
+      const amountPaise = Math.max(100, Math.round(Number(paymentBreakdown.totalNew) * 100));
+      const order = await createPackageRazorpayOrder({
+        amount: amountPaise,
+        currency: 'INR',
+        receipt: `pkg_${Date.now()}`.slice(0, 40),
+        notes: {
+          packageId: String(bookingDraft.packageId || 'custom'),
+          patientCount: String(selectedPatients.length),
+        },
+        bookingDraft,
+      });
+
+      const key = order.keyId || getDefaultRazorpayKeyId();
+      if (!key) {
+        throw new Error('Set REACT_APP_RAZORPAY_KEY_ID or return keyId from your create-order API.');
+      }
+
+      const options = {
+        key,
+        amount: order.amount,
+        currency: order.currency || 'INR',
+        order_id: order.orderId,
+        name: 'Sapna Shyft',
+        description: bookingDraft.packageName,
+        theme: { color: '#296359' },
+        prefill: {
+          name: [formData.firstName, formData.lastName].filter(Boolean).join(' ') || undefined,
+          email: formData.email || undefined,
+          contact: (formData.phone || '').replace(/\D/g, '').slice(-10) || undefined,
+        },
+        handler(response) {
+          void (async () => {
+            try {
+              const r = await verifyPackageRazorpayPayment({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                bookingDraft,
+              });
+              paymentSuccessRef.current = true;
+              setConfirmedBookingId(r.bookingId || r.paymentId || '—');
+              setPaymentError(null);
+              setView('confirmed');
+            } catch (err) {
+              setPaymentError(err.message || 'Verification failed. If you were charged, contact support.');
+            }
+          })();
+        },
+        modal: {
+          ondismiss() {
+            if (!paymentSuccessRef.current) {
+              setPaymentError('Payment was cancelled or could not be completed.');
+            }
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      setPaymentError(err.message || 'Could not start payment.');
+    } finally {
+      setPaymentSubmitting(false);
+    }
   };
 
   const togglePatient = (patientId) => {
@@ -1460,7 +1581,24 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
                 </div>
               </div>
 
-              <button type="button" className="patient-payment__continue" onClick={() => setView('confirmed')}>Continue</button>
+              {paymentError ? (
+                <p className="patient-payment__error" role="alert">
+                  {paymentError}
+                </p>
+              ) : null}
+
+              <p className="patient-payment__hint">
+                You will complete payment on Razorpay. Booking is confirmed only after payment succeeds and our server verifies it.
+              </p>
+
+              <button
+                type="button"
+                className="patient-payment__continue"
+                onClick={handlePayWithRazorpay}
+                disabled={paymentSubmitting}
+              >
+                {paymentSubmitting ? 'Please wait…' : 'Pay securely'}
+              </button>
             </div>
           </>
         ) : (
@@ -1475,7 +1613,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
               <div className="patient-final__booking-id">
                 <span>Booking ID</span>
                 <i>|</i>
-                <strong>XYZ123</strong>
+                <strong>{confirmedBookingId || '—'}</strong>
               </div>
 
               <h4 className="patient-final__section-title">Patient Details</h4>

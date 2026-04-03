@@ -4,7 +4,7 @@ import Header from '../../components/HomePage/Header';
 import NavBar from '../../components/NavBar';
 import SuperClubMovingMarquee from './SuperClubMovingMarquee';
 import { SUPER_CLUB_SPORTS } from './superClubSportImages';
-import { saveSuperClubOnboardingResult } from './superClubStorage';
+import { clearSuperClubOnboardingStorage, saveSuperClubOnboardingResult } from './superClubStorage';
 import negativeImg from '../../images/Superclub/Negative.svg';
 import positiveImg from '../../images/Superclub/Positive.svg';
 
@@ -19,7 +19,8 @@ function shuffleSports(list) {
 
 /**
  * Super Club — moving activity orbs + “How do you move?” swipe / pass-like flow (Figma).
- * After the user answers every sport once, results are saved and `onOnboardingComplete` runs.
+ * On each visit, client onboarding flags are cleared so everyone always sees page 1 fresh.
+ * If `onOnboardingComplete` is set (e.g. page 2 enabled), completion is saved to localStorage.
  */
 export default function SuperClubPage({
   userName = 'there',
@@ -39,6 +40,10 @@ export default function SuperClubPage({
   const likedIdsRef = useRef([]);
   const offsetRef = useRef(0);
   const dragRef = useRef({ pointerId: null, startX: 0, startOff: 0 });
+
+  useEffect(() => {
+    clearSuperClubOnboardingStorage();
+  }, []);
 
   useEffect(() => {
     likedIdsRef.current = likedIds;
@@ -67,8 +72,10 @@ export default function SuperClubPage({
         }
 
         if (isLast) {
-          saveSuperClubOnboardingResult(nextLiked);
-          onOnboardingComplete?.(nextLiked);
+          if (onOnboardingComplete) {
+            saveSuperClubOnboardingResult(nextLiked);
+            onOnboardingComplete(nextLiked);
+          }
           return;
         }
         setIndex((i) => i + 1);
