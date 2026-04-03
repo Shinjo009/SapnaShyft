@@ -131,6 +131,19 @@
   padding: 0;
 }
 
+.super-club-page__cards-empty {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 12px 8px 20px;
+  list-style: none;
+  color: #8b949e;
+  text-align: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+}
+
 /* Sport tile — 142×182 full-bleed card (Figma ref): image fills rounded rect; label over bottom band. */
 .super-club-tile-btn {
   position: relative;

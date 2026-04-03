@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="436" viewBox="0 0 360 436" fill="none" aria-hidden="true">
+  <g filter="url(#super_club_marquee_ellipse_blur)">
+    <circle cx="179.5" cy="214.5" r="121.5" fill="#2B64C3" fill-opacity="0.3"/>
+  </g>
+  <defs>
+    <filter id="super_club_marquee_ellipse_blur" x="-42" y="-7" width="443" height="443" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="50"/>
+    </filter>
+  </defs>
+</svg>

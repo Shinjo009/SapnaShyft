@@ -27,10 +27,13 @@ import AccountSelectionPage from './pages/AccountSelectionPage';
 import DoctorsPage from './pages/DoctorsPage';
 import ExpertDetailsPage from './pages/ExpertDetailsPage';
 import IntegratedHealthProgramPage from './pages/IntegratedHealthProgramPage';
-/* SuperClubPage 2 + sport detail — parked; uncomment to restore.
+import SuperClubPage from './pages/SuperClubPage/SuperClubPage';
 import SuperClubPage2 from './pages/SuperClubPage/SuperClubPage2';
-import SuperClubSportPage from './pages/SuperClubPage/SuperClubSportPage';
-*/
+import {
+  isSuperClubOnboardingComplete,
+  getSuperClubLikedSportIds,
+} from './pages/SuperClubPage/superClubStorage';
+import { getSuperClubSportsByIds } from './pages/SuperClubPage/superClubSportImages';
 
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
@@ -62,8 +65,9 @@ function App() {
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [customPackageCard, setCustomPackageCard] = useState(null);
-  // SuperClubPage 2 (parked): restore with super-club routes below
-  // const [superClubSportId, setSuperClubSportId] = useState(null);
+  const [superClubOnboardingDone, setSuperClubOnboardingDone] = useState(() =>
+    isSuperClubOnboardingComplete(),
+  );
   const appScrollRef = useRef(null);
 
   useEffect(() => {
@@ -573,63 +577,55 @@ function App() {
             setCurrentPage('doctors');
           }}
           onNavigateToSuperClub={() => {
-            /* Parked: SuperClubPage2 — was setCurrentPage('super-club'); */
-          }}
-        />
-      )}
-
-      {/* SuperClubPage 2 + SuperClubSportPage — parked
-      {currentPage === 'super-club' && (
-        <SuperClubPage2
-          userName={userName}
-          onMenuClick={() => {
-            setCurrentPage('profile');
-          }}
-          onSearchClick={() => {
-            setCurrentPage('health-assessment');
-            initializeQuestionnaire();
-          }}
-          onNavigateHome={() => {
-            setCurrentPage('home');
-          }}
-          onNavigateToDoctors={() => {
-            setCurrentPage('doctors');
-          }}
-          onNavigateToPackages={() => {
-            setCurrentPage('packages');
-          }}
-          onStayUpdated={() => {
-            setCurrentPage('home');
-          }}
-          onSelectSport={(sport) => {
-            setSuperClubSportId(sport?.id || null);
-            setCurrentPage('super-club-sport');
-          }}
-        />
-      )}
-
-      {currentPage === 'super-club-sport' && (
-        <SuperClubSportPage
-          sportId={superClubSportId}
-          onBack={() => {
-            setSuperClubSportId(null);
             setCurrentPage('super-club');
           }}
-          onNavigateHome={() => {
-            setSuperClubSportId(null);
-            setCurrentPage('home');
-          }}
-          onNavigateToDoctors={() => {
-            setSuperClubSportId(null);
-            setCurrentPage('doctors');
-          }}
-          onNavigateToPackages={() => {
-            setSuperClubSportId(null);
-            setCurrentPage('packages');
-          }}
         />
       )}
-      */}
+
+      {currentPage === 'super-club' &&
+        (superClubOnboardingDone ? (
+          <SuperClubPage2
+            userName={userName}
+            likedSports={getSuperClubSportsByIds(getSuperClubLikedSportIds())}
+            onMenuClick={() => {
+              setCurrentPage('profile');
+            }}
+            onSearchClick={() => {
+              setCurrentPage('health-assessment');
+              initializeQuestionnaire();
+            }}
+            onNavigateHome={() => {
+              setCurrentPage('home');
+            }}
+            onNavigateToDoctors={() => {
+              setCurrentPage('doctors');
+            }}
+            onNavigateToPackages={() => {
+              setCurrentPage('packages');
+            }}
+          />
+        ) : (
+          <SuperClubPage
+            userName={userName}
+            onMenuClick={() => {
+              setCurrentPage('profile');
+            }}
+            onSearchClick={() => {
+              setCurrentPage('health-assessment');
+              initializeQuestionnaire();
+            }}
+            onNavigateHome={() => {
+              setCurrentPage('home');
+            }}
+            onNavigateToDoctors={() => {
+              setCurrentPage('doctors');
+            }}
+            onNavigateToPackages={() => {
+              setCurrentPage('packages');
+            }}
+            onOnboardingComplete={() => setSuperClubOnboardingDone(true)}
+          />
+        ))}
 
       {currentPage === 'packages' && (
         <PackagesPage
@@ -639,7 +635,7 @@ function App() {
             setCurrentPage('home');
           }}
           onNavigateToSuperClub={() => {
-            /* Parked: SuperClubPage2 */
+            setCurrentPage('super-club');
           }}
           onNavigateToDoctors={() => {
             console.log('Navigate to Doctors');
@@ -663,7 +659,7 @@ function App() {
             setCurrentPage('home');
           }}
           onNavigateToSuperClub={() => {
-            /* Parked: SuperClubPage2 */
+            setCurrentPage('super-club');
           }}
           onOpenPackages={() => {
             console.log('Navigate to Packages');

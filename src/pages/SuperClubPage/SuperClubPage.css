@@ -1,0 +1,408 @@
+.super-club-v1 {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  background: transparent;
+}
+
+.super-club-v1 ::selection {
+  background-color: hsla(217, 91%, 60%, 1);
+  color: #fff;
+}
+
+.super-club-v1__glow {
+  position: fixed;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.38;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.super-club-v1__glow--tl {
+  top: 6%;
+  left: -60px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.35) 0%, transparent 70%);
+}
+
+.super-club-v1__glow--tr {
+  top: 18%;
+  right: -40px;
+  background: radial-gradient(circle, rgba(144, 223, 158, 0.28) 0%, transparent 72%);
+}
+
+.super-club-v1__glow--bl {
+  bottom: 22%;
+  left: -30px;
+  background: radial-gradient(circle, rgba(90, 50, 45, 0.35) 0%, transparent 68%);
+}
+
+.super-club-v1__header-wrap {
+  position: relative;
+  z-index: 2;
+}
+
+.super-club-v1__header-wrap .header {
+  padding-bottom: 12px;
+}
+
+.super-club-v1__main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0 0 108px;
+  box-sizing: border-box;
+}
+
+/* "You'll love what's coming" */
+.super-club-v1__kicker {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto 24px;
+  padding: 0 20px;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  background: linear-gradient(90deg, #3b82f6 0%, #90df9e 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* —— Moving marquee —— */
+/*
+ * Horizontal mask clips to the masked element’s box. A short in-flow box + tall absolute track keeps
+ * layout ~2 rows while the mask (and paint bounds) include the active SVG ellipse + blur — no top/bottom seam.
+ */
+.super-club-marquee {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: 198px;
+  margin-bottom: 28px;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.super-club-marquee__track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -280px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 280px 0;
+  overflow: visible;
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+}
+
+/* One animated strip: column of two rows, duplicated side-by-side for the loop. */
+.super-club-marquee__segment {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: max-content;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.super-club-marquee__row {
+  display: flex;
+  flex-direction: row;
+  width: max-content;
+  flex-shrink: 0;
+}
+
+/* Stagger without widening the strip (wider bottom row + same duration = faster px/s and drifting brick). */
+.super-club-marquee__row--bottom {
+  transform: translateX(calc((86px + 20.3px) / 2));
+}
+
+.super-club-marquee__content {
+  display: flex;
+  flex-direction: row;
+  width: max-content;
+  will-change: transform;
+  animation: super-club-marquee-rtl linear infinite;
+}
+
+@keyframes super-club-marquee-rtl {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .super-club-marquee__content {
+    animation-duration: 90s !important;
+  }
+
+  .super-club-marquee__orb {
+    transition: none;
+  }
+}
+
+/* Figma: ~20.3px between circular icons (horizontal rhythm). */
+.super-club-marquee__half {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20.3px;
+  padding-right: 20.3px;
+}
+
+.super-club-marquee__slot {
+  position: relative;
+  flex: 0 0 86px;
+  width: 86px;
+  height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+/* #2B64C3 blurred ellipse — only rendered for active slots in JSX. */
+.super-club-marquee__active-ellipse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 243px;
+  height: 243px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.super-club-marquee__active-ellipse img {
+  display: block;
+  width: 243px;
+  height: 243px;
+  object-fit: contain;
+  object-position: center center;
+}
+
+/* Full-bleed Figma SVGs (Round icon 1–7); active state matches spec below. */
+.super-club-marquee__orb {
+  flex-shrink: 0;
+  width: 74px;
+  height: 74px;
+  border-radius: 37px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  background: transparent;
+  border: none;
+  padding: 0;
+  overflow: visible;
+  transition:
+    width 0.35s ease,
+    height 0.35s ease,
+    border-radius 0.35s ease,
+    border-color 0.35s ease,
+    background 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+/* Active orb: #3B82F6 ring + inner fill + outer glow. */
+.super-club-marquee__orb--active {
+  position: relative;
+  z-index: 1;
+  width: 81.4px;
+  height: 81.4px;
+  border-radius: 40.7px;
+  border: 1px solid #3b82f6;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 32px 0 rgba(59, 130, 246, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  isolation: isolate;
+  overflow: hidden;
+}
+
+@supports (overflow: clip) {
+  .super-club-marquee__orb--active {
+    overflow: clip;
+    overflow-clip-margin: 40px;
+  }
+}
+
+.super-club-marquee__orb-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Icon line glow — #3B82F6; drop-shadow follows glyph alpha. */
+.super-club-marquee__orb--active .super-club-marquee__orb-img {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0 1.5px #3b82f6)
+    drop-shadow(0 0 5px rgba(59, 130, 246, 0.75))
+    drop-shadow(0 0 11px rgba(59, 130, 246, 0.5))
+    drop-shadow(0 0 18px rgba(59, 130, 246, 0.28));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .super-club-marquee__orb--active .super-club-marquee__orb-img {
+    filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.85));
+  }
+}
+
+/* —— Prompt + swipe —— */
+.super-club-v1__prompt {
+  position: relative;
+  z-index: 1;
+  padding: 24px 24px 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.super-club-v1__question {
+  align-self: stretch;
+  margin: 0 0 4px;
+  color: #fff;
+  font-family: "DM Sans", sans-serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 36.8px;
+  letter-spacing: -1px;
+}
+
+.super-club-v1__hint {
+  margin: 0 0 12px;
+  color: #8b949e;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.super-club-v1__swipe-zone {
+  padding: 12px 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  touch-action: pan-y;
+}
+
+.super-club-v1__swipe-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 400px;
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+
+.super-club-v1__vote {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s ease;
+}
+
+.super-club-v1__vote:hover {
+  transform: scale(1.06);
+}
+
+.super-club-v1__vote:active {
+  transform: scale(0.94);
+}
+
+.super-club-v1__vote img {
+  display: block;
+  width: 40px;
+  height: 40px;
+}
+
+.super-club-v1__vote:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.7);
+  outline-offset: 3px;
+}
+
+.super-club-v1__card-outer {
+  flex: 0 0 auto;
+  perspective: 800px;
+}
+
+.super-club-v1__card {
+  width: 166px;
+  height: 212px;
+  max-width: min(166px, 52vw);
+  box-sizing: border-box;
+  border-radius: 28px;
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(165deg, #1a4a44 0%, #143835 42%, #0f2a28 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    transform 0.22s cubic-bezier(0.25, 0.8, 0.25, 1),
+    opacity 0.22s ease;
+}
+
+.super-club-v1__card:active {
+  cursor: grabbing;
+}
+
+.super-club-v1__card--flying {
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
+}
+
+.super-club-v1__card-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  transform: scale(1.04);
+  pointer-events: none;
+}

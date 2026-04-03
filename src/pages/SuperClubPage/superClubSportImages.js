@@ -29,3 +29,10 @@ export const SUPER_CLUB_SPORTS = [
   { id: 'volleyball', name: 'Volleyball', image: volleyballImg },
   { id: 'yoga', name: 'Yoga', image: yogaImg },
 ];
+
+/** Preserve order of `ids` when resolving to sport objects. */
+export function getSuperClubSportsByIds(ids) {
+  if (!ids?.length) return [];
+  const byId = new Map(SUPER_CLUB_SPORTS.map((s) => [s.id, s]));
+  return ids.map((id) => byId.get(id)).filter(Boolean);
+}
