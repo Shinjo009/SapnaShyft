@@ -48,7 +48,7 @@ const shouldShowCard = (activePill, cardType) => {
   return false;
 };
 
-const DoctorsPage = ({ onBack, onOpenPackages, onOpenDoctorProfile, onOpenNutritionistProfile, onOpenIntegratedProfile }) => {
+const DoctorsPage = ({ onBack, onOpenPackages, onNavigateToSuperClub, onOpenDoctorProfile, onOpenNutritionistProfile, onOpenIntegratedProfile }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activePill, setActivePill] = useState('All');
 
@@ -251,6 +251,9 @@ const DoctorsPage = ({ onBack, onOpenPackages, onOpenDoctorProfile, onOpenNutrit
           if (onOpenPackages) {
             onOpenPackages();
           }
+        }
+        if (itemId === 'super-club' && onNavigateToSuperClub) {
+          onNavigateToSuperClub();
         }
       }} />
     </div>

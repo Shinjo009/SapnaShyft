@@ -16,7 +16,7 @@ const resolveOverviewPayload = (payload) => {
   return payload;
 };
 
-const HomePage = ({ userName = 'User', userAge = null, onNavigateToHealthScan, onNavigateToHealthScanTab, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers, onNavigateToPackages, onNavigateToDoctors }) => {
+const HomePage = ({ userName = 'User', userAge = null, onNavigateToHealthScan, onNavigateToHealthScanTab, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers, onNavigateToPackages, onNavigateToDoctors, onNavigateToSuperClub }) => {
   const [metabolicAgeValue, setMetabolicAgeValue] = useState('-');
   const [positiveWinsData, setPositiveWinsData] = useState(null);
   const [riskAnalysisData, setRiskAnalysisData] = useState([]);
@@ -108,6 +108,11 @@ const HomePage = ({ userName = 'User', userAge = null, onNavigateToHealthScan, o
 
     if (itemId === 'super-sync' && onNavigateToDoctors) {
       onNavigateToDoctors();
+      return;
+    }
+
+    if (itemId === 'super-club' && onNavigateToSuperClub) {
+      onNavigateToSuperClub();
       return;
     }
 

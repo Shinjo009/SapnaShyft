@@ -27,6 +27,7 @@ import AccountSelectionPage from './pages/AccountSelectionPage';
 import DoctorsPage from './pages/DoctorsPage';
 import ExpertDetailsPage from './pages/ExpertDetailsPage';
 import IntegratedHealthProgramPage from './pages/IntegratedHealthProgramPage';
+import SuperClubPage from './pages/SuperClubPage/SuperClubPage';
 
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
@@ -566,6 +567,34 @@ function App() {
             console.log('Navigate to Doctors');
             setCurrentPage('doctors');
           }}
+          onNavigateToSuperClub={() => {
+            setCurrentPage('super-club');
+          }}
+        />
+      )}
+
+      {currentPage === 'super-club' && (
+        <SuperClubPage
+          userName={userName}
+          onMenuClick={() => {
+            setCurrentPage('profile');
+          }}
+          onSearchClick={() => {
+            setCurrentPage('health-assessment');
+            initializeQuestionnaire();
+          }}
+          onNavigateHome={() => {
+            setCurrentPage('home');
+          }}
+          onNavigateToDoctors={() => {
+            setCurrentPage('doctors');
+          }}
+          onNavigateToPackages={() => {
+            setCurrentPage('packages');
+          }}
+          onStayUpdated={() => {
+            setCurrentPage('home');
+          }}
         />
       )}
 
@@ -575,6 +604,9 @@ function App() {
           onNavigateHome={() => {
             console.log('Back to Home');
             setCurrentPage('home');
+          }}
+          onNavigateToSuperClub={() => {
+            setCurrentPage('super-club');
           }}
           onNavigateToDoctors={() => {
             console.log('Navigate to Doctors');
@@ -596,6 +628,9 @@ function App() {
           onBack={() => {
             console.log('Back to Home');
             setCurrentPage('home');
+          }}
+          onNavigateToSuperClub={() => {
+            setCurrentPage('super-club');
           }}
           onOpenPackages={() => {
             console.log('Navigate to Packages');

@@ -56,7 +56,7 @@ const OpenIcon = () => (
 
 const formatPrice = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 
-const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustomPackage, onNavigateToDoctors, customPackageCard }) => {
+const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustomPackage, onNavigateToDoctors, onNavigateToSuperClub, customPackageCard }) => {
   const [activeFilter, setActiveFilter] = useState('All');
   const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
 
@@ -93,6 +93,11 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
 
     if (itemId === 'super-sync' && onNavigateToDoctors) {
       onNavigateToDoctors();
+      return;
+    }
+
+    if (itemId === 'super-club' && onNavigateToSuperClub) {
+      onNavigateToSuperClub();
     }
   };
 
