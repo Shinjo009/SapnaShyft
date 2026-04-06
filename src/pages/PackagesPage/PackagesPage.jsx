@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './PackagesPage.css';
 import NavBar from '../../components/NavBar';
 import PatientSelectionOverlay from '../../components/PatientSelectionOverlay';
+import { listDiagnosticPackages } from '../../services/diagnosticPackagesService';
 
 const FILTERS = ['All', 'Male', 'Female', 'Cancer', 'Popular'];
 
@@ -28,12 +29,94 @@ const DEFAULT_CARD_DATA = {
   },
 };
 
-const SearchIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M13.9988 13.9998L11.1055 11.1064" stroke="white" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M2 7.33333C2 10.2769 4.38979 12.6667 7.33333 12.6667C10.2769 12.6667 12.6667 10.2769 12.6667 7.33333C12.6667 4.38979 10.2769 2 7.33333 2C4.38979 2 2 4.38979 2 7.33333V7.33333" stroke="white" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
+const DEFAULT_PACKAGE_ROWS = PACKAGE_CARDS.map((pkg) => ({
+  id: pkg.id,
+  theme: pkg.theme,
+  ...DEFAULT_CARD_DATA,
+}));
+
+const MISSING_VALUE = '-';
+
+const toGenderBadges = (genderSuitability) => {
+  const normalized = String(genderSuitability || '').trim().toLowerCase();
+
+  if (normalized === 'male') {
+    return ['Male'];
+  }
+
+  if (normalized === 'female') {
+    return ['Female'];
+  }
+
+  if (normalized === 'both') {
+    return ['Male', 'Female'];
+  }
+
+  return [];
+};
+
+const toDiscountText = (discountPercent, nowPrice, originalPrice) => {
+  if (Number(discountPercent) > 0) {
+    return `${Math.round(Number(discountPercent))}% OFF`;
+  }
+
+  if (Number(originalPrice) > Number(nowPrice) && Number(nowPrice) > 0) {
+    const computedPercent = Math.round(((Number(originalPrice) - Number(nowPrice)) / Number(originalPrice)) * 100);
+    if (computedPercent > 0) {
+      return `${computedPercent}% OFF`;
+    }
+  }
+
+  return MISSING_VALUE;
+};
+
+const mapDiagnosticPackageToCard = (pkg, index) => {
+  const resolvedNowPrice = Number(pkg?.price);
+  const resolvedOldPrice = Number(pkg?.original_price);
+  const now = Number.isFinite(resolvedNowPrice) && resolvedNowPrice > 0 ? resolvedNowPrice : null;
+  const old = Number.isFinite(resolvedOldPrice) && resolvedOldPrice > 0 ? resolvedOldPrice : null;
+
+  const badges = [
+    ...(pkg?.is_most_popular ? ['Most Popular'] : []),
+    ...toGenderBadges(pkg?.gender_suitability),
+  ];
+
+  const mappedTags = Array.isArray(pkg?.tags)
+    ? pkg.tags
+      .map((tag) => {
+        if (typeof tag === 'string' || typeof tag === 'number') {
+          return String(tag).trim();
+        }
+
+        if (tag && typeof tag === 'object') {
+          return String(tag.tag_name || tag.name || '').trim();
+        }
+
+        return '';
+      })
+      .filter(Boolean)
+      .slice(0, 4)
+    : [];
+
+  return {
+    id: Number(pkg?.diagnostic_package_id) || `package-${index}`,
+    theme: index % 2 === 0 ? 'teal' : 'pink',
+    badges: badges.length > 0 ? badges : [MISSING_VALUE],
+    title: String(pkg?.package_name || MISSING_VALUE),
+    chips: mappedTags.length > 0 ? mappedTags : [MISSING_VALUE],
+    metrics: {
+      parameters: pkg?.no_of_tests != null ? String(pkg.no_of_tests) : MISSING_VALUE,
+      reportsIn: pkg?.report_duration_hours != null ? `${pkg.report_duration_hours} hrs` : MISSING_VALUE,
+      fasting: MISSING_VALUE,
+    },
+    pricing: {
+      now,
+      old,
+      off: toDiscountText(pkg?.discount_percent, now, old),
+    },
+    apiData: pkg,
+  };
+};
 
 const CustomPackageIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -54,11 +137,18 @@ const OpenIcon = () => (
   </svg>
 );
 
-const formatPrice = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
+const formatPrice = (value) => {
+  if (!Number.isFinite(Number(value)) || Number(value) <= 0) {
+    return MISSING_VALUE;
+  }
+
+  return `₹${Number(value).toLocaleString('en-IN')}`;
+};
 
 const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustomPackage, onNavigateToDoctors, onNavigateToSuperClub, customPackageCard }) => {
   const [activeFilter, setActiveFilter] = useState('All');
   const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
+  const [packageCardsFromApi, setPackageCardsFromApi] = useState([]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -72,18 +162,75 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
     };
   }, [isPatientOverlayOpen]);
 
-  const visibleCards = useMemo(() => {
-    const staticCards = PACKAGE_CARDS.map((pkg) => ({
-      ...pkg,
-      ...DEFAULT_CARD_DATA,
-    }));
+  useEffect(() => {
+    let mounted = true;
 
-    if (!customPackageCard) {
-      return staticCards;
+    const loadDiagnosticPackageCards = async () => {
+      try {
+        const rows = await listDiagnosticPackages();
+
+        if (!mounted) {
+          return;
+        }
+
+        const mappedRows = (Array.isArray(rows) ? rows : []).map(mapDiagnosticPackageToCard);
+        setPackageCardsFromApi(mappedRows);
+      } catch {
+        if (mounted) {
+          setPackageCardsFromApi([]);
+        }
+      }
+    };
+
+    loadDiagnosticPackageCards();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const sourceCards = useMemo(() => {
+    if (packageCardsFromApi.length > 0) {
+      return packageCardsFromApi;
     }
 
-    return [{ ...customPackageCard }, ...staticCards];
-  }, [customPackageCard]);
+    return DEFAULT_PACKAGE_ROWS;
+  }, [packageCardsFromApi]);
+
+  const visibleCards = useMemo(() => {
+    const filteredCards = sourceCards.filter((pkg) => {
+      if (activeFilter === 'All') {
+        return true;
+      }
+
+      const packageName = String(pkg?.title || '').toLowerCase();
+      const genderSuitability = String(pkg?.apiData?.gender_suitability || '').toLowerCase();
+
+      if (activeFilter === 'Male') {
+        return genderSuitability === 'male' || genderSuitability === 'both';
+      }
+
+      if (activeFilter === 'Female') {
+        return genderSuitability === 'female' || genderSuitability === 'both';
+      }
+
+      if (activeFilter === 'Cancer') {
+        return packageName.includes('cancer');
+      }
+
+      if (activeFilter === 'Popular') {
+        return Boolean(pkg?.apiData?.is_most_popular);
+      }
+
+      return true;
+    });
+
+    if (!customPackageCard) {
+      return filteredCards;
+    }
+
+    return [{ ...customPackageCard }, ...filteredCards];
+  }, [activeFilter, customPackageCard, sourceCards]);
 
   const handleNav = (itemId) => {
     if (itemId === 'home' && onNavigateHome) {
@@ -112,9 +259,6 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
         </header>
 
         <section className="packages-page__search-row" aria-label="Package search and custom package">
-          <button type="button" className="packages-page__search-btn" aria-label="Search packages">
-            <SearchIcon />
-          </button>
           <button
             type="button"
             className="packages-page__custom-btn"
@@ -129,9 +273,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
             <CustomPackageIcon />
           </button>
         </section>
-      </div>
 
-      <div className="packages-page__content">
         <section className="packages-page__filters" aria-label="Package filters">
           {FILTERS.map((filter) => (
             <button
@@ -144,7 +286,9 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
             </button>
           ))}
         </section>
+      </div>
 
+      <div className="packages-page__content">
         <section className="packages-page__cards" aria-label="Packages list">
           {visibleCards.map((pkg) => (
             <article
@@ -193,8 +337,8 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
               </div>
 
               <div className="packages-card__feature-chips">
-                {(pkg.chips || []).map((chip) => (
-                  <span key={chip} className="packages-card__feature-chip">{chip}</span>
+                {(pkg.chips || []).map((chip, chipIndex) => (
+                  <span key={`${pkg.id}-chip-${chipIndex}`} className="packages-card__feature-chip">{chip}</span>
                 ))}
               </div>
 

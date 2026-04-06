@@ -15,6 +15,40 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  overscroll-behavior-x: none;
+}
+
+/* Disable text selection/callout globally in the app UI. */
+.app-root,
+.app-root * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Allow selection only inside editable fields. */
+.app-root input,
+.app-root textarea,
+.app-root [contenteditable='true'],
+.app-root [contenteditable='plaintext-only'] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+.app-edge-swipe-guard {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 100%;
+  z-index: 9001;
+  touch-action: none;
+  background: transparent;
 }
 
 .app-background {
@@ -39,9 +73,23 @@
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* Expand tap/click target for back-arrow buttons without changing visible size. */
+button[aria-label="Go back"],
+button[aria-label^="Back"] {
+  position: relative;
+}
+
+button[aria-label="Go back"]::before,
+button[aria-label^="Back"]::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
 }
 
 /* Force all top-level screens to inherit the fixed app viewport height. */

@@ -16,10 +16,10 @@ const resolveOverviewPayload = (payload) => {
   return payload;
 };
 
-const HomePage = ({ userName = 'User', userAge = null, onNavigateToHealthScan, onNavigateToHealthScanTab, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers, onNavigateToPackages, onNavigateToDoctors, onNavigateToSuperClub }) => {
-  const [metabolicAgeValue, setMetabolicAgeValue] = useState('-');
-  const [positiveWinsData, setPositiveWinsData] = useState(null);
-  const [riskAnalysisData, setRiskAnalysisData] = useState([]);
+const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, forceRefreshFromProfile = false, onNavigateToHealthScan, onNavigateToHealthScanTab, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers, onNavigateToPackages, onNavigateToDoctors, onNavigateToSuperClub }) => {
+  const [metabolicAgeValue, setMetabolicAgeValue] = useState(preloadedData?.metabolicAgeValue || '-');
+  const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
+  const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
 
   const metabolicAgeDetail = useMemo(() => {
     const chronologicalAge = Number(userAge);
@@ -68,10 +68,10 @@ const HomePage = ({ userName = 'User', userAge = null, onNavigateToHealthScan, o
     }
 
     return {
-      value: '5',
-      currentAge: 23,
+      value: '-',
+      currentAge: undefined,
       label: 'Metabolic age',
-      detail: '5 years older',
+      detail: '-',
       absoluteMetabolicAge: undefined,
     };
   }, [metabolicAgeValue, userAge, metabolicAgeDetail]);
@@ -82,7 +82,8 @@ const HomePage = ({ userName = 'User', userAge = null, onNavigateToHealthScan, o
     const loadOverviewData = async () => {
       try {
         const { response } = await fetchLatestAssessmentReport(
-          (assessmentId) => `/reports/${assessmentId}/overview`
+          (assessmentId) => `/reports/${assessmentId}/overview`,
+          forceRefreshFromProfile ? 0 : 45000,
         );
         const overview = resolveOverviewPayload(response);
 
@@ -117,7 +118,7 @@ const HomePage = ({ userName = 'User', userAge = null, onNavigateToHealthScan, o
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [forceRefreshFromProfile]);
 
   const handleMenuClick = () => {
     console.log('Menu clicked');

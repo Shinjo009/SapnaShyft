@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './PackageDetailsPage.css';
 import PatientSelectionOverlay from '../../components/PatientSelectionOverlay';
+import { getDiagnosticPackageDetail } from '../../services/diagnosticPackagesService';
 
 const TABS = [
   'Overview',
@@ -300,7 +301,111 @@ const PARAMETER_GROUPS = [
   },
 ];
 
-const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User' }) => {
+const MISSING_VALUE = '-';
+
+const toCollectionLabel = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+
+  if (normalized === 'home_collection') {
+    return 'Home Sample Collection';
+  }
+
+  if (normalized === 'lab_collection') {
+    return 'Lab Sample Collection';
+  }
+
+  if (!normalized) {
+    return MISSING_VALUE;
+  }
+
+  return normalized
+    .split('_')
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
+};
+
+const toGenderLabel = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+
+  if (normalized === 'male') {
+    return 'For men';
+  }
+
+  if (normalized === 'female') {
+    return 'For women';
+  }
+
+  if (normalized === 'both') {
+    return 'For men & women';
+  }
+
+  return MISSING_VALUE;
+};
+
+const extractTagLabels = (tags) => {
+  if (!Array.isArray(tags)) {
+    return [];
+  }
+
+  return tags
+    .map((tag) => {
+      if (typeof tag === 'string' || typeof tag === 'number') {
+        return String(tag).trim();
+      }
+
+      if (tag && typeof tag === 'object') {
+        return String(tag.tag_name || tag.name || '').trim();
+      }
+
+      return '';
+    })
+    .filter(Boolean);
+};
+
+const extractReasonPoints = (reasons) => {
+  if (!Array.isArray(reasons)) {
+    return [];
+  }
+
+  return reasons
+    .flatMap((reason) => String(reason?.reason_text || '').split('\n'))
+    .map((point) => point.trim())
+    .filter(Boolean);
+};
+
+const extractAboutParagraphs = (aboutText) => {
+  return String(aboutText || '')
+    .split('\n')
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+};
+
+const formatCurrency = (value) => {
+  const parsedValue = Number(value);
+
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    return MISSING_VALUE;
+  }
+
+  return `₹ ${parsedValue.toLocaleString('en-IN')}`;
+};
+
+const toDiscountLabel = (discountPercent, price, originalPrice) => {
+  const parsedDiscount = Number(discountPercent);
+  if (Number.isFinite(parsedDiscount) && parsedDiscount > 0) {
+    return `${Math.round(parsedDiscount)}% OFF`;
+  }
+
+  const current = Number(price);
+  const original = Number(originalPrice);
+  if (Number.isFinite(current) && Number.isFinite(original) && original > current && current > 0) {
+    return `${Math.round(((original - current) / original) * 100)}% OFF`;
+  }
+
+  return MISSING_VALUE;
+};
+
+const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User', packageId = null, packageCard = null }) => {
   const isCustomReview = variant === 'custom-review';
   const trimmedProfileName = String(profileName || '').trim() || 'User';
   const customPackageTitle = `${trimmedProfileName}'s Custom Package`;
@@ -314,7 +419,194 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User' 
   const resetTimerRef = useRef(null);
   const [openFaqId, setOpenFaqId] = useState('faq-water');
   const [activeOverlay, setActiveOverlay] = useState('');
+  const [packageDetail, setPackageDetail] = useState(null);
   const faqSectionRef = useRef(null);
+
+  useEffect(() => {
+    if (isCustomReview) {
+      setPackageDetail(null);
+      return;
+    }
+
+    const parsedPackageId = Number(packageId);
+    if (!Number.isFinite(parsedPackageId) || parsedPackageId <= 0) {
+      setPackageDetail(null);
+      return;
+    }
+
+    let mounted = true;
+
+    const loadPackageDetail = async () => {
+      try {
+        const response = await getDiagnosticPackageDetail(parsedPackageId);
+        if (mounted) {
+          setPackageDetail(response);
+        }
+      } catch {
+        if (mounted) {
+          setPackageDetail(null);
+        }
+      }
+    };
+
+    loadPackageDetail();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isCustomReview, packageId]);
+
+  const tagLabels = useMemo(() => extractTagLabels(packageDetail?.tags), [packageDetail]);
+
+  const packageTitle = useMemo(() => {
+    if (isCustomReview) {
+      return customPackageTitle;
+    }
+
+    const fromApi = String(packageDetail?.package_name || '').trim();
+    if (fromApi) {
+      return fromApi;
+    }
+
+    const fromCard = String(packageCard?.title || '').trim();
+    if (fromCard) {
+      return fromCard;
+    }
+
+    return MISSING_VALUE;
+  }, [customPackageTitle, isCustomReview, packageCard, packageDetail]);
+
+  const primaryBadgeLabel = useMemo(() => {
+    if (isCustomReview) {
+      return 'Most Popular';
+    }
+
+    if (packageDetail?.is_most_popular) {
+      return 'Most Popular';
+    }
+
+    return tagLabels[0] || MISSING_VALUE;
+  }, [isCustomReview, packageDetail, tagLabels]);
+
+  const collectionLabel = useMemo(() => {
+    if (isCustomReview) {
+      return 'Home Sample Collection';
+    }
+
+    return toCollectionLabel(packageDetail?.collection_type);
+  }, [isCustomReview, packageDetail]);
+
+  const genderLabel = useMemo(() => {
+    if (isCustomReview) {
+      return 'For men & women';
+    }
+
+    return toGenderLabel(packageDetail?.gender_suitability);
+  }, [isCustomReview, packageDetail]);
+
+  const reportLabel = useMemo(() => {
+    if (isCustomReview) {
+      return 'Reports in 24-48 hours';
+    }
+
+    const hours = Number(packageDetail?.report_duration_hours);
+    if (!Number.isFinite(hours) || hours <= 0) {
+      return MISSING_VALUE;
+    }
+
+    return `Reports in ${hours} hours`;
+  }, [isCustomReview, packageDetail]);
+
+  const bookingsLabel = useMemo(() => {
+    if (isCustomReview) {
+      return '100k+ booked';
+    }
+
+    const count = Number(packageDetail?.bookings_count);
+    if (!Number.isFinite(count) || count < 0) {
+      return MISSING_VALUE;
+    }
+
+    return `${count} booked`;
+  }, [isCustomReview, packageDetail]);
+
+  const detailCards = useMemo(() => {
+    const testsCount = Number(packageDetail?.no_of_tests);
+    const testsText = Number.isFinite(testsCount) && testsCount > 0 ? `${testsCount} Parameters` : MISSING_VALUE;
+
+    return DETAIL_CARDS.map((card) => {
+      if (card.id === 'tests' && !isCustomReview) {
+        return {
+          ...card,
+          big: testsText,
+        };
+      }
+
+      return card;
+    });
+  }, [isCustomReview, packageDetail]);
+
+  const aboutParagraphs = useMemo(() => {
+    if (isCustomReview) {
+      return ABOUT_PACKAGE_COPY;
+    }
+
+    const parsed = extractAboutParagraphs(packageDetail?.about_text);
+    return parsed.length > 0 ? parsed : [MISSING_VALUE];
+  }, [isCustomReview, packageDetail]);
+
+  const aboutPreview = useMemo(() => {
+    const firstParagraph = aboutParagraphs[0] || MISSING_VALUE;
+
+    if (firstParagraph.length <= 140) {
+      return firstParagraph;
+    }
+
+    return `${firstParagraph.slice(0, 140).trimEnd()}...`;
+  }, [aboutParagraphs]);
+
+  const whyPackagePoints = useMemo(() => {
+    if (isCustomReview) {
+      return WHY_PACKAGE_POINTS;
+    }
+
+    const parsed = extractReasonPoints(packageDetail?.reasons);
+    return parsed.length > 0 ? parsed : [MISSING_VALUE];
+  }, [isCustomReview, packageDetail]);
+
+  const testsOverlayTitle = useMemo(() => {
+    const testsCount = Number(packageDetail?.no_of_tests);
+    const value = Number.isFinite(testsCount) && testsCount > 0 ? String(testsCount) : MISSING_VALUE;
+    return `Package includes ${value} tests`;
+  }, [packageDetail]);
+
+  const currentPriceText = useMemo(() => {
+    if (isCustomReview) {
+      return formatCurrency(packageCard?.pricing?.now);
+    }
+
+    return formatCurrency(packageDetail?.price);
+  }, [isCustomReview, packageCard, packageDetail]);
+
+  const oldPriceText = useMemo(() => {
+    if (isCustomReview) {
+      return formatCurrency(packageCard?.pricing?.old);
+    }
+
+    return formatCurrency(packageDetail?.original_price);
+  }, [isCustomReview, packageCard, packageDetail]);
+
+  const discountText = useMemo(() => {
+    if (isCustomReview) {
+      return String(packageCard?.pricing?.off || MISSING_VALUE);
+    }
+
+    return toDiscountLabel(
+      packageDetail?.discount_percent,
+      packageDetail?.price,
+      packageDetail?.original_price,
+    );
+  }, [isCustomReview, packageCard, packageDetail]);
 
   const frontCardIndex = order[0];
 
@@ -505,7 +797,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User' 
                   </clipPath>
                 </defs>
               </svg>
-              <span>Most Popular</span>
+              <span>{primaryBadgeLabel}</span>
             </div>
 
             <div className="package-details-page__badge package-details-page__badge--sample">
@@ -513,26 +805,24 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User' 
                 <path d="M7.5 10.5V6.5C7.5 6.22404 7.27596 6 7 6H5C4.72404 6 4.5 6.22404 4.5 6.5V10.5" stroke="#CCCCCC" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M1.5 5.00024C1.49993 4.7058 1.62962 4.4263 1.8545 4.23624L5.3545 1.23624C5.72719 0.921253 6.27281 0.921253 6.6455 1.23624L10.1455 4.23624C10.3704 4.4263 10.5001 4.7058 10.5 5.00024V9.50024C10.5 10.0522 10.0519 10.5002 9.5 10.5002H2.5C1.94808 10.5002 1.5 10.0522 1.5 9.50024V5.00024" stroke="#CCCCCC" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <span>Home Sample Collection</span>
+              <span>{collectionLabel}</span>
             </div>
           </div>
 
-          <h2 className="package-details-page__pack-title">
-            {isCustomReview ? customPackageTitle : 'Advanced Full Body Health Checkup'}
-          </h2>
+          <h2 className="package-details-page__pack-title">{packageTitle}</h2>
 
           <div className={`package-details-page__meta-row${isCustomReview ? ' package-details-page__meta-row--compact' : ''}`}>
             <div className="package-details-page__meta-item">
               <MetaGenderIcon />
-              <span>For men &amp; women</span>
+              <span>{genderLabel}</span>
             </div>
             <div className="package-details-page__meta-item">
               <MetaClockIcon />
-              <span>Reports in 24-48 hours</span>
+              <span>{reportLabel}</span>
             </div>
             <div className="package-details-page__meta-item">
               <MetaPeopleIcon />
-              <span>100k+ booked</span>
+              <span>{bookingsLabel}</span>
             </div>
           </div>
         </section>
@@ -540,7 +830,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User' 
         <h3 className="package-details-page__hood-title">What&apos;s Under the Hood</h3>
 
         <section className="package-details-page__stack-area" aria-label="Package highlights">
-          {DETAIL_CARDS.map((card, idx) => {
+          {detailCards.map((card, idx) => {
             const slot = slotByCardIndex[idx];
             const isFront = idx === frontCardIndex;
             const slotClass = `slot-${slot}`;
@@ -585,7 +875,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User' 
             <button type="button" className="package-details-page__see-more" onClick={() => setActiveOverlay('about')}>See more</button>
           </div>
           <p className="package-details-page__about-text">
-            This comprehensive screening provides an in-depth analysis of your body&apos;s vital organs...
+            {aboutPreview}
           </p>
         </section>
 
@@ -690,9 +980,9 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User' 
             <div className="package-details-page__price-col">
               <span className="package-details-page__price-label">Package price:</span>
               <div className="package-details-page__price-line">
-                <span className="package-details-page__price-current">₹ 2,499</span>
-                <span className="package-details-page__price-old">₹ 4,498</span>
-                <span className="package-details-page__price-off">44% OFF</span>
+                <span className="package-details-page__price-current">{currentPriceText}</span>
+                <span className="package-details-page__price-old">{oldPriceText}</span>
+                <span className="package-details-page__price-off">{discountText}</span>
               </div>
             </div>
 
@@ -723,13 +1013,13 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User' 
                     ? 'Samples required'
                     : activeOverlay === 'prep'
                       ? 'Preparations'
-                      : 'Package includes 150 tests'}
+                      : testsOverlayTitle}
             </h3>
 
             {activeOverlay === 'why' ? (
               <div className="package-details-page__overlay-points">
-                {WHY_PACKAGE_POINTS.map((point, index) => (
-                  <div key={point} className="package-details-page__overlay-point">
+                {whyPackagePoints.map((point, index) => (
+                  <div key={`${point}-${index}`} className="package-details-page__overlay-point">
                     <div className="package-details-page__overlay-index">{index + 1}</div>
                     <p>{point}</p>
                   </div>
@@ -739,8 +1029,8 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User' 
 
             {activeOverlay === 'about' ? (
               <div className="package-details-page__overlay-about-copy">
-                {ABOUT_PACKAGE_COPY.map((paragraph) => (
-                  <p key={paragraph}>{paragraph}</p>
+                {aboutParagraphs.map((paragraph, index) => (
+                  <p key={`${paragraph}-${index}`}>{paragraph}</p>
                 ))}
               </div>
             ) : null}

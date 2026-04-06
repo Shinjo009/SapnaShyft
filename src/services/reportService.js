@@ -39,6 +39,14 @@ const writeStoredLatestAssessmentId = (assessmentId) => {
   }
 };
 
+export const clearStoredLatestAssessmentId = () => {
+  inMemoryLatestAssessmentId = null;
+
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem(LATEST_ASSESSMENT_STORAGE_KEY);
+  }
+};
+
 const parseResponseBody = async (response) => {
   const text = await response.text();
   if (!text) {

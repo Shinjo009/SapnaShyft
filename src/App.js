@@ -39,9 +39,14 @@ import SuperClubPage from './pages/SuperClubPage/SuperClubPage';
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
 import { sendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
-import { createUser, getMyProfiles } from './services/usersService';
-import { getMyProfile } from './services/profileService';
+import { createUser, getMyProfiles, invalidateMyProfilesCache } from './services/usersService';
+import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
 import { loadQuestionnaireContext } from './services/questionnaireService';
+import {
+  fetchLatestAssessmentReport,
+  clearReportRequestCache,
+  clearStoredLatestAssessmentId,
+} from './services/reportService';
 import {
   saveAuthTokens,
   getRefreshToken,
@@ -49,6 +54,22 @@ import {
   extractTokensFromResponse,
 } from './utils/authStorage';
 import { trackAppScreen } from './analytics/googleAnalytics';
+
+const SWIPE_BACK_BLOCKED_PAGES = new Set([
+  'home',
+  'packages',
+  'super-club',
+  'doctors',
+  'login',
+  'signup',
+  'otp',
+  'splash',
+  'health-insights',
+  'account-selection',
+]);
+
+const EDGE_SWIPE_TRIGGER_PX = 70;
+const EDGE_SWIPE_VERTICAL_TOLERANCE_PX = 80;
 
 function App() {
   const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
@@ -67,10 +88,26 @@ function App() {
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [customPackageCard, setCustomPackageCard] = useState(null);
+  const [selectedPackageCard, setSelectedPackageCard] = useState(null);
+  const [canSwipeBack, setCanSwipeBack] = useState(false);
+  const [preloadedHomeData, setPreloadedHomeData] = useState(null);
+  const [forceHomeApiRefresh, setForceHomeApiRefresh] = useState(false);
   // const [superClubOnboardingDone, setSuperClubOnboardingDone] = useState(() =>
   //   isSuperClubOnboardingComplete(),
   // );
   const appScrollRef = useRef(null);
+  const pageHistoryRef = useRef([]);
+  const previousPageRef = useRef(null);
+  const skipHistoryForNextPageRef = useRef(false);
+  const edgeSwipeStateRef = useRef({
+    tracking: false,
+    startX: 0,
+    startY: 0,
+    lastX: 0,
+    lastY: 0,
+  });
+
+  const isSwipeBackAllowedPage = (page) => !SWIPE_BACK_BLOCKED_PAGES.has(page);
 
   useEffect(() => {
     if (appScrollRef.current) {
@@ -84,7 +121,116 @@ function App() {
 
   useEffect(() => {
     trackAppScreen(currentPage);
+
+    const previousPage = previousPageRef.current;
+
+    if (previousPage && previousPage !== currentPage && !skipHistoryForNextPageRef.current) {
+      pageHistoryRef.current.push(previousPage);
+    }
+
+    skipHistoryForNextPageRef.current = false;
+    previousPageRef.current = currentPage;
+
+    setCanSwipeBack(isSwipeBackAllowedPage(currentPage) && pageHistoryRef.current.length > 0);
   }, [currentPage]);
+
+  useEffect(() => {
+    if (currentPage !== 'home' || !forceHomeApiRefresh) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setForceHomeApiRefresh(false);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [currentPage, forceHomeApiRefresh]);
+
+  const goBackBySwipe = () => {
+    if (!isSwipeBackAllowedPage(currentPage)) {
+      return false;
+    }
+
+    while (pageHistoryRef.current.length > 0) {
+      const targetPage = pageHistoryRef.current.pop();
+      if (!targetPage || targetPage === currentPage) {
+        continue;
+      }
+
+      skipHistoryForNextPageRef.current = true;
+      setCurrentPage(targetPage);
+      return true;
+    }
+
+    return false;
+  };
+
+  const handleEdgeSwipeStart = (event) => {
+    if (!canSwipeBack) {
+      return;
+    }
+
+    const touch = event.touches?.[0];
+    if (!touch) {
+      return;
+    }
+
+    edgeSwipeStateRef.current = {
+      tracking: true,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      lastX: touch.clientX,
+      lastY: touch.clientY,
+    };
+  };
+
+  const handleEdgeSwipeMove = (event) => {
+    const swipeState = edgeSwipeStateRef.current;
+    if (!swipeState.tracking) {
+      return;
+    }
+
+    const touch = event.touches?.[0];
+    if (!touch) {
+      return;
+    }
+
+    swipeState.lastX = touch.clientX;
+    swipeState.lastY = touch.clientY;
+
+    const deltaX = swipeState.lastX - swipeState.startX;
+    const deltaY = swipeState.lastY - swipeState.startY;
+
+    if (Math.abs(deltaY) > EDGE_SWIPE_VERTICAL_TOLERANCE_PX || deltaX < -10) {
+      swipeState.tracking = false;
+      return;
+    }
+
+    if (deltaX > 10) {
+      event.preventDefault();
+    }
+  };
+
+  const handleEdgeSwipeEnd = () => {
+    const swipeState = edgeSwipeStateRef.current;
+    if (!swipeState.tracking) {
+      return;
+    }
+
+    const deltaX = swipeState.lastX - swipeState.startX;
+    const deltaY = swipeState.lastY - swipeState.startY;
+    swipeState.tracking = false;
+
+    if (deltaX >= EDGE_SWIPE_TRIGGER_PX && Math.abs(deltaY) <= EDGE_SWIPE_VERTICAL_TOLERANCE_PX) {
+      goBackBySwipe();
+    }
+  };
+
+  const handleEdgeSwipeCancel = () => {
+    edgeSwipeStateRef.current.tracking = false;
+  };
 
   const getProgressFromCategories = (categories) => {
     let completedCount = 0;
@@ -262,6 +408,37 @@ function App() {
     setShowInstallPrompt(false);
   };
 
+  const preloadHomeScreenData = async () => {
+    try {
+      const resolveOverviewPayload = (payload) => {
+        if (!payload || typeof payload !== 'object') return null;
+        if (payload.data && typeof payload.data === 'object') return payload.data;
+        if (payload.result && typeof payload.result === 'object') return payload.result;
+        if (payload.item && typeof payload.item === 'object') return payload.item;
+        return payload;
+      };
+
+      const { response } = await fetchLatestAssessmentReport(
+        (assessmentId) => `/reports/${assessmentId}/overview`
+      );
+      const overview = resolveOverviewPayload(response);
+
+      if (overview && typeof overview === 'object') {
+        const metabolicAge = Number(overview?.metabolic_age);
+        const metabolicAgeDisplay = Number.isFinite(metabolicAge) ? String(Math.round(metabolicAge)) : '-';
+        
+        setPreloadedHomeData({
+          metabolicAgeValue: metabolicAgeDisplay,
+          positiveWinsData: overview?.positive_wins && typeof overview.positive_wins === 'object' ? overview.positive_wins : null,
+          riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
+        });
+      }
+    } catch (err) {
+      console.error('Failed to preload home screen data:', err);
+      setPreloadedHomeData(null);
+    }
+  };
+
   const handleSendOtp = async (phone) => {
     await sendOtp(phone);
     setPhoneNumber(phone);
@@ -357,12 +534,14 @@ function App() {
       console.error('Failed to fetch user profile:', profileError);
     }
 
+    await preloadHomeScreenData();
     setCurrentPage('health-insights');
   };
 
   const handleAccountSelectionStart = async (targetAccountId) => {
     const parsedTargetId = Number(targetAccountId || 0);
     if (parsedTargetId <= 0) {
+      await preloadHomeScreenData();
       setCurrentPage('home');
       return;
     }
@@ -374,9 +553,13 @@ function App() {
         const switchResponse = await switchAccount(parsedTargetId);
         const tokens = extractTokensFromResponse(switchResponse);
         saveAuthTokens(tokens);
+        invalidateMyProfileCache();
+        invalidateMyProfilesCache();
+        clearReportRequestCache();
+        clearStoredLatestAssessmentId();
       }
 
-      const profileResponse = await getMyProfile();
+      const profileResponse = await getMyProfile({ forceRefresh: true });
       const profile = profileResponse?.data && typeof profileResponse.data === 'object'
         ? profileResponse.data
         : profileResponse;
@@ -390,6 +573,7 @@ function App() {
       console.error('Failed to enter selected account:', error);
     }
 
+    await preloadHomeScreenData();
     setCurrentPage('home');
   };
 
@@ -399,12 +583,15 @@ function App() {
     await logout(refreshTokenValue);
 
     clearAuthTokens();
+    clearReportRequestCache();
+    clearStoredLatestAssessmentId();
     setPhoneNumber('');
     setUserAge(null);
     setQuestionnaireSteps([]);
     setQuestionnaireQuestionsByCategoryId({});
     setQuestionnaireProgress(0);
     setExpandedQuestionnaireStep(null);
+    setPreloadedHomeData(null);
     setCurrentPage('login');
   };
 
@@ -445,6 +632,16 @@ function App() {
   return (
     <div className="app-root">
       <div className="app-background" aria-hidden="true" />
+      {canSwipeBack ? (
+        <div
+          className="app-edge-swipe-guard"
+          aria-hidden="true"
+          onTouchStart={handleEdgeSwipeStart}
+          onTouchMove={handleEdgeSwipeMove}
+          onTouchEnd={handleEdgeSwipeEnd}
+          onTouchCancel={handleEdgeSwipeCancel}
+        />
+      ) : null}
       {/* PWA Install Prompt Banner - Fixed outside scroll container */}
       {showInstallPrompt && (
         <div style={{
@@ -544,6 +741,8 @@ function App() {
         <HomePage 
           userName={userName}
           userAge={userAge}
+          preloadedData={preloadedHomeData}
+          forceRefreshFromProfile={forceHomeApiRefresh}
           onNavigateToHealthScan={() => {
             console.log('Navigate to Health Scan Index');
             setSelectedHealthScanTab(0);
@@ -624,7 +823,8 @@ function App() {
             console.log('Navigate to Doctors');
             setCurrentPage('doctors');
           }}
-          onOpenPackageDetails={() => {
+          onOpenPackageDetails={(pkg) => {
+            setSelectedPackageCard(pkg || null);
             console.log('Navigate to Package Details');
             setCurrentPage('package-details');
           }}
@@ -694,6 +894,8 @@ function App() {
 
       {currentPage === 'package-details' && (
         <PackageDetailsPage
+          packageId={selectedPackageCard?.apiData?.diagnostic_package_id || selectedPackageCard?.id || null}
+          packageCard={selectedPackageCard}
           onBack={() => {
             console.log('Back to Packages');
             setCurrentPage('packages');
@@ -801,6 +1003,9 @@ function App() {
         <ProfilePage
           onBack={() => {
             console.log('Back to Home');
+            clearReportRequestCache();
+            clearStoredLatestAssessmentId();
+            setForceHomeApiRefresh(true);
             setCurrentPage('home');
           }}
           onOpenReports={() => {

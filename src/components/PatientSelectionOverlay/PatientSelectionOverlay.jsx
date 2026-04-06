@@ -4,6 +4,7 @@ import maleAvatar from '../../images/male-avatar.png';
 import femaleAvatar from '../../images/female-avatar.png';
 import { getMyProfiles, createMySubProfile } from '../../services/usersService';
 import { getMyProfile } from '../../services/profileService';
+import { listDiagnosticPackages } from '../../services/diagnosticPackagesService';
 import {
   loadRazorpayScript,
   createPackageRazorpayOrder,
@@ -91,6 +92,42 @@ const PACKAGE_OPTIONS = [
     searchTags: ['kidney', 'renal', 'creatinine', 'full body'],
   },
 ];
+
+const MISSING_VALUE = '-';
+
+const mapDiagnosticPackageToOverlayCard = (pkg, index) => {
+  const id = String(pkg?.diagnostic_package_id || pkg?.id || `pkg-${index}`).trim();
+  const name = String(pkg?.package_name || '').trim() || MISSING_VALUE;
+  const currentPrice = Number(pkg?.price || 0);
+  const oldPrice = Number(pkg?.original_price || 0);
+  const offPercent = pkg?.discount_percent ? Math.round(Number(pkg.discount_percent)) : (oldPrice > 0 && currentPrice < oldPrice ? Math.round(((oldPrice - currentPrice) / oldPrice) * 100) : 0);
+  const testsCount = Number(pkg?.tests_count || pkg?.parameters_count || 0);
+  const parameters = testsCount > 0 ? `${testsCount} parameters` : MISSING_VALUE;
+  const rating = MISSING_VALUE;
+  const recommended = pkg?.is_most_popular ? 'Most Popular' : '';
+  
+  const tagLabels = Array.isArray(pkg?.tags)
+    ? pkg.tags.map((tag) => {
+        if (typeof tag === 'string') return tag.toLowerCase();
+        return String(tag?.tag_name || tag?.name || '').toLowerCase();
+      }).filter(Boolean).slice(0, 3)
+    : [];
+  
+  const searchTags = [name.toLowerCase(), ...tagLabels];
+
+  return {
+    id,
+    name,
+    currentPrice: currentPrice > 0 ? currentPrice : 0,
+    oldPrice: oldPrice > 0 ? oldPrice : currentPrice,
+    offPercent,
+    parameters,
+    rating,
+    recommended,
+    searchTags,
+    apiData: pkg,
+  };
+};
 
 const MaleIcon = () => <img src={maleAvatar} alt="" aria-hidden="true" className="patient-select-overlay__avatar-image" />;
 
@@ -381,6 +418,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const [confirmedBookingId, setConfirmedBookingId] = useState(null);
+  const [packageCardsFromApi, setPackageCardsFromApi] = useState([]);
   const paymentSuccessRef = useRef(false);
 
   useEffect(() => {
@@ -406,6 +444,20 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
     }
 
     let mounted = true;
+
+    const loadPackagesData = async () => {
+      try {
+        if (BACKEND_ENABLED) {
+          const packages = await listDiagnosticPackages();
+          if (mounted && Array.isArray(packages)) {
+            const transformedPackages = packages.map((pkg, idx) => mapDiagnosticPackageToOverlayCard(pkg, idx));
+            setPackageCardsFromApi(transformedPackages);
+          }
+        }
+      } catch (err) {
+        setPackageCardsFromApi([]);
+      }
+    };
 
     const loadOverlayData = async () => {
       try {
@@ -447,6 +499,8 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
         setPatients(patientItems);
 
         const defaultAddress = buildAddressFromProfile(profile);
+        await loadPackagesData();
+
         setAddressData((prev) => ({
           ...prev,
           ...defaultAddress,
@@ -546,18 +600,20 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
     [draftPackageId],
   );
 
+  const sourcePackages = packageCardsFromApi.length > 0 ? packageCardsFromApi : PACKAGE_OPTIONS;
+
   const filteredPackages = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) {
-      return PACKAGE_OPTIONS;
+      return sourcePackages;
     }
 
-    return PACKAGE_OPTIONS.filter((item) => {
+    return sourcePackages.filter((item) => {
       const inName = item.name.toLowerCase().includes(q);
       const inTags = item.searchTags.some((tag) => tag.toLowerCase().includes(q));
       return inName || inTags;
     });
-  }, [searchQuery]);
+  }, [searchQuery, sourcePackages]);
 
   const selectedCount = selectedIds.length;
   const canContinue = selectedCount > 0;
