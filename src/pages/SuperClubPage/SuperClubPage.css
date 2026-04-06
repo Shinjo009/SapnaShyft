@@ -396,13 +396,51 @@
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
 }
 
-.super-club-v1__card-img {
+/* Centered sport GIF on the card gradient; fixed box so every activity reads the same size. */
+.super-club-v1__card-art {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center center;
-  transform: scale(1.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  box-sizing: border-box;
   pointer-events: none;
+}
+
+.super-club-v1__card-art--tight {
+  padding: 6px;
+}
+
+.super-club-v1__card-art--flush {
+  padding: 0;
+}
+
+.super-club-v1__card-gif {
+  display: block;
+  width: 132px;
+  height: 132px;
+  min-width: 132px;
+  min-height: 132px;
+  object-fit: contain;
+  object-position: center center;
+  border-radius: 16px;
+  pointer-events: none;
+}
+
+.super-club-v1__card-gif--large {
+  width: 154px;
+  height: 154px;
+  min-width: 154px;
+  min-height: 154px;
+  border-radius: 18px;
+}
+
+/* Yoga — nearly full card width (164px = inner width with 1px border on 166px card). */
+.super-club-v1__card-gif--xl {
+  width: 164px;
+  height: 164px;
+  min-width: 164px;
+  min-height: 164px;
+  border-radius: 22px;
 }

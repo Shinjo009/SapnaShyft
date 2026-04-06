@@ -2,7 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { initGoogleAnalytics } from './analytics/googleAnalytics';
 // import reportWebVitals from './reportWebVitals';
+
+initGoogleAnalytics();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

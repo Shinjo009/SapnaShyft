@@ -18,3 +18,6 @@ export const RAZORPAY_KEY_ID = (process.env.REACT_APP_RAZORPAY_KEY_ID || '').tri
 
 /** If true, skips Razorpay UI and server calls; confirms booking immediately (local UI testing only). */
 export const PAYMENT_DEMO_MODE = process.env.REACT_APP_PAYMENT_DEMO === 'true';
+
+/** Google Analytics 4 Measurement ID (e.g. G-XXXXXXXXXX). Leave unset to disable analytics. */
+export const GA_MEASUREMENT_ID = (process.env.REACT_APP_GA_MEASUREMENT_ID || '').trim();

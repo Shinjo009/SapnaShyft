@@ -1,33 +1,33 @@
-import cricketImg from '../../images/Superclub/cricket.png';
-import cyclingImg from '../../images/Superclub/Cycling.png';
-import badmintonImg from '../../images/Superclub/badminton.png';
-import basketballImg from '../../images/Superclub/basketball.png';
-import footballImg from '../../images/Superclub/football.png';
-import pickleballImg from '../../images/Superclub/pickelball.png';
-import runningImg from '../../images/Superclub/running.png';
-import swimmingImg from '../../images/Superclub/swimming.png';
-import tableTennisImg from '../../images/Superclub/table tennis.png';
-import tennisImg from '../../images/Superclub/tennis.png';
-import volleyballImg from '../../images/Superclub/vollyball.png';
-import yogaImg from '../../images/Superclub/yoga.png';
+import cricketGif from '../../images/Superclub/gif/cricket.gif';
+import cyclingGif from '../../images/Superclub/gif/cycling.gif';
+import badmintonGif from '../../images/Superclub/gif/badminton.gif';
+import basketballGif from '../../images/Superclub/gif/basketball.gif';
+import footballGif from '../../images/Superclub/gif/football.gif';
+import pickleballGif from '../../images/Superclub/gif/pickelball.gif';
+import runningGif from '../../images/Superclub/gif/running.gif';
+import swimmingGif from '../../images/Superclub/gif/swimming.gif';
+import tableTennisGif from '../../images/Superclub/gif/table tennis.gif';
+import tennisGif from '../../images/Superclub/gif/tennis.gif';
+import volleyballGif from '../../images/Superclub/gif/vollyball.gif';
+import yogaGif from '../../images/Superclub/gif/yoga.gif';
 
 /**
- * `image` = full-card PNG (rounded art + panel). Button fills 142×182 with cover + label overlaid at bottom.
+ * `image` = sport GIF shown centered on the swipe card (card gradient is CSS on `.super-club-v1__card`).
  * Carousel order: Cricket & Cycling first (design reference), then remaining sports A–Z by label.
  */
 export const SUPER_CLUB_SPORTS = [
-  { id: 'cricket', name: 'Cricket', image: cricketImg },
-  { id: 'cycling', name: 'Cycling', image: cyclingImg },
-  { id: 'badminton', name: 'Badminton', image: badmintonImg },
-  { id: 'basketball', name: 'Basketball', image: basketballImg },
-  { id: 'football', name: 'Football', image: footballImg },
-  { id: 'pickleball', name: 'Pickleball', image: pickleballImg },
-  { id: 'running', name: 'Running', image: runningImg },
-  { id: 'swimming', name: 'Swimming', image: swimmingImg },
-  { id: 'table-tennis', name: 'Table Tennis', image: tableTennisImg },
-  { id: 'tennis', name: 'Tennis', image: tennisImg },
-  { id: 'volleyball', name: 'Volleyball', image: volleyballImg },
-  { id: 'yoga', name: 'Yoga', image: yogaImg },
+  { id: 'cricket', name: 'Cricket', image: cricketGif, largeCardGif: true },
+  { id: 'cycling', name: 'Cycling', image: cyclingGif, largeCardGif: true },
+  { id: 'badminton', name: 'Badminton', image: badmintonGif },
+  { id: 'basketball', name: 'Basketball', image: basketballGif },
+  { id: 'football', name: 'Football', image: footballGif },
+  { id: 'pickleball', name: 'Pickleball', image: pickleballGif },
+  { id: 'running', name: 'Running', image: runningGif, largeCardGif: true },
+  { id: 'swimming', name: 'Swimming', image: swimmingGif },
+  { id: 'table-tennis', name: 'Table Tennis', image: tableTennisGif, largeCardGif: true },
+  { id: 'tennis', name: 'Tennis', image: tennisGif },
+  { id: 'volleyball', name: 'Volleyball', image: volleyballGif },
+  { id: 'yoga', name: 'Yoga', image: yogaGif, xlCardGif: true },
 ];
 
 /** Preserve order of `ids` when resolving to sport objects. */

@@ -48,6 +48,7 @@ import {
   clearAuthTokens,
   extractTokensFromResponse,
 } from './utils/authStorage';
+import { trackAppScreen } from './analytics/googleAnalytics';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
@@ -79,6 +80,10 @@ function App() {
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+  }, [currentPage]);
+
+  useEffect(() => {
+    trackAppScreen(currentPage);
   }, [currentPage]);
 
   const getProgressFromCategories = (categories) => {

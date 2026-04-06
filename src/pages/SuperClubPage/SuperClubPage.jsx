@@ -200,12 +200,28 @@ export default function SuperClubPage({
                 onPointerCancel={onCardPointerUp}
               >
                 {sport ? (
-                  <img
-                    src={sport.image}
-                    alt=""
-                    className="super-club-v1__card-img"
-                    draggable={false}
-                  />
+                  <div
+                    className={`super-club-v1__card-art${
+                      sport.xlCardGif
+                        ? ' super-club-v1__card-art--flush'
+                        : sport.largeCardGif
+                          ? ' super-club-v1__card-art--tight'
+                          : ''
+                    }`}
+                  >
+                    <img
+                      src={sport.image}
+                      alt=""
+                      className={`super-club-v1__card-gif${
+                        sport.xlCardGif
+                          ? ' super-club-v1__card-gif--xl'
+                          : sport.largeCardGif
+                            ? ' super-club-v1__card-gif--large'
+                            : ''
+                      }`}
+                      draggable={false}
+                    />
+                  </div>
                 ) : null}
               </div>
             </div>
