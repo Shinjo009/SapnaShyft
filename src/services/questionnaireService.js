@@ -83,6 +83,36 @@ const authorizedGet = async (path, query) => {
   return parsedBody?.data ?? parsedBody;
 };
 
+const authorizedPut = async (path, body) => {
+  if (!BACKEND_ENABLED) {
+    throw new Error(
+      'Backend base URL is not configured. Set REACT_APP_BACKEND_BASE_URL in .env and restart the app.'
+    );
+  }
+
+  const accessToken = getAccessToken();
+  if (!accessToken) {
+    throw new Error('You are not logged in. Please login again.');
+  }
+
+  const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body || {}),
+  });
+
+  const parsedBody = await parseResponseBody(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(parsedBody));
+  }
+
+  return parsedBody?.data ?? parsedBody;
+};
+
 const toTimestamp = (value) => {
   if (!value) {
     return 0;
@@ -165,6 +195,12 @@ export const listMyPackageCategories = (packageId) => {
 
 export const listCategoryQuestions = (categoryId) => {
   return authorizedGet(`/questionnaire/categories/${categoryId}/questions`);
+};
+
+export const submitQuestionnaireResponses = (categoryId, responses = []) => {
+  return authorizedPut(`/questionnaire/${categoryId}/responses`, {
+    responses: Array.isArray(responses) ? responses : [],
+  });
 };
 
 export const loadQuestionnaireContext = async () => {

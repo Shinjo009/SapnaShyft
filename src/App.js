@@ -41,7 +41,7 @@ import DiseaseDetailPage from './pages/DiseaseDetailPage';
 import { sendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
 import { createUser, getMyProfiles, invalidateMyProfilesCache } from './services/usersService';
 import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
-import { loadQuestionnaireContext } from './services/questionnaireService';
+import { loadQuestionnaireContext, submitQuestionnaireResponses } from './services/questionnaireService';
 import {
   fetchLatestAssessmentReport,
   clearReportRequestCache,
@@ -70,6 +70,7 @@ const SWIPE_BACK_BLOCKED_PAGES = new Set([
 
 const EDGE_SWIPE_TRIGGER_PX = 70;
 const EDGE_SWIPE_VERTICAL_TOLERANCE_PX = 80;
+const EDGE_SWIPE_START_ZONE_PX = 28;
 
 function App() {
   const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
@@ -174,6 +175,10 @@ function App() {
 
     const touch = event.touches?.[0];
     if (!touch) {
+      return;
+    }
+
+    if (touch.clientX > EDGE_SWIPE_START_ZONE_PX) {
       return;
     }
 
@@ -284,7 +289,7 @@ function App() {
     return questionnaireQuestionsByCategoryId[String(category.category_id)] || [];
   };
 
-  const handleStepComplete = (routeId) => {
+  const handleStepComplete = async (routeId, responses = []) => {
     const routeProgressMap = {
       'anthropometry': 1,
       'family-history': 2,
@@ -292,6 +297,19 @@ function App() {
       'nutrition-log': 4,
       'vitals': 5,
     };
+
+    const category = getCategoryByRoute(routeId);
+    const categoryId = Number(category?.category_id || 0);
+    const normalizedResponses = Array.isArray(responses) ? responses : [];
+
+    if (categoryId > 0 && normalizedResponses.length > 0) {
+      try {
+        await submitQuestionnaireResponses(categoryId, normalizedResponses);
+      } catch (error) {
+        console.error(`Failed to submit questionnaire responses for ${routeId}:`, error);
+      }
+    }
+
     const progressValue = routeProgressMap[routeId] || 0;
     setQuestionnaireProgress((prev) => Math.max(prev, progressValue));
     setExpandedQuestionnaireStep(null);
@@ -630,18 +648,14 @@ function App() {
   };
 
   return (
-    <div className="app-root">
+    <div
+      className="app-root"
+      onTouchStart={handleEdgeSwipeStart}
+      onTouchMove={handleEdgeSwipeMove}
+      onTouchEnd={handleEdgeSwipeEnd}
+      onTouchCancel={handleEdgeSwipeCancel}
+    >
       <div className="app-background" aria-hidden="true" />
-      {canSwipeBack ? (
-        <div
-          className="app-edge-swipe-guard"
-          aria-hidden="true"
-          onTouchStart={handleEdgeSwipeStart}
-          onTouchMove={handleEdgeSwipeMove}
-          onTouchEnd={handleEdgeSwipeEnd}
-          onTouchCancel={handleEdgeSwipeCancel}
-        />
-      ) : null}
       {/* PWA Install Prompt Banner - Fixed outside scroll container */}
       {showInstallPrompt && (
         <div style={{

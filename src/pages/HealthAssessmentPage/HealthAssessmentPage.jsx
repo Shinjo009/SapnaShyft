@@ -72,16 +72,93 @@ const AnthropometryUnitDropdown = ({ value, options, onChange }) => {
   );
 };
 
+const normalizeUnitToken = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const isFeetInchesUnit = (value) => {
+  const token = normalizeUnitToken(value);
+  return token.includes('ftin') || token.includes('feetinch') || token === 'ft' || token.includes('footinch');
+};
+
+const isCentimeterUnit = (value) => {
+  const token = normalizeUnitToken(value);
+  return token === 'cm' || token.includes('centimeter') || token.includes('centimetre');
+};
+
+const getQuestionOptionLabel = (option) => String(option?.display_name || option?.option_value || '').trim();
+
+const findQuestionByAliasesAndHints = (questions = [], aliases = [], hints = []) => {
+  if (!Array.isArray(questions) || questions.length === 0) {
+    return null;
+  }
+
+  const normalizedAliases = aliases.map((alias) => normalizeUnitToken(alias)).filter(Boolean);
+  const normalizedHints = hints.map((hint) => normalizeUnitToken(hint)).filter(Boolean);
+
+  const byExactKey = questions.find((question) => {
+    const key = normalizeUnitToken(question?.question_key);
+    return key && normalizedAliases.includes(key);
+  });
+  if (byExactKey) return byExactKey;
+
+  const byPartialKey = questions.find((question) => {
+    const key = normalizeUnitToken(question?.question_key);
+    return key && normalizedAliases.some((alias) => key.includes(alias) || alias.includes(key));
+  });
+  if (byPartialKey) return byPartialKey;
+
+  return questions.find((question) => {
+    const questionText = normalizeUnitToken(question?.question_text);
+    return questionText && normalizedHints.some((hint) => questionText.includes(hint));
+  }) || null;
+};
+
+const extractUnitOptionsFromQuestion = (question) => {
+  const apiOptions = Array.isArray(question?.options)
+    ? question.options.map(getQuestionOptionLabel).filter(Boolean)
+    : [];
+
+  const uniqueApiOptions = [...new Set(apiOptions)];
+  return uniqueApiOptions.length > 0 ? uniqueApiOptions : ['-'];
+};
+
 const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   const [height, setHeight] = useState(152);
   const [weight, setWeight] = useState('0');
   const [waist, setWaist] = useState(32);
-  const [heightUnit, setHeightUnit] = useState('Ft/In');
-  const [weightUnit, setWeightUnit] = useState('Kg');
-  const [waistUnit, setWaistUnit] = useState('In');
+  const [heightUnit, setHeightUnit] = useState('-');
+  const [weightUnit, setWeightUnit] = useState('-');
+  const [waistUnit, setWaistUnit] = useState('-');
   const [heightFeet, setHeightFeet] = useState(5);
   const [heightInches, setHeightInches] = useState(0);
   const [showWaistInfoPopup, setShowWaistInfoPopup] = useState(false);
+
+  const heightQuestionConfig = useMemo(
+    () => findQuestionByAliasesAndHints(questions, ['height'], ['height']),
+    [questions]
+  );
+  const weightQuestionConfig = useMemo(
+    () => findQuestionByAliasesAndHints(questions, ['weight'], ['weight', 'body weight']),
+    [questions]
+  );
+  const waistQuestionConfig = useMemo(
+    () => findQuestionByAliasesAndHints(questions, ['waist_circumference', 'waist'], ['waist']),
+    [questions]
+  );
+
+  const heightUnitOptions = useMemo(
+    () => extractUnitOptionsFromQuestion(heightQuestionConfig),
+    [heightQuestionConfig]
+  );
+  const weightUnitOptions = useMemo(
+    () => extractUnitOptionsFromQuestion(weightQuestionConfig),
+    [weightQuestionConfig]
+  );
+  const waistUnitOptions = useMemo(
+    () => extractUnitOptionsFromQuestion(waistQuestionConfig),
+    [waistQuestionConfig]
+  );
+
+  const usesFeetInchesHeightUnit = isFeetInchesUnit(heightUnit);
 
   const heightTouchLastY = useRef(null);
   const heightFeetTouchLastY = useRef(null);
@@ -90,8 +167,26 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
+  useEffect(() => {
+    if (!heightUnitOptions.includes(heightUnit)) {
+      setHeightUnit(heightUnitOptions[0]);
+    }
+  }, [heightUnit, heightUnitOptions]);
+
+  useEffect(() => {
+    if (!weightUnitOptions.includes(weightUnit)) {
+      setWeightUnit(weightUnitOptions[0]);
+    }
+  }, [weightUnit, weightUnitOptions]);
+
+  useEffect(() => {
+    if (!waistUnitOptions.includes(waistUnit)) {
+      setWaistUnit(waistUnitOptions[0]);
+    }
+  }, [waistUnit, waistUnitOptions]);
+
   const handleHeightWheel = (e) => {
-    if (heightUnit === 'Ft/In') return;
+    if (usesFeetInchesHeightUnit) return;
     e.preventDefault();
     const delta = e.deltaY > 0 ? 1 : -1;
     setHeight((prev) => clamp(prev + delta, 120, 230));
@@ -102,7 +197,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   };
 
   const handleHeightTouchMove = (e) => {
-    if (heightUnit === 'Ft/In') return;
+    if (usesFeetInchesHeightUnit) return;
     const y = e.touches[0].clientY;
     const delta = heightTouchLastY.current - y;
     if (Math.abs(delta) >= 8) {
@@ -149,21 +244,25 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   };
 
   useEffect(() => {
-    if (heightUnit !== 'Ft/In') return;
+    if (!usesFeetInchesHeightUnit) return;
     const totalInches = Math.max(0, Math.round(height / 2.54));
     const nextFeet = Math.floor(totalInches / 12);
     const nextInches = totalInches % 12;
     setHeightFeet(nextFeet);
     setHeightInches(nextInches);
-  }, [height, heightUnit]);
+  }, [height, usesFeetInchesHeightUnit]);
 
   const handleHeightUnitChange = (nextUnit) => {
-    if (nextUnit === 'Ft/In') {
+    const nextUsesFeetInches = isFeetInchesUnit(nextUnit);
+    const currentUsesFeetInches = isFeetInchesUnit(heightUnit);
+    const nextUsesCentimeter = isCentimeterUnit(nextUnit);
+
+    if (nextUsesFeetInches) {
       const totalInches = Math.max(0, Math.round(height / 2.54));
       setHeightFeet(Math.floor(totalInches / 12));
       setHeightInches(totalInches % 12);
     }
-    if (heightUnit === 'Ft/In' && nextUnit === 'Cm') {
+    if (currentUsesFeetInches && nextUsesCentimeter) {
       const totalInches = clamp(heightFeet * 12 + heightInches, 47, 91);
       setHeight(Math.round(totalInches * 2.54));
     }
@@ -188,7 +287,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   };
 
   const handleFeetWheel = (e) => {
-    if (heightUnit !== 'Ft/In') return;
+    if (!usesFeetInchesHeightUnit) return;
     e.preventDefault();
     e.stopPropagation();
     const delta = e.deltaY > 0 ? 1 : -1;
@@ -196,12 +295,12 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   };
 
   const handleFeetTouchStart = (e) => {
-    if (heightUnit !== 'Ft/In') return;
+    if (!usesFeetInchesHeightUnit) return;
     heightFeetTouchLastY.current = e.touches[0].clientY;
   };
 
   const handleFeetTouchMove = (e) => {
-    if (heightUnit !== 'Ft/In' || heightFeetTouchLastY.current === null) return;
+    if (!usesFeetInchesHeightUnit || heightFeetTouchLastY.current === null) return;
     const y = e.touches[0].clientY;
     const delta = heightFeetTouchLastY.current - y;
     if (Math.abs(delta) >= 8) {
@@ -234,7 +333,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   };
 
   const handleInchesWheel = (e) => {
-    if (heightUnit !== 'Ft/In') return;
+    if (!usesFeetInchesHeightUnit) return;
     e.preventDefault();
     e.stopPropagation();
     const delta = e.deltaY > 0 ? 1 : -1;
@@ -242,12 +341,12 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   };
 
   const handleInchesTouchStart = (e) => {
-    if (heightUnit !== 'Ft/In') return;
+    if (!usesFeetInchesHeightUnit) return;
     heightInchesTouchLastY.current = e.touches[0].clientY;
   };
 
   const handleInchesTouchMove = (e) => {
-    if (heightUnit !== 'Ft/In' || heightInchesTouchLastY.current === null) return;
+    if (!usesFeetInchesHeightUnit || heightInchesTouchLastY.current === null) return;
     const y = e.touches[0].clientY;
     const delta = heightInchesTouchLastY.current - y;
     if (Math.abs(delta) >= 8) {
@@ -267,14 +366,14 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   const indicatorProgress = weightForIndicator / 100;
   const indicatorAngle = -90 + (indicatorProgress * 180);
 
-  const getQuestionText = (keys, fallback) => {
-    const match = questions.find((question) => keys.includes(String(question?.question_key || '').toLowerCase()));
+  const getQuestionText = (keys, hints, fallback) => {
+    const match = findQuestionByAliasesAndHints(questions, keys, hints);
     return match?.question_text || fallback;
   };
 
-  const heightQuestion = getQuestionText(['height'], 'What is your height?');
-  const weightQuestion = getQuestionText(['weight'], 'What is your body weight?');
-  const waistQuestion = getQuestionText(['waist_circumference', 'waist'], 'What is your waist size?');
+  const heightQuestion = getQuestionText(['height'], ['height'], 'What is your height?');
+  const weightQuestion = getQuestionText(['weight'], ['weight', 'body weight'], 'What is your body weight?');
+  const waistQuestion = getQuestionText(['waist_circumference', 'waist'], ['waist'], 'What is your waist size?');
 
   return (
     <div className="anthropometry-page">
@@ -301,8 +400,8 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
         onTouchMove={handleHeightTouchMove}
         onTouchEnd={handleHeightTouchEnd}
       >
-        <AnthropometryUnitDropdown value={heightUnit} options={['Ft/In', 'Cm']} onChange={handleHeightUnitChange} />
-        {heightUnit === 'Ft/In' ? (
+        <AnthropometryUnitDropdown value={heightUnit} options={heightUnitOptions} onChange={handleHeightUnitChange} />
+        {usesFeetInchesHeightUnit ? (
           <div className="anthropometry-page__height-dual-faded-row" aria-hidden="true">
             <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{Math.max(0, heightFeet - 1)}</span>
             <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{heightInches === 0 ? 11 : heightInches - 1}</span>
@@ -312,7 +411,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
         )}
         <div className="anthropometry-page__row-centered">
           <div className="anthropometry-page__arrow-wrap"><AnthropometryTriangleArrow direction="right" /></div>
-          {heightUnit === 'Ft/In' ? (
+          {usesFeetInchesHeightUnit ? (
             <div className="anthropometry-page__height-dual-boxes">
               <div
                 className="anthropometry-page__selected-box anthropometry-page__selected-box--height-dual anthropometry-page__height-dual-scroll"
@@ -358,7 +457,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
           )}
           <div className="anthropometry-page__arrow-wrap"><AnthropometryTriangleArrow direction="left" /></div>
         </div>
-        {heightUnit === 'Ft/In' ? (
+        {usesFeetInchesHeightUnit ? (
           <div className="anthropometry-page__height-dual-faded-row" aria-hidden="true">
             <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{Math.min(8, heightFeet + 1)}</span>
             <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{heightInches === 11 ? 0 : heightInches + 1}</span>
@@ -370,7 +469,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
 
       <p className="anthropometry-page__question anthropometry-page__question--mid">{weightQuestion}</p>
       <div className="anthropometry-page__box anthropometry-page__weight-box">
-        <AnthropometryUnitDropdown value={weightUnit} options={['Kg', 'Lb']} onChange={setWeightUnit} />
+        <AnthropometryUnitDropdown value={weightUnit} options={weightUnitOptions} onChange={setWeightUnit} />
         <img src={AnthInd} alt="" aria-hidden="true" className="anthropometry-page__dial" />
         <div className="anthropometry-page__selected-box anthropometry-page__selected-box--weight">
           <input
@@ -410,7 +509,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
         onTouchMove={handleWaistTouchMove}
         onTouchEnd={handleWaistTouchEnd}
       >
-        <AnthropometryUnitDropdown value={waistUnit} options={['In', 'Cm']} onChange={setWaistUnit} />
+        <AnthropometryUnitDropdown value={waistUnit} options={waistUnitOptions} onChange={setWaistUnit} />
         <div className="anthropometry-page__arrow-wrap"><AnthropometryTriangleArrow direction="down" /></div>
         <div className="anthropometry-page__waist-h-row">
           <span className="anthropometry-page__faded anthropometry-page__faded--inline anthropometry-page__faded--far">{waist - 2}</span>
@@ -426,7 +525,20 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
 
       </div>
 
-      <button type="button" className="anthropometry-page__continue" onClick={onContinue}>Continue</button>
+      <button
+        type="button"
+        className="anthropometry-page__continue"
+        onClick={() => {
+          const parsedWeight = Number(weight);
+          onContinue?.({
+            height,
+            weight: Number.isFinite(parsedWeight) ? parsedWeight : null,
+            waist,
+          });
+        }}
+      >
+        Continue
+      </button>
 
       {showWaistInfoPopup ? (
         <div
@@ -498,12 +610,27 @@ const FollowupUnitDropdown = ({ value, options, onChange }) => {
   );
 };
 
-const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone }) => {
+const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [] }) => {
   const [hipSize, setHipSize] = useState(33);
   const [bodyFat, setBodyFat] = useState(20);
-  const [hipUnit, setHipUnit] = useState('in');
+  const [hipUnit, setHipUnit] = useState('-');
   const [showHipInfoPopup, setShowHipInfoPopup] = useState(false);
   const hipTouchLastX = useRef(null);
+
+  const hipQuestionConfig = useMemo(
+    () => findQuestionByAliasesAndHints(questions, ['hip_circumference', 'hip_size', 'hip'], ['hip']),
+    [questions]
+  );
+  const hipUnitOptions = useMemo(
+    () => extractUnitOptionsFromQuestion(hipQuestionConfig),
+    [hipQuestionConfig]
+  );
+
+  useEffect(() => {
+    if (!hipUnitOptions.includes(hipUnit)) {
+      setHipUnit(hipUnitOptions[0]);
+    }
+  }, [hipUnit, hipUnitOptions]);
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -566,7 +693,7 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone }) => {
         onTouchMove={handleHipTouchMove}
         onTouchEnd={handleHipTouchEnd}
       >
-        <FollowupUnitDropdown value={hipUnit} options={['In', 'Cm']} onChange={setHipUnit} />
+        <FollowupUnitDropdown value={hipUnit} options={hipUnitOptions} onChange={setHipUnit} />
         <div className="anthropometry-followup-page__arrow-wrap"><AnthropometryTriangleArrow direction="down" /></div>
         <div className="anthropometry-followup-page__hip-h-row">
           <span className="anthropometry-followup-page__faded anthropometry-followup-page__faded--far">{hipSize - 2}</span>
@@ -603,10 +730,21 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone }) => {
         </div>
       </div>
 
-      <button type="button" className="anthropometry-followup-page__skip" onClick={onDone}>Skip</button>
+      <button type="button" className="anthropometry-followup-page__skip" onClick={() => onDone?.({})}>Skip</button>
       </div>
 
-      <button type="button" className="anthropometry-followup-page__done" onClick={onDone}>Done</button>
+      <button
+        type="button"
+        className="anthropometry-followup-page__done"
+        onClick={() => {
+          onDone?.({
+            hipSize,
+            bodyFat,
+          });
+        }}
+      >
+        Done
+      </button>
 
       {showHipInfoPopup ? (
         <div className="family-history-page__info-popup anthropometry-followup-page__hip-info-popup" role="dialog" aria-label="Hip size information">
@@ -773,6 +911,180 @@ const useCenteredQuestionGap = (deps = []) => {
   }, [depsKey]);
 
   return { subtitleRef, stackWrapRef, stackTopGap };
+};
+
+const normalizeQuestionType = (questionType) => String(questionType || '').trim().toLowerCase();
+
+const isEmptyAnswer = (answer) => {
+  if (answer == null) return true;
+  if (Array.isArray(answer)) return answer.length === 0;
+  if (typeof answer === 'string') return answer.trim() === '';
+  return false;
+};
+
+const mapOptionLabelToValue = (question, label) => {
+  const normalizedLabel = String(label || '').trim();
+  if (!normalizedLabel) return '';
+
+  const matchedOption = Array.isArray(question?.options)
+    ? question.options.find((option) => {
+        const displayName = String(option?.display_name || '').trim();
+        const optionValue = String(option?.option_value || '').trim();
+        return displayName === normalizedLabel || optionValue === normalizedLabel;
+      })
+    : null;
+
+  if (!matchedOption) {
+    return normalizedLabel;
+  }
+
+  return matchedOption.option_value || matchedOption.display_name || normalizedLabel;
+};
+
+const normalizeAnswerForQuestion = (question, rawAnswer) => {
+  const questionType = normalizeQuestionType(question?.question_type);
+
+  if (questionType === 'multiple_choice' || questionType === 'multi_choice') {
+    const values = (Array.isArray(rawAnswer) ? rawAnswer : [rawAnswer])
+      .map((value) => mapOptionLabelToValue(question, value))
+      .filter((value) => !isEmptyAnswer(value));
+    return values;
+  }
+
+  if (questionType === 'single_choice' || questionType === 'choice') {
+    const selected = Array.isArray(rawAnswer) ? rawAnswer[0] : rawAnswer;
+    return mapOptionLabelToValue(question, selected);
+  }
+
+  if (questionType === 'number' || questionType === 'numeric' || questionType === 'scale' || questionType === 'integer') {
+    const selected = Array.isArray(rawAnswer) ? rawAnswer[0] : rawAnswer;
+    const numberValue = Number(selected);
+    return Number.isFinite(numberValue) ? numberValue : null;
+  }
+
+  if (Array.isArray(rawAnswer)) {
+    return rawAnswer[0] ?? null;
+  }
+
+  return rawAnswer;
+};
+
+const buildResponseItem = (question, rawAnswer) => {
+  const questionId = Number(question?.question_id || 0);
+  if (questionId <= 0) return null;
+
+  const answer = normalizeAnswerForQuestion(question, rawAnswer);
+  if (isEmptyAnswer(answer)) return null;
+
+  return {
+    question_id: questionId,
+    answer,
+  };
+};
+
+const buildResponsesFromSelections = (questions = [], selections = {}) => {
+  if (!Array.isArray(questions) || !selections || typeof selections !== 'object') {
+    return [];
+  }
+
+  return questions
+    .map((question) => {
+      const key = question?.question_key || `question-${question?.question_id}`;
+      return buildResponseItem(question, selections[key]);
+    })
+    .filter(Boolean);
+};
+
+const normalizeLookupText = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const findQuestionByKeys = (questions = [], keys = [], textHints = []) => {
+  if (!Array.isArray(questions) || questions.length === 0) {
+    return null;
+  }
+
+  const normalizedKeys = keys
+    .map((key) => normalizeLookupText(key))
+    .filter(Boolean);
+  const normalizedHints = textHints
+    .map((hint) => normalizeLookupText(hint))
+    .filter(Boolean);
+
+  const byExactKey = questions.find((question) => {
+    const key = normalizeLookupText(question?.question_key);
+    return key && normalizedKeys.some((candidate) => candidate === key);
+  });
+  if (byExactKey) {
+    return byExactKey;
+  }
+
+  const byPartialKey = questions.find((question) => {
+    const key = normalizeLookupText(question?.question_key);
+    if (!key) return false;
+    return normalizedKeys.some((candidate) => key.includes(candidate) || candidate.includes(key));
+  });
+  if (byPartialKey) {
+    return byPartialKey;
+  }
+
+  const byTextHint = questions.find((question) => {
+    const text = normalizeLookupText(question?.question_text);
+    if (!text) return false;
+    return normalizedHints.some((hint) => text.includes(hint));
+  });
+
+  return byTextHint || null;
+};
+
+const buildAnthropometryResponses = (questions = [], primaryValues = {}, followupValues = {}) => {
+  const mergedValues = {
+    ...primaryValues,
+    ...followupValues,
+  };
+
+  const fieldMap = [
+    { aliases: ['height'], textHints: ['height'], value: mergedValues.height },
+    { aliases: ['weight'], textHints: ['weight', 'body weight'], value: mergedValues.weight },
+    { aliases: ['waist_circumference', 'waist'], textHints: ['waist'], value: mergedValues.waist },
+    { aliases: ['hip_circumference', 'hip_size', 'hip'], textHints: ['hip'], value: mergedValues.hipSize },
+    { aliases: ['body_fat_percentage', 'body_fat', 'fat_percentage'], textHints: ['body fat', 'bodyfat'], value: mergedValues.bodyFat },
+  ];
+
+  return fieldMap
+    .map(({ aliases, textHints, value }) => {
+      if (value == null || value === '') {
+        return null;
+      }
+
+      const question = findQuestionByKeys(questions, aliases, textHints);
+      if (!question) {
+        return null;
+      }
+
+      return buildResponseItem(question, value);
+    })
+    .filter(Boolean);
+};
+
+const buildVitalsResponses = (questions = [], values = {}) => {
+  const fieldMap = [
+    { aliases: ['systolic_blood_pressure', 'systolic'], value: values.systolic },
+    { aliases: ['diastolic_blood_pressure', 'diastolic'], value: values.diastolic },
+  ];
+
+  return fieldMap
+    .map(({ aliases, value }) => {
+      if (value == null || value === '') {
+        return null;
+      }
+
+      const question = findQuestionByKeys(questions, aliases);
+      if (!question) {
+        return null;
+      }
+
+      return buildResponseItem(question, value);
+    })
+    .filter(Boolean);
 };
 
 const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [] }) => {
@@ -968,7 +1280,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [] }) => {
       <p className="family-history-page__swipe-hint">Scroll up / down to navigate</p>
 
       {cardIndex === totalCards - 1 ? (
-        <button type="button" className="family-history-page__done" onClick={onDone}>Done</button>
+        <button type="button" className="family-history-page__done" onClick={() => onDone?.(selections)}>Done</button>
       ) : null}
 
       {showInfoPopup && infoLines.length ? (
@@ -1385,7 +1697,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [] }) => {
       <p className="lifestyle-habits-page__swipe-hint">Scroll up / down to navigate</p>
 
       {cardIndex === totalCards - 1 ? (
-        <button type="button" className="lifestyle-habits-page__done" onClick={onDone}>Done</button>
+        <button type="button" className="lifestyle-habits-page__done" onClick={() => onDone?.(selections)}>Done</button>
       ) : null}
 
       {showInfoPopup && infoLines.length ? (
@@ -1884,7 +2196,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [] }) => {
       <p className="nutrition-log-page__swipe-hint">Scroll up / down to navigate</p>
 
       {cardIndex === totalCards - 1 ? (
-        <button type="button" className="nutrition-log-page__done" onClick={onDone}>Done</button>
+        <button type="button" className="nutrition-log-page__done" onClick={() => onDone?.(selections)}>Done</button>
       ) : null}
 
       {showInfoPopup && infoLines.length ? (
@@ -1999,7 +2311,18 @@ const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [] }) => {
       </div>
 
       <button type="button" className="vitals-page__skip" onClick={onSkip}>Skip</button>
-      <button type="button" className="vitals-page__done" onClick={onDone}>Done</button>
+      <button
+        type="button"
+        className="vitals-page__done"
+        onClick={() => {
+          onDone?.({
+            systolic,
+            diastolic,
+          });
+        }}
+      >
+        Done
+      </button>
     </div>
   );
 };
@@ -2056,6 +2379,7 @@ const HealthAssessmentPage = ({
 }) => {
   const [activeSubPage, setActiveSubPage] = useState(null);
   const [showFollowup, setShowFollowup] = useState(false);
+  const [anthropometryPrimaryValues, setAnthropometryPrimaryValues] = useState({});
   const resolvedSteps = defaultSteps.map((defaultStep) => {
     const matchedStep = Array.isArray(steps)
       ? steps.find((step) => step?.routeId === defaultStep.id || step?.id === defaultStep.id)
@@ -2101,7 +2425,10 @@ const HealthAssessmentPage = ({
       <EmbeddedAnthropometryPage
         questions={questionsByRouteId['anthropometry'] || []}
         onBack={() => setActiveSubPage(null)}
-        onContinue={() => setShowFollowup(true)}
+        onContinue={(values) => {
+          setAnthropometryPrimaryValues(values || {});
+          setShowFollowup(true);
+        }}
       />
     );
   }
@@ -2109,11 +2436,20 @@ const HealthAssessmentPage = ({
   if (activeSubPage === 'anthropometry' && showFollowup) {
     return (
       <EmbeddedAnthropometryFollowupPage
+        questions={questionsByRouteId['anthropometry'] || []}
         onBack={() => setShowFollowup(false)}
-        onDone={() => {
+        onDone={(followupValues) => {
+          const anthropometryQuestions = questionsByRouteId['anthropometry'] || [];
+          const responses = buildAnthropometryResponses(
+            anthropometryQuestions,
+            anthropometryPrimaryValues,
+            followupValues || {}
+          );
+
           setShowFollowup(false);
+          setAnthropometryPrimaryValues({});
           setActiveSubPage(null);
-          onStepComplete?.('anthropometry');
+          onStepComplete?.('anthropometry', responses);
         }}
       />
     );
@@ -2124,9 +2460,14 @@ const HealthAssessmentPage = ({
       <EmbeddedFamilyHistoryPage
         questions={questionsByRouteId['family-history'] || []}
         onBack={() => setActiveSubPage(null)}
-        onDone={() => {
+        onDone={(selections) => {
+          const responses = buildResponsesFromSelections(
+            questionsByRouteId['family-history'] || [],
+            selections || {}
+          );
+
           setActiveSubPage(null);
-          onStepComplete?.('family-history');
+          onStepComplete?.('family-history', responses);
         }}
       />
     );
@@ -2137,9 +2478,14 @@ const HealthAssessmentPage = ({
       <EmbeddedLifestyleHabitsPage
         questions={questionsByRouteId['lifestyle-habits'] || []}
         onBack={() => setActiveSubPage(null)}
-        onDone={() => {
+        onDone={(selections) => {
+          const responses = buildResponsesFromSelections(
+            questionsByRouteId['lifestyle-habits'] || [],
+            selections || {}
+          );
+
           setActiveSubPage(null);
-          onStepComplete?.('lifestyle-habits');
+          onStepComplete?.('lifestyle-habits', responses);
         }}
       />
     );
@@ -2150,9 +2496,14 @@ const HealthAssessmentPage = ({
       <EmbeddedNutritionLogPage
         questions={questionsByRouteId['nutrition-log'] || []}
         onBack={() => setActiveSubPage(null)}
-        onDone={() => {
+        onDone={(selections) => {
+          const responses = buildResponsesFromSelections(
+            questionsByRouteId['nutrition-log'] || [],
+            selections || {}
+          );
+
           setActiveSubPage(null);
-          onStepComplete?.('nutrition-log');
+          onStepComplete?.('nutrition-log', responses);
         }}
       />
     );
@@ -2163,9 +2514,11 @@ const HealthAssessmentPage = ({
       <EmbeddedVitalsPage
         questions={questionsByRouteId['vitals'] || []}
         onBack={() => setActiveSubPage(null)}
-        onDone={() => {
+        onDone={(values) => {
+          const responses = buildVitalsResponses(questionsByRouteId['vitals'] || [], values || {});
+
           setActiveSubPage(null);
-          onStepComplete?.('vitals');
+          onStepComplete?.('vitals', responses);
           onNavigateHome?.();
         }}
         onSkip={() => {

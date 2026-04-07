@@ -8,6 +8,172 @@ import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
 
+const AvatarGlyph = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42" fill="none" aria-hidden="true">
+    <foreignObject x="-6.90083" y="16.9698" width="49.579" height="31.7743">
+      <div
+        style={{
+          backdropFilter: 'blur(3.45px)',
+          clipPath: 'url(#bgblur_0_2189_15612_clip_path)',
+          height: '100%',
+          width: '100%',
+        }}
+      />
+    </foreignObject>
+    <path d="M17.8906 24.2544C26.4156 24.2544 33.5346 30.1843 35.2725 38.0933L35.3477 38.4741C35.6503 40.0137 34.4237 41.4595 32.8086 41.4595H2.96875C1.35365 41.4595 0.127063 40.0137 0.429688 38.4741C2.01951 30.3755 9.2294 24.2545 17.8906 24.2544Z" fill="url(#avatar-base-fill)" stroke="url(#avatar-base-stroke)" strokeWidth="0.766759" />
+    <foreignObject x="1.9644" y="-5.09224" width="31.8388" height="31.6459">
+      <div
+        style={{
+          backdropFilter: 'blur(3.45px)',
+          clipPath: 'url(#bgblur_1_2189_15612_clip_path)',
+          height: '100%',
+          width: '100%',
+        }}
+      />
+    </foreignObject>
+    <path d="M15.9019 2.42248C20.5457 1.33821 25.1928 4.18326 26.2869 8.76837C27.3809 13.3537 24.5104 17.9548 19.8664 19.0391C15.2224 20.1233 10.576 17.2773 9.48205 12.692C8.3883 8.10688 11.2581 3.50681 15.9019 2.42248Z" fill="url(#avatar-head-fill)" stroke="url(#avatar-head-stroke)" strokeWidth="0.766759" />
+    <defs>
+      <clipPath id="bgblur_0_2189_15612_clip_path" transform="translate(6.90083 -16.9698)">
+        <path d="M17.8906 24.2544C26.4156 24.2544 33.5346 30.1843 35.2725 38.0933L35.3477 38.4741C35.6503 40.0137 34.4237 41.4595 32.8086 41.4595H2.96875C1.35365 41.4595 0.127063 40.0137 0.429688 38.4741C2.01951 30.3755 9.2294 24.2545 17.8906 24.2544Z" />
+      </clipPath>
+      <clipPath id="bgblur_1_2189_15612_clip_path" transform="translate(-1.9644 5.09224)">
+        <path d="M15.9019 2.42248C20.5457 1.33821 25.1928 4.18326 26.2869 8.76837C27.3809 13.3537 24.5104 17.9548 19.8664 19.0391C15.2224 20.1233 10.576 17.2773 9.48205 12.692C8.3883 8.10688 11.2581 3.50681 15.9019 2.42248Z" />
+      </clipPath>
+      <linearGradient id="avatar-base-fill" x1="2.01984" y1="40.8286" x2="14.8103" y2="15.3672" gradientUnits="userSpaceOnUse">
+        <stop stopColor="white" stopOpacity="0.2" />
+        <stop offset="1" stopColor="white" stopOpacity="0.49" />
+      </linearGradient>
+      <linearGradient id="avatar-base-stroke" x1="2.52548" y1="25.2841" x2="14.1155" y2="49.9531" gradientUnits="userSpaceOnUse">
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
+      </linearGradient>
+      <linearGradient id="avatar-head-fill" x1="11.9367" y1="20.2495" x2="23.6466" y2="1.09847" gradientUnits="userSpaceOnUse">
+        <stop stopColor="white" stopOpacity="0.2" />
+        <stop offset="1" stopColor="white" stopOpacity="0.49" />
+      </linearGradient>
+      <linearGradient id="avatar-head-stroke" x1="8.60187" y1="5.17443" x2="26.8536" y2="17.4495" gradientUnits="userSpaceOnUse">
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+const PreventiveCareIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <g clipPath="url(#preventive-care-clip)">
+      <path d="M11.8007 6.11998C11.8586 6.04939 11.9017 5.9679 11.9276 5.88035C11.9534 5.7928 11.9614 5.70096 11.9512 5.61025C11.9409 5.51955 11.9126 5.43181 11.8679 5.35224C11.8231 5.27267 11.7629 5.20288 11.6907 5.14698C11.5439 5.03213 11.3581 4.97915 11.1728 4.99932C10.9875 5.01949 10.8174 5.11123 10.6987 5.25498L7.38871 9.31498L5.61871 7.95498C5.47412 7.83731 5.28929 7.78076 5.10361 7.79738C4.91794 7.81401 4.74609 7.90249 4.62471 8.04398C4.56541 8.11337 4.52062 8.19395 4.49299 8.28095C4.46535 8.36794 4.45544 8.45959 4.46383 8.55049C4.47222 8.64138 4.49874 8.72967 4.54183 8.81014C4.58493 8.8906 4.64371 8.96162 4.71471 9.01898L7.03471 10.829C7.18121 10.9482 7.36891 11.0045 7.55683 10.9858C7.74475 10.9671 7.91762 10.8747 8.03771 10.729L11.7977 6.10898L11.8007 6.11998Z" fill="#358678" />
+      <path fillRule="evenodd" clipRule="evenodd" d="M6.50914 0.714119C7.04314 0.322119 7.31014 0.126119 7.59914 0.0501195C7.85738 -0.0154044 8.1279 -0.0154044 8.38614 0.0501195C8.67814 0.126119 8.94614 0.322119 9.47614 0.714119L10.1531 1.21112C10.3381 1.34712 10.4311 1.41512 10.5311 1.46812C10.6205 1.51479 10.7135 1.55345 10.8101 1.58412C10.9191 1.61712 11.0321 1.63412 11.2591 1.66912L12.0891 1.79612C12.7441 1.89612 13.0711 1.94712 13.3291 2.10012C13.5591 2.23512 13.7511 2.42712 13.8861 2.65712C14.0391 2.91712 14.0891 3.24512 14.1901 3.89712L14.3171 4.72712C14.3521 4.95412 14.3691 5.06812 14.4021 5.17712C14.4321 5.27379 14.4708 5.36645 14.5181 5.45512C14.5721 5.55512 14.6391 5.64812 14.7751 5.83312L15.2721 6.51012C15.6641 7.04412 15.8601 7.31112 15.9361 7.60012C16.0017 7.85836 16.0017 8.12888 15.9361 8.38712C15.8611 8.67912 15.6641 8.94712 15.2721 9.47712L14.7751 10.1541C14.68 10.2734 14.5941 10.3998 14.5181 10.5321C14.4707 10.6216 14.4319 10.7153 14.4021 10.8121C14.3691 10.9201 14.3521 11.0331 14.3171 11.2601L14.1901 12.0901C14.0901 12.7451 14.0391 13.0721 13.8861 13.3301C13.7511 13.5601 13.5591 13.7521 13.3291 13.8871C13.0691 14.0401 12.7411 14.0901 12.0891 14.1911L11.2591 14.3181C11.1075 14.3353 10.9574 14.3641 10.8101 14.4041C10.7135 14.4335 10.6205 14.4721 10.5311 14.5201C10.4311 14.5731 10.3381 14.6401 10.1531 14.7771L9.47614 15.2741C8.94214 15.6661 8.67514 15.8621 8.38614 15.9381C8.1279 16.0036 7.85738 16.0036 7.59914 15.9381C7.30714 15.8621 7.03914 15.6661 6.50914 15.2741L5.83214 14.7771C5.71286 14.682 5.5865 14.596 5.45414 14.5201C5.36501 14.4727 5.27159 14.4339 5.17514 14.4041C5.02788 14.3641 4.87778 14.3353 4.72614 14.3181L3.89614 14.1911C3.24114 14.0911 2.91314 14.0411 2.65614 13.8871C2.42696 13.7508 2.23549 13.5593 2.09914 13.3301C1.94614 13.0701 1.89614 12.7421 1.79514 12.0901L1.66814 11.2601C1.63314 11.0331 1.61614 10.9201 1.58314 10.8111C1.55397 10.7145 1.5151 10.621 1.46714 10.5321C1.39121 10.3998 1.3053 10.2734 1.21014 10.1541L0.713143 9.47712C0.321143 8.94312 0.125143 8.67712 0.0491429 8.38712C-0.016381 8.12888 -0.016381 7.85836 0.0491429 7.60012C0.124143 7.30812 0.321143 7.04012 0.713143 6.51012L1.21014 5.83312C1.34614 5.64812 1.41414 5.55512 1.46714 5.45512C1.51381 5.36645 1.55248 5.27345 1.58314 5.17612C1.61614 5.06712 1.63314 4.95412 1.66814 4.72712L1.79514 3.89712C1.89514 3.24212 1.94614 2.91412 2.09914 2.65712C2.23414 2.42712 2.42614 2.23712 2.65614 2.10012C2.91614 1.94712 3.24414 1.89712 3.89614 1.79612L4.72614 1.66912C4.95314 1.63512 5.06714 1.61712 5.17514 1.58412C5.27181 1.55412 5.36481 1.51545 5.45414 1.46812C5.55414 1.41512 5.64714 1.34712 5.83214 1.21112L6.50914 0.714119ZM8.88914 1.52012L9.60014 2.04212C9.75114 2.15312 9.90014 2.26312 10.0661 2.35112C10.2128 2.42912 10.3648 2.49212 10.5221 2.54012C10.702 2.58986 10.8851 2.62695 11.0701 2.65112L11.9421 2.78512C12.6831 2.89912 12.7751 2.93012 12.8291 2.96212C12.9138 3.01279 12.9811 3.08012 13.0311 3.16412C13.0631 3.21812 13.0951 3.31012 13.2081 4.05112L13.3421 4.92312C13.3663 5.10815 13.4034 5.29127 13.4531 5.47112C13.5018 5.62979 13.5648 5.78179 13.6421 5.92712C13.7301 6.09312 13.8401 6.24212 13.9511 6.39312L14.4731 7.10412C14.9171 7.70812 14.9591 7.79512 14.9751 7.85712C14.9982 7.95106 14.9982 8.04918 14.9751 8.14312C14.9591 8.20412 14.9171 8.29112 14.4731 8.89612L13.9511 9.60712C13.8401 9.75812 13.7301 9.90712 13.6421 10.0731C13.5648 10.2188 13.5015 10.3715 13.4531 10.5291C13.4034 10.709 13.3663 10.8921 13.3421 11.0771L13.2081 11.9491C13.0941 12.6901 13.0631 12.7821 13.0311 12.8361C12.9811 12.9187 12.9118 12.988 12.8291 13.0381C12.7751 13.0701 12.6831 13.1021 11.9421 13.2151L11.0701 13.3491C10.8851 13.3733 10.702 13.4104 10.5221 13.4601C10.3645 13.5085 10.2118 13.5718 10.0661 13.6491C9.90014 13.7371 9.75114 13.8471 9.60014 13.9581L8.88914 14.4801C8.28514 14.9241 8.19814 14.9661 8.13614 14.9821C8.0422 15.0052 7.94408 15.0052 7.85014 14.9821C7.78914 14.9661 7.70214 14.9241 7.09714 14.4801L6.38614 13.9581C6.23821 13.8444 6.08249 13.7411 5.92014 13.6491C5.77448 13.5718 5.62179 13.5085 5.46414 13.4601C5.28429 13.4104 5.10118 13.3733 4.91614 13.3491L4.04414 13.2151C3.30314 13.1011 3.21114 13.0701 3.15714 13.0381C3.07453 12.988 3.00523 12.9187 2.95514 12.8361C2.92314 12.7821 2.89114 12.6901 2.77814 11.9491L2.64414 11.0771C2.61997 10.8921 2.58288 10.709 2.53314 10.5291C2.48475 10.3715 2.42146 10.2188 2.34414 10.0731C2.25614 9.90712 2.14614 9.75812 2.03514 9.60712L1.51314 8.89612C1.06914 8.29212 1.02714 8.20512 1.01114 8.14312C0.98809 8.04918 0.98809 7.95106 1.01114 7.85712C1.02714 7.79612 1.06914 7.70912 1.51314 7.10412L2.03514 6.39312C2.14614 6.24212 2.25614 6.09312 2.34414 5.92712C2.42148 5.78045 2.48448 5.62845 2.53314 5.47112C2.58288 5.29127 2.61997 5.10815 2.64414 4.92312L2.77814 4.05112C2.89214 3.31012 2.92314 3.21812 2.95514 3.16412C3.00523 3.08151 3.07453 3.01221 3.15714 2.96212C3.21114 2.93012 3.30314 2.89812 4.04414 2.78512L4.91614 2.65112C5.10118 2.62695 5.28429 2.58986 5.46414 2.54012C5.62281 2.49145 5.77481 2.42845 5.92014 2.35112C6.08614 2.26312 6.23514 2.15312 6.38614 2.04212L7.09714 1.52012C7.70114 1.07612 7.78814 1.03412 7.85014 1.01812C7.94408 0.995066 8.0422 0.995066 8.13614 1.01812C8.19714 1.03412 8.28414 1.07612 8.88914 1.52012Z" fill="#358678" />
+    </g>
+    <defs>
+      <clipPath id="preventive-care-clip">
+        <rect width="16" height="16" fill="white" />
+      </clipPath>
+    </defs>
+  </svg>
+);
+
+const CostEffectiveIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
+    <g clipPath="url(#cost-effective-clip)">
+      <path d="M4.24935 10.2708V14.875C4.24935 15.0629 4.17472 15.243 4.04188 15.3759C3.90904 15.5087 3.72888 15.5833 3.54102 15.5833H2.12435C1.93649 15.5833 1.75632 15.5087 1.62348 15.3759C1.49064 15.243 1.41602 15.0629 1.41602 14.875V10.2708C1.41602 10.083 1.49064 9.9028 1.62348 9.76997C1.75632 9.63713 1.93649 9.5625 2.12435 9.5625H3.54102C3.72888 9.5625 3.90904 9.63713 4.04188 9.76997C4.17472 9.9028 4.24935 10.083 4.24935 10.2708ZM4.24935 10.2708H8.32227C8.55709 10.2708 8.7823 10.3641 8.94835 10.5302C9.1144 10.6962 9.20768 10.9214 9.20768 11.1563C9.20768 11.3911 9.1144 11.6163 8.94835 11.7823C8.7823 11.9484 8.55709 12.0417 8.32227 12.0417H6.72852" stroke="#358678" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7.79167 12.0415H10.4068C11.0088 12.0414 11.595 11.8496 12.0806 11.494L13.9428 10.1304C14.1386 9.9789 14.3828 9.90375 14.6299 9.919C14.877 9.93425 15.1102 10.0388 15.2858 10.2133C15.3851 10.3124 15.4628 10.4311 15.5138 10.5618C15.5648 10.6925 15.5882 10.8323 15.5823 10.9725C15.5764 11.1127 15.5415 11.2501 15.4798 11.3761C15.418 11.5021 15.3307 11.6139 15.2235 11.7043L12.109 14.2388C11.6037 14.6501 10.972 14.8748 10.3204 14.8748H4.25M13.4583 4.95817C13.4583 5.89748 13.0852 6.79832 12.421 7.46251C11.7568 8.1267 10.856 8.49984 9.91667 8.49984C8.97736 8.49984 8.07652 8.1267 7.41233 7.46251C6.74814 6.79832 6.375 5.89748 6.375 4.95817C6.375 4.01886 6.74814 3.11803 7.41233 2.45383C8.07652 1.78964 8.97736 1.4165 9.91667 1.4165C10.856 1.4165 11.7568 1.78964 12.421 2.45383C13.0852 3.11803 13.4583 4.01886 13.4583 4.95817Z" stroke="#358678" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </g>
+    <defs>
+      <clipPath id="cost-effective-clip">
+        <rect width="17" height="17" fill="white" />
+      </clipPath>
+    </defs>
+  </svg>
+);
+
+const DataPrivacyIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
+    <path d="M5.66602 7.08333V4.95833C5.66602 3.39292 6.93393 2.125 8.49935 2.125C10.0648 2.125 11.3327 3.39292 11.3327 4.95833V7.08333M8.49935 10.625C8.68721 10.625 8.86738 10.5504 9.00022 10.4175C9.13305 10.2847 9.20768 10.1045 9.20768 9.91667C9.20768 9.7288 9.13305 9.54864 9.00022 9.4158C8.86738 9.28296 8.68721 9.20833 8.49935 9.20833C8.31149 9.20833 8.13132 9.28296 7.99848 9.4158C7.86564 9.54864 7.79102 9.7288 7.79102 9.91667C7.79102 10.1045 7.86564 10.2847 7.99848 10.4175C8.13132 10.5504 8.31149 10.625 8.49935 10.625ZM8.49935 10.625V12.75M4.67435 7.08333H12.3243C12.9477 7.08333 13.4577 7.59333 13.4577 8.21667V13.175C13.4577 14.11 12.6927 14.875 11.7577 14.875H5.24102C4.30602 14.875 3.54102 14.11 3.54102 13.175V8.21667C3.54102 7.59333 4.05102 7.08333 4.67435 7.08333Z" stroke="#358678" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const LockIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 29 29" fill="none" aria-hidden="true">
+    <mask id="lock-icon-mask" maskUnits="userSpaceOnUse" x="3" y="1" width="23" height="27" style={{ maskType: 'luminance' }}>
+      <path d="M23.5618 13.3208H5.43685C4.7695 13.3208 4.22852 13.8618 4.22852 14.5291V25.4041C4.22852 26.0715 4.7695 26.6125 5.43685 26.6125H23.5618C24.2292 26.6125 24.7702 26.0715 24.7702 25.4041V14.5291C24.7702 13.8618 24.2292 13.3208 23.5618 13.3208Z" fill="white" stroke="white" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M8.45703 13.2916V8.46129C8.45401 5.3589 10.8272 2.75917 13.9465 2.44742C17.0658 2.13567 19.9163 4.2134 20.5404 7.25356" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14.5 18.125V21.75" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </mask>
+    <g mask="url(#lock-icon-mask)">
+      <path d="M0 0H29V29H0V0Z" fill="white" />
+    </g>
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="48" viewBox="0 0 22 48" fill="none" aria-hidden="true">
+    <path d="M11 1L11 37" stroke="white" strokeWidth="2" strokeLinecap="round" />
+    <path d="M1 1L1 37" stroke="white" strokeWidth="2" strokeLinecap="round" transform="translate(10 0)" />
+  </svg>
+);
+
+const TimeRowIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+    <path d="M9 1.5C13.1423 1.5 16.5 4.85775 16.5 9C16.5 13.1423 13.1423 16.5 9 16.5C4.85775 16.5 1.5 13.1423 1.5 9C1.5 4.85775 4.85775 1.5 9 1.5ZM9 3C7.4087 3 5.88258 3.63214 4.75736 4.75736C3.63214 5.88258 3 7.4087 3 9C3 10.5913 3.63214 12.1174 4.75736 13.2426C5.88258 14.3679 7.4087 15 9 15C10.5913 15 12.1174 14.3679 13.2426 13.2426C14.3679 12.1174 15 10.5913 15 9C15 7.4087 14.3679 5.88258 13.2426 4.75736C12.1174 3.63214 10.5913 3 9 3ZM9 4.5C9.1837 4.50002 9.361 4.56747 9.49828 4.68954C9.63556 4.81161 9.72326 4.97981 9.74475 5.16225L9.75 5.25V8.6895L11.7802 10.7198C11.9148 10.8547 11.9929 11.0358 11.9987 11.2263C12.0045 11.4167 11.9376 11.6023 11.8116 11.7452C11.6855 11.8881 11.5098 11.9777 11.3201 11.9958C11.1305 12.0139 10.941 11.9591 10.7902 11.8425L10.7198 11.7802L8.46975 9.53025C8.35318 9.41358 8.27832 9.26175 8.25675 9.09825L8.25 9V5.25C8.25 5.05109 8.32902 4.86032 8.46967 4.71967C8.61032 4.57902 8.80109 4.5 9 4.5Z" fill="#E6E6E6" />
+  </svg>
+);
+
+const PlaceRowIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+    <path d="M15 7.5C15 12.375 9 16.5 9 16.5C9 16.5 3 12.375 3 7.5C3 5.9087 3.63214 4.38258 4.75736 3.25736C5.88258 2.13214 7.4087 1.5 9 1.5C10.5913 1.5 12.1174 2.13214 13.2426 3.25736C14.3679 4.38258 15 5.9087 15 7.5Z" stroke="#E6E6E6" />
+    <path d="M11.25 7.5C11.25 8.09674 11.0129 8.66903 10.591 9.09099C10.169 9.51295 9.59674 9.75 9 9.75C8.40326 9.75 7.83097 9.51295 7.40901 9.09099C6.98705 8.66903 6.75 8.09674 6.75 7.5C6.75 6.90326 6.98705 6.33097 7.40901 5.90901C7.83097 5.48705 8.40326 5.25 9 5.25C9.59674 5.25 10.169 5.48705 10.591 5.90901C11.0129 6.33097 11.25 6.90326 11.25 7.5Z" stroke="#E6E6E6" />
+  </svg>
+);
+
+const HomeMiniIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="15" viewBox="0 0 14 15" fill="none" aria-hidden="true">
+    <path d="M0 13.2857V5.57143C0 5.3 0.0621248 5.04286 0.186375 4.8C0.310625 4.55714 0.481833 4.35714 0.7 4.2L5.95 0.342857C6.25625 0.114286 6.60625 0 7 0C7.39375 0 7.74375 0.114286 8.05 0.342857L13.3 4.2C13.5187 4.35714 13.6902 4.55714 13.8145 4.8C13.9387 5.04286 14.0006 5.3 14 5.57143V13.2857C14 13.7571 13.8285 14.1609 13.4855 14.4969C13.1425 14.8329 12.7307 15.0006 12.25 15H9.625C9.37708 15 9.16941 14.9177 9.002 14.7531C8.83458 14.5886 8.75058 14.3851 8.75 14.1429V9.85714C8.75 9.61428 8.666 9.41086 8.498 9.24686C8.33 9.08286 8.12233 9.00057 7.875 9H6.125C5.87708 9 5.66941 9.08228 5.502 9.24686C5.33458 9.41143 5.25058 9.61486 5.25 9.85714V14.1429C5.25 14.3857 5.166 14.5894 4.998 14.754C4.83 14.9186 4.62233 15.0006 4.375 15H1.75C1.26875 15 0.856916 14.8323 0.5145 14.4969C0.172083 14.1614 0.000583333 13.7577 0 13.2857Z" fill="white" />
+  </svg>
+);
+
+const PrepIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <g clipPath="url(#clip0_3481_11808)">
+      <path d="M3.75 2.625V19.875C3.75 20.082 3.918 20.25 4.125 20.25H8.88C9.17837 20.25 9.46452 20.3685 9.6755 20.5795C9.88647 20.7905 10.005 21.0766 10.005 21.375C10.005 21.6734 9.88647 21.9595 9.6755 22.1705C9.46452 22.3815 9.17837 22.5 8.88 22.5H4.125C3.42881 22.5 2.76113 22.2234 2.26884 21.7312C1.77656 21.2389 1.5 20.5712 1.5 19.875V2.625C1.5 1.176 2.676 0 4.125 0H16.875C18.324 0 19.5 1.176 19.5 2.625V14.229C19.5 14.5274 19.3815 14.8135 19.1705 15.0245C18.9595 15.2355 18.6734 15.354 18.375 15.354C18.0766 15.354 17.7905 15.2355 17.5795 15.0245C17.3685 14.8135 17.25 14.5274 17.25 14.229V2.625C17.25 2.52554 17.2105 2.43016 17.1402 2.35984C17.0698 2.28951 16.9745 2.25 16.875 2.25H4.125C4.02554 2.25 3.93016 2.28951 3.85984 2.35984C3.78951 2.43016 3.75 2.52554 3.75 2.625ZM23.661 16.9305L16.8255 23.6055C16.6133 23.8123 16.3281 23.927 16.0318 23.9248C15.7355 23.9225 15.452 23.8035 15.243 23.5935L12.3285 20.6685C12.1302 20.4549 12.0225 20.1726 12.0282 19.8811C12.0339 19.5897 12.1525 19.3118 12.359 19.1061C12.5655 18.9003 12.8438 18.7828 13.1353 18.7782C13.4267 18.7736 13.7086 18.8824 13.9215 19.0815L16.05 21.219L22.089 15.321C22.3026 15.1125 22.5903 14.9975 22.8888 15.0011C23.0366 15.003 23.1826 15.0339 23.3184 15.0921C23.4542 15.1503 23.5773 15.2347 23.6805 15.3405C23.7837 15.4463 23.8651 15.5714 23.92 15.7086C23.9749 15.8458 24.0022 15.9925 24.0004 16.1403C23.9985 16.2881 23.9676 16.4341 23.9094 16.5699C23.8512 16.7057 23.7668 16.8288 23.661 16.932M7.125 6H13.875C14.1734 6 14.4595 6.11853 14.6705 6.3295C14.8815 6.54048 15 6.82663 15 7.125C15 7.42337 14.8815 7.70952 14.6705 7.9205C14.4595 8.13147 14.1734 8.25 13.875 8.25H7.125C6.82663 8.25 6.54048 8.13147 6.3295 7.9205C6.11853 7.70952 6 7.42337 6 7.125C6 6.82663 6.11853 6.54048 6.3295 6.3295C6.54048 6.11853 6.82663 6 7.125 6ZM6 11.625C6 11.3266 6.11853 11.0405 6.3295 10.8295C6.54048 10.6185 6.82663 10.5 7.125 10.5H10.125C10.4234 10.5 10.7095 10.6185 10.9205 10.8295C11.1315 11.0405 11.25 11.3266 11.25 11.625C11.25 11.9234 11.1315 12.2095 10.9205 12.4205C10.7095 12.6315 10.4234 12.75 10.125 12.75H7.125C6.82663 12.75 6.54048 12.6315 6.3295 12.4205C6.11853 12.2095 6 11.9234 6 11.625Z" fill="white" />
+    </g>
+    <defs>
+      <clipPath id="clip0_3481_11808">
+        <rect width="24" height="24" fill="white" />
+      </clipPath>
+    </defs>
+  </svg>
+);
+
+const ChecklistTickIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="15"
+    height="15"
+    viewBox="0 0 15 15"
+    fill="none"
+    aria-hidden="true"
+    className="home-page-scheduled__checkmark-svg"
+  >
+    <circle cx="7.5" cy="7.5" r="7" fill="#4B8D83" stroke="white" strokeWidth="1" />
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M8.5207 0.109718C8.55982 0.145993 8.59142 0.189621 8.61369 0.238109C8.63595 0.286597 8.64845 0.338996 8.65046 0.392314C8.65247 0.445631 8.64396 0.498823 8.62541 0.548852C8.60687 0.59888 8.57865 0.644764 8.54236 0.683885L3.26111 6.37139C3.22226 6.41322 3.17501 6.4464 3.12247 6.46875C3.06993 6.4911 3.01326 6.50213 2.95617 6.50111C2.89908 6.50008 2.84285 6.48704 2.79114 6.46282C2.73943 6.4386 2.69341 6.40375 2.65607 6.36055L0.083155 3.38139C0.0203834 3.2988 -0.00856349 3.1954 0.00220459 3.09223C0.0129727 2.98906 0.0626465 2.89386 0.141118 2.82602C0.21959 2.75818 0.320963 2.72278 0.424608 2.72704C0.528254 2.73129 0.626384 2.77488 0.69903 2.84893L2.97403 5.48684L7.94653 0.12976C7.98284 0.0906701 8.0265 0.0591157 8.07501 0.0368985C8.12351 0.0146813 8.17592 0.00223637 8.22924 0.000274703C8.28256 -0.00168696 8.33574 0.00687284 8.38575 0.0254654C8.43575 0.044058 8.48161 0.0723192 8.5207 0.108635V0.109718Z"
+      fill="white"
+      transform="translate(3.1 4.1)"
+    />
+  </svg>
+);
+
+const scheduledChecklistItems = [
+  'Fasting Required ( 8-12 hours )',
+  'Avoid alcohol 24 hours before the test',
+  'Continue medication as prescribed unless advised otherwise by your Doctor.',
+  'Avoid heavy workout 2 hours before the test',
+  'Avoid high-fat or high-sugar foods before the test',
+];
+
 const resolveOverviewPayload = (payload) => {
   if (!payload || typeof payload !== 'object') return null;
   if (payload.data && typeof payload.data === 'object') return payload.data;
@@ -20,6 +186,9 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
   const [metabolicAgeValue, setMetabolicAgeValue] = useState(preloadedData?.metabolicAgeValue || '-');
   const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
   const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
+  const [isNoDataHome, setIsNoDataHome] = useState(false);
+  const [noDataStage, setNoDataStage] = useState('welcome');
+  const [checklistScrollProgress, setChecklistScrollProgress] = useState(0);
 
   const metabolicAgeDetail = useMemo(() => {
     const chronologicalAge = Number(userAge);
@@ -92,6 +261,23 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
             setMetabolicAgeValue('-');
             setPositiveWinsData(null);
             setRiskAnalysisData([]);
+            setIsNoDataHome(true);
+            setNoDataStage('welcome');
+          }
+          return;
+        }
+
+        const hasOverviewFields = Object.prototype.hasOwnProperty.call(overview, 'metabolic_age')
+          || Object.prototype.hasOwnProperty.call(overview, 'positive_wins')
+          || Object.prototype.hasOwnProperty.call(overview, 'risk_analysis');
+
+        if (!hasOverviewFields) {
+          if (isActive) {
+            setMetabolicAgeValue('-');
+            setPositiveWinsData(null);
+            setRiskAnalysisData([]);
+            setIsNoDataHome(true);
+            setNoDataStage('welcome');
           }
           return;
         }
@@ -103,12 +289,16 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
           setMetabolicAgeValue(metabolicAgeDisplay);
           setPositiveWinsData(overview?.positive_wins && typeof overview.positive_wins === 'object' ? overview.positive_wins : null);
           setRiskAnalysisData(Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : []);
+          setIsNoDataHome(false);
+          setNoDataStage('welcome');
         }
       } catch {
         if (isActive) {
           setMetabolicAgeValue('-');
           setPositiveWinsData(null);
           setRiskAnalysisData([]);
+          setIsNoDataHome(true);
+          setNoDataStage('welcome');
         }
       }
     };
@@ -192,6 +382,200 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
       onNavigateToBloodMarkers();
     }
   };
+
+  const handleBioMarkersClick = () => {
+    setNoDataStage('scheduled');
+    setChecklistScrollProgress(0);
+  };
+
+  const handleChecklistScroll = (event) => {
+    const element = event.currentTarget;
+    const maxScroll = element.scrollHeight - element.clientHeight;
+
+    if (maxScroll <= 0) {
+      setChecklistScrollProgress(0);
+      return;
+    }
+
+    setChecklistScrollProgress(element.scrollTop / maxScroll);
+  };
+
+  if (isNoDataHome) {
+    if (noDataStage === 'welcome') {
+      return (
+        <div className="home-page home-page--no-data">
+          <header className="home-page-no-data__topbar">
+            <button className="home-page-no-data__icon-btn" type="button" onClick={handleMenuClick} aria-label="Menu">
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+                <path d="M24.5 14C24.5033 16.0846 23.8833 18.1225 22.7197 19.852C21.76 21.2835 20.4623 22.4565 18.9415 23.2672C17.4206 24.0779 15.7234 24.5013 14 24.5C12.2766 24.5013 10.5794 24.0779 9.05852 23.2672C7.53766 22.4565 6.24001 21.2835 5.28033 19.852C4.36652 18.4898 3.78455 16.9325 3.58109 15.3049C3.37763 13.6772 3.55833 12.0246 4.10871 10.4793C4.65908 8.93412 5.56383 7.53935 6.75041 6.40682C7.937 5.27429 9.37241 4.43552 10.9416 3.95774C12.5108 3.47995 14.1701 3.37645 15.7865 3.65553C17.4028 3.93461 18.9314 4.5885 20.2495 5.5648C21.5676 6.54109 22.6387 7.81262 23.3768 9.27746C24.1149 10.7423 24.4996 12.3597 24.5 14Z" stroke="white" strokeWidth="1.75" />
+                <path d="M15.4574 10.4998C15.4574 11.3048 14.8041 11.9582 13.9991 11.9582V13.7082C14.85 13.7082 15.6661 13.3702 16.2677 12.7685C16.8694 12.1668 17.2074 11.3507 17.2074 10.4998H15.4574ZM13.9991 11.9582C13.1941 11.9582 12.5408 11.3048 12.5408 10.4998H10.7908C10.7908 11.3507 11.1288 12.1668 11.7305 12.7685C12.3322 13.3702 13.1482 13.7082 13.9991 13.7082V11.9582ZM12.5408 10.4998C12.5408 9.69484 13.1941 9.0415 13.9991 9.0415V7.2915C13.1482 7.2915 12.3322 7.62952 11.7305 8.2312C11.1288 8.83288 10.7908 9.64893 10.7908 10.4998H12.5408ZM13.9991 9.0415C14.8041 9.0415 15.4574 9.69484 15.4574 10.4998H17.2074C17.2074 9.64893 16.8694 8.83288 16.2677 8.2312C15.6661 7.62952 14.85 7.2915 13.9991 7.2915V9.0415ZM6.02611 20.8318L5.18728 20.5822L5.05078 21.0395L5.36228 21.4012L6.02611 20.8318ZM21.9721 20.8318L22.6371 21.4023L22.9474 21.0407L22.8109 20.5822L21.9721 20.8318ZM10.4991 18.3748H17.4991V16.6248H10.4991V18.3748ZM10.4991 16.6248C9.30564 16.6245 8.14395 17.0095 7.18687 17.7225C6.2298 18.4356 5.52849 19.4385 5.18728 20.5822L6.86495 21.0815C7.09857 20.2992 7.57845 19.6132 8.23323 19.1256C8.888 18.6379 9.68269 18.3746 10.4991 18.3748V16.6248ZM13.9991 23.6248C12.6101 23.6264 11.2373 23.3266 9.97538 22.7461C8.71348 22.1657 7.59255 21.3183 6.68995 20.2625L5.36228 21.4012C6.42915 22.6483 7.75376 23.6504 9.24482 24.3363C10.7359 25.0221 12.3579 25.3764 13.9991 25.3748V23.6248ZM17.4991 18.3748C19.2141 18.3748 20.6666 19.5158 21.1333 21.0815L22.8109 20.5822C22.4697 19.4385 21.7684 18.4356 20.8114 17.7225C19.8543 17.0095 18.6926 16.6245 17.4991 16.6248V18.3748ZM21.3083 20.2625C20.4057 21.3183 19.2847 22.1657 18.0228 22.7461C16.761 23.3266 15.3881 23.6264 13.9991 23.6248V25.3748C15.6403 25.3764 17.2624 25.0221 18.7534 24.3363C20.2445 23.6504 21.5702 22.6495 22.6371 21.4023L21.3083 20.2625Z" fill="white" />
+              </svg>
+            </button>
+            <button className="home-page-no-data__icon-btn" type="button" onClick={handleSearchClick} aria-label="Search">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M15.5 14H14.71L14.43 13.73C15.0549 13.0039 15.5117 12.1487 15.7675 11.2256C16.0234 10.3024 16.072 9.33413 15.91 8.38998C15.44 5.60998 13.12 3.38997 10.32 3.04997C9.33559 2.92544 8.33576 3.02775 7.397 3.34906C6.45824 3.67038 5.60542 4.20219 4.90381 4.90381C4.20219 5.60542 3.67038 6.45824 3.34906 7.397C3.02775 8.33576 2.92544 9.33559 3.04997 10.32C3.38997 13.12 5.60998 15.44 8.38998 15.91C9.33413 16.072 10.3024 16.0234 11.2256 15.7675C12.1487 15.5117 13.0039 15.0549 13.73 14.43L14 14.71V15.5L18.25 19.75C18.66 20.16 19.33 20.16 19.74 19.75C20.15 19.34 20.15 18.67 19.74 18.26L15.5 14ZM9.49997 14C7.00997 14 4.99997 11.99 4.99997 9.49997C4.99997 7.00997 7.00997 4.99997 9.49997 4.99997C11.99 4.99997 14 7.00997 14 9.49997C14 11.99 11.99 14 9.49997 14Z" fill="white" />
+              </svg>
+            </button>
+          </header>
+
+          <section className="home-page-no-data__top-section">
+            <div className="home-page-no-data__avatar-circle">
+              <AvatarGlyph />
+            </div>
+            <h1 className="home-page-no-data__hello">Hello {userName}!</h1>
+          </section>
+
+          <section className="home-page-no-data__welcome-box">
+            <div className="home-page-no-data__welcome-copy">
+              <h2 className="home-page-no-data__welcome-title">Welcome to Supershyft</h2>
+              <p className="home-page-no-data__welcome-subtitle">Your personalized health playbook begins with a simple Bio-AI test.</p>
+            </div>
+
+            <button type="button" className="home-page-no-data__bio-btn" onClick={handleBioMarkersClick}>
+              Check your Bio-AI tests
+            </button>
+          </section>
+
+          <div className="home-page-no-data__benefits-row">
+            <div className="home-page-no-data__benefit-box">
+              <PreventiveCareIcon />
+              <span>Preventive Care</span>
+            </div>
+            <div className="home-page-no-data__benefit-box">
+              <CostEffectiveIcon />
+              <span>Cost Effective</span>
+            </div>
+            <div className="home-page-no-data__benefit-box">
+              <DataPrivacyIcon />
+              <span>Data Privacy</span>
+            </div>
+          </div>
+
+          <section className="home-page-no-data__health-box" aria-label="Health Scan Index locked until test completion">
+            <div className="home-page-no-data__health-top">
+              <p className="home-page-no-data__health-title">Health Scan Index</p>
+              <button type="button" className="home-page-no-data__see-more" aria-disabled="true">See more</button>
+            </div>
+            <p className="home-page-no-data__health-subtitle">Tap the card to know more</p>
+
+            <div className="home-page-no-data__health-blurred">
+              <div className="home-page-no-data__locked-circles" aria-hidden="true">
+                <span className="home-page-no-data__locked-circle home-page-no-data__locked-circle--red" />
+                <span className="home-page-no-data__locked-circle home-page-no-data__locked-circle--yellow" />
+                <span className="home-page-no-data__locked-circle home-page-no-data__locked-circle--green" />
+              </div>
+            </div>
+
+            <div className="home-page-no-data__unlock-center">
+              <LockIcon />
+              <p>Unlock your Health Scores after the Test</p>
+            </div>
+          </section>
+
+          <NavBar defaultActive="home" onNavigate={handleNavigate} />
+        </div>
+      );
+    }
+
+    return (
+      <div className="home-page home-page--no-data-scheduled">
+        <Header
+          name={userName}
+          onMenuClick={handleMenuClick}
+          onSearchClick={handleSearchClick}
+        />
+
+        <section className="home-page-scheduled__hero">
+          <div className="home-page-scheduled__hero-inner">
+            <div className="home-page-scheduled__clock-wrap" aria-hidden="true">
+              <span className="home-page-scheduled__clock-glow" />
+              <ClockIcon />
+            </div>
+            <div className="home-page-scheduled__hero-copy">
+              <h2>Your Test is Scheduled</h2>
+              <p>February 3, 2026</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="home-page-scheduled__card home-page-scheduled__collection">
+          <div className="home-page-scheduled__collection-top">
+            <h3>Home Collection</h3>
+            <span className="home-page-scheduled__eta-pill">2 hours left</span>
+          </div>
+
+          <div className="home-page-scheduled__time-place">
+            <div className="home-page-scheduled__line-item">
+              <div className="home-page-scheduled__icon-box" aria-hidden="true">
+                <TimeRowIcon />
+              </div>
+              <div className="home-page-scheduled__line-copy">
+                <p className="home-page-scheduled__line-title">9:00 AM - 10:00 AM</p>
+                <p className="home-page-scheduled__line-sub">Collection Window</p>
+              </div>
+            </div>
+            <div className="home-page-scheduled__line-item">
+              <div className="home-page-scheduled__icon-box" aria-hidden="true">
+                <PlaceRowIcon />
+              </div>
+              <div className="home-page-scheduled__line-copy">
+                <p className="home-page-scheduled__line-title">123 Marol Naka</p>
+                <p className="home-page-scheduled__line-sub">Mumbai, Maharashtra</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="home-page-scheduled__divider" aria-hidden="true" />
+
+          <div className="home-page-scheduled__status-row">
+            <div className="home-page-scheduled__status-icons" aria-hidden="true">
+              <span className="home-page-scheduled__status-dot home-page-scheduled__status-dot--one" />
+              <span className="home-page-scheduled__status-link home-page-scheduled__status-link--one" />
+              <span className="home-page-scheduled__status-dot home-page-scheduled__status-dot--two" />
+              <span className="home-page-scheduled__status-link home-page-scheduled__status-link--two" />
+              <span className="home-page-scheduled__status-dot home-page-scheduled__status-dot--three" />
+              <span className="home-page-scheduled__status-link home-page-scheduled__status-link--three" />
+              <span className="home-page-scheduled__status-home"><HomeMiniIcon /></span>
+            </div>
+            <p className="home-page-scheduled__status-text">Your Health Companion is on the way</p>
+          </div>
+        </section>
+
+        <section className="home-page-scheduled__card home-page-scheduled__prep">
+          <div className="home-page-scheduled__prep-head">
+            <PrepIcon />
+            <div className="home-page-scheduled__prep-head-copy">
+              <h3>Preparation Checklist</h3>
+              <p>Complete all</p>
+            </div>
+          </div>
+
+          <div className="home-page-scheduled__divider" aria-hidden="true" />
+
+          <div className="home-page-scheduled__checklist-wrap">
+            <div className="home-page-scheduled__checklist-list" onScroll={handleChecklistScroll}>
+              {scheduledChecklistItems.map((item) => (
+                <div key={item} className="home-page-scheduled__checklist-item">
+                  <span className="home-page-scheduled__check-icon" aria-hidden="true">
+                    <ChecklistTickIcon />
+                  </span>
+                  <p>{item}</p>
+                </div>
+              ))}
+            </div>
+            <div className="home-page-scheduled__scroll-indicator" aria-hidden="true">
+              <span
+                className="home-page-scheduled__scroll-thumb"
+                style={{ top: `${7 + checklistScrollProgress * 60.933}px` }}
+              />
+            </div>
+          </div>
+        </section>
+
+        <NavBar defaultActive="home" onNavigate={handleNavigate} />
+      </div>
+    );
+  }
 
   return (
     <div className="home-page">

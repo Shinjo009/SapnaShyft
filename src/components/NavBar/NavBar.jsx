@@ -109,7 +109,7 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
     const offset = targetCenter - baseCenter;
 
     // Tunable wedge geometry
-    const wedgeWidthScale = 1.1;
+    const wedgeWidthScale = 1.3;
     const wedgeDepth = 28;
 
     const scaleAroundCenter = (value) => {
@@ -142,16 +142,15 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
     <nav className="navbar" ref={navRef}>
       <svg className="navbar__notch-svg" viewBox={`0 0 ${navbarWidth || 360} 43`} preserveAspectRatio="none" aria-hidden="true">
         <defs>
-          <linearGradient id="navbar-gradient" x1={(navbarWidth || 360) / 2} y1="43" x2={(navbarWidth || 360) / 2} y2="-40.5" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#063533" />
-            <stop offset="1" stopColor="#186A9E" />
+          <linearGradient id="navbar-gradient" x1="0" y1="43" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+            <stop stopColor="rgba(6, 53, 51, 0.65)" />
+            <stop offset="1" stopColor="rgba(0, 0, 0, 0.65)" />
           </linearGradient>
         </defs>
         <path
           className="navbar__notch-path"
           d={getNavbarPath()}
           fill="url(#navbar-gradient)"
-          fillOpacity="0.65"
           stroke="none"
         />
       </svg>

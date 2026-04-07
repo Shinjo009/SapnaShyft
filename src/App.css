@@ -40,17 +40,6 @@
   -webkit-touch-callout: default;
 }
 
-.app-edge-swipe-guard {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 28px;
-  height: 100%;
-  z-index: 9001;
-  touch-action: none;
-  background: transparent;
-}
-
 .app-background {
   position: fixed;
   top: 0;
