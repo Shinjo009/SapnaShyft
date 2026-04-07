@@ -38,7 +38,9 @@ export default function SuperClubPage2({
   const handleStayUpdated = () => {
     if (onStayUpdated) {
       onStayUpdated();
+      return;
     }
+    onNavigateHome?.();
   };
 
   return (
@@ -67,7 +69,28 @@ export default function SuperClubPage2({
                   aria-label={sport.name}
                   onClick={() => onSelectSport?.(sport)}
                 >
-                  <img src={sport.image} alt="" className="super-club-tile-btn__img" draggable={false} />
+                  <div
+                    className={`super-club-tile-btn__art${
+                      sport.xlCardGif
+                        ? ' super-club-tile-btn__art--flush'
+                        : sport.largeCardGif
+                          ? ' super-club-tile-btn__art--tight'
+                          : ''
+                    }`}
+                  >
+                    <img
+                      src={sport.image}
+                      alt=""
+                      className={`super-club-tile-btn__gif${
+                        sport.xlCardGif
+                          ? ' super-club-tile-btn__gif--xl'
+                          : sport.largeCardGif
+                            ? ' super-club-tile-btn__gif--large'
+                            : ''
+                      }`}
+                      draggable={false}
+                    />
+                  </div>
                   <span className="super-club-tile-btn__label">{sport.name}</span>
                 </button>
               </li>

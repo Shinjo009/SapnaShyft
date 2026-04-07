@@ -28,13 +28,9 @@ import DoctorsPage from './pages/DoctorsPage';
 import ExpertDetailsPage from './pages/ExpertDetailsPage';
 import IntegratedHealthProgramPage from './pages/IntegratedHealthProgramPage';
 import SuperClubPage from './pages/SuperClubPage/SuperClubPage';
-// Super Club page 2 disabled — only page 1 is shown.
-// import SuperClubPage2 from './pages/SuperClubPage/SuperClubPage2';
-// import {
-//   isSuperClubOnboardingComplete,
-//   getSuperClubLikedSportIds,
-// } from './pages/SuperClubPage/superClubStorage';
-// import { getSuperClubSportsByIds } from './pages/SuperClubPage/superClubSportImages';
+import SuperClubPage2 from './pages/SuperClubPage/SuperClubPage2';
+import { getSuperClubLikedSportIds } from './pages/SuperClubPage/superClubStorage';
+import { getSuperClubSportsByIds } from './pages/SuperClubPage/superClubSportImages';
 
 import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
 import DiseaseDetailPage from './pages/DiseaseDetailPage';
@@ -820,6 +816,36 @@ function App() {
           onNavigateToPackages={() => {
             setCurrentPage('packages');
           }}
+          onOnboardingComplete={() => {
+            setCurrentPage('super-club-2');
+          }}
+        />
+      )}
+
+      {currentPage === 'super-club-2' && (
+        <SuperClubPage2
+          userName={userName}
+          likedSports={getSuperClubSportsByIds(getSuperClubLikedSportIds())}
+          onMenuClick={() => {
+            setCurrentPage('profile');
+          }}
+          onSearchClick={() => {
+            setCurrentPage('health-assessment');
+            initializeQuestionnaire();
+          }}
+          onNavigateHome={() => {
+            setCurrentPage('home');
+          }}
+          onNavigateToDoctors={() => {
+            setCurrentPage('doctors');
+          }}
+          onNavigateToPackages={() => {
+            setCurrentPage('packages');
+          }}
+          onStayUpdated={() => {
+            setCurrentPage('home');
+          }}
+          onSelectSport={() => {}}
         />
       )}
 

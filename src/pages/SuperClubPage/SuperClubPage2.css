@@ -1,4 +1,4 @@
-/* Styles for SuperClubPage2 (parked). */
+/* Super Club page 2 — liked-sports carousel (GIFs centered on tile gradient, aligned with page 1). */
 
 .super-club-page {
   position: relative;
@@ -198,21 +198,57 @@
   outline-offset: 2px;
 }
 
-/* Cover + slight scale pulls past rounded clip to hide typical 1px white fringe on PNG exports. */
-.super-club-tile-btn__img {
+/* Centered sport GIF on tile gradient (same idea as SuperClubPage swipe card; scaled for 142×182). */
+.super-club-tile-btn__art {
   position: absolute;
   inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.super-club-tile-btn__art--tight {
+  padding: 5px;
+}
+
+.super-club-tile-btn__art--flush {
+  padding: 0;
+}
+
+.super-club-tile-btn__gif {
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 110px;
+  height: 110px;
+  min-width: 110px;
+  min-height: 110px;
+  object-fit: contain;
   object-position: center center;
-  transform: scale(1.055);
-  transform-origin: center center;
+  border-radius: 14px;
   pointer-events: none;
   user-select: none;
   border: none;
   outline: none;
+}
+
+.super-club-tile-btn__gif--large {
+  width: 128px;
+  height: 128px;
+  min-width: 128px;
+  min-height: 128px;
+  border-radius: 16px;
+}
+
+/* Matches page 1 “xl” intent — nearly full tile width. */
+.super-club-tile-btn__gif--xl {
+  width: 138px;
+  height: 138px;
+  min-width: 138px;
+  min-height: 138px;
+  border-radius: 18px;
 }
 
 .super-club-tile-btn__label {
