@@ -60,7 +60,7 @@
   font-size: 14px;
   font-style: normal;
   font-weight: 400;
-  line-height: 20px;
+  line-height: 17px;
 }
 
 .risk-analysis-wins__subtitle {
@@ -77,10 +77,10 @@
   --risk-analysis-wins-card-height: 200px;
   --risk-analysis-wins-card-width-boost: 12px;
   --risk-analysis-wins-drag-x: 0px;
-  --risk-analysis-wins-front-left: 2px;
+  --risk-analysis-wins-front-left: -14px;
   --risk-analysis-wins-stack-gap: 8px;
-  --risk-analysis-wins-back-one-left: calc(var(--risk-analysis-wins-front-left) - var(--risk-analysis-wins-stack-gap));
-  --risk-analysis-wins-back-two-left: calc(var(--risk-analysis-wins-front-left) - (var(--risk-analysis-wins-stack-gap) * 2));
+  --risk-analysis-wins-back-one-left: calc(var(--risk-analysis-wins-front-left) + var(--risk-analysis-wins-stack-gap));
+  --risk-analysis-wins-back-two-left: calc(var(--risk-analysis-wins-front-left) + (var(--risk-analysis-wins-stack-gap) * 2));
   --risk-analysis-wins-front-top: 0px;
   --risk-analysis-wins-back-one-top: var(--risk-analysis-wins-stack-gap);
   --risk-analysis-wins-back-two-top: calc(var(--risk-analysis-wins-stack-gap) * 2);

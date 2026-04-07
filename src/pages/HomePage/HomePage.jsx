@@ -113,6 +113,18 @@ const ClockIcon = () => (
   </svg>
 );
 
+const AnalysisHourglassIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="27" height="29" viewBox="0 0 27 29" fill="none" aria-hidden="true">
+    <path d="M0 1H26.6667M4.84848 1V7.06061C4.84848 10.697 10.9091 10.9818 10.9091 14.3333C10.9091 17.6848 4.84848 17.9697 4.84848 21.6061V27.6667M21.8182 1V7.06061C21.8182 10.697 15.7576 10.9818 15.7576 14.3333C15.7576 17.6848 21.8182 17.9697 21.8182 21.6061V27.6667M0 27.6667H26.6667M10.9091 5.24242H15.7576V7.06061C15.7576 8.27273 13.3333 9.48485 13.3333 9.48485C13.3333 9.48485 10.9091 8.27273 10.9091 7.06061V5.24242ZM8.48485 25.2424C8.48485 22.8182 13.3333 20.3939 13.3333 20.3939C13.3333 20.3939 18.1818 22.8182 18.1818 25.2424V27.6667H8.48485V25.2424Z" stroke="white" strokeWidth="2" />
+  </svg>
+);
+
+const InfoCircleIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+    <path d="M8.75 0C11.0706 0 13.2962 0.921872 14.9372 2.56282C16.5781 4.20376 17.5 6.42936 17.5 8.75C17.5 11.0706 16.5781 13.2962 14.9372 14.9372C13.2962 16.5781 11.0706 17.5 8.75 17.5C6.42936 17.5 4.20376 16.5781 2.56282 14.9372C0.921872 13.2962 0 11.0706 0 8.75C0 6.42936 0.921872 4.20376 2.56282 2.56282C4.20376 0.921872 6.42936 0 8.75 0ZM10.0625 5.37109C10.7129 5.37109 11.2402 4.92188 11.2402 4.25195C11.2402 3.58203 10.7129 3.13281 10.0625 3.13281C9.41211 3.13281 8.88672 3.58203 8.88672 4.25195C8.88672 4.92188 9.41406 5.37305 10.0625 5.37305M10.291 12.4062C10.291 12.2734 10.3379 11.9258 10.3105 11.7266L9.2832 12.9102C9.07031 13.1328 8.80469 13.2891 8.67969 13.248C8.62328 13.227 8.57621 13.1865 8.54687 13.1339C8.51753 13.0813 8.50784 13.02 8.51953 12.9609L10.2305 7.55078C10.3711 6.86328 9.98633 6.23828 9.16992 6.1582C8.31055 6.1582 7.04102 7.03125 6.26953 8.14062C6.26953 8.27344 6.24414 8.60156 6.26953 8.80078L7.29688 7.61719C7.51172 7.39453 7.75781 7.23828 7.88281 7.28125C7.94363 7.3042 7.99333 7.3496 8.02168 7.4081C8.05002 7.46661 8.05484 7.53375 8.03516 7.5957L6.33594 12.9805C6.14062 13.6094 6.51172 14.2266 7.41211 14.3672C8.73828 14.3672 9.52148 13.5156 10.293 12.4062H10.291Z" fill="#4B8D83" />
+  </svg>
+);
+
 const TimeRowIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
     <path d="M9 1.5C13.1423 1.5 16.5 4.85775 16.5 9C16.5 13.1423 13.1423 16.5 9 16.5C4.85775 16.5 1.5 13.1423 1.5 9C1.5 4.85775 4.85775 1.5 9 1.5ZM9 3C7.4087 3 5.88258 3.63214 4.75736 4.75736C3.63214 5.88258 3 7.4087 3 9C3 10.5913 3.63214 12.1174 4.75736 13.2426C5.88258 14.3679 7.4087 15 9 15C10.5913 15 12.1174 14.3679 13.2426 13.2426C14.3679 12.1174 15 10.5913 15 9C15 7.4087 14.3679 5.88258 13.2426 4.75736C12.1174 3.63214 10.5913 3 9 3ZM9 4.5C9.1837 4.50002 9.361 4.56747 9.49828 4.68954C9.63556 4.81161 9.72326 4.97981 9.74475 5.16225L9.75 5.25V8.6895L11.7802 10.7198C11.9148 10.8547 11.9929 11.0358 11.9987 11.2263C12.0045 11.4167 11.9376 11.6023 11.8116 11.7452C11.6855 11.8881 11.5098 11.9777 11.3201 11.9958C11.1305 12.0139 10.941 11.9591 10.7902 11.8425L10.7198 11.7802L8.46975 9.53025C8.35318 9.41358 8.27832 9.26175 8.25675 9.09825L8.25 9V5.25C8.25 5.05109 8.32902 4.86032 8.46967 4.71967C8.61032 4.57902 8.80109 4.5 9 4.5Z" fill="#E6E6E6" />
@@ -172,6 +184,19 @@ const scheduledChecklistItems = [
   'Continue medication as prescribed unless advised otherwise by your Doctor.',
   'Avoid heavy workout 2 hours before the test',
   'Avoid high-fat or high-sugar foods before the test',
+];
+
+const analyzingTimelineItems = [
+  { id: 'sample-collected', label: 'Sample Collected', time: '9:15 AM', state: 'done' },
+  { id: 'questionnaire-completed', label: 'Questionnaire Completed', time: '14:05 PM', state: 'done' },
+  { id: 'analysis-progress', label: 'Analysis in Progress', time: 'NOW', state: 'active' },
+  { id: 'reports-generated', label: 'Reports Generated', time: 'Expected Tomorrow', state: 'pending' },
+];
+
+const analyzingNextItems = [
+  'Your detailed health analysis covers 88+ bio-markers',
+  'Bio-AI powered analysis generates actionable insights',
+  '1:1 consultation with qualified health professionals and get expert guidance on your Health Playbook',
 ];
 
 const resolveOverviewPayload = (payload) => {
@@ -400,6 +425,10 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
     setChecklistScrollProgress(element.scrollTop / maxScroll);
   };
 
+  const handleNavigateToAnalyzingStage = () => {
+    setNoDataStage('analyzing');
+  };
+
   if (isNoDataHome) {
     if (noDataStage === 'welcome') {
       return (
@@ -477,6 +506,67 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
       );
     }
 
+    if (noDataStage === 'analyzing') {
+      return (
+        <div className="home-page home-page--no-data-analyzing">
+          <Header
+            name={userName}
+            onMenuClick={handleMenuClick}
+            onSearchClick={handleSearchClick}
+          />
+
+          <section className="home-page-analyzing__hero">
+            <div className="home-page-scheduled__clock-wrap" aria-hidden="true">
+              <span className="home-page-scheduled__clock-glow" />
+              <AnalysisHourglassIcon />
+            </div>
+            <div className="home-page-analyzing__copy">
+              <h2>Analyzing your Bio-Markers</h2>
+              <p className="home-page-analyzing__subtitle">We&rsquo;re preparing your Health Playbook</p>
+              <p className="home-page-analyzing__eta">Report ready in 24-48 hours</p>
+            </div>
+          </section>
+
+          <section className="home-page-analyzing__card">
+            <h3>Status Timeline</h3>
+            <div className="home-page-analyzing__timeline">
+              {analyzingTimelineItems.map((item, index) => (
+                <div key={item.id} className="home-page-analyzing__timeline-row">
+                  <div className="home-page-analyzing__timeline-rail" aria-hidden="true">
+                    <span className={`home-page-analyzing__timeline-node home-page-analyzing__timeline-node--${item.state}`}>
+                      {item.state === 'done' ? <ChecklistTickIcon /> : null}
+                    </span>
+                    {index < analyzingTimelineItems.length - 1 ? (
+                      <span className={`home-page-analyzing__timeline-line${index === 2 ? ' is-muted' : ''}`} />
+                    ) : null}
+                  </div>
+                  <p className={`home-page-analyzing__timeline-label home-page-analyzing__timeline-label--${item.state}`}>{item.label}</p>
+                  <p className={`home-page-analyzing__timeline-time home-page-analyzing__timeline-time--${item.state}`}>{item.time}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="home-page-analyzing__card">
+            <div className="home-page-analyzing__next-head">
+              <span className="home-page-analyzing__info-badge" aria-hidden="true">
+                <InfoCircleIcon />
+              </span>
+              <h3>What happens next?</h3>
+            </div>
+
+            <ul className="home-page-analyzing__next-list">
+              {analyzingNextItems.map((text) => (
+                <li key={text}>{text}</li>
+              ))}
+            </ul>
+          </section>
+
+          <NavBar defaultActive="home" onNavigate={handleNavigate} />
+        </div>
+      );
+    }
+
     return (
       <div className="home-page home-page--no-data-scheduled">
         <Header
@@ -501,7 +591,7 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
         <section className="home-page-scheduled__card home-page-scheduled__collection">
           <div className="home-page-scheduled__collection-top">
             <h3>Home Collection</h3>
-            <span className="home-page-scheduled__eta-pill">2 hours left</span>
+            <button type="button" className="home-page-scheduled__eta-pill home-page-scheduled__eta-pill-btn" onClick={handleNavigateToAnalyzingStage}>2 hours left</button>
           </div>
 
           <div className="home-page-scheduled__time-place">
