@@ -24,11 +24,12 @@
   display: block;
 }
 
-/* MetabolicAgeOrb2 — topographic canvas; circular clip to match orb silhouette */
+/* MetabolicAgeOrb2 — topographic canvas; circular clip (unused while legacy Orb is active)
 .metabolic-orb__canvas--topographic {
   overflow: hidden;
   border-radius: 50%;
 }
+*/
 
 .metabolic-orb__overlay {
   position: absolute;
