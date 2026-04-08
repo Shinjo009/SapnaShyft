@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import './metabolic-age-orb.css';
-// Legacy orb (canvas + config) — kept for reference; v2 uses MetabolicAgeOrb2 below.
-// import Orb, { defaultConfig } from "./Orb";
+// Legacy orb (canvas + config) — swap with MetabolicAgeOrb2 below to use v1.
+// import Orb, { defaultConfig } from './Orb';
 import MetabolicAgeOrb2 from './MetabolicAgeOrb2';
 
 const parseAgeGapFromDetail = (detailText) => {
@@ -17,7 +17,7 @@ const toNumber = (value) => {
   return Number.isFinite(n) ? n : null;
 };
 
-/* Legacy Orb glow palette (restore when switching back to <Orb />)
+/* Legacy Orb glow palette (used with <Orb />)
 const getRiskGlow = (ageGap) => {
   if (ageGap <= 0) {
     return {
@@ -121,7 +121,7 @@ export default function MetabolicAgeOrb({
       amberGlowColor: activeGlow,
       blueGlowColor: activeGlow,
       tealTintColor: activeTint,
-      starColor: riskGlow.stars
+      starColor: riskGlow.stars,
     };
   }, [ageGap]);
   */
