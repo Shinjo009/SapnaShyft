@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import './metabolic-age-orb.css';
-import Orb, { defaultConfig } from './Orb';
-// MetabolicAgeOrb2 (topographic) — optional; swap with <Orb /> below to try v2.
-// import MetabolicAgeOrb2 from './MetabolicAgeOrb2';
+// Legacy orb (canvas + config) — swap with MetabolicAgeOrb2 below to use v1.
+// import Orb, { defaultConfig } from './Orb';
+import MetabolicAgeOrb2 from './MetabolicAgeOrb2';
 
 const parseAgeGapFromDetail = (detailText) => {
   const match = `${detailText || ''}`.match(/([\d.]+)\s*years?\s*(older|younger)/i);
@@ -17,6 +17,7 @@ const toNumber = (value) => {
   return Number.isFinite(n) ? n : null;
 };
 
+/* Legacy Orb glow palette (used with <Orb />)
 const getRiskGlow = (ageGap) => {
   if (ageGap <= 0) {
     return {
@@ -45,6 +46,7 @@ const getRiskGlow = (ageGap) => {
     stars: 'rgba(230, 150, 150, 0.80)',
   };
 };
+*/
 
 const getRiskBand = (ageGap) => {
   if (ageGap <= 0) return 0;
@@ -60,12 +62,14 @@ const formatYearsForDetail = (yearsAbs) => {
   return rounded.toFixed(1).replace(/\.?0+$/, '');
 };
 
+/*
 const bandToRgb = (band) => {
   if (band === 0) return [144, 223, 158];
   if (band === 1) return [218, 193, 90];
   if (band === 2) return [238, 139, 72];
   return [136, 8, 8];
 };
+*/
 
 export default function MetabolicAgeOrb({
   value = '32.4',
@@ -102,6 +106,7 @@ export default function MetabolicAgeOrb({
     return detail;
   }, [absMeta, metabolicDelta, ageGap, detail]);
 
+  /*
   const config = useMemo(() => {
     const riskGlow = getRiskGlow(ageGap);
     const band = getRiskBand(ageGap);
@@ -119,14 +124,15 @@ export default function MetabolicAgeOrb({
       starColor: riskGlow.stars,
     };
   }, [ageGap]);
+  */
 
   return (
     <div className="metabolic-orb" data-risk-band={riskBand}>
       <div className="metabolic-orb__container" aria-label="Metabolic age">
-        <Orb config={config} className="metabolic-orb__canvas" />
         {/*
-        <MetabolicAgeOrb2 riskBand={riskBand} className="metabolic-orb__canvas metabolic-orb__canvas--topographic" />
+        <Orb config={config} className="metabolic-orb__canvas" />
         */}
+        <MetabolicAgeOrb2 riskBand={riskBand} className="metabolic-orb__canvas metabolic-orb__canvas--topographic" />
 
         <div className="metabolic-orb__overlay">
           <div className="metabolic-orb__value">{centerValue}</div>
