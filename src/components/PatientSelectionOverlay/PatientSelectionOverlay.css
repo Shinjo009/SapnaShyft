@@ -1796,6 +1796,11 @@
   box-shadow: 0 1px 10px 0 #90df9e;
 }
 
+.patient-final__status-icon.is-failed {
+  border-color: #ef4444;
+  box-shadow: 0 1px 10px 0 rgba(239, 68, 68, 0.7);
+}
+
 .patient-final__status-text {
   margin: 12px 0 0;
   color: #90df9e;
@@ -1805,6 +1810,10 @@
   font-style: normal;
   font-weight: 600;
   line-height: normal;
+}
+
+.patient-final__status-text.is-failed {
+  color: #ef4444;
 }
 
 .patient-final__booking-id {

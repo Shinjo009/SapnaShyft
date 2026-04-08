@@ -662,21 +662,20 @@
   align-items: center;
   border-radius: 999px;
   background: #eaf4ff;
-  color: #000;
+  color: #0f2a3a;
   text-align: center;
   font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   font-style: normal;
   font-weight: 700;
   line-height: 1;
+  transition: background-color 320ms ease, color 320ms ease, box-shadow 320ms ease;
 }
 
-.package-details-page__benefit-item:nth-child(1) .package-details-page__benefit-index {
+.package-details-page__benefit-index.is-active {
   background: #90df9e;
-}
-
-.package-details-page__benefit-item:nth-child(2) .package-details-page__benefit-index {
-  background: #eaf4ff;
+  color: #0f3329;
+  box-shadow: 0 0 12px rgba(144, 223, 158, 0.35);
 }
 
 .package-details-page__benefit-line {
@@ -685,10 +684,12 @@
   flex: none;
   height: calc(100% );
   margin-top: 3px;
+  transition: background-color 320ms ease, box-shadow 320ms ease;
 }
 
-.package-details-page__benefit-item:nth-child(2) .package-details-page__benefit-line {
-  margin-top: 3px;
+.package-details-page__benefit-line.is-active {
+  background: #90df9e;
+  box-shadow: 0 0 10px rgba(144, 223, 158, 0.3);
 }
 
 .package-details-page__benefit-copy {

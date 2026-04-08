@@ -466,6 +466,7 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
             opacity: opacity,
             pointerEvents: opacity > 0.5 ? 'auto' : 'none'
           }}
+          data-tour="risk-disease-item"
           onClick={() => handleDiseaseClick(disease)}
         >
           <div className="disease-icon-badge" style={{ '--glow-color': riskColor }}>

@@ -149,6 +149,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
   const [activeFilter, setActiveFilter] = useState('All');
   const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
   const [packageCardsFromApi, setPackageCardsFromApi] = useState([]);
+  const [bookingPackage, setBookingPackage] = useState(null);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -203,8 +204,18 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
         return true;
       }
 
-      const packageName = String(pkg?.title || '').toLowerCase();
       const genderSuitability = String(pkg?.apiData?.gender_suitability || '').toLowerCase();
+      const packageTags = Array.isArray(pkg?.apiData?.tags)
+        ? pkg.apiData.tags.map((tag) => {
+          if (typeof tag === 'string' || typeof tag === 'number') {
+            return String(tag).trim().toLowerCase();
+          }
+          if (tag && typeof tag === 'object') {
+            return String(tag.tag_name || tag.name || '').trim().toLowerCase();
+          }
+          return '';
+        }).filter(Boolean)
+        : [];
 
       if (activeFilter === 'Male') {
         return genderSuitability === 'male' || genderSuitability === 'both';
@@ -215,7 +226,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
       }
 
       if (activeFilter === 'Cancer') {
-        return packageName.includes('cancer');
+        return packageTags.includes('cancer');
       }
 
       if (activeFilter === 'Popular') {
@@ -229,7 +240,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
       return filteredCards;
     }
 
-    return [{ ...customPackageCard }, ...filteredCards];
+    return [...filteredCards, { ...customPackageCard }];
   }, [activeFilter, customPackageCard, sourceCards]);
 
   const handleNav = (itemId) => {
@@ -263,6 +274,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
             type="button"
             className="packages-page__custom-btn"
             aria-label="Create custom package"
+            data-tour="packages-custom"
             onClick={() => {
               if (onOpenCreateCustomPackage) {
                 onOpenCreateCustomPackage();
@@ -372,6 +384,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
                   className="packages-card__book-btn"
                   onClick={(event) => {
                     event.stopPropagation();
+                    setBookingPackage(pkg);
                     setIsPatientOverlayOpen(true);
                   }}
                 >
@@ -383,7 +396,14 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
         </section>
       </div>
 
-      <PatientSelectionOverlay open={isPatientOverlayOpen} onClose={() => setIsPatientOverlayOpen(false)} />
+      <PatientSelectionOverlay
+        open={isPatientOverlayOpen}
+        onClose={() => {
+          setIsPatientOverlayOpen(false);
+          setBookingPackage(null);
+        }}
+        initialPackage={bookingPackage}
+      />
 
       {!isPatientOverlayOpen ? <NavBar defaultActive="packages" onNavigate={handleNav} /> : null}
     </div>

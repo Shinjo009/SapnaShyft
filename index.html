@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SuperShyft — Razorpay payment test</title>
+  <style>
+    :root {
+      font-family: system-ui, Segoe UI, Roboto, sans-serif;
+      color: #1a1a1a;
+      background: #f4f6f8;
+    }
+    body { max-width: 520px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; font-weight: 600; }
+    p.hint { color: #5c6570; font-size: 0.875rem; margin-top: 0.25rem; }
+    label { display: block; font-size: 0.8rem; font-weight: 600; margin-top: 1rem; color: #374151; }
+    input, button { width: 100%; box-sizing: border-box; margin-top: 0.35rem; }
+    input {
+      padding: 0.5rem 0.65rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    button {
+      margin-top: 1.25rem;
+      padding: 0.65rem 1rem;
+      background: #0f766e;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    button.secondary {
+      margin-top: 0.75rem;
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+    button.danger {
+      margin-top: 0.5rem;
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    pre#log {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      min-height: 4rem;
+    }
+    .badge { font-size: 0.7rem; background: #fef3c7; color: #92400e; padding: 0.15rem 0.4rem; border-radius: 4px; }
+    .line-row {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .line-row h4 { margin: 0 0 0.5rem 0; font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.02em; }
+    .line-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .line-actions button { margin-top: 0; flex: 1; }
+  </style>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+  <h1>Payment test <span class="badge">Razorpay test mode</span></h1>
+  <p class="hint">
+    Easiest: open <strong id="originHint"></strong> (no CORS setup).
+    If you use Live Server or another host/port, add your page origin to API <code>CORS_ORIGINS</code> in <code>.env</code>
+    (e.g. <code>http://127.0.0.1:5500</code>) and restart the API.
+    Use real <code>user_id</code> values and active diagnostic package <code>entity_id</code> from your DB.
+    Top <strong>payer</strong> pays; each <strong>line</strong> is a member + package (multi-checkout).
+  </p>
+
+  <label for="apiBase">API base URL (leave empty for same origin)</label>
+  <input id="apiBase" type="text" placeholder="http://localhost:8000" />
+
+  <label for="payerUserId">Payer user_id</label>
+  <input id="payerUserId" type="number" min="1" value="1" />
+
+  <div id="linesContainer"></div>
+  <button type="button" id="btnAddLine" class="secondary">Add line</button>
+
+  <button type="button" id="btnPay">Create order &amp; open Razorpay</button>
+  <button type="button" id="btnClear" class="secondary">Clear log</button>
+
+  <pre id="log"></pre>
+
+  <script>
+    const logEl = document.getElementById("log");
+    const originHint = document.getElementById("originHint");
+    const linesContainer = document.getElementById("linesContainer");
+    originHint.textContent = "http://localhost:8000/payment-test/";
+
+    let lineCounter = 0;
+
+    function log(msg, obj) {
+      const line = typeof obj !== "undefined"
+        ? msg + "\n" + JSON.stringify(obj, null, 2)
+        : String(msg);
+      logEl.textContent += (logEl.textContent ? "\n\n" : "") + line;
+    }
+
+    function apiBase() {
+      const v = document.getElementById("apiBase").value.trim();
+      if (v) return v.replace(/\/$/, "");
+      return "";
+    }
+
+    async function postJson(path, body) {
+      const base = apiBase();
+      const url = (base || "") + path;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err = new Error(data.message || res.statusText || "Request failed");
+        err.status = res.status;
+        err.body = data;
+        throw err;
+      }
+      return data;
+    }
+
+    function addLineRow(memberUserId, entityId) {
+      lineCounter += 1;
+      const id = lineCounter;
+      const wrap = document.createElement("div");
+      wrap.className = "line-row";
+      wrap.dataset.lineId = String(id);
+      wrap.innerHTML =
+        '<h4>Line ' + id + ' (member)</h4>' +
+        '<label>Member user_id</label>' +
+        '<input type="number" min="1" class="memberUid" value="' + (memberUserId || 1) + '" />' +
+        '<label>entity_id (diagnostic_package_id)</label>' +
+        '<input type="number" min="1" class="entityId" value="' + (entityId || 1) + '" />' +
+        '<div class="line-actions">' +
+        '<button type="button" class="danger btnRemoveLine">Remove line</button>' +
+        "</div>";
+      wrap.querySelector(".btnRemoveLine").addEventListener("click", () => {
+        if (linesContainer.querySelectorAll(".line-row").length <= 1) {
+          log("Keep at least one line.");
+          return;
+        }
+        wrap.remove();
+      });
+      linesContainer.appendChild(wrap);
+    }
+
+    function collectItems() {
+      const rows = linesContainer.querySelectorAll(".line-row");
+      const items = [];
+      for (const row of rows) {
+        const memberUid = parseInt(row.querySelector(".memberUid").value, 10);
+        const entityId = parseInt(row.querySelector(".entityId").value, 10);
+        if (!memberUid || !entityId) return null;
+        items.push({
+          user_id: memberUid,
+          entity_type: "diagnostic_package",
+          entity_id: entityId,
+        });
+      }
+      return items;
+    }
+
+    document.getElementById("btnAddLine").addEventListener("click", () => addLineRow(1, 1));
+
+    document.getElementById("btnClear").addEventListener("click", () => {
+      logEl.textContent = "";
+    });
+
+    addLineRow(1, 1);
+
+    document.getElementById("btnPay").addEventListener("click", async () => {
+      const btn = document.getElementById("btnPay");
+      const payerId = parseInt(document.getElementById("payerUserId").value, 10);
+      const items = collectItems();
+
+      if (!payerId) {
+        log("Enter a valid payer user_id.");
+        return;
+      }
+      if (!items || items.length === 0) {
+        log("Add at least one line with valid member user_id and entity_id.");
+        return;
+      }
+
+      btn.disabled = true;
+      try {
+        log("Creating order…");
+        const createPath = "/payments/create-order";
+        const created = await postJson(createPath, {
+          user_id: payerId,
+          items,
+        });
+
+        if (!created.success) {
+          log("Create order failed", created);
+          return;
+        }
+
+        const bookingIds = created.booking_ids || (created.booking_id ? [created.booking_id] : []);
+        log("Order created", {
+          booking_ids: bookingIds,
+          razorpay_order_id: created.razorpay_order_id,
+          amount_paise: created.amount_paise,
+          amount_rupees: created.amount_rupees,
+        });
+
+        const key = created.key_id;
+        const orderId = created.razorpay_order_id;
+        const amount = created.amount_paise;
+
+        const options = {
+          key,
+          amount,
+          currency: created.currency || "INR",
+          name: "SuperShyft (test)",
+          description:
+            bookingIds.length > 1
+              ? "Diagnostic packages (" + bookingIds.length + " lines)"
+              : "Diagnostic package booking",
+          order_id: orderId,
+          handler: async function (response) {
+            log("Razorpay handler (success path)", response);
+            try {
+              const verifyPath = "/payments/verify";
+              const verified = await postJson(verifyPath, {
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              log("Verify response", verified);
+              const ids =
+                verified.booking_ids ||
+                (verified.booking_id ? [verified.booking_id] : []);
+              if (verified.success && ids.length) {
+                const base = apiBase();
+                for (const bid of ids) {
+                  const stPath = "/payments/booking/" + bid + "/status";
+                  const stRes = await fetch((base || "") + stPath);
+                  const stData = await stRes.json();
+                  log("Booking status (booking_id=" + bid + ")", stData);
+                }
+              }
+            } catch (e) {
+              log("Verify failed: " + e.message, e.body || e);
+            }
+          },
+          modal: {
+            ondismiss: async function () {
+              log("Checkout dismissed — recording failure (optional)");
+              try {
+                const failPath = "/payments/failed";
+                const failed = await postJson(failPath, {
+                  razorpay_order_id: orderId,
+                  failure_reason: "User closed Razorpay checkout",
+                });
+                log("Failed endpoint response", failed);
+              } catch (e) {
+                log("Failed endpoint error: " + e.message, e.body || e);
+              }
+            },
+          },
+          theme: { color: "#0f766e" },
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+      } catch (e) {
+        log("Error: " + e.message, e.body || e);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

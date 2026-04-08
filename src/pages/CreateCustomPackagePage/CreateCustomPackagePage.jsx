@@ -210,6 +210,14 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
     });
   };
 
+  const handleExploreSuggestedTests = () => {
+    // AI suggestions currently point users to liver-related tests, which are under General health.
+    setActivePill('General health');
+    setSearchQuery('Liver');
+    setIsSearchOpen(true);
+    setIsAiPopupOpen(false);
+  };
+
   return (
     <div className={`create-custom-page ${isSearchOpen ? 'create-custom-page--search-open' : ''} ${isAiPopupOpen ? 'create-custom-page--ai-open' : ''}`}>
       <div className="create-custom-page__fixed-top">
@@ -385,7 +393,7 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
               ))}
             </div>
 
-            <button type="button" className="create-custom-page__ai-popup-btn">Explore Tests</button>
+            <button type="button" className="create-custom-page__ai-popup-btn" onClick={handleExploreSuggestedTests}>Explore Tests</button>
           </section>
         ) : null}
 

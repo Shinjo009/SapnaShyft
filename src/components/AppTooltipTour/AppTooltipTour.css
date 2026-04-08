@@ -1,0 +1,81 @@
+.app-tooltip-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  pointer-events: none;
+}
+
+.app-tooltip-tour__arrow-layer {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.app-tooltip-tour__arrow-path {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  stroke-linecap: round;
+}
+
+.app-tooltip-tour__bubble {
+  position: fixed;
+  display: inline-flex;
+  pointer-events: auto;
+  padding: 12px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, rgba(30, 35, 35, 0.5) 0%, rgba(15, 20, 20, 0.7) 100%);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.app-tooltip-tour__text {
+  margin: 0;
+  align-self: stretch;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 15px;
+  text-align: left;
+}
+
+.app-tooltip-tour__actions {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-tooltip-tour__action-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.app-tooltip-tour__action-btn--skip {
+  color: #c4c4c4;
+  font-family: Lato, sans-serif;
+}
+
+.app-tooltip-tour__action-btn--next {
+  color: #c4c4c4;
+  font-family: Lato, sans-serif;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-skip-ink: auto;
+  text-decoration-thickness: 5%;
+  text-underline-offset: 25%;
+  text-underline-position: from-font;
+}

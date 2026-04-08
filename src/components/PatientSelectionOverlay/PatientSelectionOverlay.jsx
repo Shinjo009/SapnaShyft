@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './PatientSelectionOverlay.css';
 import maleAvatar from '../../images/male-avatar.png';
 import femaleAvatar from '../../images/female-avatar.png';
@@ -9,13 +9,13 @@ import {
   loadRazorpayScript,
   createPackageRazorpayOrder,
   verifyPackageRazorpayPayment,
+  markPackagePaymentFailed,
+  getPackageBookingStatus,
   getDefaultRazorpayKeyId,
 } from '../../services/paymentService';
 import { PAYMENT_DEMO_MODE, BACKEND_ENABLED } from '../../config/appConfig';
 
 const PATIENTS = [];
-
-const PACKAGE_FILTERS = ['Full Body', 'Diabetes', 'Women Health', 'Cancer', 'Kidney'];
 
 const CUSTOM_TEST_FILTERS = ['General Health', 'Progressive Tests', 'Hormones', 'Vitamins', 'Cancer', 'Allergies'];
 
@@ -95,6 +95,8 @@ const PACKAGE_OPTIONS = [
 
 const MISSING_VALUE = '-';
 
+const normalizePackageId = (value) => String(value ?? '').trim();
+
 const mapDiagnosticPackageToOverlayCard = (pkg, index) => {
   const id = String(pkg?.diagnostic_package_id || pkg?.id || `pkg-${index}`).trim();
   const name = String(pkg?.package_name || '').trim() || MISSING_VALUE;
@@ -126,6 +128,56 @@ const mapDiagnosticPackageToOverlayCard = (pkg, index) => {
     recommended,
     searchTags,
     apiData: pkg,
+  };
+};
+
+const mapInitialPackageToOverlayCard = (pkg) => {
+  if (!pkg || typeof pkg !== 'object') {
+    return null;
+  }
+
+  const apiData = pkg.apiData && typeof pkg.apiData === 'object' ? pkg.apiData : pkg;
+  const id = String(
+    apiData?.diagnostic_package_id
+    || apiData?.id
+    || pkg?.diagnostic_package_id
+    || pkg?.id
+    || ''
+  ).trim();
+  const name = String(
+    apiData?.package_name
+    || pkg?.package_name
+    || pkg?.title
+    || pkg?.name
+    || ''
+  ).trim();
+
+  if (!id && !name) {
+    return null;
+  }
+
+  const currentPriceRaw = Number(apiData?.price ?? pkg?.pricing?.now ?? pkg?.currentPrice ?? 0);
+  const oldPriceRaw = Number(apiData?.original_price ?? pkg?.pricing?.old ?? pkg?.oldPrice ?? currentPriceRaw);
+  const currentPrice = Number.isFinite(currentPriceRaw) && currentPriceRaw > 0 ? currentPriceRaw : 0;
+  const oldPrice = Number.isFinite(oldPriceRaw) && oldPriceRaw > 0 ? oldPriceRaw : currentPrice;
+  const offPercent = oldPrice > currentPrice && oldPrice > 0
+    ? Math.round(((oldPrice - currentPrice) / oldPrice) * 100)
+    : 0;
+
+  const testsCount = Number(apiData?.no_of_tests ?? apiData?.tests_count ?? pkg?.metrics?.parameters ?? 0);
+  const parameters = Number.isFinite(testsCount) && testsCount > 0 ? `${testsCount} parameters` : MISSING_VALUE;
+
+  return {
+    id: id || `initial-${name.toLowerCase().replace(/\s+/g, '-')}`,
+    name: name || MISSING_VALUE,
+    currentPrice,
+    oldPrice,
+    offPercent,
+    parameters,
+    rating: MISSING_VALUE,
+    recommended: apiData?.is_most_popular ? 'Most Popular' : '',
+    searchTags: [String(name || '').toLowerCase()].filter(Boolean),
+    apiData,
   };
 };
 
@@ -280,6 +332,12 @@ const ConfirmTickIcon = () => (
   </svg>
 );
 
+const ConfirmCrossIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+    <path d="M2 2L16 16M16 2L2 16" stroke="#EF4444" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const SCHEDULE_DATES = [
   { id: 'mon-12', day: 'Mon', date: '12' },
   { id: 'tue-13', day: 'Tue', date: '13' },
@@ -367,10 +425,23 @@ const mapProfileToPatient = (profile, relationshipFallback = 'Primary') => {
 
   return {
     id: `profile-${userId}`,
+    userId,
     name: fullName,
     meta: `${genderCode}, ${age}  |  ${relationship}`,
     gender: genderType,
   };
+};
+
+const getNumericPatientUserId = (patient) => {
+  const fromField = Number(patient?.userId);
+  if (Number.isInteger(fromField) && fromField > 0) {
+    return fromField;
+  }
+
+  const rawId = String(patient?.id || '').trim();
+  const suffix = rawId.includes('-') ? rawId.split('-').pop() : rawId;
+  const parsed = Number(suffix);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
 const buildAddressFromProfile = (profile) => {
@@ -391,17 +462,19 @@ const buildAddressFromProfile = (profile) => {
   };
 };
 
-const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
+const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPackage = null, onBookingConfirmed }) => {
   const [view, setView] = useState('select');
   const [patients, setPatients] = useState(PATIENTS);
   const [profileData, setProfileData] = useState(null);
-  const [activeFilter, setActiveFilter] = useState('Full Body');
+  const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [selectedPackageId, setSelectedPackageId] = useState('advanced');
+  const [selectedPackageByPatientId, setSelectedPackageByPatientId] = useState({});
   const [draftPackageId, setDraftPackageId] = useState('advanced');
   const [packageViewReturn, setPackageViewReturn] = useState('select');
   const [packageTargetName, setPackageTargetName] = useState('User');
+  const [packageTargetPatientId, setPackageTargetPatientId] = useState(null);
   const [phoneSame, setPhoneSame] = useState(true);
   const [emailSame, setEmailSame] = useState(true);
   const [activeField, setActiveField] = useState('firstName');
@@ -418,16 +491,22 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const [confirmedBookingId, setConfirmedBookingId] = useState(null);
+  const [paymentOutcome, setPaymentOutcome] = useState('success');
   const [packageCardsFromApi, setPackageCardsFromApi] = useState([]);
   const paymentSuccessRef = useRef(false);
+  const packageManuallyChangedRef = useRef(false);
 
   useEffect(() => {
     if (!open) {
       setView('select');
       setSelectedIds([]);
+      setSelectedPackageByPatientId({});
       setPaymentError(null);
       setPaymentSubmitting(false);
       setConfirmedBookingId(null);
+      setPaymentOutcome('success');
+      setPackageTargetPatientId(null);
+      packageManuallyChangedRef.current = false;
       paymentSuccessRef.current = false;
     }
   }, [open]);
@@ -435,6 +514,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
   useEffect(() => {
     if (view === 'payment') {
       setPaymentError(null);
+      setPaymentOutcome('success');
     }
   }, [view]);
 
@@ -579,9 +659,34 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
     };
   }, [open]);
 
+  const initialPackageCard = useMemo(
+    () => mapInitialPackageToOverlayCard(initialPackage),
+    [initialPackage],
+  );
+
+  const sourcePackages = useMemo(() => {
+    if (packageCardsFromApi.length > 0) {
+      return packageCardsFromApi;
+    }
+
+    if (!initialPackageCard) {
+      return PACKAGE_OPTIONS;
+    }
+
+    const initialId = normalizePackageId(initialPackageCard.id);
+    const initialName = String(initialPackageCard.name || '').trim().toLowerCase();
+    const existsInDefaults = PACKAGE_OPTIONS.some((item) => {
+      const sameId = initialId && normalizePackageId(item.id) === initialId;
+      const sameName = initialName && String(item.name || '').trim().toLowerCase() === initialName;
+      return sameId || sameName;
+    });
+
+    return existsInDefaults ? PACKAGE_OPTIONS : [initialPackageCard, ...PACKAGE_OPTIONS];
+  }, [packageCardsFromApi, initialPackageCard]);
+
   const selectedPackage = useMemo(
-    () => PACKAGE_OPTIONS.find((item) => item.id === selectedPackageId) || PACKAGE_OPTIONS[0],
-    [selectedPackageId],
+    () => sourcePackages.find((item) => normalizePackageId(item.id) === normalizePackageId(selectedPackageId)) || sourcePackages[0],
+    [selectedPackageId, sourcePackages],
   );
   const customPackageDisplayName = useMemo(() => {
     const profileName = [profileData?.first_name, profileData?.last_name]
@@ -596,24 +701,125 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
   }, [profileData]);
 
   const draftPackage = useMemo(
-    () => PACKAGE_OPTIONS.find((item) => item.id === draftPackageId) || PACKAGE_OPTIONS[0],
-    [draftPackageId],
+    () => sourcePackages.find((item) => normalizePackageId(item.id) === normalizePackageId(draftPackageId)) || sourcePackages[0],
+    [draftPackageId, sourcePackages],
   );
 
-  const sourcePackages = packageCardsFromApi.length > 0 ? packageCardsFromApi : PACKAGE_OPTIONS;
+  const packageById = useMemo(() => {
+    const map = new Map();
+    sourcePackages.forEach((item) => {
+      map.set(normalizePackageId(item.id), item);
+    });
+    return map;
+  }, [sourcePackages]);
 
-  const filteredPackages = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) {
-      return sourcePackages;
+  const getPackageForPatient = useCallback((patientId) => {
+    const mappedPackageId = normalizePackageId(selectedPackageByPatientId[patientId]);
+    return packageById.get(mappedPackageId) || selectedPackage;
+  }, [packageById, selectedPackageByPatientId, selectedPackage]);
+
+  useEffect(() => {
+    if (!open || customFlow || sourcePackages.length <= 0 || view === 'package' || packageManuallyChangedRef.current) {
+      return;
     }
 
+    const initialPackageId = normalizePackageId(
+      initialPackage?.id
+      || initialPackage?.diagnostic_package_id
+      || initialPackage?.apiData?.diagnostic_package_id
+    );
+    const initialPackageName = String(
+      initialPackage?.name
+      || initialPackage?.title
+      || initialPackage?.package_name
+      || initialPackage?.apiData?.package_name
+      || ''
+    ).trim().toLowerCase();
+
+    const matchedFromContext = sourcePackages.find((item) => {
+      const sameId = initialPackageId && normalizePackageId(item.id) === initialPackageId;
+      const sameName = initialPackageName && String(item?.name || '').trim().toLowerCase() === initialPackageName;
+      return sameId || sameName;
+    });
+
+    const selectedId = normalizePackageId(selectedPackageId);
+    const draftId = normalizePackageId(draftPackageId);
+    const hasSelectedPackage = sourcePackages.some((item) => normalizePackageId(item.id) === selectedId);
+    const hasDraftPackage = sourcePackages.some((item) => normalizePackageId(item.id) === draftId);
+    const preferredPackage = matchedFromContext || (hasSelectedPackage ? sourcePackages.find((item) => normalizePackageId(item.id) === selectedId) : null) || sourcePackages[0];
+
+    if (preferredPackage && !hasSelectedPackage) {
+      setSelectedPackageId(preferredPackage.id);
+    }
+
+    if (preferredPackage && !hasDraftPackage) {
+      setDraftPackageId(preferredPackage.id);
+    }
+  }, [
+    customFlow,
+    draftPackageId,
+    initialPackage,
+    open,
+    selectedPackageId,
+    sourcePackages,
+    view,
+  ]);
+
+  const filteredPackages = useMemo(() => {
+    const normalizedFilter = String(activeFilter || 'All').trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     return sourcePackages.filter((item) => {
+      const genderSuitability = String(item?.apiData?.gender_suitability || '').trim().toLowerCase();
+      const packageTags = Array.isArray(item?.apiData?.tags)
+        ? item.apiData.tags.map((tag) => {
+          if (typeof tag === 'string') {
+            return tag.trim().toLowerCase();
+          }
+          return String(tag?.tag_name || tag?.name || '').trim().toLowerCase();
+        }).filter(Boolean)
+        : [];
+
+      const matchesFilter = normalizedFilter === 'all'
+        || (normalizedFilter === 'male' && (genderSuitability === 'male' || genderSuitability === 'both'))
+        || (normalizedFilter === 'female' && (genderSuitability === 'female' || genderSuitability === 'both'))
+        || packageTags.includes(normalizedFilter)
+        || item.searchTags.some((tag) => tag.toLowerCase() === normalizedFilter);
+
+      if (!matchesFilter) {
+        return false;
+      }
+
+      if (!q) {
+        return true;
+      }
+
       const inName = item.name.toLowerCase().includes(q);
       const inTags = item.searchTags.some((tag) => tag.toLowerCase().includes(q));
       return inName || inTags;
     });
-  }, [searchQuery, sourcePackages]);
+  }, [activeFilter, searchQuery, sourcePackages]);
+
+  const packageFilterTabs = useMemo(() => {
+    const tags = new Set(['All']);
+
+    sourcePackages.forEach((item) => {
+      const genderSuitability = String(item?.apiData?.gender_suitability || '').trim().toLowerCase();
+      if (genderSuitability === 'male' || genderSuitability === 'both') {
+        tags.add('Male');
+      }
+      if (genderSuitability === 'female' || genderSuitability === 'both') {
+        tags.add('Female');
+      }
+    });
+
+    return Array.from(tags);
+  }, [sourcePackages]);
+
+  useEffect(() => {
+    if (!packageFilterTabs.includes(activeFilter)) {
+      setActiveFilter(packageFilterTabs[0] || 'All');
+    }
+  }, [activeFilter, packageFilterTabs]);
 
   const selectedCount = selectedIds.length;
   const canContinue = selectedCount > 0;
@@ -638,6 +844,15 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
     return { current, old, off };
   }, [customSelectedCards]);
 
+  const selectedPatients = useMemo(() => {
+    if (selectedIds.length <= 0) {
+      return patients.slice(0, 2);
+    }
+
+    const patientMap = new Map(patients.map((item) => [item.id, item]));
+    return selectedIds.map((id) => patientMap.get(id)).filter(Boolean);
+  }, [patients, selectedIds]);
+
   const pricing = useMemo(() => {
     if (selectedCount <= 0) {
       return null;
@@ -651,20 +866,22 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
       };
     }
 
-    if (selectedCount === 1) {
-      return {
-        current: selectedPackage.currentPrice,
-        old: selectedPackage.oldPrice,
-        off: selectedPackage.offPercent,
-      };
-    }
+    const totals = selectedPatients.reduce((acc, patient) => {
+      const pkg = getPackageForPatient(patient.id);
+      const current = Number(pkg?.currentPrice || 0);
+      const old = Number(pkg?.oldPrice || current);
+      acc.current += current;
+      acc.old += old;
+      return acc;
+    }, { current: 0, old: 0 });
 
+    const off = totals.old > 0 ? Math.round(((totals.old - totals.current) / totals.old) * 100) : 0;
     return {
-      current: selectedPackage.currentPrice * selectedCount,
-      old: selectedPackage.oldPrice * selectedCount,
-      off: selectedPackage.offPercent,
+      current: totals.current,
+      old: totals.old,
+      off,
     };
-  }, [selectedCount, selectedPackage, customFlow, customPackagePrice]);
+  }, [selectedCount, selectedPatients, customFlow, customPackagePrice, getPackageForPatient]);
 
   const paymentBreakdown = useMemo(() => {
     const current = pricing?.current ?? 0;
@@ -681,15 +898,6 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
   }, [pricing]);
 
   const formatPrice = (value) => `₹ ${value.toLocaleString('en-IN')}`;
-
-  const selectedPatients = useMemo(() => {
-    if (selectedIds.length <= 0) {
-      return patients.slice(0, 2);
-    }
-
-    const patientMap = new Map(patients.map((item) => [item.id, item]));
-    return selectedIds.map((id) => patientMap.get(id)).filter(Boolean);
-  }, [patients, selectedIds]);
 
   const normalizedCustomQuery = customSearchQuery.trim().toLowerCase();
 
@@ -790,48 +998,59 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
 
   const handlePayWithRazorpay = async () => {
     setPaymentError(null);
+    setPaymentOutcome('success');
     paymentSuccessRef.current = false;
     setPaymentSubmitting(true);
     try {
-      const apptDateRow = SCHEDULE_DATES.find((item) => item.id === selectedDateId);
-      const dateLabel = apptDateRow ? `${apptDateRow.day}, ${apptDateRow.date}th Feb` : '';
+      const payerUserId = Number(profileData?.user_id || profileData?.id || getNumericPatientUserId(selectedPatients?.[0]) || 0);
+      if (!Number.isInteger(payerUserId) || payerUserId <= 0) {
+        throw new Error('Valid payer user_id is required to create order.');
+      }
 
-      const bookingDraft = {
-        customFlow,
-        packageId: customFlow ? null : selectedPackage.id,
-        customTestIds: customFlow ? Array.from(customSelectedIds) : [],
-        packageName: customFlow ? customPackageDisplayName : selectedPackage.name,
-        patientIds: selectedPatients.map((p) => p.id),
-        patients: selectedPatients.map((p) => ({ id: p.id, name: p.name, meta: p.meta })),
-        address: { ...addressData },
-        appointment: {
-          dateId: selectedDateId,
-          dateLabel,
-          timeSlot: selectedTimeSlot,
-          timeRange: getTimeRange(),
-        },
-        pricing: { ...paymentBreakdown, currency: 'INR' },
-      };
+      if (customFlow) {
+        throw new Error('Select a valid diagnostic package before payment.');
+      }
+
+      const items = selectedPatients
+        .map((patient) => {
+          const memberUserId = getNumericPatientUserId(patient);
+          const memberPackage = getPackageForPatient(patient.id);
+          const packageEntityId = Number(
+            memberPackage?.apiData?.diagnostic_package_id
+            || memberPackage?.apiData?.id
+            || memberPackage?.id,
+          );
+          if (!memberUserId || !Number.isInteger(packageEntityId) || packageEntityId <= 0) {
+            return null;
+          }
+          return {
+          user_id: memberUserId,
+          entity_type: 'diagnostic_package',
+          entity_id: packageEntityId,
+          };
+        })
+        .filter(Boolean);
+
+      if (!items.length || items.length !== selectedPatients.length) {
+        throw new Error('Add at least one valid member before payment.');
+      }
 
       if (PAYMENT_DEMO_MODE && !BACKEND_ENABLED) {
         const r = await verifyPackageRazorpayPayment({});
         setConfirmedBookingId(r.bookingId || 'DEMO');
+        setPaymentOutcome('success');
         paymentSuccessRef.current = true;
         setView('confirmed');
+        if (typeof onBookingConfirmed === 'function') {
+          onBookingConfirmed();
+        }
         return;
       }
 
       await loadRazorpayScript();
-      const amountPaise = Math.max(100, Math.round(Number(paymentBreakdown.totalNew) * 100));
       const order = await createPackageRazorpayOrder({
-        amount: amountPaise,
-        currency: 'INR',
-        receipt: `pkg_${Date.now()}`.slice(0, 40),
-        notes: {
-          packageId: String(bookingDraft.packageId || 'custom'),
-          patientCount: String(selectedPatients.length),
-        },
-        bookingDraft,
+        user_id: payerUserId,
+        items,
       });
 
       const key = order.keyId || getDefaultRazorpayKeyId();
@@ -844,8 +1063,10 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
         amount: order.amount,
         currency: order.currency || 'INR',
         order_id: order.orderId,
-        name: 'Sapna Shyft',
-        description: bookingDraft.packageName,
+        name: 'Super Shyft',
+        description: selectedPatients.length > 1
+          ? `Diagnostic packages (${selectedPatients.length} members)`
+          : (getPackageForPatient(selectedPatients?.[0]?.id)?.name || 'Diagnostic package booking'),
         theme: { color: '#296359' },
         prefill: {
           name: [formData.firstName, formData.lastName].filter(Boolean).join(' ') || undefined,
@@ -859,22 +1080,68 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-                bookingDraft,
               });
+              if (!r.verified) {
+                throw new Error('Payment could not be verified.');
+              }
+
+              const verifyBookingIds = Array.isArray(r.bookingIds) && r.bookingIds.length
+                ? r.bookingIds
+                : (r.bookingId ? [r.bookingId] : []);
+
+              if (verifyBookingIds.length) {
+                const primaryBookingId = verifyBookingIds[0];
+                try {
+                  await getPackageBookingStatus(primaryBookingId);
+                } catch {
+                  // Keep UX unblocked if status endpoint is not available in an environment.
+                }
+              }
+
               paymentSuccessRef.current = true;
-              setConfirmedBookingId(r.bookingId || r.paymentId || '—');
+              setConfirmedBookingId(r.bookingId || r.paymentId || order.bookingIds?.[0] || '—');
+              setPaymentOutcome('success');
               setPaymentError(null);
               setView('confirmed');
+              if (typeof onBookingConfirmed === 'function') {
+                onBookingConfirmed();
+              }
             } catch (err) {
+              try {
+                await markPackagePaymentFailed({
+                  razorpay_order_id: response.razorpay_order_id || order.orderId,
+                  failure_reason: err?.message || 'Verification failed',
+                });
+              } catch {
+                // Optional endpoint — ignore if missing.
+              }
+              setConfirmedBookingId(order.bookingIds?.[0] || response.razorpay_order_id || '—');
+              setPaymentOutcome('failed');
               setPaymentError(err.message || 'Verification failed. If you were charged, contact support.');
+              setView('confirmed');
             }
           })();
         },
         modal: {
           ondismiss() {
-            if (!paymentSuccessRef.current) {
-              setPaymentError('Payment was cancelled or could not be completed.');
+            if (paymentSuccessRef.current) {
+              return;
             }
+
+            void (async () => {
+              try {
+                await markPackagePaymentFailed({
+                  razorpay_order_id: order.orderId,
+                  failure_reason: 'User closed Razorpay checkout',
+                });
+              } catch {
+                // Optional endpoint — ignore if missing.
+              }
+              setConfirmedBookingId(order.bookingIds?.[0] || order.orderId || '—');
+              setPaymentOutcome('failed');
+              setPaymentError('Payment was cancelled or could not be completed.');
+              setView('confirmed');
+            })();
           },
         },
       };
@@ -902,19 +1169,31 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
   }
 
   const handleClose = () => {
+    setPackageTargetPatientId(null);
     setView('select');
     onClose();
   };
 
-  const openPackageSelector = (returnView, nameHint) => {
-    setDraftPackageId(selectedPackageId);
+  const openPackageSelector = (returnView, nameHint, patientId = null) => {
+    const patientPackageId = patientId ? normalizePackageId(selectedPackageByPatientId[patientId]) : '';
+    setDraftPackageId(patientPackageId || selectedPackageId);
     setPackageViewReturn(returnView);
     setPackageTargetName(nameHint || 'User');
+    setPackageTargetPatientId(patientId);
     setView('package');
   };
 
   const handleConfirmPackage = () => {
-    setSelectedPackageId(draftPackageId);
+    packageManuallyChangedRef.current = true;
+    if (packageTargetPatientId) {
+      setSelectedPackageByPatientId((prev) => ({
+        ...prev,
+        [packageTargetPatientId]: normalizePackageId(draftPackageId),
+      }));
+    } else {
+      setSelectedPackageId(draftPackageId);
+    }
+    setPackageTargetPatientId(null);
     setView(packageViewReturn);
   };
 
@@ -1120,12 +1399,12 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
                       <div className="patient-select-overlay__selected-package">
                         <div className="patient-select-overlay__selected-package-left">
                           <SelectedRowPackageIcon />
-                          <span>{customFlow ? customPackageDisplayName : selectedPackage.name}</span>
+                          <span>{customFlow ? customPackageDisplayName : getPackageForPatient(patient.id).name}</span>
                         </div>
                         <button
                           type="button"
                           className={`patient-select-overlay__selected-package-change${customFlow ? ' is-custom' : ''}`}
-                          onClick={() => openPackageSelector('select', patient.name.split(' ')[0] || 'User')}
+                          onClick={() => openPackageSelector('select', patient.name.split(' ')[0] || 'User', patient.id)}
                         >
                           {customFlow ? 'Add tests' : 'Change'}
                         </button>
@@ -1338,8 +1617,8 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
                   />
                 </div>
 
-                <div className="patient-package__tabs" aria-label="Package categories">
-                  {PACKAGE_FILTERS.map((tab) => (
+                <div className="patient-package__tabs" aria-label="Package tags">
+                  {packageFilterTabs.map((tab) => (
                     <button
                       key={tab}
                       type="button"
@@ -1353,13 +1632,16 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
 
                 <div className="patient-package__cards-scroll">
                   {filteredPackages.map((item) => {
-                    const selectedCard = draftPackageId === item.id;
+                    const selectedCard = normalizePackageId(draftPackageId) === normalizePackageId(item.id);
                     return (
                       <button
                         type="button"
                         key={item.id}
                         className={`patient-package__card${selectedCard ? ' is-selected' : ''}`}
-                        onClick={() => setDraftPackageId(item.id)}
+                        onClick={() => {
+                          packageManuallyChangedRef.current = true;
+                          setDraftPackageId(item.id);
+                        }}
                       >
                         <div className="patient-package__card-main">
                           <h4>{item.name}</h4>
@@ -1526,12 +1808,12 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
                     <div className="patient-confirm__patient-price-row">
                       <div className="patient-confirm__patient-package">
                         <SelectedRowPackageIcon />
-                        <span>{customFlow ? customPackageDisplayName : selectedPackage.name}</span>
+                        <span>{customFlow ? customPackageDisplayName : getPackageForPatient(patient.id).name}</span>
                       </div>
 
                       <div className="patient-confirm__price-group">
-                        <span className="patient-confirm__price-old">{formatPrice(customFlow ? customPackagePrice.old : selectedPackage.oldPrice)}/-</span>
-                        <span className="patient-confirm__price-now">{formatPrice(customFlow ? customPackagePrice.current : selectedPackage.currentPrice)}/-</span>
+                        <span className="patient-confirm__price-old">{formatPrice(customFlow ? customPackagePrice.old : getPackageForPatient(patient.id).oldPrice)}/-</span>
+                        <span className="patient-confirm__price-now">{formatPrice(customFlow ? customPackagePrice.current : getPackageForPatient(patient.id).currentPrice)}/-</span>
                       </div>
                     </div>
                   </div>
@@ -1660,11 +1942,13 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
         ) : (
           <>
             <div className="patient-final">
-              <div className="patient-final__status-icon">
-                <ConfirmTickIcon />
+              <div className={`patient-final__status-icon${paymentOutcome === 'failed' ? ' is-failed' : ''}`}>
+                {paymentOutcome === 'failed' ? <ConfirmCrossIcon /> : <ConfirmTickIcon />}
               </div>
 
-              <p className="patient-final__status-text">Booking Confirmed</p>
+              <p className={`patient-final__status-text${paymentOutcome === 'failed' ? ' is-failed' : ''}`}>
+                {paymentOutcome === 'failed' ? 'Payment Failed' : 'Booking Confirmed'}
+              </p>
 
               <div className="patient-final__booking-id">
                 <span>Booking ID</span>
@@ -1689,7 +1973,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false }) => {
 
                       <div className="patient-final__patient-package">
                         <span>Package</span>
-                        <p>{customFlow ? customPackageDisplayName : selectedPackage.name}</p>
+                        <p>{customFlow ? customPackageDisplayName : getPackageForPatient(patient.id).name}</p>
                       </div>
                     </div>
 

@@ -50,6 +50,7 @@ import {
   extractTokensFromResponse,
 } from './utils/authStorage';
 import { trackAppScreen } from './analytics/googleAnalytics';
+import AppTooltipTour from './components/AppTooltipTour/AppTooltipTour';
 
 const SWIPE_BACK_BLOCKED_PAGES = new Set([
   'home',
@@ -85,6 +86,7 @@ function App() {
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [customPackageCard, setCustomPackageCard] = useState(null);
+  const [pendingCustomPackagePayload, setPendingCustomPackagePayload] = useState(null);
   const [selectedPackageCard, setSelectedPackageCard] = useState(null);
   const [canSwipeBack, setCanSwipeBack] = useState(false);
   const [preloadedHomeData, setPreloadedHomeData] = useState(null);
@@ -618,6 +620,20 @@ function App() {
   };
 
   const handleCreateCustomPackage = (payload = {}) => {
+    setPendingCustomPackagePayload({
+      selectedCount: Number(payload.selectedCount || 0),
+      selectedParameters: Number(payload.selectedParameters || 0),
+      selectedTests: Array.isArray(payload.selectedTests) ? payload.selectedTests.filter(Boolean) : [],
+      totalSale: Number(payload.totalSale || 0),
+      totalOld: Number(payload.totalOld || 0),
+      offText: String(payload.offText || ''),
+    });
+
+    setCurrentPage('review-package');
+  };
+
+  const handleCustomPackageBookingConfirmed = () => {
+    const payload = pendingCustomPackagePayload || {};
     const selectedTests = Array.isArray(payload.selectedTests)
       ? payload.selectedTests.filter(Boolean)
       : [];
@@ -640,8 +656,17 @@ function App() {
       },
     });
 
+    setPendingCustomPackagePayload(null);
     setCurrentPage('packages');
   };
+
+  const hasBioAiReport = Boolean(
+    preloadedHomeData && (
+      preloadedHomeData.metabolicAgeValue
+      || preloadedHomeData.positiveWinsData
+      || (Array.isArray(preloadedHomeData.riskAnalysisData) && preloadedHomeData.riskAnalysisData.length > 0)
+    )
+  );
 
   return (
     <div
@@ -703,6 +728,7 @@ function App() {
           </div>
         </div>
       )}
+      <AppTooltipTour currentPage={currentPage} enabled={hasBioAiReport} />
       <div className="app-scroll" ref={appScrollRef}>
       {currentPage === 'login' && (
         <LoginPage 
@@ -957,6 +983,7 @@ function App() {
         <PackageDetailsPage
           variant="custom-review"
           profileName={userName}
+          onCustomBookingConfirmed={handleCustomPackageBookingConfirmed}
           onBack={() => {
             console.log('Back to Create Custom Package');
             setCurrentPage('create-custom-package');

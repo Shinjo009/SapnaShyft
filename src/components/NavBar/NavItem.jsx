@@ -27,6 +27,7 @@ const NavItem = ({ id, label, icon, isActive, onClick, iconSize = 23 }) => {
       aria-label={label}
       aria-current={isActive ? 'page' : undefined}
       type="button"
+      data-tour={id === 'super-sync' ? 'nav-super-care' : id === 'packages' ? 'nav-packages' : undefined}
     >
       <div className="nav-item__icon-wrapper">
         {isActive && <div className="nav-item__circle" />}

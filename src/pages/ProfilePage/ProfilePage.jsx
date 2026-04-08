@@ -362,6 +362,7 @@ const ProfilePage = ({
                     className={`profile-page__switch-btn${switchingUserId === account.user_id ? ' is-loading' : ''}`}
                     onClick={() => handleSwitchProfile(account.user_id)}
                     disabled={switchingUserId === account.user_id}
+                    data-tour="profile-switch-account"
                   >
                     {switchingUserId === account.user_id ? 'Switching...' : 'Switch'}
                   </button>
@@ -370,11 +371,11 @@ const ProfilePage = ({
             );
           })}
 
-          <button className="profile-page__add-account" type="button" onClick={onOpenAddAccount}>
+          <button className="profile-page__add-account" type="button" onClick={onOpenAddAccount} data-tour="profile-add-account">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
               <path d="M3.75 9H14.25M9 3.75V14.25" stroke="#4B8D83" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span>Add Account</span>
+            <span data-tour="profile-add-account-text">Add Account</span>
           </button>
         </div>
 
@@ -432,8 +433,8 @@ const ProfilePage = ({
               <h2>Settings</h2>
             </div>
             <div className="profile-page__menu-sub-list">
-              <button type="button" className="profile-page__menu-sub-item" onClick={onOpenAllAppointments}>
-                <span>All Appointments</span>
+              <button type="button" className="profile-page__menu-sub-item" onClick={onOpenAllAppointments} data-tour="profile-all-appointments">
+                <span data-tour="profile-all-appointments-text">All Appointments</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
                   <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>

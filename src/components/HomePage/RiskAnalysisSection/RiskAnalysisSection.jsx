@@ -525,6 +525,7 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
           type="button"
           className="risk-analysis-wins__see-more"
           onClick={onSeeMore}
+          data-tour="home-risk-see-more"
         >
           See more
         </button>
@@ -621,6 +622,7 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
             type="button"
             className="risk-analysis-wins__blood-markers-see-more"
             onClick={onBloodMarkersSeeMore}
+            data-tour="home-blood-markers-see-more"
           >
             See more
           </button>

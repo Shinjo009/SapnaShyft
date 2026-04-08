@@ -4,14 +4,26 @@ import PatientSelectionOverlay from '../../components/PatientSelectionOverlay';
 import { getDiagnosticPackageDetail } from '../../services/diagnosticPackagesService';
 
 const TABS = [
-  'Overview',
-  'About This Package',
-  'Why This Package?',
-  'Parameters Included',
-  'Samples Required',
-  'Test Preparation',
-  "FAQ'S",
+  { key: 'home', label: 'Home' },
+  { key: 'about', label: 'About' },
+  { key: 'why', label: 'Why' },
+  { key: 'parameters', label: 'Parameters' },
+  { key: 'samples', label: 'Samples' },
+  { key: 'preparation', label: 'Preparation' },
+  { key: 'faq', label: "FAQ's" },
 ];
+
+const HomeTabIconInactive = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M2.6684 13.4855H5.33507V9.422C5.33507 9.19174 5.4204 8.99886 5.59107 8.84336C5.76173 8.68787 5.9727 8.60985 6.22396 8.60931H9.77951C10.0314 8.60931 10.2426 8.68732 10.4133 8.84336C10.584 8.9994 10.669 9.19228 10.6684 9.422V13.4855H13.3351V6.17121L8.00173 2.51407L2.6684 6.17121V13.4855ZM0.890625 13.4855V6.17121C0.890625 5.91386 0.953736 5.67005 1.07996 5.43978C1.20618 5.20952 1.38011 5.01989 1.60174 4.87089L6.93507 1.21375C7.24618 0.997032 7.60173 0.888672 8.00173 0.888672C8.40173 0.888672 8.75729 0.997032 9.0684 1.21375L14.4017 4.87089C14.624 5.01989 14.7982 5.20952 14.9244 5.43978C15.0506 5.67005 15.1134 5.91386 15.1128 6.17121V13.4855C15.1128 13.9325 14.9386 14.3153 14.5902 14.6338C14.2417 14.9524 13.8234 15.1114 13.3351 15.1109H9.77951C9.52766 15.1109 9.3167 15.0329 9.14662 14.8768C8.97655 14.7208 8.89122 14.5279 8.89062 14.2982V10.2347H7.11285V14.2982C7.11285 14.5285 7.02751 14.7216 6.85685 14.8776C6.68618 15.0337 6.47522 15.1114 6.22396 15.1109H2.6684C2.17951 15.1109 1.76114 14.9519 1.41329 14.6338C1.06544 14.3158 0.891218 13.933 0.890625 13.4855Z" fill="#999999"/>
+  </svg>
+);
+
+const HomeTabIconActive = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M1.14453 13.29V6.23694C1.14453 5.98878 1.20539 5.75368 1.3271 5.53164C1.44882 5.3096 1.61653 5.12674 1.83025 4.98307L6.9731 1.45654C7.2731 1.24756 7.61596 1.14307 8.00167 1.14307C8.38739 1.14307 8.73024 1.24756 9.03024 1.45654L14.1731 4.98307C14.3874 5.12674 14.5554 5.3096 14.6771 5.53164C14.7988 5.75368 14.8594 5.98878 14.8588 6.23694V13.29C14.8588 13.721 14.6908 14.0901 14.3548 14.3973C14.0188 14.7045 13.6154 14.8579 13.1445 14.8573H10.5731C10.3302 14.8573 10.1268 14.7821 9.96282 14.6317C9.79882 14.4812 9.71653 14.2952 9.71596 14.0737V10.1553C9.71596 9.93327 9.63367 9.74728 9.4691 9.59733C9.30453 9.44739 9.1011 9.37216 8.85882 9.37164H7.14453C6.90167 9.37164 6.69824 9.44687 6.53424 9.59733C6.37024 9.7478 6.28796 9.93379 6.28739 10.1553V14.0737C6.28739 14.2957 6.2051 14.482 6.04053 14.6324C5.87596 14.7829 5.67253 14.8579 5.43024 14.8573H2.85882C2.38739 14.8573 1.98396 14.704 1.64853 14.3973C1.3131 14.0907 1.1451 13.7215 1.14453 13.29Z" fill="white"/>
+  </svg>
+);
 
 const DETAIL_CARDS = [
   {
@@ -405,11 +417,11 @@ const toDiscountLabel = (discountPercent, price, originalPrice) => {
   return MISSING_VALUE;
 };
 
-const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User', packageId = null, packageCard = null }) => {
+const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User', packageId = null, packageCard = null, onCustomBookingConfirmed }) => {
   const isCustomReview = variant === 'custom-review';
   const trimmedProfileName = String(profileName || '').trim() || 'User';
   const customPackageTitle = `${trimmedProfileName}'s Custom Package`;
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [activeTab, setActiveTab] = useState('home');
   const [order, setOrder] = useState([0, 1, 2]);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -421,6 +433,65 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
   const [activeOverlay, setActiveOverlay] = useState('');
   const [packageDetail, setPackageDetail] = useState(null);
   const faqSectionRef = useRef(null);
+  const biomarkerSectionRef = useRef(null);
+  const biomarkerAnimationStartedRef = useRef(false);
+  const biomarkerAnimationTimersRef = useRef([]);
+  const [biomarkerStage, setBiomarkerStage] = useState(0);
+
+  useEffect(() => {
+    if (isCustomReview) {
+      return undefined;
+    }
+
+    const clearAnimationTimers = () => {
+      biomarkerAnimationTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+      biomarkerAnimationTimersRef.current = [];
+    };
+
+    const startBiomarkerAnimation = () => {
+      if (biomarkerAnimationStartedRef.current) {
+        return;
+      }
+
+      biomarkerAnimationStartedRef.current = true;
+      setBiomarkerStage(1);
+
+      [2, 3, 4, 5].forEach((stage, index) => {
+        const timerId = window.setTimeout(() => {
+          setBiomarkerStage(stage);
+        }, (index + 1) * 260);
+
+        biomarkerAnimationTimersRef.current.push(timerId);
+      });
+    };
+
+    const sectionNode = biomarkerSectionRef.current;
+    if (!sectionNode) {
+      return () => {
+        clearAnimationTimers();
+      };
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry?.isIntersecting) {
+          startBiomarkerAnimation();
+          observer.disconnect();
+        }
+      },
+      {
+        threshold: 0.35,
+      },
+    );
+
+    observer.observe(sectionNode);
+
+    return () => {
+      observer.disconnect();
+      clearAnimationTimers();
+    };
+  }, [isCustomReview]);
 
   useEffect(() => {
     if (isCustomReview) {
@@ -608,6 +679,18 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
     );
   }, [isCustomReview, packageCard, packageDetail]);
 
+  const overlayInitialPackage = useMemo(() => {
+    if (isCustomReview) {
+      return null;
+    }
+
+    if (packageDetail && typeof packageDetail === 'object') {
+      return packageDetail;
+    }
+
+    return packageCard || null;
+  }, [isCustomReview, packageCard, packageDetail]);
+
   const frontCardIndex = order[0];
 
   const slotByCardIndex = useMemo(() => {
@@ -671,10 +754,10 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
     setDragX(0);
   };
 
-  const handleTabClick = (tab) => {
-    setActiveTab(tab);
+  const handleTabClick = (tabKey) => {
+    setActiveTab(tabKey);
 
-    if (tab === "FAQ'S") {
+    if (tabKey === 'faq') {
       setActiveOverlay('');
       if (faqSectionRef.current) {
         faqSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -682,27 +765,27 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
       return;
     }
 
-    if (tab === 'About This Package') {
+    if (tabKey === 'about') {
       setActiveOverlay('about');
       return;
     }
 
-    if (tab === 'Why This Package?') {
+    if (tabKey === 'why') {
       setActiveOverlay('why');
       return;
     }
 
-    if (tab === 'Samples Required') {
+    if (tabKey === 'samples') {
       setActiveOverlay('samples');
       return;
     }
 
-    if (tab === 'Test Preparation') {
+    if (tabKey === 'preparation') {
       setActiveOverlay('prep');
       return;
     }
 
-    if (tab === 'Parameters Included') {
+    if (tabKey === 'parameters') {
       setActiveOverlay('tests');
       return;
     }
@@ -724,7 +807,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
 
   const handleCloseOverlay = () => {
     setActiveOverlay('');
-    setActiveTab('Overview');
+    setActiveTab('home');
   };
 
   const handleHighlightCardClick = (cardId) => {
@@ -734,19 +817,19 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
 
     if (cardId === 'samples') {
       setActiveOverlay('samples');
-      setActiveTab('Samples Required');
+      setActiveTab('samples');
       return;
     }
 
     if (cardId === 'prep') {
       setActiveOverlay('prep');
-      setActiveTab('Test Preparation');
+      setActiveTab('preparation');
       return;
     }
 
     if (cardId === 'tests') {
       setActiveOverlay('tests');
-      setActiveTab('Parameters Included');
+      setActiveTab('parameters');
     }
   };
 
@@ -772,12 +855,13 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
         <section className="package-details-page__tabs" aria-label="Package detail sections">
           {TABS.map((tab) => (
             <button
-              key={tab}
+              key={tab.key}
               type="button"
-              className={`package-details-page__tab${activeTab === tab ? ' is-active' : ''}`}
-              onClick={() => handleTabClick(tab)}
+              className={`package-details-page__tab${activeTab === tab.key ? ' is-active' : ''}`}
+              onClick={() => handleTabClick(tab.key)}
+              aria-label={tab.label}
             >
-              {tab}
+              {tab.key === 'home' ? (activeTab === 'home' ? <HomeTabIconActive /> : <HomeTabIconInactive />) : tab.label}
             </button>
           ))}
         </section>
@@ -829,7 +913,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
 
         <h3 className="package-details-page__hood-title">What&apos;s Under the Hood</h3>
 
-        <section className="package-details-page__stack-area" aria-label="Package highlights">
+        <section className="package-details-page__stack-area" aria-label="Package highlights" data-tour="package-details-cards">
           {detailCards.map((card, idx) => {
             const slot = slotByCardIndex[idx];
             const isFront = idx === frontCardIndex;
@@ -923,15 +1007,23 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
         ) : null}
 
         {!isCustomReview ? (
-          <section className="package-details-page__biomarker-section" aria-label="Why biomarker tests matter">
+          <section className="package-details-page__biomarker-section" aria-label="Why biomarker tests matter" ref={biomarkerSectionRef}>
             <h3 className="package-details-page__biomarker-title">Why Biomarker-Tests Matter</h3>
 
             <div className="package-details-page__biomarker-box">
               {BIOMARKER_BENEFITS.map((item, index) => (
                 <div key={item.title} className="package-details-page__benefit-item">
                   <div className="package-details-page__benefit-marker-col" aria-hidden="true">
-                    <div className="package-details-page__benefit-index">{index + 1}</div>
-                    {index < BIOMARKER_BENEFITS.length - 1 ? <div className="package-details-page__benefit-line" /> : null}
+                    <div
+                      className={`package-details-page__benefit-index ${biomarkerStage >= (index * 2) + 1 ? 'is-active' : ''}`}
+                    >
+                      {index + 1}
+                    </div>
+                    {index < BIOMARKER_BENEFITS.length - 1 ? (
+                      <div
+                        className={`package-details-page__benefit-line ${biomarkerStage >= (index * 2) + 2 ? 'is-active' : ''}`}
+                      />
+                    ) : null}
                   </div>
 
                   <div className="package-details-page__benefit-copy">
@@ -1135,6 +1227,8 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
         open={activeOverlay === 'patients'}
         onClose={() => setActiveOverlay('')}
         customFlow={isCustomReview}
+        initialPackage={overlayInitialPackage}
+        onBookingConfirmed={isCustomReview ? onCustomBookingConfirmed : undefined}
       />
     </div>
   );

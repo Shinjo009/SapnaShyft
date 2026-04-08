@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './AllAppointmentsPage.css';
 
-const FILTER_LABEL = '6 Months';
+const FILTER_OPTIONS = ['6 Months', '1 Year', '2 Years'];
 
 const TAB_KEYS = {
   UPCOMING: 'upcoming',
@@ -70,9 +70,9 @@ const APPOINTMENTS_BY_TAB = {
       dateTime: 'Oct 20, 2023 • 08:30 AM',
       mode: 'Home Collection',
       amount: 'Rs. 2,999',
-      accent: 'blue',
+      accent: 'yellow',
       action: 'View Report',
-      actionVariant: 'blue',
+      actionVariant: 'yellow',
       categoryIcon: 'blood',
       actionIcon: 'document',
       showInfo: true,
@@ -243,10 +243,34 @@ const getActionIcon = (actionIcon, actionVariant) => {
 const AllAppointmentsPage = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState(TAB_KEYS.UPCOMING);
   const [infoOpenAppointmentId, setInfoOpenAppointmentId] = useState(null);
+  const [selectedFilter, setSelectedFilter] = useState(FILTER_OPTIONS[0]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterRef = useRef(null);
+
+  useEffect(() => {
+    if (!isFilterOpen) {
+      return undefined;
+    }
+
+    const handleOutsideClick = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setIsFilterOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isFilterOpen]);
 
   const visibleAppointments = useMemo(() => {
     return APPOINTMENTS_BY_TAB[activeTab] || [];
   }, [activeTab]);
+
+  const filterOptions = useMemo(() => {
+    return FILTER_OPTIONS.filter((option) => option !== selectedFilter);
+  }, [selectedFilter]);
 
   return (
     <div className="all-appointments-page">
@@ -265,10 +289,39 @@ const AllAppointmentsPage = ({ onBack }) => {
           <h1 className="all-appointments-page__title">All Appointments</h1>
         </div>
 
-        <button className="all-appointments-page__filter" type="button" aria-label="Filter by date range">
-          <span>{FILTER_LABEL}</span>
-          <FilterArrowIcon />
-        </button>
+        <div className="all-appointments-page__filter-wrap" ref={filterRef}>
+          <div className={`all-appointments-page__filter ${isFilterOpen ? 'all-appointments-page__filter--open' : ''}`}>
+            <button
+              className="all-appointments-page__filter-toggle"
+              type="button"
+              aria-label="Filter by date range"
+              aria-expanded={isFilterOpen}
+              onClick={() => setIsFilterOpen((prev) => !prev)}
+            >
+              <span>{selectedFilter}</span>
+              <FilterArrowIcon />
+            </button>
+
+            {isFilterOpen ? (
+              <div className="all-appointments-page__filter-options" role="listbox" aria-label="Date range options">
+                <span className="all-appointments-page__filter-divider" aria-hidden="true" />
+                {filterOptions.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className="all-appointments-page__filter-option"
+                    onClick={() => {
+                      setSelectedFilter(option);
+                      setIsFilterOpen(false);
+                    }}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       <div className="all-appointments-page__tabs" role="tablist" aria-label="Appointment status tabs">
