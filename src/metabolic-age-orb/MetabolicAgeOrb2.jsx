@@ -274,22 +274,22 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
           const focalGlow = Math.max(0, Math.min(1, 1.12 - distF * 1.08));
           faceLight = Math.min(1, faceLight * 0.42 + focalGlow * 0.68);
 
-          cr = Math.min(255, Math.round(cr + (255 - cr) * 0.68 * faceLight));
-          cg = Math.min(255, Math.round(cg + (255 - cg) * 0.58 * faceLight));
-          cb = Math.min(255, Math.round(cb + (252 - cb) * 0.52 * faceLight));
+          cr = Math.min(255, Math.round(cr + (255 - cr) * 0.8 * faceLight));
+          cg = Math.min(255, Math.round(cg + (255 - cg) * 0.72 * faceLight));
+          cb = Math.min(255, Math.round(cb + (255 - cb) * 0.62 * faceLight));
 
-          const dim = 0.46 + 0.54 * (1 - faceLight * 0.9);
+          const dim = 0.58 + 0.42 * (1 - faceLight * 0.9);
           cr = Math.round(cr * dim);
           cg = Math.round(cg * dim);
           cb = Math.round(cb * dim);
 
-          const alpha = Math.min(0.97, depthAlpha * (0.46 + norm * 0.74));
+          const alpha = Math.min(0.98, depthAlpha * (0.56 + norm * 0.78));
 
           ctx.beginPath();
           ctx.moveTo(p0.x, p0.y);
           ctx.lineTo(p1.x, p1.y);
           ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha})`;
-          ctx.lineWidth = 0.58;
+          ctx.lineWidth = 0.66;
           ctx.stroke();
         }
       }
