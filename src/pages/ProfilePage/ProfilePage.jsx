@@ -14,8 +14,9 @@ import proMailIcon from '../../images/Pro-Mail.svg';
 import proLocIcon from '../../images/Pro-Loc.svg';
 import proGenAgeIcon from '../../images/Pro-GenAge.svg';
 import { switchAccount } from '../../services/authService';
-import { getMyProfile } from '../../services/profileService';
-import { getMyProfiles, unlinkMyProfile } from '../../services/usersService';
+import { getMyProfile, invalidateMyProfileCache } from '../../services/profileService';
+import { getMyProfiles, invalidateMyProfilesCache, unlinkMyProfile } from '../../services/usersService';
+import { clearReportRequestCache, clearStoredLatestAssessmentId } from '../../services/reportService';
 import { clearAuthTokens, extractTokensFromResponse, saveAuthTokens } from '../../utils/authStorage';
 
 /**
@@ -32,6 +33,7 @@ const ProfilePage = ({
   onOpenEditProfile,
   onOpenFaq,
   onOpenTerms,
+  onAccountSwitched,
   onLogout,
 }) => {
   const UnlinkAccountIcon = () => (
@@ -171,15 +173,14 @@ const ProfilePage = ({
   const handleConfirmAction = async () => {
     if (activeModal === 'unlink') {
       try {
-        const email = String(pendingUnlinkAccount?.email || '').trim();
-
-        if (!email) {
-          throw new Error('Unable to unlink this account because email is missing.');
-        }
+        const childUserId = Number(pendingUnlinkAccount?.user_id || 0);
+        const unlinkPayload = childUserId > 0
+          ? { child_user_id: childUserId }
+          : {};
 
         setUnlinkLoading(true);
         setError('');
-        await unlinkMyProfile(email);
+        await unlinkMyProfile(unlinkPayload);
 
         const response = await getMyProfiles({ forceRefresh: true });
         const data = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
@@ -219,9 +220,15 @@ const ProfilePage = ({
 
       clearAuthTokens();
       saveAuthTokens(tokens);
+      invalidateMyProfileCache();
+      invalidateMyProfilesCache();
+      clearReportRequestCache();
+      clearStoredLatestAssessmentId();
 
       setProfileLoading(true);
       setLinkedProfilesLoading(true);
+      setProfile(null);
+      setLinkedProfiles([]);
 
       const [profileResponse, profilesResponse] = await Promise.all([
         getMyProfile({ forceRefresh: true }),
@@ -239,6 +246,13 @@ const ProfilePage = ({
 
       setProfile(profileData);
       setLinkedProfiles(profilesData);
+
+      if (onAccountSwitched) {
+        onAccountSwitched({
+          profile: profileData,
+          linkedProfiles: profilesData,
+        });
+      }
     } catch (switchError) {
       const message = switchError?.message || 'Failed to switch account. Please try again.';
       setLinkedProfilesError(message);
@@ -357,15 +371,32 @@ const ProfilePage = ({
                       <UnlinkAccountIcon />
                     </button>
                   ) : null}
-                  <button
-                    type="button"
-                    className={`profile-page__switch-btn${switchingUserId === account.user_id ? ' is-loading' : ''}`}
-                    onClick={() => handleSwitchProfile(account.user_id)}
-                    disabled={switchingUserId === account.user_id}
-                    data-tour="profile-switch-account"
-                  >
-                    {switchingUserId === account.user_id ? 'Switching...' : 'Switch'}
-                  </button>
+                  <div className="profile-page__switch-cluster">
+                    <button
+                      type="button"
+                      className="profile-page__switch-link-icon"
+                      aria-label="Unlink account"
+                      onClick={() => {
+                        setPendingUnlinkAccount(account);
+                        setActiveModal('unlink');
+                        setError('');
+                      }}
+                      disabled={unlinkLoading || switchingUserId === account.user_id}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M13.7382 10.75L17.6402 6.84803C19.0772 5.41103 19.1252 3.13003 17.7472 1.75303C16.3702 0.375032 14.0892 0.423032 12.6522 1.86003L8.75025 5.76203M10.7502 13.712L6.85824 17.592C5.42624 19.022 3.21824 19.207 1.77624 17.699C0.334245 16.192 0.450245 14.06 1.88324 12.631L5.77524 8.75003M6.75025 12.75L12.7502 6.75003" stroke="#CCCCCC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className={`profile-page__switch-btn${switchingUserId === account.user_id ? ' is-loading' : ''}`}
+                      onClick={() => handleSwitchProfile(account.user_id)}
+                      disabled={switchingUserId === account.user_id}
+                      data-tour="profile-switch-account"
+                    >
+                      {switchingUserId === account.user_id ? 'Switching...' : 'Switch'}
+                    </button>
+                  </div>
                 </div>
               </div>
             );

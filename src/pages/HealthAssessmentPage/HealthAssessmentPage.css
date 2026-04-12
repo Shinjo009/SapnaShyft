@@ -1873,7 +1873,7 @@ background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(144, 22
   position: absolute;
   height: 18px;
   border-radius: 0 0 8px 8px;
-  background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(255, 128, 136, 0.20) 99.99%);
+  background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(144, 223, 158, 0.20) 99.99%);
   border: 0.8px solid rgba(221, 219, 219, 0.12);
 }
 
@@ -2545,4 +2545,71 @@ background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(144, 22
   line-height: normal;
   letter-spacing: 0.32px;
   cursor: pointer;
+}
+
+.vitals-page__confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.58);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 60;
+}
+
+.vitals-page__confirm-popup {
+  width: 100%;
+  max-width: 360px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #131722;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+  padding: 18px 16px 14px;
+}
+
+.vitals-page__confirm-title {
+  margin: 0;
+  color: #fff;
+  font-family: Lato;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.vitals-page__confirm-text {
+  margin: 10px 0 0;
+  color: #d4d4d4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.vitals-page__confirm-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.vitals-page__confirm-btn {
+  border-radius: 20px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-family: Lato;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vitals-page__confirm-btn--secondary {
+  background: transparent;
+  color: #ddd;
+}
+
+.vitals-page__confirm-btn--primary {
+  border-color: #2b7f71;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  color: #fff;
 }

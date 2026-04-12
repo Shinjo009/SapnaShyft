@@ -188,6 +188,17 @@ export const createMySubProfile = (formData) => {
   return authorizedUsersRequest('/users/me/profiles', 'POST', buildCreateSubProfilePayload(formData));
 };
 
-export const unlinkMyProfile = (email) => {
-  return authorizedUsersRequest('/users/me/unlink', 'POST', { email });
+export const updateMySubProfile = (userId, payload) => {
+  const parsedUserId = Number(userId || 0);
+
+  if (!Number.isFinite(parsedUserId) || parsedUserId <= 0) {
+    throw new Error('Invalid sub profile user id for update.');
+  }
+
+  return authorizedUsersRequest(`/users/me/profiles/${parsedUserId}`, 'PUT', payload);
+};
+
+export const unlinkMyProfile = (payload = {}) => {
+  const safePayload = payload && typeof payload === 'object' ? payload : {};
+  return authorizedUsersRequest('/users/me/unlink', 'POST', safePayload);
 };

@@ -4,6 +4,7 @@ import maleAvatar from '../../images/male-avatar.png';
 import femaleAvatar from '../../images/female-avatar.png';
 import './EditProfilePage.css';
 import { getMyProfile, updateMyProfile } from '../../services/profileService';
+import { getMyProfiles, updateMySubProfile } from '../../services/usersService';
 
 const genderOptions = ['male', 'female'];
 
@@ -32,7 +33,29 @@ const getAgeValue = (profile) => {
   return age > 0 ? String(age) : '';
 };
 
-const EditProfilePage = ({ onBack }) => {
+const getDateOfBirthFromAge = (ageValue) => {
+  const age = Number.parseInt(ageValue, 10);
+
+  if (Number.isNaN(age) || age <= 0) {
+    return null;
+  }
+
+  const today = new Date();
+  const dateOfBirth = new Date(today.getFullYear() - age, today.getMonth(), today.getDate());
+  return dateOfBirth.toISOString().split('T')[0];
+};
+
+const isSelfRelationship = (relationshipValue) => {
+  const normalized = String(relationshipValue || '').trim().toLowerCase();
+
+  if (!normalized) {
+    return false;
+  }
+
+  return normalized === 'self' || normalized === 'primary' || normalized === 'primary account';
+};
+
+const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) => {
   const inputTextClass = '!text-[13px] !leading-[13px] placeholder:!text-[13px] placeholder:!leading-[13px]';
 
   const [formData, setFormData] = useState({
@@ -50,6 +73,9 @@ const EditProfilePage = ({ onBack }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isPhoneEditable, setIsPhoneEditable] = useState(false);
+  const [activeProfileUserId, setActiveProfileUserId] = useState(null);
+  const [activeRelationship, setActiveRelationship] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -58,12 +84,33 @@ const EditProfilePage = ({ onBack }) => {
       try {
         setLoading(true);
         setError('');
-        const response = await getMyProfile();
-        const profile = response?.data && typeof response.data === 'object' ? response.data : response;
+        const [profileResponse, linkedProfilesResponse] = await Promise.all([
+          getMyProfile(),
+          getMyProfiles(),
+        ]);
+        const profile = profileResponse?.data && typeof profileResponse.data === 'object'
+          ? profileResponse.data
+          : profileResponse;
+        const linkedProfiles = Array.isArray(linkedProfilesResponse?.data)
+          ? linkedProfilesResponse.data
+          : Array.isArray(linkedProfilesResponse)
+            ? linkedProfilesResponse
+            : [];
 
         if (!mounted) {
           return;
         }
+
+        const activeUserId = Number(currentUserId || profile?.user_id || profile?.id || 0);
+        const matchedLinkedProfile = linkedProfiles.find(
+          (item) => Number(item?.user_id || item?.id || 0) === activeUserId
+        );
+        const activeLinkedAccountFromApp = Array.isArray(linkedAccounts)
+          ? linkedAccounts.find((account) => Number(account?.id || 0) === activeUserId)
+          : null;
+        const appRelationshipLabel = String(activeLinkedAccountFromApp?.relationshipLabel || '').trim();
+        const relationshipForPermission = profile?.relationship || matchedLinkedProfile?.relationship || '';
+        const relationshipToEvaluate = appRelationshipLabel || relationshipForPermission;
 
         setFormData({
           first_name: profile?.first_name || '',
@@ -76,6 +123,9 @@ const EditProfilePage = ({ onBack }) => {
           organization_name: profile?.referred_by || '',
           phone: profile?.phone || '',
         });
+        setActiveProfileUserId(activeUserId > 0 ? activeUserId : null);
+        setActiveRelationship(relationshipToEvaluate);
+        setIsPhoneEditable(!isSelfRelationship(relationshipToEvaluate));
       } catch (loadError) {
         if (mounted) {
           setError(loadError?.message || 'Failed to load profile. Please try again.');
@@ -92,13 +142,18 @@ const EditProfilePage = ({ onBack }) => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [currentUserId, linkedAccounts]);
 
   const handleChange = (field, value) => {
     setSuccess('');
+
+    const normalizedValue = field === 'phone'
+      ? String(value || '').replace(/\D/g, '').slice(0, 10)
+      : value;
+
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: normalizedValue,
     }));
   };
 
@@ -114,7 +169,7 @@ const EditProfilePage = ({ onBack }) => {
         throw new Error('Age must be between 1 and 120.');
       }
 
-      const payload = {
+      const selfProfilePayload = {
         age,
         first_name: formData.first_name.trim() || null,
         last_name: formData.last_name.trim() || null,
@@ -123,9 +178,28 @@ const EditProfilePage = ({ onBack }) => {
         address: formData.address.trim() || null,
         country: formData.country.trim() || null,
         referred_by: formData.organization_name.trim() || null,
+        ...(isPhoneEditable ? { phone: formData.phone.trim() || null } : {}),
       };
 
-      await updateMyProfile(payload);
+      if (isPhoneEditable) {
+        const subProfilePayload = {
+          age,
+          first_name: formData.first_name.trim() || null,
+          last_name: formData.last_name.trim() || null,
+          date_of_birth: getDateOfBirthFromAge(formData.age),
+          gender: formData.gender.trim() || null,
+          relationship: String(activeRelationship || '').trim().toLowerCase() || null,
+          phone: formData.phone.trim() || null,
+          email: formData.email.trim() || null,
+          city: formData.country.trim() || null,
+          address: formData.address.trim() || null,
+        };
+
+        await updateMySubProfile(activeProfileUserId, subProfilePayload);
+      } else {
+        await updateMyProfile(selfProfilePayload);
+      }
+
       setSuccess('Profile updated successfully.');
       onBack();
     } catch (saveError) {
@@ -187,10 +261,13 @@ const EditProfilePage = ({ onBack }) => {
           />
 
           <Input
-            placeholder="Phone (read-only)"
+            type="tel"
+            placeholder={isPhoneEditable ? 'Phone' : 'Phone (read-only)'}
             value={formData.phone}
+            onChange={(e) => handleChange('phone', e.target.value)}
+            maxLength={10}
             className={inputTextClass}
-            disabled
+            disabled={loading || !isPhoneEditable}
           />
 
           <Input

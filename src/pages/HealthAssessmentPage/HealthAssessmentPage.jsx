@@ -121,15 +121,17 @@ const extractUnitOptionsFromQuestion = (question) => {
   return uniqueApiOptions.length > 0 ? uniqueApiOptions : ['-'];
 };
 
-const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
-  const [height, setHeight] = useState(152);
-  const [weight, setWeight] = useState('0');
-  const [waist, setWaist] = useState(32);
-  const [heightUnit, setHeightUnit] = useState('-');
-  const [weightUnit, setWeightUnit] = useState('-');
-  const [waistUnit, setWaistUnit] = useState('-');
-  const [heightFeet, setHeightFeet] = useState(5);
-  const [heightInches, setHeightInches] = useState(0);
+const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initialValues = {} }) => {
+  const [height, setHeight] = useState(initialValues?.height ?? 152);
+  const [weight, setWeight] = useState(
+    initialValues?.weight != null && initialValues?.weight !== '' ? String(initialValues.weight) : '0'
+  );
+  const [waist, setWaist] = useState(initialValues?.waist ?? 32);
+  const [heightUnit, setHeightUnit] = useState(initialValues?.heightUnit || '-');
+  const [weightUnit, setWeightUnit] = useState(initialValues?.weightUnit || '-');
+  const [waistUnit, setWaistUnit] = useState(initialValues?.waistUnit || '-');
+  const [heightFeet, setHeightFeet] = useState(initialValues?.heightFeet ?? 5);
+  const [heightInches, setHeightInches] = useState(initialValues?.heightInches ?? 0);
   const [showWaistInfoPopup, setShowWaistInfoPopup] = useState(false);
 
   const heightQuestionConfig = useMemo(
@@ -166,6 +168,17 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
   const waistTouchLastX = useRef(null);
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  useEffect(() => {
+    setHeight(initialValues?.height ?? 152);
+    setWeight(initialValues?.weight != null && initialValues?.weight !== '' ? String(initialValues.weight) : '0');
+    setWaist(initialValues?.waist ?? 32);
+    setHeightUnit(initialValues?.heightUnit || '-');
+    setWeightUnit(initialValues?.weightUnit || '-');
+    setWaistUnit(initialValues?.waistUnit || '-');
+    setHeightFeet(initialValues?.heightFeet ?? 5);
+    setHeightInches(initialValues?.heightInches ?? 0);
+  }, [initialValues]);
 
   useEffect(() => {
     if (!heightUnitOptions.includes(heightUnit)) {
@@ -534,6 +547,11 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [] }) => {
             height,
             weight: Number.isFinite(parsedWeight) ? parsedWeight : null,
             waist,
+            heightUnit,
+            weightUnit,
+            waistUnit,
+            heightFeet,
+            heightInches,
           });
         }}
       >
@@ -610,10 +628,10 @@ const FollowupUnitDropdown = ({ value, options, onChange }) => {
   );
 };
 
-const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [] }) => {
-  const [hipSize, setHipSize] = useState(33);
-  const [bodyFat, setBodyFat] = useState(20);
-  const [hipUnit, setHipUnit] = useState('-');
+const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], initialValues = {} }) => {
+  const [hipSize, setHipSize] = useState(initialValues?.hipSize ?? 33);
+  const [bodyFat, setBodyFat] = useState(initialValues?.bodyFat ?? 20);
+  const [hipUnit, setHipUnit] = useState(initialValues?.hipUnit || '-');
   const [showHipInfoPopup, setShowHipInfoPopup] = useState(false);
   const hipTouchLastX = useRef(null);
 
@@ -625,6 +643,12 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [] }) =
     () => extractUnitOptionsFromQuestion(hipQuestionConfig),
     [hipQuestionConfig]
   );
+
+  useEffect(() => {
+    setHipSize(initialValues?.hipSize ?? 33);
+    setBodyFat(initialValues?.bodyFat ?? 20);
+    setHipUnit(initialValues?.hipUnit || '-');
+  }, [initialValues]);
 
   useEffect(() => {
     if (!hipUnitOptions.includes(hipUnit)) {
@@ -740,6 +764,7 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [] }) =
           onDone?.({
             hipSize,
             bodyFat,
+            hipUnit,
           });
         }}
       >
@@ -995,6 +1020,22 @@ const buildResponsesFromSelections = (questions = [], selections = {}) => {
     .filter(Boolean);
 };
 
+const buildSelectionStateFromCards = (cardsData = [], initialSelections = {}) => {
+  return cardsData.reduce((acc, card) => {
+    const key = card?.key;
+    if (!key) {
+      return acc;
+    }
+
+    const nextValue = initialSelections && Object.prototype.hasOwnProperty.call(initialSelections, key)
+      ? initialSelections[key]
+      : card.defaultSelected;
+
+    acc[key] = Array.isArray(nextValue) ? [...nextValue] : [];
+    return acc;
+  }, {});
+};
+
 const normalizeLookupText = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 const findQuestionByKeys = (questions = [], keys = [], textHints = []) => {
@@ -1087,28 +1128,22 @@ const buildVitalsResponses = (questions = [], values = {}) => {
     .filter(Boolean);
 };
 
-const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [] }) => {
+const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [], initialSelections = {} }) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const cardsData = useMemo(() => {
     return Array.isArray(questions) ? toFamilyApiCards(questions) : familyCards;
   }, [questions]);
 
-  const [selections, setSelections] = useState(() => cardsData.reduce((acc, card) => {
-    acc[card.key] = [...card.defaultSelected];
-    return acc;
-  }, {}));
+  const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
   const touchStartYRef = useRef(null);
   const lastWheelAtRef = useRef(0);
 
   useEffect(() => {
     setCardIndex(0);
     setShowInfoPopup(false);
-    setSelections(cardsData.reduce((acc, card) => {
-      acc[card.key] = [...card.defaultSelected];
-      return acc;
-    }, {}));
-  }, [cardsData]);
+    setSelections(buildSelectionStateFromCards(cardsData, initialSelections));
+  }, [cardsData, initialSelections]);
 
   const totalCards = Math.max(cardsData.length, 1);
   const activeCard = cardsData[cardIndex] || {
@@ -1499,28 +1534,22 @@ const toLifestyleApiCards = (questions = []) => {
   });
 };
 
-const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [] }) => {
+const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [], initialSelections = {} }) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const cardsData = useMemo(() => {
     return Array.isArray(questions) ? toLifestyleApiCards(questions) : lifestyleCards;
   }, [questions]);
 
-  const [selections, setSelections] = useState(() => cardsData.reduce((acc, card) => {
-    acc[card.key] = [...card.defaultSelected];
-    return acc;
-  }, {}));
+  const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
   const touchStartYRef = useRef(null);
   const lastWheelAtRef = useRef(0);
 
   useEffect(() => {
     setCardIndex(0);
     setShowInfoPopup(false);
-    setSelections(cardsData.reduce((acc, card) => {
-      acc[card.key] = [...card.defaultSelected];
-      return acc;
-    }, {}));
-  }, [cardsData]);
+    setSelections(buildSelectionStateFromCards(cardsData, initialSelections));
+  }, [cardsData, initialSelections]);
 
   const totalCards = Math.max(cardsData.length, 1);
   const activeCard = cardsData[cardIndex] || {
@@ -2000,28 +2029,22 @@ const toNutritionApiCards = (questions = []) => {
   });
 };
 
-const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [] }) => {
+const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [], initialSelections = {} }) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const cardsData = useMemo(() => {
     return Array.isArray(questions) ? toNutritionApiCards(questions) : nutritionCards;
   }, [questions]);
 
-  const [selections, setSelections] = useState(() => cardsData.reduce((acc, card) => {
-    acc[card.key] = [...card.defaultSelected];
-    return acc;
-  }, {}));
+  const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
   const touchStartYRef = useRef(null);
   const lastWheelAtRef = useRef(0);
 
   useEffect(() => {
     setCardIndex(0);
     setShowInfoPopup(false);
-    setSelections(cardsData.reduce((acc, card) => {
-      acc[card.key] = [...card.defaultSelected];
-      return acc;
-    }, {}));
-  }, [cardsData]);
+    setSelections(buildSelectionStateFromCards(cardsData, initialSelections));
+  }, [cardsData, initialSelections]);
 
   const totalCards = Math.max(cardsData.length, 1);
   const activeCard = cardsData[cardIndex] || {
@@ -2230,9 +2253,15 @@ const VITALS_DEFAULTS = {
   diastolic: 80,
 };
 
-const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [] }) => {
-  const [systolic, setSystolic] = useState(null);
-  const [diastolic, setDiastolic] = useState(null);
+const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [], initialValues = {} }) => {
+  const [systolic, setSystolic] = useState(initialValues?.systolic ?? null);
+  const [diastolic, setDiastolic] = useState(initialValues?.diastolic ?? null);
+  const [showSubmitPopup, setShowSubmitPopup] = useState(false);
+
+  useEffect(() => {
+    setSystolic(initialValues?.systolic ?? null);
+    setDiastolic(initialValues?.diastolic ?? null);
+  }, [initialValues]);
 
   const handleNumberInput = (setter) => (e) => {
     const raw = String(e.target.value || '').trim();
@@ -2314,15 +2343,43 @@ const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [] }) => {
       <button
         type="button"
         className="vitals-page__done"
-        onClick={() => {
-          onDone?.({
-            systolic,
-            diastolic,
-          });
-        }}
+        onClick={() => setShowSubmitPopup(true)}
       >
-        Done
+        Submit
       </button>
+
+      {showSubmitPopup ? (
+        <div className="vitals-page__confirm-overlay" role="dialog" aria-label="Confirm questionnaire submit">
+          <div className="vitals-page__confirm-popup">
+            <h2 className="vitals-page__confirm-title">Submit Health Assessment?</h2>
+            <p className="vitals-page__confirm-text">
+              Once submitted, you can&apos;t edit this later. If you want to make changes, make them now before submitting.
+            </p>
+            <div className="vitals-page__confirm-actions">
+              <button
+                type="button"
+                className="vitals-page__confirm-btn vitals-page__confirm-btn--secondary"
+                onClick={() => setShowSubmitPopup(false)}
+              >
+                Make Changes
+              </button>
+              <button
+                type="button"
+                className="vitals-page__confirm-btn vitals-page__confirm-btn--primary"
+                onClick={() => {
+                  setShowSubmitPopup(false);
+                  onDone?.({
+                    systolic,
+                    diastolic,
+                  });
+                }}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
@@ -2380,6 +2437,14 @@ const HealthAssessmentPage = ({
   const [activeSubPage, setActiveSubPage] = useState(null);
   const [showFollowup, setShowFollowup] = useState(false);
   const [anthropometryPrimaryValues, setAnthropometryPrimaryValues] = useState({});
+  const [anthropometryFollowupValues, setAnthropometryFollowupValues] = useState({});
+  const [familyHistorySelections, setFamilyHistorySelections] = useState({});
+  const [lifestyleHabitsSelections, setLifestyleHabitsSelections] = useState({});
+  const [nutritionLogSelections, setNutritionLogSelections] = useState({});
+  const [vitalsValues, setVitalsValues] = useState({
+    systolic: null,
+    diastolic: null,
+  });
   const resolvedSteps = defaultSteps.map((defaultStep) => {
     const matchedStep = Array.isArray(steps)
       ? steps.find((step) => step?.routeId === defaultStep.id || step?.id === defaultStep.id)
@@ -2424,6 +2489,7 @@ const HealthAssessmentPage = ({
     return (
       <EmbeddedAnthropometryPage
         questions={questionsByRouteId['anthropometry'] || []}
+        initialValues={anthropometryPrimaryValues}
         onBack={() => setActiveSubPage(null)}
         onContinue={(values) => {
           setAnthropometryPrimaryValues(values || {});
@@ -2437,8 +2503,10 @@ const HealthAssessmentPage = ({
     return (
       <EmbeddedAnthropometryFollowupPage
         questions={questionsByRouteId['anthropometry'] || []}
+        initialValues={anthropometryFollowupValues}
         onBack={() => setShowFollowup(false)}
         onDone={(followupValues) => {
+          setAnthropometryFollowupValues(followupValues || {});
           const anthropometryQuestions = questionsByRouteId['anthropometry'] || [];
           const responses = buildAnthropometryResponses(
             anthropometryQuestions,
@@ -2447,7 +2515,6 @@ const HealthAssessmentPage = ({
           );
 
           setShowFollowup(false);
-          setAnthropometryPrimaryValues({});
           setActiveSubPage(null);
           onStepComplete?.('anthropometry', responses);
         }}
@@ -2459,8 +2526,10 @@ const HealthAssessmentPage = ({
     return (
       <EmbeddedFamilyHistoryPage
         questions={questionsByRouteId['family-history'] || []}
+        initialSelections={familyHistorySelections}
         onBack={() => setActiveSubPage(null)}
         onDone={(selections) => {
+          setFamilyHistorySelections(selections || {});
           const responses = buildResponsesFromSelections(
             questionsByRouteId['family-history'] || [],
             selections || {}
@@ -2477,8 +2546,10 @@ const HealthAssessmentPage = ({
     return (
       <EmbeddedLifestyleHabitsPage
         questions={questionsByRouteId['lifestyle-habits'] || []}
+        initialSelections={lifestyleHabitsSelections}
         onBack={() => setActiveSubPage(null)}
         onDone={(selections) => {
+          setLifestyleHabitsSelections(selections || {});
           const responses = buildResponsesFromSelections(
             questionsByRouteId['lifestyle-habits'] || [],
             selections || {}
@@ -2495,8 +2566,10 @@ const HealthAssessmentPage = ({
     return (
       <EmbeddedNutritionLogPage
         questions={questionsByRouteId['nutrition-log'] || []}
+        initialSelections={nutritionLogSelections}
         onBack={() => setActiveSubPage(null)}
         onDone={(selections) => {
+          setNutritionLogSelections(selections || {});
           const responses = buildResponsesFromSelections(
             questionsByRouteId['nutrition-log'] || [],
             selections || {}
@@ -2513,8 +2586,10 @@ const HealthAssessmentPage = ({
     return (
       <EmbeddedVitalsPage
         questions={questionsByRouteId['vitals'] || []}
+        initialValues={vitalsValues}
         onBack={() => setActiveSubPage(null)}
         onDone={(values) => {
+          setVitalsValues(values || {});
           const responses = buildVitalsResponses(questionsByRouteId['vitals'] || [], values || {});
 
           setActiveSubPage(null);

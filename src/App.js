@@ -79,6 +79,7 @@ function App() {
   const [expandedQuestionnaireStep, setExpandedQuestionnaireStep] = useState(null);
   const [questionnaireSteps, setQuestionnaireSteps] = useState([]);
   const [questionnaireQuestionsByCategoryId, setQuestionnaireQuestionsByCategoryId] = useState({});
+  const [questionnaireDraftResponsesByRoute, setQuestionnaireDraftResponsesByRoute] = useState({});
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [selectedHealthScanTab, setSelectedHealthScanTab] = useState(0);
@@ -297,14 +298,31 @@ function App() {
     };
 
     const category = getCategoryByRoute(routeId);
-    const categoryId = Number(category?.category_id || 0);
     const normalizedResponses = Array.isArray(responses) ? responses : [];
+    const nextDraftResponses = {
+      ...questionnaireDraftResponsesByRoute,
+      [routeId]: normalizedResponses,
+    };
 
-    if (categoryId > 0 && normalizedResponses.length > 0) {
-      try {
-        await submitQuestionnaireResponses(categoryId, normalizedResponses);
-      } catch (error) {
-        console.error(`Failed to submit questionnaire responses for ${routeId}:`, error);
+    setQuestionnaireDraftResponsesByRoute(nextDraftResponses);
+
+    if (routeId === 'vitals') {
+      const submissionOrder = ['anthropometry', 'family-history', 'lifestyle-habits', 'nutrition-log', 'vitals'];
+
+      for (const route of submissionOrder) {
+        const targetCategory = getCategoryByRoute(route);
+        const categoryId = Number(targetCategory?.category_id || 0);
+        const routeResponses = Array.isArray(nextDraftResponses[route]) ? nextDraftResponses[route] : [];
+
+        if (categoryId <= 0 || routeResponses.length === 0) {
+          continue;
+        }
+
+        try {
+          await submitQuestionnaireResponses(categoryId, routeResponses);
+        } catch (error) {
+          console.error(`Failed to submit questionnaire responses for ${route}:`, error);
+        }
       }
     }
 
@@ -320,6 +338,7 @@ function App() {
 
       setQuestionnaireSteps(categories);
       setQuestionnaireQuestionsByCategoryId(context?.questionsByCategoryId || {});
+      setQuestionnaireDraftResponsesByRoute({});
 
       const completedProgress = getProgressFromCategories(categories);
       setQuestionnaireProgress(completedProgress);
@@ -328,6 +347,7 @@ function App() {
       setQuestionnaireSteps([]);
       setQuestionnaireQuestionsByCategoryId({});
       setQuestionnaireProgress(0);
+      setQuestionnaireDraftResponsesByRoute({});
       console.error('Failed to load questionnaire context:', error);
     }
   };
@@ -425,6 +445,8 @@ function App() {
   };
 
   const preloadHomeScreenData = async () => {
+    setPreloadedHomeData(null);
+
     try {
       const resolveOverviewPayload = (payload) => {
         if (!payload || typeof payload !== 'object') return null;
@@ -448,6 +470,8 @@ function App() {
           positiveWinsData: overview?.positive_wins && typeof overview.positive_wins === 'object' ? overview.positive_wins : null,
           riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
         });
+      } else {
+        setPreloadedHomeData(null);
       }
     } catch (err) {
       console.error('Failed to preload home screen data:', err);
@@ -607,6 +631,7 @@ function App() {
     setQuestionnaireQuestionsByCategoryId({});
     setQuestionnaireProgress(0);
     setExpandedQuestionnaireStep(null);
+    setQuestionnaireDraftResponsesByRoute({});
     setPreloadedHomeData(null);
     setCurrentPage('login');
   };
@@ -1068,6 +1093,52 @@ function App() {
 
       {currentPage === 'profile' && (
         <ProfilePage
+          onAccountSwitched={(payload = {}) => {
+            const switchedProfile = payload?.profile && typeof payload.profile === 'object'
+              ? payload.profile
+              : null;
+
+            setUserName(switchedProfile?.first_name || '');
+            setUserAge(getAgeFromProfile(switchedProfile));
+
+            const switchedUserId = Number(switchedProfile?.user_id || 0);
+            const normalizedSwitchedUserId = switchedUserId > 0 ? switchedUserId : null;
+            setCurrentUserId(normalizedSwitchedUserId);
+            setSelectedAccountId(normalizedSwitchedUserId);
+
+            const linkedProfiles = Array.isArray(payload?.linkedProfiles) ? payload.linkedProfiles : [];
+            const normalizedLinkedAccounts = linkedProfiles
+              .map((item) => {
+                const accountId = Number(item?.user_id || item?.id || 0);
+                if (accountId <= 0) {
+                  return null;
+                }
+
+                const firstName = String(item?.first_name || '').trim();
+                const lastName = String(item?.last_name || '').trim();
+                const relationship = String(item?.relationship || '').trim();
+                const relationshipLabel = relationship
+                  ? relationship.charAt(0).toUpperCase() + relationship.slice(1)
+                  : accountId === normalizedSwitchedUserId
+                    ? 'Primary Account'
+                    : 'Linked Account';
+
+                return {
+                  id: accountId,
+                  name: [firstName, lastName].filter(Boolean).join(' ') || 'User',
+                  relationshipLabel,
+                  gender: item?.gender || '',
+                  isPrimary: relationship.toLowerCase() === 'primary account' || accountId === normalizedSwitchedUserId,
+                };
+              })
+              .filter(Boolean);
+
+            setLinkedAccounts(normalizedLinkedAccounts);
+            clearReportRequestCache();
+            clearStoredLatestAssessmentId();
+            setPreloadedHomeData(null);
+            setForceHomeApiRefresh(true);
+          }}
           onBack={() => {
             console.log('Back to Home');
             clearReportRequestCache();
@@ -1171,6 +1242,8 @@ function App() {
 
       {currentPage === 'edit-profile' && (
         <EditProfilePage
+          currentUserId={currentUserId}
+          linkedAccounts={linkedAccounts}
           onBack={() => {
             console.log('Back to Profile');
             setCurrentPage('profile');
