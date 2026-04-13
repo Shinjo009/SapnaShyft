@@ -91,6 +91,141 @@ button[aria-label^="Back"]::before {
   min-height: 100% !important;
 }
 
+.app-install-popup-wrap {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(calc(100vw - 16px), 360px);
+  z-index: 9999;
+}
+
+.app-install-popup-close {
+  position: absolute;
+  top: -28px;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.app-install-popup-card {
+  display: flex;
+  padding: 20px;
+  align-items: center;
+  gap: 16px;
+  align-self: stretch;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(114deg, #000 0%, #063533 100%);
+}
+
+.app-install-popup-content {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.app-install-popup-title {
+  margin: 0;
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 21px;
+  letter-spacing: 0.5px;
+}
+
+.app-install-popup-subtitle {
+  margin: 4px 0 0;
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.app-install-popup-download-btn {
+  margin-top: 16px;
+  display: flex;
+  width: 100%;
+  padding: 8px 18px;
+  justify-content: center;
+  align-items: center;
+  align-self: stretch;
+  border-radius: 100px;
+  border: 1px solid rgba(144, 223, 158, 0.35);
+  background: rgba(204, 204, 204, 0.15);
+  color: #90df9e;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  cursor: pointer;
+}
+
+.app-install-popup-ios-hint {
+  margin: 8px 0 0;
+  color: #bcd9c2;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.app-install-popup-image-stack {
+  display: flex;
+  align-items: center;
+}
+
+.app-install-popup-image {
+  display: block;
+  object-fit: cover;
+}
+
+.app-install-popup-image--main {
+  width: 80px;
+  height: 171px;
+  aspect-ratio: 29 / 62;
+}
+
+.app-install-popup-image--secondary {
+  width: 70px;
+  height: 150px;
+  aspect-ratio: 7 / 15;
+  margin-left: -25px;
+}
+
+@media (max-width: 360px) {
+  .app-install-popup-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .app-install-popup-image--main {
+    width: 68px;
+    height: 145px;
+  }
+
+  .app-install-popup-image--secondary {
+    width: 58px;
+    height: 124px;
+    margin-left: -20px;
+  }
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;

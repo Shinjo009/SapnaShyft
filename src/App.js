@@ -51,6 +51,8 @@ import {
 } from './utils/authStorage';
 import { trackAppScreen } from './analytics/googleAnalytics';
 import AppTooltipTour from './components/AppTooltipTour/AppTooltipTour';
+import popupOneImage from './images/popup1.png';
+import popupTwoImage from './images/popup2.png';
 
 const SWIPE_BACK_BLOCKED_PAGES = new Set([
   'home',
@@ -82,6 +84,8 @@ function App() {
   const [questionnaireDraftResponsesByRoute, setQuestionnaireDraftResponsesByRoute] = useState({});
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [isIosInstallFlow, setIsIosInstallFlow] = useState(false);
+  const [installHelpMessage, setInstallHelpMessage] = useState('');
   const [selectedHealthScanTab, setSelectedHealthScanTab] = useState(0);
   const [linkedAccounts, setLinkedAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState(null);
@@ -374,9 +378,25 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const userAgent = window.navigator.userAgent || '';
+    const isIosDevice = /iPhone|iPad|iPod/i.test(userAgent)
+      || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+
+    if (!isStandalone) {
+      setIsIosInstallFlow(isIosDevice);
+      setShowInstallPrompt(true);
+    } else {
+      setIsIosInstallFlow(false);
+      setShowInstallPrompt(false);
+    }
+
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      setIsIosInstallFlow(false);
+      setInstallHelpMessage('');
       setShowInstallPrompt(true);
       console.log('Install prompt available');
     };
@@ -385,6 +405,7 @@ function App() {
       console.log('App installed');
       setShowInstallPrompt(false);
       setDeferredPrompt(null);
+      setInstallHelpMessage('');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -430,7 +451,27 @@ function App() {
   }, [currentPage]);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      if (isIosInstallFlow) {
+        if (typeof window.navigator.share === 'function') {
+          try {
+            await window.navigator.share({
+              title: 'Supershyft',
+              text: 'Install Supershyft on your home screen',
+              url: window.location.href,
+            });
+          } catch (error) {
+            console.log('iOS share sheet was dismissed or failed:', error);
+          }
+        }
+
+        setInstallHelpMessage('On iOS Safari: Tap Share, then Add to Home Screen.');
+      } else {
+        setInstallHelpMessage('Use browser menu and choose Install app/Add to Home Screen.');
+      }
+
+      return;
+    }
 
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
@@ -438,10 +479,12 @@ function App() {
     
     setDeferredPrompt(null);
     setShowInstallPrompt(false);
+    setInstallHelpMessage('');
   };
 
   const handleDismissInstall = () => {
     setShowInstallPrompt(false);
+    setInstallHelpMessage('');
   };
 
   const preloadHomeScreenData = async () => {
@@ -698,61 +741,34 @@ function App() {
       <div className="app-background" aria-hidden="true" />
       {/* PWA Install Prompt Banner - Fixed outside scroll container */}
       {showInstallPrompt && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: '#1a1a2e',
-          color: '#fff',
-          padding: '16px',
-          zIndex: 9999,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-            <img
-              src={`${process.env.PUBLIC_URL}/super-shyft-favicon.png?v=3`}
-              alt=""
-              width={48}
-              height={48}
-              style={{ flexShrink: 0, borderRadius: '12px', objectFit: 'cover' }}
-            />
-            <div style={{ minWidth: 0 }}>
-              <p style={{ margin: '0 0 8px 0', fontWeight: 'bold' }}>Install Supershyft</p>
-              <p style={{ margin: 0, fontSize: '14px', opacity: 0.9 }}>Get quick access on your home screen</p>
+        <div className="app-install-popup-wrap" role="dialog" aria-live="polite" aria-label="Install app">
+          <button
+            type="button"
+            className="app-install-popup-close"
+            onClick={handleDismissInstall}
+            aria-label="Close install popup"
+          >
+            ×
+          </button>
+          <div className="app-install-popup-card">
+            <div className="app-install-popup-content">
+              <p className="app-install-popup-title">Use the app for a smoother experience</p>
+              <p className="app-install-popup-subtitle">Unlock personalized insights.</p>
+              <button
+                type="button"
+                className="app-install-popup-download-btn"
+                onClick={handleInstallClick}
+              >
+                Download App
+              </button>
+              {Boolean(installHelpMessage) && (
+                <p className="app-install-popup-ios-hint">{installHelpMessage}</p>
+              )}
             </div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={handleInstallClick}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#00d4ff',
-                color: '#000',
-                border: 'none',
-                borderRadius: '4px',
-                fontWeight: 'bold',
-                cursor: 'pointer'
-              }}
-            >
-              Install
-            </button>
-            <button
-              onClick={handleDismissInstall}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: 'transparent',
-                color: '#fff',
-                border: '1px solid #fff',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              Later
-            </button>
+            <div className="app-install-popup-image-stack" aria-hidden="true">
+              <img src={popupOneImage} alt="" className="app-install-popup-image app-install-popup-image--main" />
+              <img src={popupTwoImage} alt="" className="app-install-popup-image app-install-popup-image--secondary" />
+            </div>
           </div>
         </div>
       )}
