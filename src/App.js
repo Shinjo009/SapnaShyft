@@ -712,9 +712,18 @@ function App() {
           alignItems: 'center',
           boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
         }}>
-          <div style={{ flex: 1 }}>
-            <p style={{ margin: '0 0 8px 0', fontWeight: 'bold' }}>Install Health Scan</p>
-            <p style={{ margin: 0, fontSize: '14px', opacity: 0.9 }}>Get quick access on your home screen</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+            <img
+              src={`${process.env.PUBLIC_URL}/super-shyft-favicon.png`}
+              alt=""
+              width={48}
+              height={48}
+              style={{ flexShrink: 0, borderRadius: '12px', objectFit: 'cover' }}
+            />
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: '0 0 8px 0', fontWeight: 'bold' }}>Install Supershyft</p>
+              <p style={{ margin: 0, fontSize: '14px', opacity: 0.9 }}>Get quick access on your home screen</p>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
