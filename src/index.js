@@ -14,22 +14,28 @@ root.render(
   </React.StrictMode>
 );
 
-// Prevent stale deployments by removing old service workers and caches.
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map((registration) => registration.unregister()));
+// Tear down legacy PWA caches (e.g. old "Health Scan" service worker) so new branding and bundles load.
+async function clearLegacyPwaCaches() {
+  if (!('serviceWorker' in navigator)) {
+    return;
+  }
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
 
-      if ('caches' in window) {
-        const cacheKeys = await caches.keys();
-        await Promise.all(cacheKeys.map((key) => caches.delete(key)));
-      }
-
-      console.log('Service workers unregistered and caches cleared.');
-    } catch (error) {
-      console.log('Failed to clear service worker/cache state:', error);
+    if ('caches' in window) {
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.map((key) => caches.delete(key)));
     }
+  } catch (error) {
+    console.warn('PWA / cache cleanup failed:', error);
+  }
+}
+
+void clearLegacyPwaCaches();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void clearLegacyPwaCaches();
   });
 }
 

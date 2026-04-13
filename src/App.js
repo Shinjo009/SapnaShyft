@@ -714,7 +714,7 @@ function App() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
             <img
-              src={`${process.env.PUBLIC_URL}/super-shyft-favicon.png`}
+              src={`${process.env.PUBLIC_URL}/super-shyft-favicon.png?v=2`}
               alt=""
               width={48}
               height={48}
