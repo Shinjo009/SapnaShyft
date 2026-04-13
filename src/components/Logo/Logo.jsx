@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import logoSvg from '../../images/logo.svg';
+import brandLogo from '../../images/SuperShyft - Logo [Final]-03 4.png';
 
 /**
  * Logo Component - Reusable logo with configurable size
@@ -14,7 +14,7 @@ import logoSvg from '../../images/logo.svg';
 const Logo = ({ 
   size = 'md',
   className = '',
-  alt = 'Logo',
+  alt = 'Supershyft',
   ...props 
 }) => {
   
@@ -28,10 +28,10 @@ const Logo = ({
   
   return (
     <div className={`flex justify-center items-center ${className}`} {...props}>
-      <img 
-        src={logoSvg} 
+      <img
+        src={brandLogo}
         alt={alt}
-        className={sizeClasses[size]}
+        className={`${sizeClasses[size]} object-contain`}
       />
     </div>
   );
