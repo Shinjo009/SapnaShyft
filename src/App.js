@@ -301,7 +301,6 @@ function App() {
       'vitals': 5,
     };
 
-    const category = getCategoryByRoute(routeId);
     const normalizedResponses = Array.isArray(responses) ? responses : [];
     const nextDraftResponses = {
       ...questionnaireDraftResponsesByRoute,
