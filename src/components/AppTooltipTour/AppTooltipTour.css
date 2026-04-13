@@ -5,10 +5,36 @@
   pointer-events: none;
 }
 
+.app-tooltip-tour__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 12, 16, 0.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  -webkit-mask-image: radial-gradient(
+    ellipse var(--spotlight-rx-soft, 90px) var(--spotlight-ry-soft, 60px)
+    at var(--spotlight-x, 50%) var(--spotlight-y, 50%),
+    transparent 0,
+    transparent 78%,
+    rgba(0, 0, 0, 0.55) 92%,
+    #000 100%
+  );
+  mask-image: radial-gradient(
+    ellipse var(--spotlight-rx-soft, 90px) var(--spotlight-ry-soft, 60px)
+    at var(--spotlight-x, 50%) var(--spotlight-y, 50%),
+    transparent 0,
+    transparent 78%,
+    rgba(0, 0, 0, 0.55) 92%,
+    #000 100%
+  );
+  transform: translateZ(0);
+}
+
 .app-tooltip-tour__arrow-layer {
   position: absolute;
   inset: 0;
   overflow: visible;
+  z-index: 1;
 }
 
 .app-tooltip-tour__arrow-path {
@@ -23,11 +49,12 @@
   position: fixed;
   display: inline-flex;
   pointer-events: auto;
-  padding: 12px;
+  z-index: 2;
+  padding: 14px;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
-  border-radius: 12px;
+  gap: 7px;
+  border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.5);
   background: linear-gradient(180deg, rgba(30, 35, 35, 0.5) 0%, rgba(15, 20, 20, 0.7) 100%);
   backdrop-filter: blur(5px);
@@ -39,10 +66,10 @@
   align-self: stretch;
   color: #fff;
   font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   font-style: normal;
   font-weight: 400;
-  line-height: 15px;
+  line-height: 18px;
   text-align: left;
 }
 
@@ -58,10 +85,10 @@
   background: transparent;
   padding: 0;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 13px;
   font-style: normal;
   font-weight: 500;
-  line-height: 16px;
+  line-height: 19px;
 }
 
 .app-tooltip-tour__action-btn--skip {

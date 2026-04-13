@@ -91,8 +91,8 @@ const TOUR_STEPS = [
 
 const getBubblePosition = (rect, placement, viewport) => {
   const margin = 12;
-  const maxWidth = Math.min(160, viewport.width - margin * 2);
-  const estimatedHeight = 120;
+  const maxWidth = Math.min(192, viewport.width - margin * 2);
+  const estimatedHeight = 144;
 
   let left = rect.left;
   let top = rect.top;
@@ -167,7 +167,7 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const [targetRect, setTargetRect] = useState(null);
-  const [bubbleSize, setBubbleSize] = useState({ width: 160, height: 110 });
+  const [bubbleSize, setBubbleSize] = useState({ width: 192, height: 132 });
   const bubbleRef = useRef(null);
 
   const currentStep = TOUR_STEPS[currentStepIndex] || null;
@@ -308,6 +308,12 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
   };
 
   const bubble = getBubblePosition(targetRect, currentStep.placement, viewport);
+  const spotlightPadding = 18;
+  const spotlightSoftness = 22;
+  const spotlightCenterX = clamp(targetRect.left + targetRect.width / 2, 0, viewport.width);
+  const spotlightCenterY = clamp(targetRect.top + targetRect.height / 2, 0, viewport.height);
+  const spotlightRx = Math.max(14, targetRect.width / 2 + spotlightPadding);
+  const spotlightRy = Math.max(14, targetRect.height / 2 + spotlightPadding);
   const bubbleRect = {
     left: bubble.left,
     top: bubble.top,
@@ -346,6 +352,18 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
 
   return (
     <div className="app-tooltip-tour" aria-live="polite">
+      <div
+        className="app-tooltip-tour__backdrop"
+        style={{
+          '--spotlight-x': `${spotlightCenterX}px`,
+          '--spotlight-y': `${spotlightCenterY}px`,
+          '--spotlight-rx': `${spotlightRx}px`,
+          '--spotlight-ry': `${spotlightRy}px`,
+          '--spotlight-rx-soft': `${spotlightRx + spotlightSoftness}px`,
+          '--spotlight-ry-soft': `${spotlightRy + spotlightSoftness}px`,
+        }}
+        aria-hidden="true"
+      />
       <svg className="app-tooltip-tour__arrow-layer" width="100%" height="100%" aria-hidden="true">
         <defs>
           <marker id="app-tooltip-arrowhead" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
