@@ -685,13 +685,7 @@ function App() {
     setCurrentPage('packages');
   };
 
-  const hasBioAiReport = Boolean(
-    preloadedHomeData && (
-      preloadedHomeData.metabolicAgeValue
-      || preloadedHomeData.positiveWinsData
-      || (Array.isArray(preloadedHomeData.riskAnalysisData) && preloadedHomeData.riskAnalysisData.length > 0)
-    )
-  );
+  const tooltipTourScopeKey = String(selectedAccountId || currentUserId || 'global');
 
   return (
     <div
@@ -753,7 +747,7 @@ function App() {
           </div>
         </div>
       )}
-      <AppTooltipTour currentPage={currentPage} enabled={hasBioAiReport} />
+      <AppTooltipTour currentPage={currentPage} enabled scopeKey={tooltipTourScopeKey} />
       <div className="app-scroll" ref={appScrollRef}>
       {currentPage === 'login' && (
         <LoginPage 

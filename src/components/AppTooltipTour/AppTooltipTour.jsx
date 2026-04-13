@@ -163,7 +163,7 @@ const getSideVector = (side) => {
   return { x: -1, y: 0 };
 };
 
-const AppTooltipTour = ({ currentPage, enabled }) => {
+const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const [targetRect, setTargetRect] = useState(null);
@@ -171,6 +171,12 @@ const AppTooltipTour = ({ currentPage, enabled }) => {
   const bubbleRef = useRef(null);
 
   const currentStep = TOUR_STEPS[currentStepIndex] || null;
+
+  useEffect(() => {
+    setCurrentStepIndex(0);
+    setDismissed(false);
+    setTargetRect(null);
+  }, [scopeKey]);
 
   const isVisibleOnPage = useMemo(() => {
     if (!enabled || dismissed || !currentStep) {
@@ -187,7 +193,9 @@ const AppTooltipTour = ({ currentPage, enabled }) => {
     }
 
     let frameId = 0;
+    let timeoutId = 0;
     let attempts = 0;
+    const maxAttempts = 90;
 
     const updateTarget = () => {
       const targetElement = document.querySelector(currentStep.target);
@@ -198,8 +206,10 @@ const AppTooltipTour = ({ currentPage, enabled }) => {
       }
 
       attempts += 1;
-      if (attempts < 40) {
-        frameId = window.requestAnimationFrame(updateTarget);
+      if (attempts < maxAttempts) {
+        timeoutId = window.setTimeout(() => {
+          frameId = window.requestAnimationFrame(updateTarget);
+        }, 120);
       }
     };
 
@@ -208,6 +218,9 @@ const AppTooltipTour = ({ currentPage, enabled }) => {
     return () => {
       if (frameId) {
         window.cancelAnimationFrame(frameId);
+      }
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
       }
     };
   }, [currentStep, isVisibleOnPage]);
