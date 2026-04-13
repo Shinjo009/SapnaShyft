@@ -100,6 +100,30 @@ button[aria-label^="Back"]::before {
   z-index: 9999;
 }
 
+.app-install-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  background: rgba(7, 12, 14, 0.32);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  --logo-hole-y: calc(env(safe-area-inset-top, 0px) + 118px);
+  -webkit-mask-image: radial-gradient(
+    circle 78px at 50% var(--logo-hole-y),
+    transparent 0,
+    transparent 66px,
+    rgba(0, 0, 0, 0.92) 82px,
+    #000 100%
+  );
+  mask-image: radial-gradient(
+    circle 78px at 50% var(--logo-hole-y),
+    transparent 0,
+    transparent 66px,
+    rgba(0, 0, 0, 0.92) 82px,
+    #000 100%
+  );
+}
+
 .app-install-popup-close {
   position: absolute;
   top: -28px;

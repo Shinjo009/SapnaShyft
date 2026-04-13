@@ -27,7 +27,7 @@ const Logo = ({
   };
   
   return (
-    <div className={`flex justify-center items-center ${className}`} {...props}>
+    <div className={`app-supershyft-logo flex justify-center items-center ${className}`} {...props}>
       <img
         src={brandLogo}
         alt={alt}

@@ -741,36 +741,39 @@ function App() {
       <div className="app-background" aria-hidden="true" />
       {/* PWA Install Prompt Banner - Fixed outside scroll container */}
       {showInstallPrompt && (
-        <div className="app-install-popup-wrap" role="dialog" aria-live="polite" aria-label="Install app">
-          <button
-            type="button"
-            className="app-install-popup-close"
-            onClick={handleDismissInstall}
-            aria-label="Close install popup"
-          >
-            ×
-          </button>
-          <div className="app-install-popup-card">
-            <div className="app-install-popup-content">
-              <p className="app-install-popup-title">Use the app for a smoother experience</p>
-              <p className="app-install-popup-subtitle">Unlock personalized insights.</p>
-              <button
-                type="button"
-                className="app-install-popup-download-btn"
-                onClick={handleInstallClick}
-              >
-                Download App
-              </button>
-              {Boolean(installHelpMessage) && (
-                <p className="app-install-popup-ios-hint">{installHelpMessage}</p>
-              )}
-            </div>
-            <div className="app-install-popup-image-stack" aria-hidden="true">
-              <img src={popupOneImage} alt="" className="app-install-popup-image app-install-popup-image--main" />
-              <img src={popupTwoImage} alt="" className="app-install-popup-image app-install-popup-image--secondary" />
+        <>
+          <div className="app-install-popup-backdrop" aria-hidden="true" />
+          <div className="app-install-popup-wrap" role="dialog" aria-live="polite" aria-label="Install app">
+            <button
+              type="button"
+              className="app-install-popup-close"
+              onClick={handleDismissInstall}
+              aria-label="Close install popup"
+            >
+              ×
+            </button>
+            <div className="app-install-popup-card">
+              <div className="app-install-popup-content">
+                <p className="app-install-popup-title">Use the app for a smoother experience</p>
+                <p className="app-install-popup-subtitle">Unlock personalized insights.</p>
+                <button
+                  type="button"
+                  className="app-install-popup-download-btn"
+                  onClick={handleInstallClick}
+                >
+                  Download App
+                </button>
+                {Boolean(installHelpMessage) && (
+                  <p className="app-install-popup-ios-hint">{installHelpMessage}</p>
+                )}
+              </div>
+              <div className="app-install-popup-image-stack" aria-hidden="true">
+                <img src={popupOneImage} alt="" className="app-install-popup-image app-install-popup-image--main" />
+                <img src={popupTwoImage} alt="" className="app-install-popup-image app-install-popup-image--secondary" />
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
       <AppTooltipTour currentPage={currentPage} enabled scopeKey={tooltipTourScopeKey} />
       <div className="app-scroll" ref={appScrollRef}>
