@@ -67,7 +67,15 @@ const TOP_LINE_BY_DISEASE = {
 };
 
 const normalizeDiseaseKey = (name = '') => name.replace(/\s+/g, ' ').trim().toLowerCase();
-const HEALTH_RANK_SCORE_FROM_DISEASE_DETAIL = 55;
+
+const toClampedPercentile = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(numeric)));
+};
 
 const defaultCards = DISEASES_DATA
   .slice()
@@ -77,7 +85,7 @@ const defaultCards = DISEASES_DATA
     ...disease,
     code: normalizeDiseaseKey(disease.name).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''),
     action: TOP_LINE_BY_DISEASE[normalizeDiseaseKey(disease.name)] || TOP_LINE_BY_DISEASE['oxidative stress'],
-    healthRankLabel: `${HEALTH_RANK_SCORE_FROM_DISEASE_DETAIL}th`,
+    healthRankLabel: '-',
   }));
 
 const DISEASE_ICON_BY_CODE = {
@@ -107,8 +115,9 @@ const toRiskAnalysisCardsFromApi = (riskAnalysis) => {
     const scoreNumeric = Number(item?.risk_score_scaled);
     const hasScore = Number.isFinite(scoreNumeric);
     const score = hasScore ? Math.max(0, Math.min(100, Math.round(scoreNumeric))) : 0;
-    const healthyPercentile = Number(item?.healthy_percentile);
-    const hasHealthRank = Number.isFinite(healthyPercentile);
+    // Disease detail screen computes health rank from disease_percentile.
+    const percentile = toClampedPercentile(item?.disease_percentile ?? item?.healthy_percentile);
+    const hasHealthRank = percentile !== null;
     const keyFromName = normalizeDiseaseKey(name);
 
     return {
@@ -119,7 +128,7 @@ const toRiskAnalysisCardsFromApi = (riskAnalysis) => {
       score,
       scoreDisplay: hasScore ? String(score) : '-',
       action: TOP_LINE_BY_DISEASE[keyFromName] || '-',
-      healthRankLabel: hasHealthRank ? `${Math.max(0, Math.min(100, Math.round(healthyPercentile)))}th` : '-',
+      healthRankLabel: hasHealthRank ? `${percentile}th` : '-',
       isPlaceholder: false,
     };
   });

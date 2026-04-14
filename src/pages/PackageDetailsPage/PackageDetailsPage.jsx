@@ -51,7 +51,7 @@ const DETAIL_CARDS = [
   {
     id: 'prep',
     small: 'Preparation',
-    big: '8-12 hours Fasting',
+    big: '-',
     variant: 'blue',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -262,7 +262,7 @@ const PREPARATION_GROUPS = [
       </svg>
     ),
     points: [
-      'Fast for 8-12 hours before the test. Only plain water is allowed.',
+      'Follow the fasting instructions shared for your package. Only plain water is allowed.',
       'Skip iron or vitamin supplements for 24 hours before sample collection.',
       'Take regular medicines (like thyroid) unless your doctor tells you otherwise.',
       'Drink enough water so veins are easy to access.',
@@ -576,17 +576,8 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
   }, [isCustomReview, packageDetail]);
 
   const reportLabel = useMemo(() => {
-    if (isCustomReview) {
-      return 'Reports in 24-48 hours';
-    }
-
-    const hours = Number(packageDetail?.report_duration_hours);
-    if (!Number.isFinite(hours) || hours <= 0) {
-      return MISSING_VALUE;
-    }
-
-    return `Reports in ${hours} hours`;
-  }, [isCustomReview, packageDetail]);
+    return 'Reports in 24-48 hours';
+  }, []);
 
   const bookingsLabel = useMemo(() => {
     if (isCustomReview) {
@@ -610,6 +601,13 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
         return {
           ...card,
           big: testsText,
+        };
+      }
+
+      if (card.id === 'prep') {
+        return {
+          ...card,
+          big: '10-12 hours Fasting',
         };
       }
 

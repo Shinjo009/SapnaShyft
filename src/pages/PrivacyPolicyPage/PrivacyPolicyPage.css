@@ -1,0 +1,184 @@
+.privacy-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.privacy-page__main {
+  flex: 1;
+  padding: 20px 20px 0 20px;
+  box-sizing: border-box;
+}
+
+.privacy-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  position: relative;
+  top: 20px;
+  height: 56px;
+  box-sizing: border-box;
+}
+
+.privacy-page__back-btn {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.privacy-page__back-btn:hover {
+  opacity: 0.8;
+}
+
+.privacy-page__back-btn svg {
+  width: 100%;
+  height: 100%;
+}
+
+.privacy-page__title {
+  margin: 0;
+  color: #FFF;
+  text-align: center;
+  font-family: Lato;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+}
+
+.privacy-page__cards {
+  margin-top: 27px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.privacy-page__card,
+.privacy-page__sub-card {
+  display: flex;
+  padding: 16px;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.privacy-page__card-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.privacy-page__icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.privacy-page__card-header h2,
+.privacy-page__card-header h3 {
+  margin: 0;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.privacy-page__body-text {
+  width: 100%;
+  margin: 0;
+  color: #ccc;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.privacy-page__body-text strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.privacy-page__body-text--stacked {
+  margin-top: -2px;
+}
+
+.privacy-page__list {
+  width: 100%;
+  margin: -2px 0 0 0;
+  padding-left: 16px;
+  color: #ccc;
+  box-sizing: border-box;
+}
+
+.privacy-page__list li {
+  margin: 0;
+  padding-left: 4px;
+  color: #ccc;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.privacy-page__sub-card {
+  padding: 14px 14px 12px 14px;
+}
+
+.privacy-page__tick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.privacy-page__tick-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
+}
+
+.privacy-page__tick-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.privacy-page__tick-item span {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.privacy-page__card--last {
+  margin-bottom: 20px;
+}

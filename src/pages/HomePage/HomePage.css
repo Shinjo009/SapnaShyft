@@ -267,7 +267,8 @@
   align-items: center;
   gap: 10px;
   position: absolute;
-  left: 45px;
+  left: 50%;
+  transform: translateX(-50%);
   bottom: 44px;
   z-index: 2;
 }

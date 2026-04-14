@@ -6,35 +6,6 @@ import { listDiagnosticPackages } from '../../services/diagnosticPackagesService
 
 const FILTERS = ['All', 'Male', 'Female', 'Cancer', 'Popular'];
 
-const PACKAGE_CARDS = [
-  { id: 1, theme: 'teal' },
-  { id: 2, theme: 'pink' },
-  { id: 3, theme: 'teal' },
-  { id: 4, theme: 'pink' },
-];
-
-const DEFAULT_CARD_DATA = {
-  badges: ['Most Popular', 'Male', 'Female'],
-  title: 'Comprehensive Health Check',
-  chips: ['Biological Age', 'Kidney', 'Heart', '+ More'],
-  metrics: {
-    parameters: '150',
-    reportsIn: '12 hrs',
-    fasting: '8-12 hrs',
-  },
-  pricing: {
-    now: 2499,
-    old: 4498,
-    off: '44% OFF',
-  },
-};
-
-const DEFAULT_PACKAGE_ROWS = PACKAGE_CARDS.map((pkg) => ({
-  id: pkg.id,
-  theme: pkg.theme,
-  ...DEFAULT_CARD_DATA,
-}));
-
 const MISSING_VALUE = '-';
 
 const toGenderBadges = (genderSuitability) => {
@@ -106,8 +77,8 @@ const mapDiagnosticPackageToCard = (pkg, index) => {
     chips: mappedTags.length > 0 ? mappedTags : [MISSING_VALUE],
     metrics: {
       parameters: pkg?.no_of_tests != null ? String(pkg.no_of_tests) : MISSING_VALUE,
-      reportsIn: pkg?.report_duration_hours != null ? `${pkg.report_duration_hours} hrs` : MISSING_VALUE,
-      fasting: MISSING_VALUE,
+      reportsIn: '24-48 hrs',
+      fasting: '10-12 hrs',
     },
     pricing: {
       now,
@@ -191,11 +162,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
   }, []);
 
   const sourceCards = useMemo(() => {
-    if (packageCardsFromApi.length > 0) {
-      return packageCardsFromApi;
-    }
-
-    return DEFAULT_PACKAGE_ROWS;
+    return packageCardsFromApi;
   }, [packageCardsFromApi]);
 
   const visibleCards = useMemo(() => {

@@ -1,58 +1,127 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './CreateCustomPackagePage.css';
+import {
+  listDiagnosticPackageFilterChips,
+  listDiagnosticTestGroupTests,
+  listDiagnosticTestGroups,
+} from '../../services/diagnosticPackagesService';
+import { getAccessToken } from '../../utils/authStorage';
 
-const PILLS = ['General health', 'Progressive tests', 'Hormones', 'Vitamins', 'Cancer', 'Allergies'];
+const ALL_CHIP = {
+  filter_chip_id: 'all',
+  chip_key: 'all',
+  display_name: 'All',
+  display_order: -1,
+  chip_for: 'custom_package',
+  status: 'active',
+};
 
-const CATEGORY_DATA = [
-  {
-    id: 'thyroid-tests',
-    title: 'Thyroid Tests',
-    salePrice: 249,
-    oldPrice: 449,
-    tags: ['Thyroid', 'General health'],
-    tests: ['Bilirubin', 'Albumin', 'SGOT', 'SGPT', 'ALP'],
-  },
-  {
-    id: 'liver-function',
-    title: 'Liver Function',
-    salePrice: 149,
-    oldPrice: 349,
-    tags: ['General health'],
-    tests: ['Bilirubin', 'Albumin', 'SGOT', 'SGPT', 'ALP'],
-  },
-  {
-    id: 'vitamins-panel',
-    title: 'Vitamins',
-    salePrice: 149,
-    oldPrice: 349,
-    tags: ['Vitamins', 'General health'],
-    tests: ['Vitamin D', 'Vitamin B12', 'Calcium', 'Magnesium', 'Ferritin'],
-  },
-  {
-    id: 'hormones-panel',
-    title: 'Hormones Panel',
-    salePrice: 199,
-    oldPrice: 399,
-    tags: ['Hormones', 'Progressive tests'],
-    tests: ['TSH', 'T3', 'T4', 'Prolactin', 'Cortisol'],
-  },
-  {
-    id: 'cancer-screen',
-    title: 'Cancer Screen',
-    salePrice: 299,
-    oldPrice: 549,
-    tags: ['Cancer', 'Progressive tests'],
-    tests: ['CEA', 'AFP', 'CA 125', 'CA 19-9', 'PSA'],
-  },
-  {
-    id: 'allergy-panel',
-    title: 'Allergies',
-    salePrice: 222,
-    oldPrice: 322,
-    tags: ['Allergies'],
-    tests: ['Dust', 'Pollen', 'Food Mix', 'Pet Dander', 'Mold'],
-  },
-];
+const toNumericPrice = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return 0;
+  }
+
+  return Math.round(numeric);
+};
+
+const normalizeTagList = (rawTags) => {
+  if (!Array.isArray(rawTags)) {
+    return [];
+  }
+
+  return rawTags
+    .map((tag) => {
+      if (typeof tag === 'string' || typeof tag === 'number') {
+        return String(tag).trim();
+      }
+
+      if (tag && typeof tag === 'object') {
+        return String(tag?.tag_name || tag?.name || tag?.filter_chip || '').trim();
+      }
+
+      return '';
+    })
+    .filter(Boolean);
+};
+
+const normalizeTests = (rawTests) => {
+  if (!Array.isArray(rawTests)) {
+    return [];
+  }
+
+  return rawTests
+    .map((test) => {
+      if (typeof test === 'string' || typeof test === 'number') {
+        return String(test).trim();
+      }
+
+      if (test && typeof test === 'object') {
+        return String(
+          test?.test_name
+          || test?.name
+          || test?.parameter_name
+          || test?.title
+          || ''
+        ).trim();
+      }
+
+      return '';
+    })
+    .filter(Boolean);
+};
+
+const normalizeGroupRow = (row, index) => {
+  const title = String(
+    row?.test_group_name
+    || row?.group_name
+    || row?.name
+    || row?.title
+    || `Test Group ${index + 1}`
+  ).trim();
+
+  const groupId = Number(row?.diagnostic_test_group_id ?? row?.test_group_id ?? row?.group_id ?? row?.id);
+  const safeGroupId = Number.isFinite(groupId) && groupId > 0 ? groupId : null;
+  const idValue = (safeGroupId ?? title) || index;
+  const id = `test-group-${String(idValue).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || index}`;
+
+  const salePrice = toNumericPrice(
+    row?.sale_price
+    ?? row?.discounted_price
+    ?? row?.offer_price
+    ?? row?.price
+    ?? 0
+  );
+  const oldPriceCandidate = toNumericPrice(
+    row?.old_price
+    ?? row?.original_price
+    ?? row?.mrp
+    ?? row?.list_price
+    ?? salePrice
+  );
+
+  const oldPrice = oldPriceCandidate >= salePrice ? oldPriceCandidate : salePrice;
+  const tags = normalizeTagList(row?.tags ?? row?.filter_chips ?? row?.chips ?? []);
+
+  const tests = normalizeTests(
+    row?.tests
+    ?? row?.diagnostic_tests
+    ?? row?.parameters
+    ?? row?.test_items
+    ?? []
+  );
+
+  return {
+    id,
+    groupId: safeGroupId,
+    title,
+    salePrice,
+    oldPrice,
+    tags,
+    tests,
+    testsLoaded: false,
+  };
+};
 
 const BackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -129,27 +198,143 @@ const AiCenterIcon = () => (
 
 const formatMoney = (value) => `₹${value}/-`;
 
+const normalizeFilterChips = (rows) => {
+  const source = Array.isArray(rows) ? rows : [];
+
+  const normalized = source
+    .map((row, index) => {
+      const chipKey = String(row?.chip_key || row?.key || '').trim();
+      const displayName = String(row?.display_name || row?.name || chipKey).trim();
+
+      if (!chipKey || !displayName) {
+        return null;
+      }
+
+      const orderRaw = Number(row?.display_order);
+
+      return {
+        filter_chip_id: row?.filter_chip_id ?? row?.id ?? `${chipKey}-${index}`,
+        chip_key: chipKey,
+        display_name: displayName,
+        display_order: Number.isFinite(orderRaw) ? orderRaw : null,
+        chip_for: row?.chip_for || 'custom_package',
+        status: row?.status || 'active',
+      };
+    })
+    .filter(Boolean);
+
+  return [ALL_CHIP, ...normalized];
+};
+
 const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
-  const [activePill, setActivePill] = useState('General health');
+  const [filterChips, setFilterChips] = useState([ALL_CHIP]);
+  const [activeChipKey, setActiveChipKey] = useState('all');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedIds, setExpandedIds] = useState(() => new Set(['thyroid-tests']));
-  const [selectedIds, setSelectedIds] = useState(() => new Set(['thyroid-tests']));
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [isViewAllOpen, setIsViewAllOpen] = useState(false);
   const [isAiPopupOpen, setIsAiPopupOpen] = useState(false);
+  const [categoryData, setCategoryData] = useState([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [categoriesError, setCategoriesError] = useState('');
+  const [testLoadingById, setTestLoadingById] = useState({});
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  const visibleCategories = useMemo(() => {
-    return CATEGORY_DATA.filter((category) => {
-      const inPill = activePill === 'General health'
-        ? true
-        : category.tags.some((tag) => tag.toLowerCase() === activePill.toLowerCase());
+  useEffect(() => {
+    let isActive = true;
 
-      if (!inPill) {
-        return false;
+    const loadFilterChips = async () => {
+      try {
+        const rows = await listDiagnosticPackageFilterChips({
+          accessToken: getAccessToken(),
+        });
+
+        if (!isActive) {
+          return;
+        }
+
+        const nextChips = normalizeFilterChips(rows);
+        setFilterChips(nextChips);
+      } catch {
+        if (!isActive) {
+          return;
+        }
+
+        setFilterChips([ALL_CHIP]);
       }
+    };
 
+    loadFilterChips();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadGroups = async () => {
+      try {
+        setIsLoadingCategories(true);
+        setCategoriesError('');
+
+        const rows = await listDiagnosticTestGroups(
+          activeChipKey === 'all' ? undefined : activeChipKey,
+          {
+          accessToken: getAccessToken(),
+          }
+        );
+        const normalizedRows = (Array.isArray(rows) ? rows : [])
+          .map((row, index) => normalizeGroupRow(row, index));
+
+        if (!isActive) {
+          return;
+        }
+
+        setCategoryData(normalizedRows);
+
+        setExpandedIds((prev) => {
+          const next = new Set(
+            Array.from(prev).filter((id) => normalizedRows.some((row) => row.id === id))
+          );
+          return next;
+        });
+
+        setSelectedIds((prev) => {
+          const next = new Set(
+            Array.from(prev).filter((id) => normalizedRows.some((row) => row.id === id))
+          );
+          if (next.size === 0 && normalizedRows[0]?.id) {
+            next.add(normalizedRows[0].id);
+          }
+          return next;
+        });
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        setCategoryData([]);
+        setCategoriesError(error?.message || 'Failed to load tests. Please try again.');
+      } finally {
+        if (isActive) {
+          setIsLoadingCategories(false);
+        }
+      }
+    };
+
+    loadGroups();
+
+    return () => {
+      isActive = false;
+    };
+  }, [activeChipKey]);
+
+  const visibleCategories = useMemo(() => {
+    return categoryData.filter((category) => {
       if (!normalizedQuery) {
         return true;
       }
@@ -157,11 +342,11 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
       const testText = category.tests.join(' ').toLowerCase();
       return category.title.toLowerCase().includes(normalizedQuery) || testText.includes(normalizedQuery);
     });
-  }, [activePill, normalizedQuery]);
+  }, [categoryData, normalizedQuery]);
 
   const selectedCategories = useMemo(() => {
-    return CATEGORY_DATA.filter((item) => selectedIds.has(item.id));
-  }, [selectedIds]);
+    return categoryData.filter((item) => selectedIds.has(item.id));
+  }, [categoryData, selectedIds]);
 
   const selectedCount = selectedCategories.length;
   const totalSale = selectedCategories.reduce((sum, item) => sum + item.salePrice, 0);
@@ -174,7 +359,76 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
   }));
   const visibleTokens = selectedTokens;
 
+  const fetchTestsForCategoryIds = async (categoryIds) => {
+    const uniqueIds = Array.from(new Set((Array.isArray(categoryIds) ? categoryIds : []).filter(Boolean)));
+    if (uniqueIds.length === 0) {
+      return;
+    }
+
+    const categoriesToFetch = categoryData.filter(
+      (category) => uniqueIds.includes(category.id) && category.groupId && !testLoadingById[category.id]
+    );
+
+    if (categoriesToFetch.length === 0) {
+      return;
+    }
+
+    const authPayload = { accessToken: getAccessToken() };
+
+    setTestLoadingById((prev) => {
+      const next = { ...prev };
+      categoriesToFetch.forEach((category) => {
+        next[category.id] = true;
+      });
+      return next;
+    });
+
+    const results = await Promise.all(
+      categoriesToFetch.map(async (category) => {
+        try {
+          const rows = await listDiagnosticTestGroupTests(category.groupId, authPayload);
+          return {
+            id: category.id,
+            tests: normalizeTests(rows),
+          };
+        } catch {
+          return {
+            id: category.id,
+            tests: [],
+          };
+        }
+      })
+    );
+
+    setCategoryData((prev) => prev.map((item) => {
+      const result = results.find((entry) => entry.id === item.id);
+
+      if (!result) {
+        return item;
+      }
+
+      return {
+        ...item,
+        tests: result.tests.length > 0 ? result.tests : item.tests,
+        testsLoaded: true,
+      };
+    }));
+
+    setTestLoadingById((prev) => {
+      const next = { ...prev };
+      categoriesToFetch.forEach((category) => {
+        delete next[category.id];
+      });
+      return next;
+    });
+  };
+
   const toggleExpanded = (id) => {
+    const isOpening = !expandedIds.has(id);
+    if (isOpening) {
+      void fetchTestsForCategoryIds([id]);
+    }
+
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -212,14 +466,14 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
 
   const handleExploreSuggestedTests = () => {
     // AI suggestions currently point users to liver-related tests, which are under General health.
-    setActivePill('General health');
+    setActiveChipKey('general_health');
     setSearchQuery('Liver');
     setIsSearchOpen(true);
     setIsAiPopupOpen(false);
   };
 
   return (
-    <div className={`create-custom-page ${isSearchOpen ? 'create-custom-page--search-open' : ''} ${isAiPopupOpen ? 'create-custom-page--ai-open' : ''}`}>
+    <div className={`create-custom-page ${isSearchOpen ? 'create-custom-page--search-open' : ''} ${isAiPopupOpen ? 'create-custom-page--ai-open' : ''} ${isViewAllOpen ? 'create-custom-page--view-all-open' : ''}`}>
       <div className="create-custom-page__fixed-top">
         <header className="create-custom-page__header">
           <div className="create-custom-page__header-left">
@@ -259,18 +513,18 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
         ) : null}
 
         <div className="create-custom-page__pills" role="tablist" aria-label="Category filters">
-          {PILLS.map((pill) => {
-            const isActive = pill === activePill;
+          {filterChips.map((chip) => {
+            const isActive = chip.chip_key === activeChipKey;
             return (
               <button
-                key={pill}
+                key={chip.filter_chip_id}
                 type="button"
                 className={`create-custom-page__pill ${isActive ? 'is-active' : ''}`}
-                onClick={() => setActivePill(pill)}
+                onClick={() => setActiveChipKey(chip.chip_key)}
                 role="tab"
                 aria-selected={isActive}
               >
-                {pill}
+                {chip.display_name}
               </button>
             );
           })}
@@ -279,10 +533,43 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
 
       <div className="create-custom-page__content">
         <div className="create-custom-page__cards">
+          {isLoadingCategories ? (
+            <article className="create-custom-page__card">
+              <div className="create-custom-page__card-top">
+                <div className="create-custom-page__card-info">
+                  <p className="create-custom-page__card-title">Loading tests...</p>
+                </div>
+              </div>
+            </article>
+          ) : null}
+
+          {!isLoadingCategories && categoriesError ? (
+            <article className="create-custom-page__card">
+              <div className="create-custom-page__card-top">
+                <div className="create-custom-page__card-info">
+                  <p className="create-custom-page__card-title">{categoriesError}</p>
+                </div>
+              </div>
+            </article>
+          ) : null}
+
+          {!isLoadingCategories && !categoriesError && visibleCategories.length === 0 ? (
+            <article className="create-custom-page__card">
+              <div className="create-custom-page__card-top">
+                <div className="create-custom-page__card-info">
+                  <p className="create-custom-page__card-title">No tests found for this filter.</p>
+                </div>
+              </div>
+            </article>
+          ) : null}
+
           {visibleCategories.map((category) => {
             const isExpanded = expandedIds.has(category.id);
             const isSelected = selectedIds.has(category.id);
-            const discount = Math.round(((category.oldPrice - category.salePrice) / category.oldPrice) * 100);
+            const isTestsLoading = Boolean(testLoadingById[category.id]);
+            const discount = category.oldPrice > 0
+              ? Math.max(0, Math.round(((category.oldPrice - category.salePrice) / category.oldPrice) * 100))
+              : 0;
 
             return (
               <article
@@ -326,6 +613,12 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
                   <>
                     <div className="create-custom-page__divider" aria-hidden="true" />
                     <div className="create-custom-page__tests-grid">
+                      {isTestsLoading ? (
+                        <span className="create-custom-page__test-item">Loading tests...</span>
+                      ) : null}
+                      {!isTestsLoading && category.tests.length === 0 ? (
+                        <span className="create-custom-page__test-item">No tests available</span>
+                      ) : null}
                       {category.tests.map((test) => (
                         <span key={`${category.id}-${test}`} className="create-custom-page__test-item">
                           {isSelected ? <DotIcon /> : null}
@@ -417,6 +710,12 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
                 </div>
 
                 <div className="create-custom-page__selected-card-tests">
+                  {testLoadingById[item.id] ? (
+                    <span className="create-custom-page__selected-card-test">Loading tests...</span>
+                  ) : null}
+                  {!testLoadingById[item.id] && item.tests.length === 0 ? (
+                    <span className="create-custom-page__selected-card-test">No tests available</span>
+                  ) : null}
                   {item.tests.map((test) => (
                     <span className="create-custom-page__selected-card-test" key={`${item.id}-${test}`}>
                       <DotIcon />
@@ -452,13 +751,12 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
             type="button"
             className="create-custom-page__view-all"
             onClick={() => {
-              setIsViewAllOpen((prev) => {
-                const next = !prev;
-                if (next) {
-                  setIsAiPopupOpen(false);
-                }
-                return next;
-              });
+              const isOpening = !isViewAllOpen;
+              if (isOpening) {
+                setIsAiPopupOpen(false);
+                void fetchTestsForCategoryIds(Array.from(selectedIds));
+              }
+              setIsViewAllOpen((prev) => !prev);
             }}
           >
             <span>View All</span>

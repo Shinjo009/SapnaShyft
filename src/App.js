@@ -17,6 +17,7 @@ import AddAccountPage from './pages/AddAccountPage';
 import EditProfilePage from './pages/EditProfilePage';
 import FAQPage from './pages/FAQPage';
 import TermsConditionsPage from './pages/TermsConditionsPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import HealthAssessmentPage from './pages/HealthAssessmentPage';
 import QuestionnaireBlankPage from './pages/QuestionnaireBlankPage';
 import BloodMarkersPage from './pages/BloodMarkersPage/BloodMarkersPage';
@@ -713,8 +714,8 @@ function App() {
       chips: selectedTests.length > 0 ? selectedTests.slice(0, 4) : ['General health', 'Progressive tests'],
       metrics: {
         parameters: String(Math.max(1, Number(payload.selectedParameters || 0))),
-        reportsIn: '12 hrs',
-        fasting: '8-12 hrs',
+        reportsIn: '24-48 hrs',
+        fasting: '10-12 hrs',
       },
       pricing: {
         now: Number(payload.totalSale || 0),
@@ -1203,6 +1204,10 @@ function App() {
             console.log('Navigate to Terms & Conditions');
             setCurrentPage('terms');
           }}
+          onOpenPrivacy={() => {
+            console.log('Navigate to Privacy Policy');
+            setCurrentPage('privacy-policy');
+          }}
           onLogout={handleLogout}
         />
       )}
@@ -1283,6 +1288,15 @@ function App() {
 
       {currentPage === 'terms' && (
         <TermsConditionsPage
+          onBack={() => {
+            console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'privacy-policy' && (
+        <PrivacyPolicyPage
           onBack={() => {
             console.log('Back to Profile');
             setCurrentPage('profile');

@@ -39,14 +39,27 @@ const getErrorMessage = (parsedBody) => {
   return 'Request failed. Please try again.';
 };
 
-const authorizedGet = async (path) => {
+const resolveAccessTokenFromPayload = (payload) => {
+  if (!payload || typeof payload !== 'object') {
+    return '';
+  }
+
+  return String(
+    payload?.accessToken
+    ?? payload?.access_token
+    ?? payload?.token
+    ?? ''
+  ).trim();
+};
+
+const authorizedGet = async (path, payload) => {
   if (!BACKEND_ENABLED) {
     throw new Error(
       'Backend base URL is not configured. Set REACT_APP_BACKEND_BASE_URL in .env and restart the app.'
     );
   }
 
-  const accessToken = getAccessToken();
+  const accessToken = resolveAccessTokenFromPayload(payload) || getAccessToken();
   if (!accessToken) {
     throw new Error('You are not logged in. Please login again.');
   }
@@ -68,8 +81,8 @@ const authorizedGet = async (path) => {
   return parsedBody;
 };
 
-export const listDiagnosticPackages = async () => {
-  const response = await authorizedGet('/diagnostic-packages');
+export const listDiagnosticPackages = async (payload) => {
+  const response = await authorizedGet('/diagnostic-packages', payload);
 
   if (Array.isArray(response?.data)) {
     return response.data;
@@ -82,14 +95,36 @@ export const listDiagnosticPackages = async () => {
   return [];
 };
 
-export const getDiagnosticPackageDetail = async (packageId) => {
+export const listDiagnosticPackageFilterChips = async (payload) => {
+  const response = await authorizedGet('/diagnostic-packages/filters-chips?for=custom_package', payload);
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (Array.isArray(response?.items)) {
+    return response.items;
+  }
+
+  if (Array.isArray(response?.results)) {
+    return response.results;
+  }
+
+  return [];
+};
+
+export const getDiagnosticPackageDetail = async (packageId, payload) => {
   const parsedId = Number(packageId);
 
   if (!Number.isFinite(parsedId) || parsedId <= 0) {
     throw new Error('Invalid diagnostic package id.');
   }
 
-  const response = await authorizedGet(`/diagnostic-packages/${parsedId}`);
+  const response = await authorizedGet(`/diagnostic-packages/${parsedId}`, payload);
 
   if (response?.data && typeof response.data === 'object') {
     return response.data;
@@ -100,4 +135,73 @@ export const getDiagnosticPackageDetail = async (packageId) => {
   }
 
   return null;
+};
+
+const appendFilterChipQuery = (path, filterChip) => {
+  if (filterChip == null || filterChip === '') {
+    return path;
+  }
+
+  const chips = Array.isArray(filterChip) ? filterChip : [filterChip];
+  const encoded = chips
+    .map((chip) => String(chip || '').trim())
+    .filter(Boolean)
+    .map((chip) => `filter_chip=${encodeURIComponent(chip)}`);
+
+  if (encoded.length === 0) {
+    return path;
+  }
+
+  return `${path}?${encoded.join('&')}`;
+};
+
+export const listDiagnosticTestGroups = async (filterChip, payload) => {
+  const path = appendFilterChipQuery('/diagnostic-test-groups', filterChip);
+  const response = await authorizedGet(path, payload);
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (Array.isArray(response?.items)) {
+    return response.items;
+  }
+
+  if (Array.isArray(response?.results)) {
+    return response.results;
+  }
+
+  return [];
+};
+
+export const listDiagnosticTestGroupTests = async (groupId, payload) => {
+  const parsedId = Number(groupId);
+
+  if (!Number.isFinite(parsedId) || parsedId <= 0) {
+    throw new Error('Invalid diagnostic test group id.');
+  }
+
+  const response = await authorizedGet(`/diagnostic-test-groups/${parsedId}/tests`, payload);
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (Array.isArray(response?.items)) {
+    return response.items;
+  }
+
+  if (Array.isArray(response?.results)) {
+    return response.results;
+  }
+
+  return [];
 };

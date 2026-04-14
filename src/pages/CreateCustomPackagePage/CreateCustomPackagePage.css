@@ -367,6 +367,12 @@
   touch-action: none;
 }
 
+.create-custom-page--view-all-open .create-custom-page__summary {
+  height: auto;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
 .create-custom-page__summary-tags {
   display: flex;
   width: 100%;
@@ -382,6 +388,15 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 12px;
+}
+
+.create-custom-page--view-all-open .create-custom-page__selected-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
 }
 
 .create-custom-page__selected-card {
