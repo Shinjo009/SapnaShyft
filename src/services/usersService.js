@@ -195,7 +195,11 @@ export const updateMySubProfile = (userId, payload) => {
     throw new Error('Invalid sub profile user id for update.');
   }
 
-  return authorizedUsersRequest(`/users/me/profiles/${parsedUserId}`, 'PUT', payload);
+  const safePayload = payload && typeof payload === 'object' ? payload : {};
+  return authorizedUsersRequest('/users/me', 'PUT', {
+    ...safePayload,
+    user_id: parsedUserId,
+  });
 };
 
 export const unlinkMyProfile = (payload = {}) => {
