@@ -73,25 +73,27 @@
 }
 
 .splash-screen-2 .cube-container {
-  animation-duration: 60s;
+  animation-duration: 50s;
 }
 
 .splash-screen-2 .beam-outer,
 .splash-screen-2 .beam-inner {
   animation: none;
-  opacity: 0.88;
 }
 
 .splash-screen-2 .beam-outer {
-  filter: blur(22px);
+  filter: blur(18px);
+  opacity: 0.42;
 }
 
 .splash-screen-2 .beam-inner {
-  filter: blur(14px);
+  filter: blur(12px);
+  opacity: 0.38;
 }
 
 .splash-screen-2 .beam-ring {
-  filter: blur(8px);
+  filter: blur(6px);
+  opacity: 0.4;
 }
 
 /* No backdrop-filter on six faces — huge GPU saver vs glass blur */
@@ -144,19 +146,36 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   max-width: 100%;
   padding: 0 4px;
   box-sizing: border-box;
   margin-bottom: clamp(48px, 18vw, 139px);
 }
 
-.splash-screen-2__tag-step {
-  --cycle: 4.4s;
-  display: inline-flex;
-  align-items: center;
+.splash-screen-2__tags.splash-screen-2__tags--loading {
+  flex-wrap: nowrap;
   justify-content: center;
-  gap: 2px;
+  width: 100%;
+  max-width: 100%;
+  gap: 3px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.splash-screen-2__tags--loading {
+  --load-cycle: 12s;
+  --load-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Connectors (dots + wire): slower-feeling ease + stretched keyframes */
+  --conn-ease: cubic-bezier(0.22, 0.82, 0.28, 1);
+  /* Softer ease for wire sweep (fewer keyframe stops + this curve) */
+  --sweep-ease: cubic-bezier(0.25, 0.46, 0.2, 1);
+}
+
+.splash-screen-2__tags--loading .splash-screen-2__tag {
+  font-size: clamp(13.5px, 4.1vw, 17px);
+  line-height: 1.22;
+  letter-spacing: 0.05px;
 }
 
 .splash-screen-2__tag {
@@ -166,72 +185,370 @@
   line-height: 19.869px;
   letter-spacing: 0.075px;
   white-space: nowrap;
-  color: rgba(184, 184, 184, 0.45);
+  color: rgba(184, 184, 184, 0.42);
   text-shadow: none;
-  animation: splash-step-brighten var(--cycle) linear infinite;
-  animation-delay: calc(var(--idx) * 1.1s);
 }
 
-.splash-screen-2__tag-sep-line {
+/* Cumulative brighten: earlier labels stay lit as the sequence advances */
+.splash-screen-2__tag--w0 {
+  animation: splash-tag-w0 var(--load-cycle) var(--load-ease) infinite;
+}
+
+.splash-screen-2__tag--w1 {
+  animation: splash-tag-w1 var(--load-cycle) var(--load-ease) infinite;
+}
+
+.splash-screen-2__tag--w2 {
+  animation: splash-tag-w2 var(--load-cycle) var(--load-ease) infinite;
+}
+
+.splash-screen-2__tag--w3 {
+  animation: splash-tag-w3 var(--load-cycle) var(--load-ease) infinite;
+}
+
+/* Dot–line–dot connector: sweeps L→R, then stays lit until the final fade */
+.splash-screen-2__tag-arrow {
+  width: clamp(24px, 7.5vw, 44px);
+  height: 15px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+.splash-screen-2__tag-arrow__inner {
   position: relative;
-  width: 24px;
-  height: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  gap: 0;
+}
+
+.splash-screen-2__tag-arrow__dot {
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #85e5a5;
+  box-shadow: 0 0 4px rgba(133, 229, 165, 0.55);
+}
+
+.splash-screen-2__tag-arrow__wire {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 12px;
+  height: 4px;
   border-radius: 999px;
-  display: inline-block;
-  opacity: 0.34;
+  background: rgba(133, 229, 165, 0.35);
+  overflow: hidden;
+  contain: paint;
+  transform: translateZ(0);
+}
+
+.splash-screen-2__tag-arrow__sweep {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform: scaleX(0);
+  backface-visibility: hidden;
+  will-change: transform;
   background: linear-gradient(
     90deg,
     rgba(133, 229, 165, 0) 0%,
-    rgba(133, 229, 165, 0.45) 36%,
-    rgba(133, 229, 165, 0.9) 50%,
-    rgba(133, 229, 165, 0.45) 64%,
+    rgba(190, 255, 210, 0.95) 45%,
+    rgba(133, 229, 165, 0.85) 55%,
     rgba(133, 229, 165, 0) 100%
   );
-  filter: drop-shadow(0 0 0 rgba(0, 255, 255, 0));
-  animation: splash-step-sep-brighten var(--cycle) linear infinite;
-  animation-delay: calc((var(--idx) * 1.1s) + 0.55s);
+  opacity: 0.95;
 }
 
-.splash-screen-2__tag-sep-line::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  background: #85e5a5;
+.splash-screen-2__tag-arrow--a0 {
+  animation: splash-conn-a0 var(--load-cycle) var(--conn-ease) infinite;
 }
 
-@keyframes splash-step-brighten {
+.splash-screen-2__tag-arrow--a1 {
+  animation: splash-conn-a1 var(--load-cycle) var(--conn-ease) infinite;
+}
+
+.splash-screen-2__tag-arrow--a2 {
+  animation: splash-conn-a2 var(--load-cycle) var(--conn-ease) infinite;
+}
+
+.splash-screen-2__tag-arrow--a0 .splash-screen-2__tag-arrow__sweep {
+  animation: splash-conn-sweep-a0 var(--load-cycle) var(--sweep-ease) infinite;
+}
+
+.splash-screen-2__tag-arrow--a1 .splash-screen-2__tag-arrow__sweep {
+  animation: splash-conn-sweep-a1 var(--load-cycle) var(--sweep-ease) infinite;
+}
+
+.splash-screen-2__tag-arrow--a2 .splash-screen-2__tag-arrow__sweep {
+  animation: splash-conn-sweep-a2 var(--load-cycle) var(--sweep-ease) infinite;
+}
+
+/*
+ * ~12s loop — timeline compressed to 0–96% so 96–100% is a brief dim tail; next cycle starts almost immediately
+ */
+@keyframes splash-tag-w0 {
   0%,
-  18%,
+  3%,
+  96%,
   100% {
-    color: rgba(184, 184, 184, 0.45);
+    color: rgba(184, 184, 184, 0.38);
     text-shadow: none;
   }
 
-  18%,
-  36% {
-    color: #f2ffff;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.45), 0 0 18px rgba(0, 180, 255, 0.25);
+  4% {
+    color: rgba(205, 225, 225, 0.62);
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.12);
+  }
+
+  7%,
+  82% {
+    color: #f4ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
+  }
+
+  86% {
+    color: rgba(228, 248, 248, 0.82);
+    text-shadow: 0 0 6px rgba(0, 255, 255, 0.22);
   }
 }
 
-@keyframes splash-step-sep-brighten {
+@keyframes splash-tag-w1 {
   0%,
-  18%,
+  16%,
+  96%,
   100% {
-    opacity: 0.34;
-    filter: drop-shadow(0 0 0 rgba(0, 255, 255, 0));
+    color: rgba(184, 184, 184, 0.38);
+    text-shadow: none;
   }
 
-  18%,
-  36% {
+  17% {
+    color: rgba(205, 225, 225, 0.62);
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.12);
+  }
+
+  20%,
+  82% {
+    color: #f4ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
+  }
+
+  86% {
+    color: rgba(228, 248, 248, 0.82);
+    text-shadow: 0 0 6px rgba(0, 255, 255, 0.22);
+  }
+}
+
+@keyframes splash-tag-w2 {
+  0%,
+  29%,
+  96%,
+  100% {
+    color: rgba(184, 184, 184, 0.38);
+    text-shadow: none;
+  }
+
+  30% {
+    color: rgba(205, 225, 225, 0.62);
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.12);
+  }
+
+  33%,
+  82% {
+    color: #f4ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
+  }
+
+  86% {
+    color: rgba(228, 248, 248, 0.82);
+    text-shadow: 0 0 6px rgba(0, 255, 255, 0.22);
+  }
+}
+
+@keyframes splash-tag-w3 {
+  0%,
+  42%,
+  96%,
+  100% {
+    color: rgba(184, 184, 184, 0.38);
+    text-shadow: none;
+  }
+
+  43% {
+    color: rgba(205, 225, 225, 0.62);
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.12);
+  }
+
+  46%,
+  82% {
+    color: #f4ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
+  }
+
+  86% {
+    color: rgba(228, 248, 248, 0.82);
+    text-shadow: 0 0 6px rgba(0, 255, 255, 0.22);
+  }
+}
+
+@keyframes splash-conn-a0 {
+  0%,
+  5%,
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+
+  8% {
+    opacity: 0.45;
+    transform: scale(0.97);
+  }
+
+  13%,
+  87% {
     opacity: 1;
-    /* Keep SVG native green + cyan and glow both channels */
-    filter: drop-shadow(0 0 5px rgba(133, 229, 165, 0.65)) drop-shadow(0 0 8px rgba(0, 255, 255, 0.5))
-      drop-shadow(0 0 12px rgba(0, 180, 255, 0.28));
+    transform: scale(1);
+  }
+
+  92% {
+    opacity: 0.35;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes splash-conn-a1 {
+  0%,
+  16%,
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+
+  19% {
+    opacity: 0.45;
+    transform: scale(0.97);
+  }
+
+  24%,
+  87% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  92% {
+    opacity: 0.35;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes splash-conn-a2 {
+  0%,
+  29%,
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+
+  32% {
+    opacity: 0.45;
+    transform: scale(0.97);
+  }
+
+  37%,
+  87% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  92% {
+    opacity: 0.35;
+    transform: scale(0.98);
+  }
+}
+
+/* Fewer stops: one eased segment for L→R fill (avoids stepped / janky mid-keyframe hits) */
+@keyframes splash-conn-sweep-a0 {
+  0%,
+  5%,
+  96%,
+  100% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+
+  20% {
+    transform: scaleX(1);
+    opacity: 0.82;
+  }
+
+  22%,
+  87% {
+    transform: scaleX(1);
+    opacity: 0.72;
+  }
+
+  92% {
+    opacity: 0.2;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes splash-conn-sweep-a1 {
+  0%,
+  16%,
+  96%,
+  100% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+
+  31% {
+    transform: scaleX(1);
+    opacity: 0.82;
+  }
+
+  33%,
+  87% {
+    transform: scaleX(1);
+    opacity: 0.72;
+  }
+
+  92% {
+    opacity: 0.2;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes splash-conn-sweep-a2 {
+  0%,
+  29%,
+  96%,
+  100% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+
+  44% {
+    transform: scaleX(1);
+    opacity: 0.82;
+  }
+
+  46%,
+  87% {
+    transform: scaleX(1);
+    opacity: 0.72;
+  }
+
+  92% {
+    opacity: 0.2;
+    transform: scaleX(1);
   }
 }

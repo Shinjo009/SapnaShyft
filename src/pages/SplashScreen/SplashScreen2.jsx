@@ -8,8 +8,6 @@ const CUBE_FACE_CSS = 320;
 const CUBE_ROTATION_OVERSHOOT = 1.62;
 const SCALE_MIN = 0.22;
 const SCALE_MAX = 0.46;
-const LOADING_STEPS = ['Bio-AI', 'Prevention', 'Nutrition', 'Longevity'];
-
 function computeCubeScale(anchorWidthPx, anchorHeightPx) {
   const m = Math.min(anchorWidthPx, anchorHeightPx);
   const raw = (m * 0.96) / (CUBE_FACE_CSS * CUBE_ROTATION_OVERSHOOT);
@@ -43,7 +41,7 @@ const SplashScreen2 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
 
   return (
     <div
-      className="splash-screen-2 max-w-md mx-auto h-full min-h-full pt-[100px] pb-6 flex flex-col overflow-hidden"
+      className="splash-screen-2 max-w-md mx-auto h-full min-h-full pt-[86px] pb-6 flex flex-col overflow-hidden"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
     >
       <div className="splash-screen-2__logo-wrap flex justify-center">
@@ -63,15 +61,38 @@ const SplashScreen2 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
           </div>
         </div>
 
-        <div className="splash-screen-2__tags" aria-label="Product themes loading">
-          {LOADING_STEPS.map((label, index) => (
-            <div className="splash-screen-2__tag-step" key={label} style={{ '--idx': index }}>
-              <span className="splash-screen-2__tag">{label}</span>
-              {index < LOADING_STEPS.length - 1 && (
-                <span aria-hidden className="splash-screen-2__tag-sep-line" />
-              )}
-            </div>
-          ))}
+        <div className="splash-screen-2__tags splash-screen-2__tags--loading" aria-label="Product themes loading">
+          <span className="splash-screen-2__tag splash-screen-2__tag--w0">Bio-AI</span>
+          <span className="splash-screen-2__tag-arrow splash-screen-2__tag-arrow--a0" aria-hidden>
+            <span className="splash-screen-2__tag-arrow__inner">
+              <span className="splash-screen-2__tag-arrow__dot splash-screen-2__tag-arrow__dot--l" />
+              <span className="splash-screen-2__tag-arrow__wire">
+                <span className="splash-screen-2__tag-arrow__sweep" />
+              </span>
+              <span className="splash-screen-2__tag-arrow__dot splash-screen-2__tag-arrow__dot--r" />
+            </span>
+          </span>
+          <span className="splash-screen-2__tag splash-screen-2__tag--w1">Nutrition</span>
+          <span className="splash-screen-2__tag-arrow splash-screen-2__tag-arrow--a1" aria-hidden>
+            <span className="splash-screen-2__tag-arrow__inner">
+              <span className="splash-screen-2__tag-arrow__dot splash-screen-2__tag-arrow__dot--l" />
+              <span className="splash-screen-2__tag-arrow__wire">
+                <span className="splash-screen-2__tag-arrow__sweep" />
+              </span>
+              <span className="splash-screen-2__tag-arrow__dot splash-screen-2__tag-arrow__dot--r" />
+            </span>
+          </span>
+          <span className="splash-screen-2__tag splash-screen-2__tag--w2">Prevention</span>
+          <span className="splash-screen-2__tag-arrow splash-screen-2__tag-arrow--a2" aria-hidden>
+            <span className="splash-screen-2__tag-arrow__inner">
+              <span className="splash-screen-2__tag-arrow__dot splash-screen-2__tag-arrow__dot--l" />
+              <span className="splash-screen-2__tag-arrow__wire">
+                <span className="splash-screen-2__tag-arrow__sweep" />
+              </span>
+              <span className="splash-screen-2__tag-arrow__dot splash-screen-2__tag-arrow__dot--r" />
+            </span>
+          </span>
+          <span className="splash-screen-2__tag splash-screen-2__tag--w3">Longevity</span>
         </div>
       </div>
 
