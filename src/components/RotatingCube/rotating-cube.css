@@ -17,12 +17,12 @@
   height: 500px;
   background: radial-gradient(
     ellipse at 50% 100%,
-    rgba(0, 180, 255, 0.3) 0%,
-    rgba(0, 180, 255, 0.05) 60%,
+    rgba(0, 180, 255, 0.18) 0%,
+    rgba(0, 180, 255, 0.04) 60%,
     transparent 100%
   );
-  filter: blur(28px);
-  opacity: 0.9;
+  filter: blur(26px);
+  opacity: 0.55;
   z-index: 0;
 }
 
@@ -35,12 +35,12 @@
   height: 400px;
   background: radial-gradient(
     ellipse at 50% 100%,
-    rgba(0, 255, 255, 0.7) 0%,
-    rgba(0, 255, 255, 0.1) 50%,
+    rgba(0, 255, 255, 0.38) 0%,
+    rgba(0, 255, 255, 0.07) 50%,
     transparent 100%
   );
-  filter: blur(18px);
-  opacity: 0.88;
+  filter: blur(16px);
+  opacity: 0.52;
   z-index: 1;
 }
 
@@ -51,9 +51,9 @@
   transform: translateX(-50%);
   width: 540px;
   height: 25px;
-  background: radial-gradient(circle, rgba(0, 255, 255, 0.7) 0%, rgba(0, 255, 255, 0) 80%);
-  filter: blur(10px);
-  opacity: 0.92;
+  background: radial-gradient(circle, rgba(0, 255, 255, 0.38) 0%, rgba(0, 255, 255, 0) 80%);
+  filter: blur(9px);
+  opacity: 0.55;
   z-index: 2;
 }
 
@@ -62,7 +62,7 @@
   height: 320px;
   transform-style: preserve-3d;
   backface-visibility: hidden;
-  animation: spin3D 40s linear infinite;
+  animation: spin3D 34s linear infinite;
   position: relative;
   z-index: 3;
   transform: translate3d(0, 0, 0);
