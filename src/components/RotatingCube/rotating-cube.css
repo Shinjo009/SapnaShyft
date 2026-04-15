@@ -1,0 +1,205 @@
+.parent-container {
+  position: relative;
+  min-height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1500px;
+  transform: translateZ(0);
+}
+
+.beam-outer {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 500px;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    rgba(0, 180, 255, 0.3) 0%,
+    rgba(0, 180, 255, 0.05) 60%,
+    transparent 100%
+  );
+  filter: blur(28px);
+  opacity: 0.9;
+  z-index: 0;
+}
+
+.beam-inner {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 380px;
+  height: 400px;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    rgba(0, 255, 255, 0.7) 0%,
+    rgba(0, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  filter: blur(18px);
+  opacity: 0.88;
+  z-index: 1;
+}
+
+.beam-ring {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 540px;
+  height: 25px;
+  background: radial-gradient(circle, rgba(0, 255, 255, 0.7) 0%, rgba(0, 255, 255, 0) 80%);
+  filter: blur(10px);
+  opacity: 0.92;
+  z-index: 2;
+}
+
+.cube-container {
+  width: 320px;
+  height: 320px;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  animation: spin3D 40s linear infinite;
+  position: relative;
+  z-index: 3;
+  transform: translate3d(0, 0, 0);
+}
+
+.cube-face {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  /* Pure cyan faces: #00ffff tint + glow (sky-blue only on .beam-outer below) */
+  background: rgba(0, 255, 255, 0.08);
+  box-shadow: inset 0 0 50px rgba(0, 255, 255, 0.14), 0 0 24px rgba(0, 255, 255, 0.22);
+  border-radius: 12px;
+  border: 3px solid #00ffff;
+  backdrop-filter: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+}
+
+.icon-circle {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  position: relative;
+  border: 2px solid #00ffff;
+  background: rgba(0, 255, 255, 0.06);
+  overflow: visible;
+  box-shadow: 0 0 14px rgba(0, 255, 255, 0.6), 0 0 28px rgba(0, 255, 255, 0.3), inset 0 0 10px rgba(0, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-circle::before,
+.icon-circle::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Inner ring */
+.icon-circle::before {
+  inset: 8px;
+  border: 1.6px solid rgba(220, 255, 255, 0.55);
+  box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.16);
+}
+
+/* Outer ring + cyan aura */
+.icon-circle::after {
+  inset: -9px;
+  border: 1.8px solid rgba(210, 255, 255, 0.45);
+  box-shadow:
+    0 0 16px rgba(0, 255, 255, 0.5),
+    0 0 34px rgba(0, 255, 255, 0.28),
+    0 0 54px rgba(0, 180, 255, 0.22);
+}
+
+/* Icons ~60–65% of ring diameter — centered padding like design ref */
+.icon-circle img {
+  width: 62%;
+  height: 62%;
+  max-width: 100%;
+  max-height: 100%;
+  position: relative;
+  z-index: 1;
+  object-fit: contain;
+  object-position: center;
+  flex-shrink: 0;
+  filter: brightness(0) saturate(100%) invert(82%) sepia(50%) saturate(650%) hue-rotate(145deg) brightness(108%)
+    contrast(104%) drop-shadow(0 0 1px rgba(0, 255, 255, 0.9)) drop-shadow(0 0 7px rgba(0, 255, 255, 0.4));
+  transition: transform 0.3s ease;
+  image-rendering: auto;
+  transform: translate3d(0, 0, 0);
+}
+
+.front {
+  transform: rotateY(0deg) translateZ(160px);
+}
+.back {
+  transform: rotateY(180deg) translateZ(160px);
+}
+.right {
+  transform: rotateY(90deg) translateZ(160px);
+}
+.left {
+  transform: rotateY(-90deg) translateZ(160px);
+}
+.top {
+  transform: rotateX(90deg) translateZ(160px);
+}
+.bottom {
+  transform: rotateX(-90deg) translateZ(160px);
+}
+
+@keyframes spin3D {
+  0% {
+    transform: rotateX(0deg) rotateY(0deg);
+  }
+
+  100% {
+    transform: rotateX(360deg) rotateY(360deg);
+  }
+}
+
+@media (max-width: 767px) {
+  .cube-face {
+    box-shadow: inset 0 0 50px rgba(0, 255, 255, 0.14), 0 0 24px rgba(0, 255, 255, 0.22);
+    backdrop-filter: none;
+  }
+
+  .cube-face .icon-circle img {
+    filter: brightness(0) saturate(100%) invert(82%) sepia(50%) saturate(650%) hue-rotate(145deg) brightness(108%)
+      contrast(104%) drop-shadow(0 0 1px rgba(0, 255, 255, 0.88)) drop-shadow(0 0 6px rgba(0, 255, 255, 0.36));
+  }
+
+  .icon-circle {
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.55), 0 0 22px rgba(0, 255, 255, 0.28), inset 0 0 10px rgba(0, 255, 255, 0.2);
+  }
+
+  .icon-circle::before {
+    inset: 9px;
+  }
+
+  .icon-circle::after {
+    inset: -7px;
+    box-shadow:
+      0 0 12px rgba(0, 255, 255, 0.45),
+      0 0 26px rgba(0, 255, 255, 0.24),
+      0 0 40px rgba(0, 180, 255, 0.18);
+  }
+
+  .beam-outer,
+  .beam-inner,
+  .beam-ring {
+    bottom: -120px;
+  }
+}

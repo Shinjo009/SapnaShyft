@@ -1,0 +1,237 @@
+/*
+ * Splash 2 — Figma App--first-phase (3672:6221) + dev overlays:
+ * https://www.figma.com/design/TwCa9bQdzZtkRgIHvKyI9o/App--first-phase?node-id=3672-6221
+ * - Horizontal insets ~21px / ~20px (cube frame vs screen)
+ * - ~33px logo → cube
+ * - Cube hero 295×335; ~139px tags → primary CTA (clamped on short viewports)
+ */
+
+.splash-screen-2 {
+  box-sizing: border-box;
+  padding-left: 21px;
+  padding-right: 20px;
+}
+
+.splash-screen-2__logo-wrap img {
+  width: 78px !important;
+  height: 78px !important;
+  max-width: none;
+  object-fit: contain;
+}
+
+.splash-screen-2__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 336px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 33px;
+  gap: 12px;
+  position: relative;
+  z-index: 0;
+}
+
+/* Fills space between hero block and footer (replaces mt-auto + flex-1 hero) */
+.splash-screen-2__grow {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/*
+ * Cube viewport — flex-center; scale comes from JS (ResizeObserver) on .splash-screen-2__cube-anchor
+ * so postcss-calc / invalid scale() never breaks the transform (that bug caused a full-size clipped cube).
+ */
+.splash-screen-2__cube-anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(315px, 100%);
+  height: 315px;
+  margin: 0 auto;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.splash-screen-2__cube-scale-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* --- Splash perf: backdrop blur + heavy filters + beam pulse = main jank sources --- */
+
+.splash-screen-2 .parent-container,
+.splash-screen-2 .cube-container,
+.splash-screen-2 .cube-face {
+  will-change: auto;
+}
+
+.splash-screen-2 .cube-container {
+  animation-duration: 60s;
+}
+
+.splash-screen-2 .beam-outer,
+.splash-screen-2 .beam-inner {
+  animation: none;
+  opacity: 0.88;
+}
+
+.splash-screen-2 .beam-outer {
+  filter: blur(22px);
+}
+
+.splash-screen-2 .beam-inner {
+  filter: blur(14px);
+}
+
+.splash-screen-2 .beam-ring {
+  filter: blur(8px);
+}
+
+/* No backdrop-filter on six faces — huge GPU saver vs glass blur */
+.splash-screen-2 .cube-face {
+  background: rgba(0, 255, 255, 0.08) !important;
+  border: 3px solid #00ffff !important;
+  box-shadow: inset 0 0 50px rgba(0, 255, 255, 0.14), 0 0 24px rgba(0, 255, 255, 0.22) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.splash-screen-2 .icon-circle {
+  border: 2px solid #00ffff !important;
+  background: rgba(0, 255, 255, 0.06) !important;
+  box-shadow: 0 0 14px rgba(0, 255, 255, 0.6), 0 0 28px rgba(0, 255, 255, 0.3), inset 0 0 10px rgba(0, 255, 255, 0.2) !important;
+}
+
+.splash-screen-2 .icon-circle::before {
+  inset: 8px;
+  border: 1.6px solid rgba(220, 255, 255, 0.55);
+  box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.16);
+}
+
+.splash-screen-2 .icon-circle::after {
+  inset: -9px;
+  border: 1.8px solid rgba(210, 255, 255, 0.45);
+  box-shadow:
+    0 0 16px rgba(0, 255, 255, 0.5),
+    0 0 34px rgba(0, 255, 255, 0.28),
+    0 0 54px rgba(0, 180, 255, 0.22);
+}
+
+/* Match ref: contained icon + light line glow (single cheap shadow on splash) */
+.splash-screen-2 .cube-face .icon-circle img {
+  position: relative;
+  z-index: 1;
+  width: 62% !important;
+  height: 62% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  filter: brightness(0) saturate(100%) invert(82%) sepia(45%) saturate(550%) hue-rotate(145deg) brightness(108%)
+    contrast(104%) drop-shadow(0 0 1px rgba(0, 255, 255, 0.88)) drop-shadow(0 0 7px rgba(0, 255, 255, 0.4));
+}
+
+/* Category row — Figma 3672:6405; space to CTA per dev overlay ~139px */
+.splash-screen-2__tags {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 0 4px;
+  box-sizing: border-box;
+  margin-bottom: clamp(48px, 18vw, 139px);
+}
+
+.splash-screen-2__tag-step {
+  --cycle: 4.4s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.splash-screen-2__tag {
+  font-family: 'Lato', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 19.869px;
+  letter-spacing: 0.075px;
+  white-space: nowrap;
+  color: rgba(184, 184, 184, 0.45);
+  text-shadow: none;
+  animation: splash-step-brighten var(--cycle) linear infinite;
+  animation-delay: calc(var(--idx) * 1.1s);
+}
+
+.splash-screen-2__tag-sep-line {
+  position: relative;
+  width: 24px;
+  height: 2px;
+  border-radius: 999px;
+  display: inline-block;
+  opacity: 0.34;
+  background: linear-gradient(
+    90deg,
+    rgba(133, 229, 165, 0) 0%,
+    rgba(133, 229, 165, 0.45) 36%,
+    rgba(133, 229, 165, 0.9) 50%,
+    rgba(133, 229, 165, 0.45) 64%,
+    rgba(133, 229, 165, 0) 100%
+  );
+  filter: drop-shadow(0 0 0 rgba(0, 255, 255, 0));
+  animation: splash-step-sep-brighten var(--cycle) linear infinite;
+  animation-delay: calc((var(--idx) * 1.1s) + 0.55s);
+}
+
+.splash-screen-2__tag-sep-line::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: #85e5a5;
+}
+
+@keyframes splash-step-brighten {
+  0%,
+  18%,
+  100% {
+    color: rgba(184, 184, 184, 0.45);
+    text-shadow: none;
+  }
+
+  18%,
+  36% {
+    color: #f2ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.45), 0 0 18px rgba(0, 180, 255, 0.25);
+  }
+}
+
+@keyframes splash-step-sep-brighten {
+  0%,
+  18%,
+  100% {
+    opacity: 0.34;
+    filter: drop-shadow(0 0 0 rgba(0, 255, 255, 0));
+  }
+
+  18%,
+  36% {
+    opacity: 1;
+    /* Keep SVG native green + cyan and glow both channels */
+    filter: drop-shadow(0 0 5px rgba(133, 229, 165, 0.65)) drop-shadow(0 0 8px rgba(0, 255, 255, 0.5))
+      drop-shadow(0 0 12px rgba(0, 180, 255, 0.28));
+  }
+}
