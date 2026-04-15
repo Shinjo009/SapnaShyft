@@ -95,8 +95,38 @@ export const listDiagnosticPackages = async (payload) => {
   return [];
 };
 
-export const listDiagnosticPackageFilterChips = async (payload) => {
-  const response = await authorizedGet('/diagnostic-packages/filters-chips?for=custom_package', payload);
+export const listDiagnosticPackageFilterChips = async (payload, options) => {
+  const requestedChipFor = String(
+    options?.chipFor
+    ?? payload?.chipFor
+    ?? payload?.chip_for
+    ?? 'custom_package'
+  ).trim();
+
+  const chipFor = requestedChipFor || 'custom_package';
+  const response = await authorizedGet(`/diagnostic-packages/filters-chips?for=${encodeURIComponent(chipFor)}`, payload);
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (Array.isArray(response?.items)) {
+    return response.items;
+  }
+
+  if (Array.isArray(response?.results)) {
+    return response.results;
+  }
+
+  return [];
+};
+
+export const listPublicDiagnosticPackageFilterChips = async (payload) => {
+  const response = await authorizedGet('/diagnostic-packages/filters-chips', payload);
 
   if (Array.isArray(response?.data)) {
     return response.data;

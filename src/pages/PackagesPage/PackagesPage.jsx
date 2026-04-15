@@ -2,28 +2,59 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './PackagesPage.css';
 import NavBar from '../../components/NavBar';
 import PatientSelectionOverlay from '../../components/PatientSelectionOverlay';
-import { listDiagnosticPackages } from '../../services/diagnosticPackagesService';
+import { listDiagnosticPackages, listPublicDiagnosticPackageFilterChips } from '../../services/diagnosticPackagesService';
+import { getAccessToken } from '../../utils/authStorage';
 
-const FILTERS = ['All', 'Male', 'Female', 'Cancer', 'Popular'];
+const ALL_FILTER = {
+  filter_chip_id: 'all',
+  chip_key: 'all',
+  display_name: 'All',
+};
 
 const MISSING_VALUE = '-';
 
-const toGenderBadges = (genderSuitability) => {
-  const normalized = String(genderSuitability || '').trim().toLowerCase();
-
-  if (normalized === 'male') {
-    return ['Male'];
+const normalizeFilterChipValue = (value) => {
+  if (value == null) {
+    return '';
   }
 
-  if (normalized === 'female') {
-    return ['Female'];
+  return String(value).trim();
+};
+
+const getPackageFilterChips = (pkg) => {
+  const values = [];
+  const pushValue = (value) => {
+    const normalized = normalizeFilterChipValue(value);
+    if (normalized) {
+      values.push(normalized);
+    }
+  };
+
+  const rawFilterChip = pkg?.filter_chip ?? pkg?.filter_chips;
+
+  if (typeof rawFilterChip === 'string') {
+    rawFilterChip
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .forEach(pushValue);
+  } else if (Array.isArray(rawFilterChip)) {
+    rawFilterChip.forEach((item) => {
+      if (typeof item === 'string' || typeof item === 'number') {
+        pushValue(item);
+        return;
+      }
+
+      if (item && typeof item === 'object') {
+        pushValue(item?.display_name || item?.filter_chip || item?.chip_key || item?.name);
+      }
+    });
+  } else if (rawFilterChip && typeof rawFilterChip === 'object') {
+    pushValue(rawFilterChip?.display_name || rawFilterChip?.filter_chip || rawFilterChip?.chip_key || rawFilterChip?.name);
   }
 
-  if (normalized === 'both') {
-    return ['Male', 'Female'];
-  }
-
-  return [];
+  const unique = Array.from(new Map(values.map((value) => [value.toLowerCase(), value])).values());
+  return unique;
 };
 
 const toDiscountText = (discountPercent, nowPrice, originalPrice) => {
@@ -46,10 +77,11 @@ const mapDiagnosticPackageToCard = (pkg, index) => {
   const resolvedOldPrice = Number(pkg?.original_price);
   const now = Number.isFinite(resolvedNowPrice) && resolvedNowPrice > 0 ? resolvedNowPrice : null;
   const old = Number.isFinite(resolvedOldPrice) && resolvedOldPrice > 0 ? resolvedOldPrice : null;
+  const filterChipBadges = getPackageFilterChips(pkg);
 
   const badges = [
     ...(pkg?.is_most_popular ? ['Most Popular'] : []),
-    ...toGenderBadges(pkg?.gender_suitability),
+    ...filterChipBadges,
   ];
 
   const mappedTags = Array.isArray(pkg?.tags)
@@ -89,6 +121,77 @@ const mapDiagnosticPackageToCard = (pkg, index) => {
   };
 };
 
+const normalizeFilterChipRows = (rows) => {
+  const source = Array.isArray(rows) ? rows : [];
+
+  const normalized = source
+    .map((row, index) => {
+      const chipKey = String(row?.chip_key || row?.key || '').trim();
+      const displayName = String(row?.display_name || row?.name || chipKey).trim();
+
+      if (!chipKey || !displayName) {
+        return null;
+      }
+
+      return {
+        filter_chip_id: row?.filter_chip_id ?? row?.id ?? `${chipKey}-${index}`,
+        chip_key: chipKey,
+        display_name: displayName,
+      };
+    })
+    .filter(Boolean);
+
+  const uniqueByKey = Array.from(
+    new Map(normalized.map((chip) => [String(chip.chip_key).toLowerCase(), chip])).values()
+  );
+
+  return [ALL_FILTER, ...uniqueByKey.filter((chip) => String(chip.chip_key).toLowerCase() !== 'all')];
+};
+
+const toNormalizedPackageTagValues = (pkg) => {
+  const values = new Set();
+
+  getPackageFilterChips(pkg?.apiData || {}).forEach((value) => {
+    const normalized = String(value).trim().toLowerCase();
+    if (normalized) {
+      values.add(normalized);
+    }
+  });
+
+  const rawTags = Array.isArray(pkg?.apiData?.tags) ? pkg.apiData.tags : [];
+  rawTags.forEach((tag) => {
+    if (typeof tag === 'string' || typeof tag === 'number') {
+      const value = String(tag).trim().toLowerCase();
+      if (value) {
+        values.add(value);
+      }
+      return;
+    }
+
+    if (tag && typeof tag === 'object') {
+      [tag?.tag_name, tag?.name, tag?.filter_chip, tag?.chip_key, tag?.display_name]
+        .map((item) => String(item || '').trim().toLowerCase())
+        .filter(Boolean)
+        .forEach((item) => values.add(item));
+    }
+  });
+
+  const genderSuitability = String(pkg?.apiData?.gender_suitability || '').trim().toLowerCase();
+  if (genderSuitability === 'male' || genderSuitability === 'both') {
+    values.add('male');
+  }
+  if (genderSuitability === 'female' || genderSuitability === 'both') {
+    values.add('female');
+  }
+
+  if (pkg?.apiData?.is_most_popular) {
+    values.add('popular');
+    values.add('most popular');
+  }
+
+  return values;
+};
+
 const CustomPackageIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
     <path d="M10.6683 6.66646C10.6683 8.13823 9.47342 9.33313 8.00165 9.33313C6.52987 9.33313 5.33498 8.13823 5.33498 6.66646M2.07031 4.02246H13.933" stroke="#E6F6F4" strokeLinecap="round" strokeLinejoin="round"/>
@@ -117,7 +220,8 @@ const formatPrice = (value) => {
 };
 
 const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustomPackage, onNavigateToDoctors, onNavigateToSuperClub, customPackageCard }) => {
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilterKey, setActiveFilterKey] = useState('all');
+  const [filterChips, setFilterChips] = useState([ALL_FILTER]);
   const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
   const [packageCardsFromApi, setPackageCardsFromApi] = useState([]);
   const [bookingPackage, setBookingPackage] = useState(null);
@@ -161,46 +265,49 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+
+    const loadFilterChips = async () => {
+      try {
+        const rows = await listPublicDiagnosticPackageFilterChips({ accessToken: getAccessToken() });
+
+        if (!mounted) {
+          return;
+        }
+
+        const normalized = normalizeFilterChipRows(rows);
+        setFilterChips(normalized.length > 0 ? normalized : [ALL_FILTER]);
+      } catch {
+        if (mounted) {
+          setFilterChips([ALL_FILTER]);
+        }
+      }
+    };
+
+    loadFilterChips();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const sourceCards = useMemo(() => {
     return packageCardsFromApi;
   }, [packageCardsFromApi]);
 
   const visibleCards = useMemo(() => {
     const filteredCards = sourceCards.filter((pkg) => {
-      if (activeFilter === 'All') {
+      const selectedChip = filterChips.find((chip) => String(chip?.chip_key || '').toLowerCase() === activeFilterKey);
+      const selectedKey = String(selectedChip?.chip_key || activeFilterKey || 'all').trim().toLowerCase();
+      const selectedLabel = String(selectedChip?.display_name || '').trim().toLowerCase();
+
+      if (selectedKey === 'all') {
         return true;
       }
 
-      const genderSuitability = String(pkg?.apiData?.gender_suitability || '').toLowerCase();
-      const packageTags = Array.isArray(pkg?.apiData?.tags)
-        ? pkg.apiData.tags.map((tag) => {
-          if (typeof tag === 'string' || typeof tag === 'number') {
-            return String(tag).trim().toLowerCase();
-          }
-          if (tag && typeof tag === 'object') {
-            return String(tag.tag_name || tag.name || '').trim().toLowerCase();
-          }
-          return '';
-        }).filter(Boolean)
-        : [];
-
-      if (activeFilter === 'Male') {
-        return genderSuitability === 'male' || genderSuitability === 'both';
-      }
-
-      if (activeFilter === 'Female') {
-        return genderSuitability === 'female' || genderSuitability === 'both';
-      }
-
-      if (activeFilter === 'Cancer') {
-        return packageTags.includes('cancer');
-      }
-
-      if (activeFilter === 'Popular') {
-        return Boolean(pkg?.apiData?.is_most_popular);
-      }
-
-      return true;
+      const packageValues = toNormalizedPackageTagValues(pkg);
+      return packageValues.has(selectedKey) || (selectedLabel ? packageValues.has(selectedLabel) : false);
     });
 
     if (!customPackageCard) {
@@ -208,7 +315,19 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
     }
 
     return [...filteredCards, { ...customPackageCard }];
-  }, [activeFilter, customPackageCard, sourceCards]);
+  }, [activeFilterKey, customPackageCard, filterChips, sourceCards]);
+
+  useEffect(() => {
+    const availableKeys = new Set(
+      (Array.isArray(filterChips) ? filterChips : [])
+        .map((chip) => String(chip?.chip_key || '').trim().toLowerCase())
+        .filter(Boolean)
+    );
+
+    if (!availableKeys.has(activeFilterKey)) {
+      setActiveFilterKey('all');
+    }
+  }, [activeFilterKey, filterChips]);
 
   const handleNav = (itemId) => {
     if (itemId === 'home' && onNavigateHome) {
@@ -254,16 +373,21 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
         </section>
 
         <section className="packages-page__filters" aria-label="Package filters">
-          {FILTERS.map((filter) => (
+          {filterChips.map((filter) => {
+            const filterKey = String(filter?.chip_key || 'all').trim().toLowerCase();
+            const label = String(filter?.display_name || filter?.chip_key || 'All').trim() || 'All';
+
+            return (
             <button
-              key={filter}
+              key={String(filter?.filter_chip_id || filterKey)}
               type="button"
-              className={`packages-page__filter-pill${activeFilter === filter ? ' is-active' : ''}`}
-              onClick={() => setActiveFilter(filter)}
+              className={`packages-page__filter-pill${activeFilterKey === filterKey ? ' is-active' : ''}`}
+              onClick={() => setActiveFilterKey(filterKey)}
             >
-              {filter}
+              {label}
             </button>
-          ))}
+            );
+          })}
         </section>
       </div>
 
