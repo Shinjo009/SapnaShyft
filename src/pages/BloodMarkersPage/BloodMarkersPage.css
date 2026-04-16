@@ -33,6 +33,11 @@
   cursor: pointer;
 }
 
+.blood-markers-page__fixed-cta:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
 .blood-markers-page__header {
   width: 100%;
   display: flex;
