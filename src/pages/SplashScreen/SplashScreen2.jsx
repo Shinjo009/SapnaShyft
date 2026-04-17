@@ -8,6 +8,7 @@ const CUBE_FACE_CSS = 320;
 const CUBE_ROTATION_OVERSHOOT = 1.62;
 const SCALE_MIN = 0.22;
 const SCALE_MAX = 0.46;
+
 function computeCubeScale(anchorWidthPx, anchorHeightPx) {
   const m = Math.min(anchorWidthPx, anchorHeightPx);
   const raw = (m * 0.96) / (CUBE_FACE_CSS * CUBE_ROTATION_OVERSHOOT);

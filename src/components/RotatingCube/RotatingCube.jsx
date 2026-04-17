@@ -1,14 +1,14 @@
 import './rotating-cube.css';
-import icon1 from '../../images/Cube/icon1.svg';
-import icon2 from '../../images/Cube/icon2.svg';
-import icon3 from '../../images/Cube/icon3.svg';
-import icon4 from '../../images/Cube/icon4.svg';
-import icon5 from '../../images/Cube/icon5.svg';
-import icon6 from '../../images/Cube/icon6.svg';
+import bioAiIcon from '../../images/Cube/bio-ai.svg';
+import longevityIcon from '../../images/Cube/longevity.svg';
+import nutritionIcon from '../../images/Cube/nutrition.svg';
+import preventionIcon from '../../images/Cube/prevention.svg';
+import doctorsIcon from '../../images/Cube/doctors.svg';
+import sportsIcon from '../../images/Cube/sports.svg';
 
 /**
  * Same DOM as technology.html (lines 421–458).
- * Face icons sourced from src/images/Cube/icon1.svg … icon6.svg
+ * Face icons sourced from src/images/Cube/bio-ai.svg … sports.svg.
  */
 export default function RotatingCube() {
   return (
@@ -20,32 +20,32 @@ export default function RotatingCube() {
       <div className="cube-container">
         <div className="cube-face front">
           <div className="icon-circle">
-            <img src={icon1} alt="" width={160} height={160} decoding="async" />
+            <img src={bioAiIcon} alt="" width={160} height={160} decoding="async" />
           </div>
         </div>
         <div className="cube-face back">
           <div className="icon-circle">
-            <img src={icon2} alt="" width={160} height={160} decoding="async" />
+            <img src={longevityIcon} alt="" width={160} height={160} decoding="async" />
           </div>
         </div>
         <div className="cube-face right">
           <div className="icon-circle">
-            <img src={icon3} alt="" width={160} height={160} decoding="async" />
+            <img src={nutritionIcon} alt="" width={160} height={160} decoding="async" />
           </div>
         </div>
         <div className="cube-face left">
           <div className="icon-circle">
-            <img src={icon4} alt="" width={160} height={160} decoding="async" />
+            <img src={preventionIcon} alt="" width={160} height={160} decoding="async" />
           </div>
         </div>
         <div className="cube-face top">
           <div className="icon-circle">
-            <img src={icon5} alt="" width={160} height={160} decoding="async" />
+            <img src={doctorsIcon} alt="" width={160} height={160} decoding="async" />
           </div>
         </div>
         <div className="cube-face bottom">
           <div className="icon-circle">
-            <img src={icon6} alt="" width={160} height={160} decoding="async" />
+            <img src={sportsIcon} alt="" width={160} height={160} decoding="async" />
           </div>
         </div>
       </div>

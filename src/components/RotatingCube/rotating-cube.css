@@ -62,7 +62,7 @@
   height: 320px;
   transform-style: preserve-3d;
   backface-visibility: hidden;
-  animation: spin3D 34s linear infinite;
+  animation: spin3D 18s linear infinite;
   position: relative;
   z-index: 3;
   transform: translate3d(0, 0, 0);
@@ -201,5 +201,12 @@
   .beam-inner,
   .beam-ring {
     bottom: -120px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cube-container {
+    /* Much slower spin instead of stopping — keeps motion subtle for PRM users */
+    animation: spin3D 85s linear infinite;
   }
 }
