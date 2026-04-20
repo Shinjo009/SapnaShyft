@@ -163,6 +163,7 @@
 .splash-screen-2__tags.splash-screen-2__tags--loading {
   flex-wrap: nowrap;
   justify-content: center;
+  align-items: center;
   width: 100%;
   max-width: 100%;
   gap: 3px;
@@ -181,7 +182,8 @@
 
 .splash-screen-2__tags--loading .splash-screen-2__tag {
   font-size: clamp(13.5px, 4.1vw, 17px);
-  line-height: 1.22;
+  /* Tighter line box so flex cross-center matches cap-height better than 1.22 */
+  line-height: 1.12;
   letter-spacing: 0.05px;
 }
 
@@ -215,54 +217,70 @@
 
 /* Dot–line–dot connector: sweeps L→R, then stays lit until the final fade */
 .splash-screen-2__tag-arrow {
-  width: clamp(24px, 7.5vw, 44px);
-  height: 15px;
+  width: clamp(32px, 9vw, 54px);
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  vertical-align: middle;
+  position: relative;
+  top: 2px;
 }
 
 .splash-screen-2__tag-arrow__inner {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   width: 100%;
-  height: 100%;
-  gap: 0;
+  gap: 3px;
 }
 
+/* Match HealthAssessmentPage horizontal branch / line-glow (HealthAssessmentPage.css) */
 .splash-screen-2__tag-arrow__dot {
-  width: 3.5px;
-  height: 3.5px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: #85e5a5;
+  background: #90df9e;
+  box-shadow: 0 0 10px 0 #90df9e;
 }
 
 .splash-screen-2__tag-arrow__wire {
   position: relative;
   flex: 1 1 auto;
-  min-width: 12px;
-  height: 4px;
+  min-width: 18px;
+  height: 2px;
   border-radius: 999px;
-  background: rgba(133, 229, 165, 0.35);
-  overflow: hidden;
-  contain: paint;
+  background: transparent;
   transform: translateZ(0);
+}
+
+/* Inactive track: same 1px grey as health-assessment-page__branch / __line-base */
+.splash-screen-2__tag-arrow__wire::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 1px;
+  background: #c4c4c4;
+  border-radius: 100px;
+  pointer-events: none;
 }
 
 .splash-screen-2__tag-arrow__sweep {
   position: absolute;
   inset: 0;
+  z-index: 1;
   transform-origin: left center;
   transform: scaleX(0);
   backface-visibility: hidden;
   will-change: transform;
+  border-radius: 999px;
   background: #85e5a5;
   opacity: 0.9;
+  filter: drop-shadow(0 0 10px #90df9e);
 }
 
 .splash-screen-2__tag-arrow--a0 {
