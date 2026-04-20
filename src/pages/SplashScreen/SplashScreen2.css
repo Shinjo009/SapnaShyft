@@ -74,12 +74,12 @@
 
 /* Full shorthand so cascade never drops animation-name vs duration-only overrides */
 .splash-screen-2 .cube-container {
-  animation: spin3D 7s linear infinite;
+  animation: spin3D 7.5s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .splash-screen-2 .cube-container {
-    animation: spin3D 32s linear infinite;
+    animation: spin3D 34s linear infinite;
   }
 }
 
@@ -217,7 +217,7 @@
 
 /* Dot–line–dot connector: sweeps L→R, then stays lit until the final fade */
 .splash-screen-2__tag-arrow {
-  width: clamp(32px, 9vw, 54px);
+  width: clamp(30px, 8.5vw, 50px);
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -248,7 +248,7 @@
 .splash-screen-2__tag-arrow__wire {
   position: relative;
   flex: 1 1 auto;
-  min-width: 18px;
+  min-width: 16px;
   height: 2px;
   border-radius: 999px;
   background: transparent;

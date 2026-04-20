@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import Logo from '../../components/Logo';
 import RotatingCube from '../../components/RotatingCube/RotatingCube';
+import superShyftWhiteLogo from '../../images/Cube/SuperShyft - white logo.svg';
 import metfluxLogo from '../../images/metflux_logo.svg';
 import './SplashScreen2.css';
 
@@ -46,7 +46,7 @@ const SplashScreen2 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
     >
       <div className="splash-screen-2__logo-wrap flex justify-center">
-        <Logo size="lg" />
+        <img src={superShyftWhiteLogo} alt="Super Shyft" className="object-contain" />
       </div>
 
       <div className="splash-screen-2__hero">
