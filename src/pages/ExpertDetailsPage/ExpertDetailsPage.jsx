@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './ExpertDetailsPage.css';
 import sarahPhoto from '../../images/sarah.svg';
-import lizzyPhoto from '../../images/lizzy.png';
+import lizzyPhoto from '../../images/sarah.svg';
 
 const BackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

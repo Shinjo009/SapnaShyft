@@ -1,5 +1,6 @@
-import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../config/appConfig';
+import { BACKEND_BASE_URL, BACKEND_ENABLED, QUESTIONNAIRE_DEMO_MODE } from '../config/appConfig';
 import { getAccessToken } from '../utils/authStorage';
+import { getQuestionnaireDemoContext } from './questionnaireDemoData';
 
 const parseResponseBody = async (response) => {
   const text = await response.text();
@@ -125,6 +126,66 @@ const toTimestamp = (value) => {
 const normalizeAssessmentStatus = (status) => String(status || '').trim().toLowerCase();
 const normalizeCategoryStatus = (status) => String(status || '').trim().toLowerCase();
 
+const extractCategoriesFromAssessmentStatus = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+
+  if (Array.isArray(payload.categories)) {
+    return payload.categories;
+  }
+
+  if (Array.isArray(payload.category_statuses)) {
+    return payload.category_statuses;
+  }
+
+  if (Array.isArray(payload.assessment_categories)) {
+    return payload.assessment_categories;
+  }
+
+  if (Array.isArray(payload.data?.categories)) {
+    return payload.data.categories;
+  }
+
+  return [];
+};
+
+const extractQuestionsFromCategoryPayload = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+
+  if (Array.isArray(payload.questions)) {
+    return payload.questions;
+  }
+
+  if (Array.isArray(payload.questionnaire)) {
+    return payload.questionnaire;
+  }
+
+  if (Array.isArray(payload.items)) {
+    return payload.items;
+  }
+
+  if (Array.isArray(payload.data?.questions)) {
+    return payload.data.questions;
+  }
+
+  if (Array.isArray(payload.category?.questions)) {
+    return payload.category.questions;
+  }
+
+  return [];
+};
+
 const mapCategoryToRouteId = (category) => {
   const key = String(category?.category_key || '').toLowerCase();
   const name = String(category?.display_name || '').toLowerCase();
@@ -189,42 +250,71 @@ const pickLatestIncompleteActiveAssessment = (assessments) => {
 
 export const listMyAssessments = (page = 1, limit = 20) => authorizedGet('/assessments/me', { page, limit });
 
-export const listMyPackageCategories = (packageId) => {
-  return authorizedGet(`/assessment-packages/me/${packageId}/categories`);
+export const getAssessmentStatus = (assessmentInstanceId) => {
+  return authorizedGet(`/assessments/${assessmentInstanceId}/status`);
 };
 
-export const listCategoryQuestions = (categoryId) => {
-  return authorizedGet(`/questionnaire/categories/${categoryId}/questions`);
+export const getCategoryQuestionnaire = (assessmentInstanceId, categoryId) => {
+  return authorizedGet(`/questionnaire/${assessmentInstanceId}/category/${categoryId}`);
 };
 
-export const submitQuestionnaireResponses = (categoryId, responses = []) => {
-  return authorizedPut(`/questionnaire/${categoryId}/responses`, {
+export const submitQuestionnaireResponses = (assessmentInstanceId, categoryId, responses = []) => {
+  if (QUESTIONNAIRE_DEMO_MODE) {
+    return Promise.resolve({
+      assessment_instance_id: Number(assessmentInstanceId || 0),
+      category_id: Number(categoryId || 0),
+      responses: Array.isArray(responses) ? responses : [],
+      status: 'demo_saved',
+    });
+  }
+
+  return authorizedPut(`/questionnaire/${assessmentInstanceId}/category/${categoryId}/responses`, {
     responses: Array.isArray(responses) ? responses : [],
   });
 };
 
 export const loadQuestionnaireContext = async () => {
+  if (QUESTIONNAIRE_DEMO_MODE) {
+    return getQuestionnaireDemoContext();
+  }
+
   const assessments = await listMyAssessments(1, 50);
   const latestAssessment = pickLatestIncompleteActiveAssessment(Array.isArray(assessments) ? assessments : []);
 
-  if (!latestAssessment || !latestAssessment.package_id) {
+  const assessmentInstanceId = Number(latestAssessment?.assessment_instance_id || 0);
+
+  if (!latestAssessment || assessmentInstanceId <= 0) {
     throw new Error('No active incomplete assessment is assigned to this user.');
   }
 
-  const rawCategories = await listMyPackageCategories(latestAssessment.package_id);
-  const categoriesWithRoute = (Array.isArray(rawCategories) ? rawCategories : [])
-    .map((category) => ({
-      ...category,
-      routeId: mapCategoryToRouteId(category),
-      status: normalizeCategoryStatus(category?.status),
-    }));
+  const statusPayload = await getAssessmentStatus(assessmentInstanceId);
+  const rawCategories = extractCategoriesFromAssessmentStatus(statusPayload);
+  const categoriesWithRoute = rawCategories
+    .map((category) => {
+      const normalizedCategory = {
+        ...category,
+        category_id: Number(category?.category_id || category?.id || 0),
+        category_key: category?.category_key || category?.key || '',
+        display_name: category?.display_name || category?.name || category?.category_name || '',
+        assessment_instance_id: Number(category?.assessment_instance_id || assessmentInstanceId),
+      };
+
+      return {
+        ...normalizedCategory,
+        routeId: mapCategoryToRouteId(normalizedCategory),
+        status: normalizeCategoryStatus(category?.status || category?.category_status),
+      };
+    })
+    .filter((category) => Number(category?.category_id || 0) > 0);
 
   const categories = sortCategories(categoriesWithRoute);
 
   const questionEntries = await Promise.all(
     categories.map(async (category) => {
-      const questions = await listCategoryQuestions(category.category_id);
-      return [String(category.category_id), Array.isArray(questions) ? questions : []];
+      const categoryAssessmentInstanceId = Number(category?.assessment_instance_id || assessmentInstanceId);
+      const questionnairePayload = await getCategoryQuestionnaire(categoryAssessmentInstanceId, category.category_id);
+      const questions = extractQuestionsFromCategoryPayload(questionnairePayload);
+      return [String(category.category_id), questions];
     })
   );
 

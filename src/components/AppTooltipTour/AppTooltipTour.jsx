@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './AppTooltipTour.css';
 
 const TOUR_STEPS = [
@@ -170,6 +170,26 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
   const [bubbleSize, setBubbleSize] = useState({ width: 192, height: 132 });
   const bubbleRef = useRef(null);
 
+  const setTargetRectIfNeeded = useCallback((nextRect) => {
+    if (!nextRect) {
+      return;
+    }
+
+    setTargetRect((prev) => {
+      if (
+        prev
+        && Math.abs(prev.left - nextRect.left) < 0.5
+        && Math.abs(prev.top - nextRect.top) < 0.5
+        && Math.abs(prev.width - nextRect.width) < 0.5
+        && Math.abs(prev.height - nextRect.height) < 0.5
+      ) {
+        return prev;
+      }
+
+      return nextRect;
+    });
+  }, []);
+
   const currentStep = TOUR_STEPS[currentStepIndex] || null;
 
   useEffect(() => {
@@ -192,6 +212,9 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
       return undefined;
     }
 
+    // Reset any previous anchor so a missing target never reuses stale positioning.
+    setTargetRect(null);
+
     let frameId = 0;
     let timeoutId = 0;
     let attempts = 0;
@@ -201,7 +224,7 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
       const targetElement = document.querySelector(currentStep.target);
       if (targetElement) {
         const rect = targetElement.getBoundingClientRect();
-        setTargetRect(rect);
+        setTargetRectIfNeeded(rect);
         return;
       }
 
@@ -223,12 +246,15 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
         window.clearTimeout(timeoutId);
       }
     };
-  }, [currentStep, isVisibleOnPage]);
+  }, [currentStep, isVisibleOnPage, setTargetRectIfNeeded]);
 
   useEffect(() => {
     if (!isVisibleOnPage || !currentStep) {
       return undefined;
     }
+
+    let frameId = 0;
+    let queued = false;
 
     const updatePosition = () => {
       const targetElement = document.querySelector(currentStep.target);
@@ -237,24 +263,39 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
       }
 
       const rect = targetElement.getBoundingClientRect();
-      setTargetRect(rect);
+      setTargetRectIfNeeded(rect);
+    };
+
+    const schedulePositionUpdate = () => {
+      if (queued) {
+        return;
+      }
+
+      queued = true;
+      frameId = window.requestAnimationFrame(() => {
+        queued = false;
+        updatePosition();
+      });
     };
 
     const scrollContainer = document.querySelector('.app-scroll');
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', schedulePositionUpdate);
+    window.addEventListener('scroll', schedulePositionUpdate, true);
     if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', updatePosition);
+      scrollContainer.addEventListener('scroll', schedulePositionUpdate, { passive: true });
     }
 
     return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
+      window.removeEventListener('resize', schedulePositionUpdate);
+      window.removeEventListener('scroll', schedulePositionUpdate, true);
       if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', updatePosition);
+        scrollContainer.removeEventListener('scroll', schedulePositionUpdate);
       }
     };
-  }, [currentStep, isVisibleOnPage]);
+  }, [currentStep, isVisibleOnPage, setTargetRectIfNeeded]);
 
   useEffect(() => {
     if (!isVisibleOnPage || !currentStep) {
@@ -266,7 +307,31 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
       return;
     }
 
-    targetElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    const targetRect = targetElement.getBoundingClientRect();
+    const viewportMargin = 96;
+    const isComfortablyVisible =
+      targetRect.top >= viewportMargin
+      && targetRect.bottom <= window.innerHeight - viewportMargin;
+
+    if (isComfortablyVisible) {
+      return;
+    }
+
+    const scrollContainer = document.querySelector('.app-scroll');
+    if (scrollContainer) {
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const targetTopInContainer = targetRect.top - containerRect.top + scrollContainer.scrollTop;
+      const nextScrollTop = targetTopInContainer - (scrollContainer.clientHeight / 2) + (targetRect.height / 2);
+
+      scrollContainer.scrollTo({
+        top: Math.max(0, nextScrollTop),
+        behavior: 'auto',
+      });
+
+      return;
+    }
+
+    targetElement.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
   }, [currentStepIndex, currentStep, isVisibleOnPage]);
 
   useLayoutEffect(() => {
@@ -380,7 +445,12 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
       <div
         ref={bubbleRef}
         className="app-tooltip-tour__bubble"
-        style={{ left: `${bubble.left}px`, top: `${bubble.top}px`, maxWidth: `${bubble.maxWidth}px` }}
+        style={{
+          left: '0px',
+          top: '0px',
+          transform: `translate3d(${bubble.left}px, ${bubble.top}px, 0)`,
+          maxWidth: `${bubble.maxWidth}px`,
+        }}
       >
         <p className="app-tooltip-tour__text">{currentStep.text}</p>
         <div className="app-tooltip-tour__actions">

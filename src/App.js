@@ -316,14 +316,15 @@ function App() {
       for (const route of submissionOrder) {
         const targetCategory = getCategoryByRoute(route);
         const categoryId = Number(targetCategory?.category_id || 0);
+        const assessmentInstanceId = Number(targetCategory?.assessment_instance_id || 0);
         const routeResponses = Array.isArray(nextDraftResponses[route]) ? nextDraftResponses[route] : [];
 
-        if (categoryId <= 0 || routeResponses.length === 0) {
+        if (categoryId <= 0 || assessmentInstanceId <= 0 || routeResponses.length === 0) {
           continue;
         }
 
         try {
-          await submitQuestionnaireResponses(categoryId, routeResponses);
+          await submitQuestionnaireResponses(assessmentInstanceId, categoryId, routeResponses);
         } catch (error) {
           console.error(`Failed to submit questionnaire responses for ${route}:`, error);
         }
@@ -805,7 +806,8 @@ function App() {
           userName={userName}
           onGetStarted={() => {
             console.log('Get Started clicked');
-            setCurrentPage('home');
+            setCurrentPage('health-assessment');
+            initializeQuestionnaire();
           }}
         />
       )}

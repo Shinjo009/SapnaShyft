@@ -4,14 +4,31 @@
 
 :root {
   --bg-bottom-bleed: 100px;
+  --app-viewport-height: 100vh;
+  --app-safe-area-top: env(safe-area-inset-top, 0px);
+  --app-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-viewport-height: 100dvh;
+  }
+}
+
+/* Installed app (PWA) should not reserve extra browser-bottom space. */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  :root {
+    --app-viewport-height: 100vh;
+    --app-safe-area-bottom: 0px;
+  }
 }
 
 html,
 body,
 #root {
   width: 100vw;
-  height: 100vh;
-  min-height: -webkit-fill-available;
+  height: var(--app-viewport-height);
+  min-height: var(--app-viewport-height);
   margin: 0;
   padding: 0;
   box-sizing: border-box;

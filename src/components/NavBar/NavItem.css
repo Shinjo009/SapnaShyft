@@ -45,11 +45,18 @@
 }
 
 .nav-item__icon {
-  width: 23px;
-  height: 23px;
+  width: var(--nav-icon-size, 23px);
+  height: var(--nav-icon-size, 23px);
   position: relative;
   z-index: 1;
   transition: width 0.34s cubic-bezier(0.22, 1, 0.36, 1), height 0.34s cubic-bezier(0.22, 1, 0.36, 1), filter 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (display-mode: browser) {
+  .nav-item__icon {
+    width: calc(var(--nav-icon-size, 23px) - 3px);
+    height: calc(var(--nav-icon-size, 23px) - 3px);
+  }
 }
 
 .nav-item__label {

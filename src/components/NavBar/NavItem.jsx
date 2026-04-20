@@ -13,8 +13,7 @@ import './NavItem.css';
  */
 const NavItem = ({ id, label, icon, isActive, onClick, iconSize = 23 }) => {
   const iconStyle = {
-    width: `${iconSize}px`,
-    height: `${iconSize}px`,
+    '--nav-icon-size': `${iconSize}px`,
     filter: isActive
       ? 'brightness(0) saturate(100%) invert(18%) sepia(18%) saturate(1454%) hue-rotate(145deg) brightness(96%) contrast(93%)'
       : 'none',

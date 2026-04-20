@@ -9,8 +9,8 @@
   bottom: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
-  min-height: -webkit-fill-available;
+  height: var(--app-viewport-height, 100vh);
+  min-height: var(--app-viewport-height, 100vh);
   overflow: hidden;
   box-sizing: border-box;
   margin: 0;
@@ -64,7 +64,7 @@
   overscroll-behavior-y: contain;
   overscroll-behavior-x: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0 var(--app-safe-area-bottom, env(safe-area-inset-bottom, 0px)) 0;
   box-sizing: border-box;
 }
 

@@ -311,7 +311,7 @@ const GaugeDial = ({ score, scoreDisplay }) => {
   );
 };
 
-const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseSelect, onSeeMore, onBloodMarkersSeeMore }) => {
+const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, apiBloodParameters, onDiseaseSelect, onSeeMore, onBloodMarkersSeeMore }) => {
   const stackCards = useMemo(() => {
     if (apiRiskAnalysis !== undefined) {
       return toRiskAnalysisCardsFromApi(apiRiskAnalysis);
@@ -495,6 +495,14 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
   useEffect(() => {
     let isActive = true;
 
+    if (apiBloodParameters !== undefined && apiBloodParameters !== null) {
+      const groups = extractArray(apiBloodParameters);
+      setApiBloodMarkers(buildBloodMarkersFromGroups(groups));
+      return () => {
+        isActive = false;
+      };
+    }
+
     const loadHomepageBloodMarkers = async () => {
       try {
         const { response } = await fetchLatestAssessmentReport(
@@ -518,7 +526,7 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [apiBloodParameters]);
 
   return (
     <section className="risk-analysis-wins">

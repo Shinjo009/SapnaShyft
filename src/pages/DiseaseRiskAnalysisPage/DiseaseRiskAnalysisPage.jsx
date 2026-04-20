@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 import './DiseaseRiskAnalysisPage.css';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
+import { RISK_ANALYSIS_DEMO_MODE } from '../../config/appConfig';
+import { DEMO_RISK_ANALYSIS_RESPONSE } from './riskAnalysisDemoData';
 
 // Import disease icons
 import ObesityIcon from '../../images/Obesity-RA.svg';
@@ -169,7 +171,13 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
   const isDraggingRef = useRef(false);
   const lastAngleRef = useRef(0);
   const autoRotateSpeedRef = useRef(0.005); // 50% faster rotation
-  const [, forceUpdate] = useState({});
+  const iconRefs = useRef([]);
+  const diseasesDataRef = useRef([]);
+  const orbitGeometryRef = useRef({
+    centerX: 0,
+    centerY: 0,
+    radii: { top: 250, right: 450, bottom: 239, left: 365 },
+  });
 
   // Drag state
   const dragStartRef = useRef({ x: 0, y: 0 });
@@ -180,6 +188,60 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
   const [scoreAnchor, setScoreAnchor] = useState(null);
   const [diseasesData, setDiseasesData] = useState([]);
   const [metabolicScore, setMetabolicScore] = useState(null);
+
+  const updateOrbitGeometry = () => {
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    const scoreRect = scoreCenterRef.current?.getBoundingClientRect();
+    const e3Rect = e3Ref.current?.getBoundingClientRect();
+
+    const containerWidth = containerRect?.width || 375;
+    const containerHeight = containerRect?.height || 600;
+    const scaleX = containerWidth / 375;
+    const scaleY = containerHeight / 600;
+
+    const centerX = scoreRect && containerRect
+      ? (scoreRect.left - containerRect.left + (scoreRect.width / 2))
+      : e3Rect && containerRect
+        ? (e3Rect.left - containerRect.left + (e3Rect.width / 2))
+        : containerWidth / 2 + (160 * scaleX);
+    const centerY = scoreRect && containerRect
+      ? (scoreRect.top - containerRect.top + (scoreRect.height / 2))
+      : e3Rect && containerRect
+        ? (e3Rect.top - containerRect.top + (e3Rect.height / 2))
+        : containerHeight / 2 - (29 * scaleY);
+
+    const e3ScaleX = e3Rect ? e3Rect.width / 400 : scaleX;
+    const e3ScaleY = e3Rect ? e3Rect.height / 480 : scaleY;
+
+    orbitGeometryRef.current = {
+      centerX,
+      centerY,
+      radii: {
+        top: 250 * e3ScaleY,
+        right: 450 * e3ScaleX,
+        bottom: 239 * e3ScaleY,
+        left: 365 * e3ScaleX,
+      },
+    };
+  };
+
+  const updateIconPositions = () => {
+    const items = diseasesDataRef.current;
+    const totalDiseases = Math.max(1, items.length);
+    const { centerX, centerY, radii } = orbitGeometryRef.current;
+
+    for (let index = 0; index < items.length; index += 1) {
+      const iconNode = iconRefs.current[index];
+      if (!iconNode) continue;
+
+      const position = getPosition(index, totalDiseases, radii, centerX, centerY, rotationRef.current);
+      const opacity = getOpacity(position.angle);
+
+      iconNode.style.transform = `translate3d(${position.x}px, ${position.y}px, 0) translate(-50%, -50%)`;
+      iconNode.style.opacity = String(opacity);
+      iconNode.style.pointerEvents = opacity > 0.5 ? 'auto' : 'none';
+    }
+  };
 
   // Get risk color based on score
   const getRiskColor = (score) => {
@@ -252,7 +314,7 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
     if (!isDraggingRef.current) {
       rotationRef.current += autoRotateSpeedRef.current;
     }
-    forceUpdate({});
+    updateIconPositions();
     animationFrameRef.current = requestAnimationFrame(animate);
   };
 
@@ -294,8 +356,8 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
     
     rotationRef.current += deltaAngle;
     lastAngleRef.current = currentAngle;
-    
-    forceUpdate({});
+
+    updateIconPositions();
   };
 
   // Handle pointer up (mouse/touch end)
@@ -319,6 +381,7 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
     window.addEventListener('mouseup', handlePointerUp);
     window.addEventListener('touchmove', handlePointerMove, { passive: false });
     window.addEventListener('touchend', handlePointerUp);
+    window.addEventListener('resize', updateOrbitGeometry);
     
     return () => {
       if (animationFrameRef.current) {
@@ -328,14 +391,50 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
       window.removeEventListener('mouseup', handlePointerUp);
       window.removeEventListener('touchmove', handlePointerMove);
       window.removeEventListener('touchend', handlePointerUp);
+      window.removeEventListener('resize', updateOrbitGeometry);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    diseasesDataRef.current = diseasesData;
+    iconRefs.current = iconRefs.current.slice(0, diseasesData.length);
+
+    const rafId = requestAnimationFrame(() => {
+      updateOrbitGeometry();
+      updateIconPositions();
+    });
+
+    return () => cancelAnimationFrame(rafId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diseasesData]);
+
+  useEffect(() => {
+    const rafId = requestAnimationFrame(() => {
+      updateOrbitGeometry();
+      updateIconPositions();
+    });
+
+    return () => cancelAnimationFrame(rafId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scoreAnchor]);
+
+  useEffect(() => {
     let isActive = true;
 
     const loadRiskAnalysis = async () => {
+      if (RISK_ANALYSIS_DEMO_MODE) {
+        const apiDiseases = extractDiseaseRows(DEMO_RISK_ANALYSIS_RESPONSE);
+        const nextMetabolicScore = extractMetabolicScore(DEMO_RISK_ANALYSIS_RESPONSE, apiDiseases);
+
+        if (isActive) {
+          setDiseasesData(apiDiseases);
+          setMetabolicScore(nextMetabolicScore);
+        }
+
+        return;
+      }
+
       try {
         const { response } = await fetchLatestAssessmentReport(
           (assessmentId) => `/reports/${assessmentId}/risk-analysis`
@@ -417,54 +516,20 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
 
   // Render disease icons
   const renderDiseaseIcons = () => {
-    const containerRect = containerRef.current?.getBoundingClientRect();
-    const scoreRect = scoreCenterRef.current?.getBoundingClientRect();
-    const e3Rect = e3Ref.current?.getBoundingClientRect();
-
-    const containerWidth = containerRect?.width || 375;
-    const containerHeight = containerRect?.height || 600;
-    const scaleX = containerWidth / 375;
-    const scaleY = containerHeight / 600;
-    
-    const centerX = scoreRect && containerRect
-      ? (scoreRect.left - containerRect.left + (scoreRect.width / 2))
-      : e3Rect && containerRect
-        ? (e3Rect.left - containerRect.left + (e3Rect.width / 2))
-        : containerWidth / 2 + (160 * scaleX);
-    const centerY = scoreRect && containerRect
-      ? (scoreRect.top - containerRect.top + (scoreRect.height / 2))
-      : e3Rect && containerRect
-        ? (e3Rect.top - containerRect.top + (e3Rect.height / 2))
-        : containerHeight / 2 - (29 * scaleY);
-
-    // Custom radii (prefer e3-derived scaling so orbit follows e3 on all screens)
-    const e3ScaleX = e3Rect ? e3Rect.width / 400 : scaleX;
-    const e3ScaleY = e3Rect ? e3Rect.height / 480 : scaleY;
-    const radii = {
-      top: 250 * e3ScaleY,
-      right: 450 * e3ScaleX,
-      bottom: 239 * e3ScaleY,
-      left: 365  * e3ScaleX
-    };
-
-    const totalDiseases = Math.max(1, diseasesData.length);
-
     return diseasesData.map((disease, index) => {
-      const position = getPosition(index, totalDiseases, radii, centerX, centerY, rotationRef.current);
-      const opacity = getOpacity(position.angle);
       const riskColor = getRiskColor(disease.score);
-
-      if (opacity === 0) return null;
 
       return (
         <div
           key={disease.id}
+          ref={(node) => {
+            iconRefs.current[index] = node;
+          }}
           className="disease-icon-container"
           style={{
-            left: `${position.x}px`,
-            top: `${position.y}px`,
-            opacity: opacity,
-            pointerEvents: opacity > 0.5 ? 'auto' : 'none'
+            opacity: 0,
+            transform: 'translate3d(0, 0, 0) translate(-50%, -50%)',
+            pointerEvents: 'none',
           }}
           data-tour="risk-disease-item"
           onClick={() => handleDiseaseClick(disease)}

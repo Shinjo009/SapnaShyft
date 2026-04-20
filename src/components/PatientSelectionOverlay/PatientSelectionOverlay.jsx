@@ -185,12 +185,6 @@ const MaleIcon = () => <img src={maleAvatar} alt="" aria-hidden="true" className
 
 const FemaleIcon = () => <img src={femaleAvatar} alt="" aria-hidden="true" className="patient-select-overlay__avatar-image" />;
 
-const EditIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-    <path d="M16.3767 4.40976C17.2936 3.49312 17.2938 2.00455 16.3771 1.08768C15.4605 0.170807 13.9719 0.170621 13.0551 1.08726L1.93339 12.2114C1.73991 12.4043 1.59682 12.6419 1.51673 12.9031L0.415893 16.5298C0.372015 16.6766 0.412276 16.8357 0.520724 16.9439C0.629172 17.0522 0.788301 17.0922 0.93506 17.0481L4.56256 15.9481C4.82353 15.8687 5.06104 15.7265 5.25423 15.5339L16.3767 4.40976M11.2317 2.89976L14.5651 6.23309" stroke="white" strokeWidth="0.8" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
 const UncheckedIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 19 19" fill="none" aria-hidden="true">
     <path d="M14.5 0.5H4.5C2.29086 0.5 0.5 2.29086 0.5 4.5V14.5C0.5 16.7091 2.29086 18.5 4.5 18.5H14.5C16.7091 18.5 18.5 16.7091 18.5 14.5V4.5C18.5 2.29086 16.7091 0.5 14.5 0.5Z" stroke="#CCCCCC" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1379,10 +1373,6 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                       </div>
 
                       <div className="patient-select-overlay__actions">
-                        <button type="button" className="patient-select-overlay__icon-btn" aria-label={`Edit ${patient.name}`}>
-                          <EditIcon />
-                        </button>
-
                         <button
                           type="button"
                           className="patient-select-overlay__icon-btn patient-select-overlay__check-btn"

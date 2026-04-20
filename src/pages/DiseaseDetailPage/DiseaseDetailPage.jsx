@@ -3,6 +3,11 @@ import './DiseaseDetailPage.css';
 import lifestyleTick from '../../images/tick(lifestyle).svg';
 import trendsImage from '../../images/trends.svg';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
+import { RISK_ANALYSIS_DEMO_MODE } from '../../config/appConfig';
+import {
+  DEMO_RISK_ANALYSIS_DETAILS_BY_CODE,
+  buildRiskAnalysisDemoFallbackDetail,
+} from '../DiseaseRiskAnalysisPage/riskAnalysisDemoData';
 
 const RISK_ZONES = [
   {
@@ -148,6 +153,11 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
     if (rawCode) return rawCode;
     return diseaseCodeFromName(title);
   }, [disease?.code, title]);
+  const fallbackRiskScore = useMemo(() => {
+    const numeric = Number(disease?.score);
+    if (!Number.isFinite(numeric)) return 0;
+    return Math.max(0, Math.min(100, Math.round(numeric)));
+  }, [disease?.score]);
   const hasScore = apiDetail?.risk_score_scaled !== null && apiDetail?.risk_score_scaled !== undefined;
   const score = hasScore ? toClampedScore(apiDetail?.risk_score_scaled, 0) : 0;
   const scoreLabel = hasScore ? String(score) : '-';
@@ -350,6 +360,22 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
         return;
       }
 
+      if (RISK_ANALYSIS_DEMO_MODE) {
+        const demoPayload = DEMO_RISK_ANALYSIS_DETAILS_BY_CODE[diseaseCode]
+          || buildRiskAnalysisDemoFallbackDetail({
+            diseaseCode,
+            diseaseName: title,
+            riskScore: fallbackRiskScore,
+          });
+        const detail = resolveRiskPayloadRoot(demoPayload);
+
+        if (isActive) {
+          setApiDetail(detail);
+        }
+
+        return;
+      }
+
       try {
         const { response } = await fetchLatestAssessmentReport(
           (assessmentId) => `/reports/${assessmentId}/risk-analysis?disease=${encodeURIComponent(diseaseCode)}`
@@ -376,7 +402,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
     return () => {
       isActive = false;
     };
-  }, [diseaseCode]);
+  }, [diseaseCode, fallbackRiskScore, title]);
 
   useEffect(() => {
     const element = riskStripRef.current;

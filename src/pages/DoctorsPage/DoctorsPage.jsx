@@ -5,7 +5,7 @@ import doctorAvatar from '../../images/doc.svg';
 import nutritionistAvatar from '../../images/nutritionist.svg';
 import sarahPhoto from '../../images/sarah.svg';
 import verifiedBadge from '../../images/verified.svg';
-import lizzyPhoto from '../../images/lizzy.png';
+import lizzyPhoto from '../../images/sarah.svg';
 
 const PILLS = ['All', 'General Physician', 'Nutritionist', 'Combined'];
 

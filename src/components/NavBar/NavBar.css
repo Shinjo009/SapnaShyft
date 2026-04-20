@@ -11,6 +11,12 @@
   -webkit-backdrop-filter: blur(32.5px);
 }
 
+@media (display-mode: browser) {
+  .navbar {
+    height: 50px;
+  }
+}
+
 .navbar__notch-svg {
   position: absolute;
   top: 0;

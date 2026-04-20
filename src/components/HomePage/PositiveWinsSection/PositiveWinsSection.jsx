@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './PositiveWinsSection.css';
 
 const PositiveWinsHeaderIcon = () => (
@@ -153,27 +153,88 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
   const touchStartYRef = useRef(null);
   const isHorizontalSwipeRef = useRef(false);
   const latestDragXRef = useRef(0);
+  const pendingDragXRef = useRef(0);
+  const dragFrameRef = useRef(null);
+  const animationTimeoutRef = useRef(null);
+  const animationSettledRef = useRef(false);
 
-  const resetDragOffset = () => {
-    latestDragXRef.current = 0;
-    if (stackRef.current) {
-      stackRef.current.style.setProperty('--positive-wins-drag-x', '0px');
-    }
-  };
-
-  const applyDragOffset = (value) => {
+  const commitDragOffset = (value) => {
     latestDragXRef.current = value;
     if (stackRef.current) {
       stackRef.current.style.setProperty('--positive-wins-drag-x', `${value}px`);
     }
   };
 
+  const resetDragOffset = () => {
+    pendingDragXRef.current = 0;
+    if (dragFrameRef.current !== null) {
+      cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
+    commitDragOffset(0);
+  };
+
+  const clearAnimationFallback = () => {
+    if (animationTimeoutRef.current !== null) {
+      clearTimeout(animationTimeoutRef.current);
+      animationTimeoutRef.current = null;
+    }
+  };
+
+  const completeStackAnimation = () => {
+    if (animationSettledRef.current || !isAnimating) {
+      return;
+    }
+
+    animationSettledRef.current = true;
+    clearAnimationFallback();
+    setIsResetting(true);
+    setActiveIndex((prev) => (prev + 1) % cardCount);
+    setIsAnimating(false);
+    resetDragOffset();
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsResetting(false);
+      });
+    });
+  };
+
+  const applyDragOffset = (value) => {
+    pendingDragXRef.current = value;
+    if (dragFrameRef.current !== null) {
+      return;
+    }
+
+    dragFrameRef.current = requestAnimationFrame(() => {
+      dragFrameRef.current = null;
+      commitDragOffset(pendingDragXRef.current);
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (dragFrameRef.current !== null) {
+        cancelAnimationFrame(dragFrameRef.current);
+      }
+      clearAnimationFallback();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const startAnimation = (direction) => {
     if (cardCount <= 1) return;
+    animationSettledRef.current = false;
+    clearAnimationFallback();
     setIsDragging(false);
     resetDragOffset();
     setSwipeDirection(direction);
     setIsAnimating(true);
+
+    // Fallback in case transitionend is dropped on some browsers under heavy touch input.
+    animationTimeoutRef.current = setTimeout(() => {
+      completeStackAnimation();
+    }, 760);
   };
 
   const goPrev = () => {
@@ -277,18 +338,9 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
   const handleStackTransitionEnd = (event) => {
     if (!isAnimating) return;
     if (!event.target.classList.contains('positive-wins__stack-card--front')) return;
-    if (event.propertyName !== 'transform') return;
+    if (event.propertyName !== 'transform' && event.propertyName !== 'left') return;
 
-    setIsResetting(true);
-    setActiveIndex((prev) => (prev + 1) % cardCount);
-    setIsAnimating(false);
-    resetDragOffset();
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setIsResetting(false);
-      });
-    });
+    completeStackAnimation();
   };
 
   return (
