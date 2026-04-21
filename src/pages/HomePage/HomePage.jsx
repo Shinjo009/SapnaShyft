@@ -7,11 +7,6 @@ import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/P
 import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
-import { HOMEPAGE_DEMO_MODE } from '../../config/appConfig';
-import {
-  DEMO_HOMEPAGE_OVERVIEW_RESPONSE,
-  DEMO_HOMEPAGE_BLOOD_PARAMETERS_RESPONSE,
-} from './homepageDemoData';
 
 const AvatarGlyph = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42" fill="none" aria-hidden="true">
@@ -216,9 +211,6 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
   const [metabolicAgeValue, setMetabolicAgeValue] = useState(preloadedData?.metabolicAgeValue || '-');
   const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
   const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
-  const [bloodParametersData, setBloodParametersData] = useState(
-    HOMEPAGE_DEMO_MODE ? DEMO_HOMEPAGE_BLOOD_PARAMETERS_RESPONSE : null,
-  );
   const [isNoDataHome, setIsNoDataHome] = useState(false);
   const [noDataStage, setNoDataStage] = useState('welcome');
   const [checklistScrollProgress, setChecklistScrollProgress] = useState(0);
@@ -282,22 +274,6 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
     let isActive = true;
 
     const loadOverviewData = async () => {
-      if (HOMEPAGE_DEMO_MODE) {
-        const demoOverview = resolveOverviewPayload(DEMO_HOMEPAGE_OVERVIEW_RESPONSE);
-        const metabolicAge = Number(demoOverview?.metabolic_age);
-
-        if (isActive) {
-          setMetabolicAgeValue(Number.isFinite(metabolicAge) ? String(Math.round(metabolicAge)) : '-');
-          setPositiveWinsData(demoOverview?.positive_wins && typeof demoOverview.positive_wins === 'object' ? demoOverview.positive_wins : null);
-          setRiskAnalysisData(Array.isArray(demoOverview?.risk_analysis) ? demoOverview.risk_analysis : []);
-          setBloodParametersData(DEMO_HOMEPAGE_BLOOD_PARAMETERS_RESPONSE);
-          setIsNoDataHome(false);
-          setNoDataStage('welcome');
-        }
-
-        return;
-      }
-
       try {
         const { response } = await fetchLatestAssessmentReport(
           (assessmentId) => `/reports/${assessmentId}/overview`,
@@ -346,7 +322,6 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
           setMetabolicAgeValue('-');
           setPositiveWinsData(null);
           setRiskAnalysisData([]);
-          setBloodParametersData(null);
           setIsNoDataHome(true);
           setNoDataStage('welcome');
         }
@@ -725,7 +700,6 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
       {/* Risk Analysis Section */}
       <RiskAnalysisSection
         apiRiskAnalysis={riskAnalysisData}
-        apiBloodParameters={bloodParametersData}
         onSeeMore={handleRiskAnalysisSeeMore}
         onDiseaseSelect={onNavigateToDiseaseDetail}
         onBloodMarkersSeeMore={handleBloodMarkersSeeMore}

@@ -9,12 +9,6 @@ import tickIcon from '../../images/ques-tick.svg';
 import AnthInd from '../../images/Anth-Ind.svg';
 import waistGif from '../../images/waist-gif.gif';
 import hipGif from '../../images/hip-gif.gif';
-import { QUESTIONNAIRE_DEMO_MODE } from '../../config/appConfig';
-import {
-  DEMO_FAMILY_HISTORY_QUESTIONS,
-  DEMO_LIFESTYLE_HABITS_QUESTIONS,
-  DEMO_NUTRITION_LOG_QUESTIONS,
-} from '../../services/questionnaireDemoData';
 import './HealthAssessmentPage.css';
 
 const AnthropometryTriangleArrow = ({ direction = 'right' }) => {
@@ -1138,11 +1132,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [], initialSele
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const cardsData = useMemo(() => {
-    const sourceQuestions = (Array.isArray(questions) && questions.length > 0)
-      ? questions
-      : (QUESTIONNAIRE_DEMO_MODE ? DEMO_FAMILY_HISTORY_QUESTIONS : []);
-
-    return sourceQuestions.length > 0 ? toFamilyApiCards(sourceQuestions) : familyCards;
+    return Array.isArray(questions) ? toFamilyApiCards(questions) : familyCards;
   }, [questions]);
 
   const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
@@ -1548,11 +1538,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [], initialSe
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const cardsData = useMemo(() => {
-    const sourceQuestions = (Array.isArray(questions) && questions.length > 0)
-      ? questions
-      : (QUESTIONNAIRE_DEMO_MODE ? DEMO_LIFESTYLE_HABITS_QUESTIONS : []);
-
-    return sourceQuestions.length > 0 ? toLifestyleApiCards(sourceQuestions) : lifestyleCards;
+    return Array.isArray(questions) ? toLifestyleApiCards(questions) : lifestyleCards;
   }, [questions]);
 
   const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
@@ -2047,11 +2033,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [], initialSelec
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const cardsData = useMemo(() => {
-    const sourceQuestions = (Array.isArray(questions) && questions.length > 0)
-      ? questions
-      : (QUESTIONNAIRE_DEMO_MODE ? DEMO_NUTRITION_LOG_QUESTIONS : []);
-
-    return sourceQuestions.length > 0 ? toNutritionApiCards(sourceQuestions) : nutritionCards;
+    return Array.isArray(questions) ? toNutritionApiCards(questions) : nutritionCards;
   }, [questions]);
 
   const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
