@@ -1,8 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import './DiseaseRiskAnalysisPage.css';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
-import { RISK_ANALYSIS_DEMO_MODE } from '../../config/appConfig';
-import { DEMO_RISK_ANALYSIS_RESPONSE } from './riskAnalysisDemoData';
 
 // Import disease icons
 import ObesityIcon from '../../images/Obesity-RA.svg';
@@ -423,18 +421,6 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
     let isActive = true;
 
     const loadRiskAnalysis = async () => {
-      if (RISK_ANALYSIS_DEMO_MODE) {
-        const apiDiseases = extractDiseaseRows(DEMO_RISK_ANALYSIS_RESPONSE);
-        const nextMetabolicScore = extractMetabolicScore(DEMO_RISK_ANALYSIS_RESPONSE, apiDiseases);
-
-        if (isActive) {
-          setDiseasesData(apiDiseases);
-          setMetabolicScore(nextMetabolicScore);
-        }
-
-        return;
-      }
-
       try {
         const { response } = await fetchLatestAssessmentReport(
           (assessmentId) => `/reports/${assessmentId}/risk-analysis`

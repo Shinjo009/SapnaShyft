@@ -237,7 +237,7 @@
   border: 1px solid #3b82f6;
   box-sizing: border-box;
   background: rgba(0, 0, 0, 0.3);
-  box-shadow: 0 0 32px 0 rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 32px 0 rgba(59, 130, 246, 0.40);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   isolation: isolate;
@@ -260,20 +260,11 @@
   user-select: none;
 }
 
-/* Icon line glow — #3B82F6; drop-shadow follows glyph alpha. */
+/* Keep icon colors true to source without extra tinting effects. */
 .super-club-marquee__orb--active .super-club-marquee__orb-img {
   position: relative;
   z-index: 1;
-  filter: drop-shadow(0 0 1.5px #3b82f6)
-    drop-shadow(0 0 5px rgba(59, 130, 246, 0.75))
-    drop-shadow(0 0 11px rgba(59, 130, 246, 0.5))
-    drop-shadow(0 0 18px rgba(59, 130, 246, 0.28));
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .super-club-marquee__orb--active .super-club-marquee__orb-img {
-    filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.85));
-  }
+  filter: none;
 }
 
 /* —— Prompt + swipe —— */

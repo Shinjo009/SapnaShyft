@@ -1,0 +1,172 @@
+.super-club-playlist {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  background: transparent;
+}
+
+.super-club-playlist__header-wrap {
+  position: relative;
+  z-index: 2;
+}
+
+.super-club-playlist__main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px 106px;
+  box-sizing: border-box;
+}
+
+.super-club-playlist__title {
+  margin: 22px 0 4px;
+  width: 100%;
+  color: #fff;
+  text-align: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 36.8px;
+  letter-spacing: -1px;
+}
+
+.super-club-playlist__subtitle {
+  margin: 0 0 18px;
+  width: 100%;
+  color: #8b949e;
+  text-align: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.super-club-playlist__cards {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.super-club-playlist__card {
+  width: 100%;
+  display: flex;
+  padding: 15px;
+  align-items: center;
+  gap: 16px;
+  align-self: stretch;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
+}
+
+.super-club-playlist__icon-wrap {
+  display: flex;
+  width: 46px;
+  height: 46px;
+  padding: 1px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid #3b82f6;
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 32px 0 rgba(59, 130, 246, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  flex-shrink: 0;
+}
+
+.super-club-playlist__card-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1 0 0;
+  gap: 10px;
+}
+
+.super-club-playlist__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.super-club-playlist__event {
+  margin: 0;
+  color: #fff;
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.super-club-playlist__arena {
+  margin: 0;
+  color: #9a9a9a;
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 300;
+  line-height: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.super-club-playlist__time {
+  margin: 0;
+  color: #ccc;
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 10px;
+  white-space: nowrap;
+}
+
+.super-club-playlist__join-btn {
+  display: flex;
+  width: 54px;
+  height: 25px;
+  padding: 10px 24px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 36px;
+  border: 1px solid #969696;
+  background: transparent;
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #ccc;
+  font-family: "DM Sans", sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.super-club-playlist__cta-wrap {
+  width: 100%;
+  margin: 24px 20px 0;
+}
+
+.super-club-playlist__cta-wrap button {
+  font-family: "DM Sans", sans-serif;
+}

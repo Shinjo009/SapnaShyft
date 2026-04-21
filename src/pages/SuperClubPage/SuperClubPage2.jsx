@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './SuperClubPage2.css';
 import Header from '../../components/HomePage/Header';
 import NavBar from '../../components/NavBar';
@@ -17,6 +17,44 @@ export default function SuperClubPage2({
   onStayUpdated,
   onSelectSport,
 }) {
+  const scrollRef = useRef(null);
+  const [autoScrollPaused, setAutoScrollPaused] = useState(false);
+
+  useEffect(() => {
+    if (!likedSports.length) {
+      return undefined;
+    }
+
+    const listNode = scrollRef.current;
+    if (!listNode) {
+      return undefined;
+    }
+
+    const step = () => {
+      if (autoScrollPaused) {
+        return;
+      }
+
+      const maxScrollLeft = Math.max(0, listNode.scrollWidth - listNode.clientWidth);
+      if (maxScrollLeft <= 0) {
+        return;
+      }
+
+      const nextLeft = listNode.scrollLeft + 156;
+      if (nextLeft >= maxScrollLeft - 8) {
+        listNode.scrollTo({ left: 0, behavior: 'smooth' });
+        return;
+      }
+
+      listNode.scrollTo({ left: nextLeft, behavior: 'smooth' });
+    };
+
+    const intervalId = window.setInterval(step, 2600);
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [autoScrollPaused, likedSports.length]);
+
   const handleNav = (itemId) => {
     if (itemId === 'home' && onNavigateHome) {
       onNavigateHome();
@@ -57,7 +95,15 @@ export default function SuperClubPage2({
         <h1 className="super-club-page__headline">Those were some Interesting Choices!</h1>
         <p className="super-club-page__lede">Something built for your active life is on its way.</p>
 
-        <ul className="super-club-page__cards-scroll" aria-label="Sports you liked">
+        <ul
+          ref={scrollRef}
+          className="super-club-page__cards-scroll"
+          aria-label="Sports you liked"
+          onMouseEnter={() => setAutoScrollPaused(true)}
+          onMouseLeave={() => setAutoScrollPaused(false)}
+          onTouchStart={() => setAutoScrollPaused(true)}
+          onTouchEnd={() => setAutoScrollPaused(false)}
+        >
           {likedSports.length === 0 ? (
             <li className="super-club-page__cards-empty">No sports saved from your likes — you can still stay updated below.</li>
           ) : (

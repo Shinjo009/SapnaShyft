@@ -6,6 +6,7 @@ import nutritionistAvatar from '../../images/nutritionist.svg';
 import sarahPhoto from '../../images/sarah.svg';
 import lizzyPhoto from '../../images/sarah.svg';
 import verifiedBadge from '../../images/verified.svg';
+import nutritionSelectedIcon from '../../images/Cube/nutrition.svg';
 
 const BackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -32,6 +33,32 @@ const CartIcon = () => (
 const RatingStarIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
     <path d="M2.23125 11.0833L3.17917 6.98542L0 4.22917L4.2 3.86458L5.83333 0L7.46667 3.86458L11.6667 4.22917L8.4875 6.98542L9.43542 11.0833L5.83333 8.91042L2.23125 11.0833Z" fill="#90DF9E" />
+  </svg>
+);
+
+const ViewDetailsArrowIcon = ({ isOpen = false }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="9"
+    height="5"
+    viewBox="0 0 9 5"
+    fill="none"
+    aria-hidden="true"
+    className={`ihp-card__view-arrow${isOpen ? ' is-open' : ''}`}
+  >
+    <path d="M7.94 1.4782e-05L8.64667 0.707348L4.79533 4.56001C4.73362 4.62212 4.66024 4.6714 4.5794 4.70504C4.49857 4.73867 4.41188 4.75598 4.32433 4.75598C4.23678 4.75598 4.1501 4.73867 4.06926 4.70504C3.98843 4.6714 3.91505 4.62212 3.85333 4.56001L0 0.707348L0.706667 0.0006814L4.32333 3.61668L7.94 1.4782e-05Z" fill="#9A9A9A"/>
+  </svg>
+);
+
+const ChangeArrowIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="8" height="16" viewBox="0 0 8 16" fill="none" aria-hidden="true">
+    <path d="M1.63466 4.38666L2.34199 3.67999L6.19466 7.53133C6.25676 7.59304 6.30605 7.66642 6.33968 7.74726C6.37331 7.82809 6.39063 7.91478 6.39063 8.00233C6.39063 8.08988 6.37331 8.17656 6.33968 8.2574C6.30605 8.33823 6.25676 8.41161 6.19466 8.47333L2.34199 12.3267L1.63532 11.62L5.25132 8.00333L1.63466 4.38666Z" fill="#9A9A9A"/>
+  </svg>
+);
+
+const DoctorSelectedIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+    <path d="M5.5 7C4.83696 7 4.20107 6.73661 3.73223 6.26777C3.26339 5.79893 3 5.16304 3 4.5V2.5C3 2.36739 3.05268 2.24021 3.14645 2.14645C3.24021 2.05268 3.36739 2 3.5 2H4C4.13261 2 4.25979 1.94732 4.35355 1.85355C4.44732 1.75979 4.5 1.63261 4.5 1.5C4.5 1.36739 4.44732 1.24021 4.35355 1.14645C4.25979 1.05268 4.13261 1 4 1H3.5C3.10218 1 2.72064 1.15804 2.43934 1.43934C2.15804 1.72064 2 2.10218 2 2.5V4.5C2.00064 5.06487 2.13839 5.62114 2.4014 6.12104C2.66441 6.62094 3.04484 7.04953 3.51 7.37C3.95736 7.76364 4.32011 8.24404 4.57623 8.78208C4.83236 9.32012 4.97653 9.90457 5 10.5C5 11.4283 5.36875 12.3185 6.02513 12.9749C6.6815 13.6313 7.57174 14 8.5 14C9.42826 14 10.3185 13.6313 10.9749 12.9749C11.6313 12.3185 12 11.4283 12 10.5V9.93C12.4713 9.8083 12.8821 9.51889 13.1553 9.116C13.4285 8.71311 13.5454 8.22441 13.4841 7.7415C13.4227 7.25859 13.1874 6.81463 12.8221 6.49284C12.4569 6.17104 11.9868 5.99351 11.5 5.99351C11.0132 5.99351 10.5431 6.17104 10.1779 6.49284C9.81263 6.81463 9.57728 7.25859 9.51594 7.7415C9.4546 8.22441 9.57149 8.71311 9.8447 9.116C10.1179 9.51889 10.5287 9.8083 11 9.93V10.5C11 11.163 10.7366 11.7989 10.2678 12.2678C9.79893 12.7366 9.16304 13 8.5 13C7.83696 13 7.20107 12.7366 6.73223 12.2678C6.26339 11.7989 6 11.163 6 10.5C6.02473 9.90383 6.17046 9.31893 6.42833 8.78085C6.6862 8.24276 7.05081 7.76275 7.5 7.37C7.96331 7.04842 8.34179 6.61934 8.60303 6.11951C8.86426 5.61968 9.00048 5.06398 9 4.5V2.5C9 2.10218 8.84196 1.72064 8.56066 1.43934C8.27936 1.15804 7.89782 1 7.5 1H7C6.86739 1 6.74021 1.05268 6.64645 1.14645C6.55268 1.24021 6.5 1.36739 6.5 1.5C6.5 1.63261 6.55268 1.75979 6.64645 1.85355C6.74021 1.94732 6.86739 2 7 2H7.5C7.63261 2 7.75979 2.05268 7.85355 2.14645C7.94732 2.24021 8 2.36739 8 2.5V4.5C8 4.8283 7.93534 5.15339 7.8097 5.45671C7.68406 5.76002 7.49991 6.03562 7.26777 6.26777C7.03562 6.49991 6.76002 6.68406 6.45671 6.8097C6.15339 6.93534 5.8283 7 5.5 7ZM11.5 9C11.2348 9 10.9804 8.89464 10.7929 8.70711C10.6054 8.51957 10.5 8.26522 10.5 8C10.5 7.73478 10.6054 7.48043 10.7929 7.29289C10.9804 7.10536 11.2348 7 11.5 7C11.7652 7 12.0196 7.10536 12.2071 7.29289C12.3946 7.48043 12.5 7.73478 12.5 8C12.5 8.26522 12.3946 8.51957 12.2071 8.70711C12.0196 8.89464 11.7652 9 11.5 9Z" fill="white"/>
   </svg>
 );
 
@@ -145,6 +172,8 @@ const DOCTOR_PROFILES = [
   {
     id: 'doc-sarah',
     name: 'Dr. Sarah Jenkins',
+    feeNow: '₹ 499/-',
+    feeOld: '₹ 999/-',
     role: 'General Physician',
     experienceText: '8+ years experience',
     image: sarahPhoto,
@@ -183,6 +212,8 @@ const DOCTOR_PROFILES = [
   {
     id: 'doc-arjun',
     name: 'Dr. Arjun Rao',
+    feeNow: '₹ 499/-',
+    feeOld: '₹ 999/-',
     role: 'General Physician',
     experienceText: '10+ years experience',
     image: sarahPhoto,
@@ -224,6 +255,8 @@ const NUTRITIONIST_PROFILES = [
   {
     id: 'nut-anaya',
     name: 'Dr. Anaya Mehta',
+    feeNow: '₹ 399/-',
+    feeOld: '₹ 799/-',
     role: 'Nutritionist',
     experienceText: '7+ years experience',
     image: lizzyPhoto,
@@ -262,6 +295,8 @@ const NUTRITIONIST_PROFILES = [
   {
     id: 'nut-rhea',
     name: 'Rhea Kapoor',
+    feeNow: '₹ 399/-',
+    feeOld: '₹ 799/-',
     role: 'Nutritionist',
     experienceText: '6+ years experience',
     image: lizzyPhoto,
@@ -335,7 +370,6 @@ const IntegratedHealthProgramPage = ({ onBack }) => {
 
   const currentProfiles = activeTab === 'doctor' ? DOCTOR_PROFILES : NUTRITIONIST_PROFILES;
   const activeExpandedId = expandedByTab[activeTab];
-  const hasActiveProfileOpen = Boolean(activeExpandedId);
 
   const expandedProfile = useMemo(() => {
     const targetId = expandedByTab[activeTab];
@@ -347,8 +381,8 @@ const IntegratedHealthProgramPage = ({ onBack }) => {
 
   const selectedDoctor = DOCTOR_PROFILES.find((item) => item.id === selectedDoctorId) || null;
   const selectedNutritionist = NUTRITIONIST_PROFILES.find((item) => item.id === selectedNutritionistId) || null;
-
   const canBook = Boolean(selectedDoctor && selectedNutritionist);
+
   const consultationFee = (selectedDoctor ? 320 : 0) + (selectedNutritionist ? 280 : 0);
   const taxRate = 0.05;
   const serviceTax = consultationFee * taxRate;
@@ -391,6 +425,12 @@ const IntegratedHealthProgramPage = ({ onBack }) => {
   const closeScheduleOverlay = () => {
     setIsScheduleOpen(false);
     setScheduleStep('schedule');
+  };
+
+  const handleBookClick = () => {
+    if (!canBook) return;
+    setScheduleStep('schedule');
+    setIsScheduleOpen(true);
   };
 
   const centerCardInRow = (profileId) => {
@@ -441,14 +481,50 @@ const IntegratedHealthProgramPage = ({ onBack }) => {
     setSelectedNutritionistId(expandedProfile.id);
   };
 
-  const handleBookClick = () => {
-    if (!canBook) return;
-    setScheduleStep('schedule');
-    setIsScheduleOpen(true);
+  const handleFooterActionClick = () => {
+    if (canBook) {
+      handleBookClick();
+      return;
+    }
+
+    if (expandedProfile) {
+      handleSelectCurrentExpert();
+      return;
+    }
+
+    if (!selectedDoctor) {
+      setActiveTab('doctor');
+      return;
+    }
+
+    if (!selectedNutritionist) {
+      setActiveTab('nutritionist');
+    }
+  };
+
+  const focusSelectedProfile = (tab, profileId) => {
+    setActiveTab(tab);
+
+    if (!profileId) {
+      return;
+    }
+
+    setExpandedByTab((prev) => ({ ...prev, [tab]: profileId }));
+
+    setTimeout(() => {
+      centerCardInRow(profileId);
+      detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
   };
 
   const doctorAvatarImage = selectedDoctor?.image || doctorAvatar;
   const nutritionAvatarImage = selectedNutritionist?.image || nutritionistAvatar;
+  const hasActiveSelectionCard = Boolean(expandedProfile) && !canBook;
+  const footerButtonLabel = canBook
+    ? 'BOOK'
+    : expandedProfile
+      ? (activeTab === 'doctor' ? 'Select Doctor' : 'Select Nutritionist')
+      : 'Select';
 
   return (
     <div className="ihp-page">
@@ -513,7 +589,7 @@ const IntegratedHealthProgramPage = ({ onBack }) => {
 
         <div className="ihp-page__divider" />
 
-        <div ref={cardsRowRef} className={`ihp-page__cards-row${hasActiveProfileOpen ? ' is-locked' : ''}`} aria-label="Expert cards">
+        <div ref={cardsRowRef} className="ihp-page__cards-row" aria-label="Expert cards">
           {currentProfiles.map((profile) => {
             const isOpen = expandedByTab[activeTab] === profile.id;
             return (
@@ -564,7 +640,8 @@ const IntegratedHealthProgramPage = ({ onBack }) => {
                   className={`ihp-card__view-btn ${isOpen ? 'is-open' : ''}`}
                   onClick={() => openProfile(profile.id)}
                 >
-                  View Profile
+                  <span>{isOpen ? 'Hide Details' : 'View Details'}</span>
+                  <ViewDetailsArrowIcon isOpen={isOpen} />
                 </button>
               </article>
             );
@@ -664,24 +741,83 @@ const IntegratedHealthProgramPage = ({ onBack }) => {
       </section>
       ) : null}
 
-      <footer className="expert-details-page__fixed-cta" aria-label="Appointment fee and booking">
-        <div className="expert-details-page__fee-wrap">
-          <p className="expert-details-page__fee-label">Appointment Fee</p>
-          <div className="expert-details-page__fee-row">
-            <span className="expert-details-page__fee-now">₹ 499/-</span>
-            <span className="expert-details-page__fee-old">₹ 898/-</span>
-            <span className="expert-details-page__fee-off">44% OFF</span>
-          </div>
-        </div>
+      <footer className="ihp-page__footer-stack" aria-label="Selected expert and action">
+        {selectedDoctor || selectedNutritionist ? (
+          <div className="ihp-page__selected-panel">
+            {selectedDoctor ? (
+              <div className="ihp-page__selected-row">
+                <div className="ihp-page__selected-left">
+                  <div className="ihp-page__selected-icon-box" aria-hidden="true">
+                    <DoctorSelectedIcon />
+                  </div>
 
-        <button
-          type="button"
-          className="expert-details-page__book-btn ihp-page__book-btn"
-          disabled={!canBook}
-          onClick={handleBookClick}
-        >
-          BOOK
-        </button>
+                  <div className="ihp-page__selected-copy">
+                    <p className="ihp-page__selected-label">Doctor Selected</p>
+                    <p className="ihp-page__selected-name">{selectedDoctor.name}</p>
+                  </div>
+                </div>
+
+                <button type="button" className="ihp-page__change-btn" onClick={() => focusSelectedProfile('doctor', selectedDoctor.id)}>
+                  <span>Change</span>
+                  <ChangeArrowIcon />
+                </button>
+              </div>
+            ) : null}
+
+            {selectedNutritionist ? (
+              <div className="ihp-page__selected-row">
+                <div className="ihp-page__selected-left">
+                  <div className="ihp-page__selected-icon-box" aria-hidden="true">
+                    <img src={nutritionSelectedIcon} alt="" className="ihp-page__selected-icon-image" />
+                  </div>
+
+                  <div className="ihp-page__selected-copy">
+                    <p className="ihp-page__selected-label">Nutritionist Selected</p>
+                    <p className="ihp-page__selected-name">{selectedNutritionist.name}</p>
+                  </div>
+                </div>
+
+                <button type="button" className="ihp-page__change-btn" onClick={() => focusSelectedProfile('nutritionist', selectedNutritionist.id)}>
+                  <span>Change</span>
+                  <ChangeArrowIcon />
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="ihp-page__selection-footer">
+          {canBook ? (
+            <div className="ihp-page__fee-block">
+              <p className="ihp-page__fee-title">Appointment Fee</p>
+              <p className="ihp-page__fee-team">Care Team</p>
+              <div className="ihp-page__fee-row">
+                <span className="ihp-page__fee-now">₹ 999/-</span>
+                <span className="ihp-page__fee-old">₹ 1999/-</span>
+              </div>
+            </div>
+          ) : expandedProfile ? (
+            <div className="ihp-page__active-expert-block">
+              <p className="ihp-page__active-expert-name">{expandedProfile.name}</p>
+              <div className="ihp-page__active-expert-fee-row">
+                <span className="ihp-page__active-expert-fee-now">{expandedProfile.feeNow}</span>
+                <span className="ihp-page__active-expert-fee-old">{expandedProfile.feeOld}</span>
+              </div>
+            </div>
+          ) : (
+            <p className="ihp-page__selection-empty">
+              {selectedDoctor ? 'No Nutritionist Selected' : selectedNutritionist ? 'No Doctor Selected' : 'No Doctor/ Nutritionist Selected'}
+            </p>
+          )}
+
+          <button
+            type="button"
+            className={`ihp-page__selection-btn ${canBook ? 'is-book' : ''} ${hasActiveSelectionCard ? 'is-select-active' : ''}`}
+            onClick={handleFooterActionClick}
+          >
+            {footerButtonLabel}
+          </button>
+        </div>
       </footer>
 
       {isScheduleOpen ? (

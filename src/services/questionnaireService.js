@@ -1,6 +1,5 @@
-import { BACKEND_BASE_URL, BACKEND_ENABLED, QUESTIONNAIRE_DEMO_MODE } from '../config/appConfig';
+import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../config/appConfig';
 import { getAccessToken } from '../utils/authStorage';
-import { getQuestionnaireDemoContext } from './questionnaireDemoData';
 
 const parseResponseBody = async (response) => {
   const text = await response.text();
@@ -259,25 +258,12 @@ export const getCategoryQuestionnaire = (assessmentInstanceId, categoryId) => {
 };
 
 export const submitQuestionnaireResponses = (assessmentInstanceId, categoryId, responses = []) => {
-  if (QUESTIONNAIRE_DEMO_MODE) {
-    return Promise.resolve({
-      assessment_instance_id: Number(assessmentInstanceId || 0),
-      category_id: Number(categoryId || 0),
-      responses: Array.isArray(responses) ? responses : [],
-      status: 'demo_saved',
-    });
-  }
-
   return authorizedPut(`/questionnaire/${assessmentInstanceId}/category/${categoryId}/responses`, {
     responses: Array.isArray(responses) ? responses : [],
   });
 };
 
 export const loadQuestionnaireContext = async () => {
-  if (QUESTIONNAIRE_DEMO_MODE) {
-    return getQuestionnaireDemoContext();
-  }
-
   const assessments = await listMyAssessments(1, 50);
   const latestAssessment = pickLatestIncompleteActiveAssessment(Array.isArray(assessments) ? assessments : []);
 

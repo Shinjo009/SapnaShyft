@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './BloodMarkersPage.css';
 import trendsImage from '../../images/trends.svg';
-import { BACKEND_BASE_URL, BACKEND_ENABLED, HOMEPAGE_DEMO_MODE } from '../../config/appConfig';
+import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
 import { getAccessToken } from '../../utils/authStorage';
 import { fetchLatestAssessmentReport, getLatestAssessmentIdsCached } from '../../services/reportService';
-import { DEMO_HOMEPAGE_BLOOD_PARAMETERS_RESPONSE } from '../HomePage/homepageDemoData';
 import haematologyIcon from '../../images/Haemotology.svg';
 import liverIcon from '../../images/Liver.svg';
 import kidneyIcon from '../../images/Kidney.svg';
@@ -601,64 +600,6 @@ const BLOOD_MARKER_DETAIL_CONTENT = {
   }
 };
 
-const getDemoMarkerDescription = (marker, normalMin, normalMax) => {
-  const label = String(marker?.marker || 'This marker');
-  const unit = String(marker?.unit || '').trim();
-  const rangeText = Number.isFinite(normalMin) && Number.isFinite(normalMax)
-    ? `${normalMin} - ${normalMax}${unit ? ` ${unit}` : ''}`
-    : 'the expected range';
-
-  return `${label} is a key blood marker used in your Bio-AI profile. Your healthy reference range is ${rangeText}.`;
-};
-
-const getDemoMarkerCauseItems = (riskType) => {
-  if (riskType === 'high') {
-    return [
-      'Diet quality or hydration patterns may be affecting this marker.',
-      'Stress, sleep disruption, or reduced activity can contribute to imbalance.',
-      'Medication, supplements, or temporary illness may influence this result.',
-    ];
-  }
-
-  if (riskType === 'moderate') {
-    return [
-      'This marker is slightly outside the expected range.',
-      'Short-term lifestyle changes can often move it back toward optimal.',
-      'Follow-up trends are useful to confirm if this is persistent.',
-    ];
-  }
-
-  return [
-    'This marker is currently within the expected range.',
-    'Continue consistent nutrition, activity, and sleep routines.',
-    'Track over time to maintain healthy trends.',
-  ];
-};
-
-const getDemoMarkerEffectItems = (riskType) => {
-  if (riskType === 'high') {
-    return [
-      'Persistently high deviation may affect long-term metabolic balance.',
-      'Can be associated with reduced resilience and slower recovery.',
-      'Should be reviewed alongside your full blood marker profile.',
-    ];
-  }
-
-  if (riskType === 'moderate') {
-    return [
-      'Mild imbalance may reflect early physiological stress.',
-      'May impact energy, performance, or recovery when persistent.',
-      'Improvement is commonly seen with targeted lifestyle correction.',
-    ];
-  }
-
-  return [
-    'Current value supports healthy physiological function.',
-    'Lower likelihood of short-term concern for this parameter.',
-    'Maintain habits that support this stable range.',
-  ];
-};
-
 const BLOOD_DOT_GAP = 2;
 const BLOOD_ZONE_COUNT = 3;
 const BLOOD_MIN_DOTS_PER_ZONE = 12;
@@ -723,9 +664,8 @@ const getMarkerPercentForValue = (value, normalMin, normalMax) => {
 const BloodMarkerDetailView = ({ marker, onBack }) => {
   const riskStripRef = useRef(null);
   const indicatorRef = useRef(null);
-  const isDemoDataMode = HOMEPAGE_DEMO_MODE;
   const [diagnosticDetail, setDiagnosticDetail] = useState(null);
-  const [isDiagnosticLoading, setIsDiagnosticLoading] = useState(Boolean(marker?.diagnosticTestId) && !isDemoDataMode);
+  const [isDiagnosticLoading, setIsDiagnosticLoading] = useState(Boolean(marker?.diagnosticTestId));
 
   useEffect(() => {
     let isActive = true;
@@ -733,13 +673,6 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
     const loadDiagnosticDetail = async () => {
       if (isActive) {
         setDiagnosticDetail(null);
-      }
-
-      if (isDemoDataMode) {
-        if (isActive) {
-          setIsDiagnosticLoading(false);
-        }
-        return;
       }
 
       if (!marker?.diagnosticTestId) {
@@ -775,10 +708,10 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
     return () => {
       isActive = false;
     };
-  }, [isDemoDataMode, marker?.diagnosticTestId]);
+  }, [marker?.diagnosticTestId]);
 
   const baseDetail = BLOOD_MARKER_DETAIL_CONTENT[marker?.marker] || BLOOD_MARKER_DETAIL_CONTENT.ALBUMIN;
-  const shouldWaitForDiagnosticData = Boolean(marker?.diagnosticTestId) && !isDemoDataMode;
+  const shouldWaitForDiagnosticData = Boolean(marker?.diagnosticTestId);
   const diagnosticDescription = pickFirstText(diagnosticDetail, [
     'meaning',
     'top_one_liner',
@@ -797,11 +730,11 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
     title: marker?.marker ? String(marker.marker).charAt(0) + String(marker.marker).slice(1).toLowerCase() : baseDetail.title,
     description: shouldWaitForDiagnosticData
       ? (isDiagnosticLoading ? '' : (diagnosticDescription || 'No details provided in report.'))
-      : (baseDetail.description || getDemoMarkerDescription(marker, Number(marker?.normalMin), Number(marker?.normalMax))),
+      : baseDetail.description,
     normalMin: Number.isFinite(Number(marker?.normalMin)) ? Number(marker.normalMin) : baseDetail.normalMin,
     normalMax: Number.isFinite(Number(marker?.normalMax)) ? Number(marker.normalMax) : baseDetail.normalMax,
-    causes: toStringArray(baseDetail.causes),
-    effects: toStringArray(baseDetail.effects),
+    causes: [],
+    effects: [],
   };
 
   const markerValue = Number.parseFloat(marker?.value);
@@ -826,11 +759,11 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
 
   detail.causes = sideCauses.length > 0
     ? sideCauses
-    : (diagnosticCauses.length > 0 ? diagnosticCauses : (detail.causes.length > 0 ? detail.causes : getDemoMarkerCauseItems(getRiskTypeFromBounds(activeValue, detail.normalMin, detail.normalMax))));
+    : diagnosticCauses;
 
   detail.effects = sideEffects.length > 0
     ? sideEffects
-    : (diagnosticEffects.length > 0 ? diagnosticEffects : (detail.effects.length > 0 ? detail.effects : getDemoMarkerEffectItems(getRiskTypeFromBounds(activeValue, detail.normalMin, detail.normalMax))));
+    : diagnosticEffects;
   const [riskStripWidth, setRiskStripWidth] = useState(0);
   const [dotsAnimated, setDotsAnimated] = useState(false);
   const [animatedMarkerLeftPercent, setAnimatedMarkerLeftPercent] = useState(0);
@@ -1567,17 +1500,6 @@ const BloodMarkersPage = ({ onBack }) => {
     let isActive = true;
 
     const loadBloodMarkers = async () => {
-      if (HOMEPAGE_DEMO_MODE) {
-        const groups = extractArray(DEMO_HOMEPAGE_BLOOD_PARAMETERS_RESPONSE);
-
-        if (isActive) {
-          setLatestAssessmentId(8);
-          setApiSections(buildSectionsFromApi(groups));
-        }
-
-        return;
-      }
-
       try {
         const { response, assessmentId } = await fetchLatestAssessmentReport(
           (assessmentId) => `/reports/${assessmentId}/blood-parameters`
