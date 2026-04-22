@@ -172,6 +172,7 @@
 }
 
 .splash-screen-2__tags--loading {
+  /* One-shot intro; forwards holds final “all lit” state */
   --load-cycle: 12s;
   --load-ease: cubic-bezier(0.4, 0, 0.2, 1);
   /* Connectors (dots + wire): slower-feeling ease + stretched keyframes */
@@ -198,24 +199,24 @@
   text-shadow: none;
 }
 
-/* Cumulative brighten: earlier labels stay lit as the sequence advances */
+/* Cumulative brighten: earlier labels stay lit as the sequence advances (runs once) */
 .splash-screen-2__tag--w0 {
-  animation: splash-tag-w0 var(--load-cycle) var(--load-ease) infinite;
+  animation: splash-tag-w0 var(--load-cycle) var(--load-ease) 1 forwards;
 }
 
 .splash-screen-2__tag--w1 {
-  animation: splash-tag-w1 var(--load-cycle) var(--load-ease) infinite;
+  animation: splash-tag-w1 var(--load-cycle) var(--load-ease) 1 forwards;
 }
 
 .splash-screen-2__tag--w2 {
-  animation: splash-tag-w2 var(--load-cycle) var(--load-ease) infinite;
+  animation: splash-tag-w2 var(--load-cycle) var(--load-ease) 1 forwards;
 }
 
 .splash-screen-2__tag--w3 {
-  animation: splash-tag-w3 var(--load-cycle) var(--load-ease) infinite;
+  animation: splash-tag-w3 var(--load-cycle) var(--load-ease) 1 forwards;
 }
 
-/* Dot–line–dot connector: sweeps L→R, then stays lit until the final fade */
+/* Dot–line–dot: one L→R clip reveal on inner (no staggered pauses between parts) */
 .splash-screen-2__tag-arrow {
   width: clamp(30px, 8.5vw, 50px);
   flex-shrink: 0;
@@ -235,6 +236,24 @@
   gap: 3px;
 }
 
+/* Whole connector (both dots + full wire) reveals as one unit */
+.splash-screen-2__tags--loading .splash-screen-2__tag-arrow__inner {
+  clip-path: inset(0 100% 0 0);
+  will-change: clip-path;
+}
+
+.splash-screen-2__tag-arrow--a0 .splash-screen-2__tag-arrow__inner {
+  animation: splash-conn-reveal-a0 var(--load-cycle) var(--sweep-ease) 1 forwards;
+}
+
+.splash-screen-2__tag-arrow--a1 .splash-screen-2__tag-arrow__inner {
+  animation: splash-conn-reveal-a1 var(--load-cycle) var(--sweep-ease) 1 forwards;
+}
+
+.splash-screen-2__tag-arrow--a2 .splash-screen-2__tag-arrow__inner {
+  animation: splash-conn-reveal-a2 var(--load-cycle) var(--sweep-ease) 1 forwards;
+}
+
 /* Match HealthAssessmentPage horizontal branch / line-glow (HealthAssessmentPage.css) */
 .splash-screen-2__tag-arrow__dot {
   width: 4px;
@@ -243,6 +262,7 @@
   flex-shrink: 0;
   background: #90df9e;
   box-shadow: 0 0 10px 0 #90df9e;
+  transform: translateZ(0);
 }
 
 .splash-screen-2__tag-arrow__wire {
@@ -255,18 +275,10 @@
   transform: translateZ(0);
 }
 
-/* Inactive track: same 1px grey as health-assessment-page__branch / __line-base */
-.splash-screen-2__tag-arrow__wire::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 1px;
-  background: #c4c4c4;
-  border-radius: 100px;
-  pointer-events: none;
+/* Full-width bar inside clip (motion is clip on parent, not scaleX here) */
+.splash-screen-2__tags--loading .splash-screen-2__tag-arrow__sweep {
+  transform: scaleX(1);
+  opacity: 0.9;
 }
 
 .splash-screen-2__tag-arrow__sweep {
@@ -276,55 +288,30 @@
   transform-origin: left center;
   transform: scaleX(0);
   backface-visibility: hidden;
-  will-change: transform;
   border-radius: 999px;
   background: #85e5a5;
   opacity: 0.9;
   filter: drop-shadow(0 0 10px #90df9e);
 }
 
-.splash-screen-2__tag-arrow--a0 {
-  animation: splash-conn-a0 var(--load-cycle) var(--conn-ease) infinite;
-}
-
-.splash-screen-2__tag-arrow--a1 {
-  animation: splash-conn-a1 var(--load-cycle) var(--conn-ease) infinite;
-}
-
-.splash-screen-2__tag-arrow--a2 {
-  animation: splash-conn-a2 var(--load-cycle) var(--conn-ease) infinite;
-}
-
-.splash-screen-2__tag-arrow--a0 .splash-screen-2__tag-arrow__sweep {
-  animation: splash-conn-sweep-a0 var(--load-cycle) var(--sweep-ease) infinite;
-}
-
-.splash-screen-2__tag-arrow--a1 .splash-screen-2__tag-arrow__sweep {
-  animation: splash-conn-sweep-a1 var(--load-cycle) var(--sweep-ease) infinite;
-}
-
-.splash-screen-2__tag-arrow--a2 .splash-screen-2__tag-arrow__sweep {
-  animation: splash-conn-sweep-a2 var(--load-cycle) var(--sweep-ease) infinite;
-}
-
 /*
- * ~12s loop — timeline compressed to 0–96% so 96–100% is a brief dim tail; next cycle starts almost immediately
+ * One-shot timeline; 100% = final lit state.
+ * Words overlap the tail of the previous connector clip so there is no dead pause
+ * before the next label reads as “on” (w1 with a0, w2 with a1, w3 with a2).
  */
 @keyframes splash-tag-w0 {
-  0%,
-  96%,
-  100% {
+  0% {
     color: rgba(184, 184, 184, 0.38);
     text-shadow: none;
   }
 
-  4% {
+  2% {
     color: rgba(205, 225, 225, 0.62);
     text-shadow: 0 0 4px rgba(0, 255, 255, 0.12);
   }
 
-  7%,
-  94% {
+  5%,
+  100% {
     color: #f4ffff;
     text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
   }
@@ -332,9 +319,26 @@
 
 @keyframes splash-tag-w1 {
   0%,
-  27%,
-  96%,
+  12% {
+    color: rgba(184, 184, 184, 0.38);
+    text-shadow: none;
+  }
+
+  13% {
+    color: rgba(205, 225, 225, 0.62);
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.12);
+  }
+
+  19%,
   100% {
+    color: #f4ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
+  }
+}
+
+@keyframes splash-tag-w2 {
+  0%,
+  27% {
     color: rgba(184, 184, 184, 0.38);
     text-shadow: none;
   }
@@ -345,28 +349,7 @@
   }
 
   31%,
-  94% {
-    color: #f4ffff;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
-  }
-}
-
-@keyframes splash-tag-w2 {
-  0%,
-  51%,
-  96%,
   100% {
-    color: rgba(184, 184, 184, 0.38);
-    text-shadow: none;
-  }
-
-  52% {
-    color: rgba(205, 225, 225, 0.62);
-    text-shadow: 0 0 4px rgba(0, 255, 255, 0.12);
-  }
-
-  55%,
-  94% {
     color: #f4ffff;
     text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
   }
@@ -374,148 +357,56 @@
 
 @keyframes splash-tag-w3 {
   0%,
-  75%,
-  96%,
-  100% {
+  39% {
     color: rgba(184, 184, 184, 0.38);
     text-shadow: none;
   }
 
-  76% {
+  40% {
     color: rgba(205, 225, 225, 0.62);
     text-shadow: 0 0 4px rgba(0, 255, 255, 0.12);
   }
 
-  79%,
-  94% {
+  43%,
+  100% {
     color: #f4ffff;
     text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
   }
 }
 
-@keyframes splash-conn-a0 {
+/* Slightly shorter clips; next segment can start overlapping for a continuous flow */
+@keyframes splash-conn-reveal-a0 {
   0%,
-  15%,
-  96%,
-  100% {
-    opacity: 0;
-    transform: scale(0.94);
-  }
-
-  16% {
-    opacity: 0.45;
-    transform: scale(0.97);
+  4% {
+    clip-path: inset(0 100% 0 0);
   }
 
   19%,
-  94% {
-    opacity: 1;
-    transform: scale(1);
+  100% {
+    clip-path: inset(0 0% 0 0);
   }
 }
 
-@keyframes splash-conn-a1 {
+@keyframes splash-conn-reveal-a1 {
   0%,
-  39%,
-  96%,
-  100% {
-    opacity: 0;
-    transform: scale(0.94);
+  17% {
+    clip-path: inset(0 100% 0 0);
   }
 
-  40% {
-    opacity: 0.45;
-    transform: scale(0.97);
+  31%,
+  100% {
+    clip-path: inset(0 0% 0 0);
+  }
+}
+
+@keyframes splash-conn-reveal-a2 {
+  0%,
+  30% {
+    clip-path: inset(0 100% 0 0);
   }
 
   43%,
-  94% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes splash-conn-a2 {
-  0%,
-  63%,
-  96%,
   100% {
-    opacity: 0;
-    transform: scale(0.94);
-  }
-
-  64% {
-    opacity: 0.45;
-    transform: scale(0.97);
-  }
-
-  67%,
-  94% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Fewer stops: one eased segment for L→R fill (avoids stepped / janky mid-keyframe hits) */
-@keyframes splash-conn-sweep-a0 {
-  0%,
-  15%,
-  96%,
-  100% {
-    transform: scaleX(0);
-    opacity: 0;
-  }
-
-  28% {
-    transform: scaleX(1);
-    opacity: 0.9;
-  }
-
-  30%,
-  94% {
-    transform: scaleX(1);
-    opacity: 0.9;
-  }
-}
-
-@keyframes splash-conn-sweep-a1 {
-  0%,
-  39%,
-  96%,
-  100% {
-    transform: scaleX(0);
-    opacity: 0;
-  }
-
-  52% {
-    transform: scaleX(1);
-    opacity: 0.9;
-  }
-
-  54%,
-  94% {
-    transform: scaleX(1);
-    opacity: 0.9;
-  }
-}
-
-@keyframes splash-conn-sweep-a2 {
-  0%,
-  63%,
-  96%,
-  100% {
-    transform: scaleX(0);
-    opacity: 0;
-  }
-
-  76% {
-    transform: scaleX(1);
-    opacity: 0.9;
-  }
-
-  78%,
-  94% {
-    transform: scaleX(1);
-    opacity: 0.9;
+    clip-path: inset(0 0% 0 0);
   }
 }
