@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './NavBar.css';
 import NavItem from './NavItem';
 import homeIcon from '../../images/home.svg';
@@ -33,18 +33,12 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
     setActiveItem(defaultActive);
   }, [defaultActive]);
 
-  useLayoutEffect(() => {
-    if (!navRef.current) {
-      return;
-    }
-
-    const measured = navRef.current.getBoundingClientRect().width;
-    if (measured > 0) {
-      setNavbarWidth(measured);
-    }
-  }, []);
-
   useEffect(() => {
+    // Single source of truth for navbar width. ResizeObserver delivers the
+    // initial size through its own callback (from pre-computed `contentRect`,
+    // not a forced layout read) inside the first animation frame, so we no
+    // longer need a synchronous getBoundingClientRect() in useLayoutEffect —
+    // that was a commit-phase reflow that showed up in Lighthouse.
     if (!navRef.current || typeof ResizeObserver === 'undefined') {
       return undefined;
     }

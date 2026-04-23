@@ -24,6 +24,17 @@
 /manifest.json
   Cache-Control: public, max-age=3600
 
+# robots.txt must be served exactly as authored. If Cloudflare's "AI Audit /
+# Bot Management → Content-Signal" feature is enabled on this zone it will
+# inject a non-standard `Content-Signal:` line into the response body and
+# Lighthouse flags that as a robots.txt parse error. Disable that toggle in
+# the Cloudflare dashboard (Security → Bots → AI Audit) in addition to this
+# header, which pins the correct mime-type and short cache.
+/robots.txt
+  Cache-Control: public, max-age=3600
+  Content-Type: text/plain; charset=utf-8
+  X-Robots-Tag: all
+
 # Favicons / PWA icons — cache for a day
 /favicon.ico
   Cache-Control: public, max-age=86400
