@@ -24,6 +24,35 @@
       visual behavior. The <noscript> fallback preserves styling for users
       with JS disabled.
     -->
+    <!--
+      LCP request discovery: BG-1.png is the full-viewport background the user
+      sees on first paint, so we preload it directly from the HTML. Without
+      this the browser has to parse main.css before it even learns the URL
+      exists, forcing a 3-hop critical chain (html -> css -> image). Preloading
+      with fetchpriority=high flattens that to html -> image in parallel with
+      html -> css and is the single biggest LCP lever on this app.
+    -->
+    <link
+      rel="preload"
+      as="image"
+      href="%PUBLIC_URL%/BG-1.png"
+      fetchpriority="high"
+    >
+    <!--
+      Body/app background image is set here (not in src/*.css) because the
+      hashed file lives under /public/ and CRA's css-loader tries to module-
+      resolve absolute URLs it finds in stylesheets. %PUBLIC_URL% is replaced
+      at build time, so this block resolves to a plain absolute URL in prod.
+    -->
+    <style>
+      html,
+      body {
+        background-image: url('%PUBLIC_URL%/BG-1.png');
+      }
+      .app-background {
+        background-image: url('%PUBLIC_URL%/BG-1.png');
+      }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link

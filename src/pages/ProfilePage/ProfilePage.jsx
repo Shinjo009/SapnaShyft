@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Button from '../../components/Button';
 import './ProfilePage.css';
-import bgImage1 from '../../images/BG-1.png';
 import maleAvatar from '../../images/male-avatar.png';
 import femaleAvatar from '../../images/female-avatar.png';
 import editIcon from '../../images/Edit.svg';
@@ -18,6 +17,11 @@ import { getMyProfile, invalidateMyProfileCache } from '../../services/profileSe
 import { getMyProfiles, invalidateMyProfilesCache, unlinkMyProfile } from '../../services/usersService';
 import { clearReportRequestCache, clearStoredLatestAssessmentId } from '../../services/reportService';
 import { clearAuthTokens, extractTokensFromResponse, saveAuthTokens } from '../../utils/authStorage';
+
+// BG-1.png lives under /public/ (stable URL, no content hash) so index.html
+// can preload it for faster LCP on the very first paint. Reference it by
+// absolute path here instead of an import so we reuse the same cached asset.
+const bgImage1 = `${process.env.PUBLIC_URL || ''}/BG-1.png`;
 
 /**
  * ProfilePage - User profile management screen

@@ -37,7 +37,14 @@ body,
 html,
 body {
   background-color: #08171a;
-  background-image: url('./images/BG-1.png');
+  /*
+   * background-image itself is declared in public/index.html's <style> block
+   * using %PUBLIC_URL%/BG-1.png. That file lives in /public/ so it has a
+   * stable (unhashed) URL that index.html can <link rel="preload">, giving us
+   * the "LCP request discovery" win. Declaring the background here would make
+   * CRA's css-loader try to webpack-resolve the absolute path, which fails,
+   * so we only keep the sizing/positioning properties in this stylesheet.
+   */
   background-size: 100% calc(100% + 100px);
   background-position: top center;
   background-repeat: no-repeat;

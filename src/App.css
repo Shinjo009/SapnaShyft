@@ -46,7 +46,9 @@
   right: 0;
   bottom: -100px;
   left: 0;
-  background-image: url('./images/BG-1.png');
+  /* background-image is set via an inline <style> block in public/index.html
+     so we can use %PUBLIC_URL% and avoid CRA's css-loader trying to resolve
+     an absolute '/BG-1.png' path at build time. */
   background-size: 100% calc(100% + 100px);
   background-position: top center;
   background-repeat: no-repeat;

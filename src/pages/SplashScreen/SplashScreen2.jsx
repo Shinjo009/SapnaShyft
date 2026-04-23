@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import RotatingCube from '../../components/RotatingCube/RotatingCube';
 import superShyftWhiteLogo from '../../images/Cube/SuperShyft - white logo.svg';
 import metfluxLogo from '../../images/metflux_logo.svg';
@@ -24,18 +24,24 @@ const SplashScreen2 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
   const cubeAnchorRef = useRef(null);
   const [cubeScale, setCubeScale] = useState(0.38);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
+    // Measure via ResizeObserver only. Its initial delivery is asynchronous
+    // but uses a pre-computed `contentRect`, so we avoid the forced reflow
+    // that a synchronous clientWidth/clientHeight read inside useLayoutEffect
+    // would trigger on the LCP frame. The initial `cubeScale=0.38` fallback
+    // is close enough that the one-frame refinement is imperceptible.
     const el = cubeAnchorRef.current;
     if (!el || typeof ResizeObserver === 'undefined') {
       return undefined;
     }
 
-    const apply = () => {
-      setCubeScale(computeCubeScale(el.clientWidth, el.clientHeight));
-    };
-
-    apply();
-    const ro = new ResizeObserver(apply);
+    const ro = new ResizeObserver((entries) => {
+      const rect = entries[0]?.contentRect;
+      if (!rect) {
+        return;
+      }
+      setCubeScale(computeCubeScale(rect.width, rect.height));
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);

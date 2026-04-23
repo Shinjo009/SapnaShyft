@@ -44,3 +44,11 @@
   Cache-Control: public, max-age=86400
 /super-shyft-favicon.png
   Cache-Control: public, max-age=86400
+
+# LCP background. Served from /public/ with a stable (unhashed) filename so
+# index.html can <link rel="preload"> it. Cache for 30 days — long enough that
+# repeat-visit Lighthouse runs stop flagging "use efficient cache lifetimes",
+# short enough that a future artwork change rolls out within a month even
+# without a filename change. If you do change the image, rename the file.
+/BG-1.png
+  Cache-Control: public, max-age=2592000
