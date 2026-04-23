@@ -20,7 +20,7 @@ const HealthInsightsPage = ({ onGetStarted, userName = 'User' }) => {
 
       {/* Header: Logo */}
       <div className="max-w-md mx-auto space-y-8 px-8 pt-[75px] pb-8 relative z-10">
-        <Logo size="lg" />
+        <Logo size="lg" variant="onDark" />
       </div>
 
       {/* Center Content: Text */}

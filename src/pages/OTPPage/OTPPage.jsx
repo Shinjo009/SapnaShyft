@@ -64,7 +64,7 @@ const OTPPage = ({ phoneNumber, onVerifyOtp, onResendOtp, onBack }) => {
 
   return (
     <div className="max-w-md mx-auto min-h-full px-8 pt-[75px] pb-6 flex flex-col">
-      <Logo size="lg" />
+      <Logo size="lg" variant="onDark" />
 
       <div className="mt-[72px]">
         <Typography variant="heading" as="h2" align="center">
