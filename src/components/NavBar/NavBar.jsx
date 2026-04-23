@@ -5,6 +5,7 @@ import homeIcon from '../../images/home.svg';
 import superCareIcon from '../../images/SuperCare.svg';
 import superClubIcon from '../../images/SuperClub.svg';
 import packagesIcon from '../../images/Packages.svg';
+import { prefetchRouteChunk } from '../../utils/routePrefetch';
 
 /**
  * NavBar Component - Bottom navigation bar with 4 items
@@ -17,7 +18,6 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
   const [activeItem, setActiveItem] = useState(defaultActive);
   const [navbarWidth, setNavbarWidth] = useState(null);
   const navRef = useRef(null);
-  const navigateTimerRef = useRef(null);
 
   const navItems = useMemo(
     () => [
@@ -32,14 +32,6 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
   useEffect(() => {
     setActiveItem(defaultActive);
   }, [defaultActive]);
-
-  useEffect(() => {
-    return () => {
-      if (navigateTimerRef.current) {
-        clearTimeout(navigateTimerRef.current);
-      }
-    };
-  }, []);
 
   useLayoutEffect(() => {
     if (!navRef.current) {
@@ -73,6 +65,10 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
   }, []);
 
   const handleItemClick = (id) => {
+    // Kick off the destination's lazy chunk before doing anything else so the
+    // fetch overlaps with React's state update instead of blocking mount.
+    prefetchRouteChunk(id);
+
     if (id === activeItem) {
       if (onNavigate) {
         onNavigate(id);
@@ -82,15 +78,11 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
 
     setActiveItem(id);
 
+    // Fire the navigation synchronously. The NavItem pop animation is
+    // sub-frame and the new page's NavBar mounts with the correct active
+    // state, so an explicit pre-transition delay just makes taps feel laggy.
     if (onNavigate) {
-      if (navigateTimerRef.current) {
-        clearTimeout(navigateTimerRef.current);
-      }
-
-      // Brief delay allows the icon pop animation to play before route transition.
-      navigateTimerRef.current = setTimeout(() => {
-        onNavigate(id);
-      }, 140);
+      onNavigate(id);
     }
   };
 

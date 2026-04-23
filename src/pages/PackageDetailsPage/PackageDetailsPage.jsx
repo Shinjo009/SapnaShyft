@@ -1,7 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, Suspense, lazy } from 'react';
 import './PackageDetailsPage.css';
-import PatientSelectionOverlay from '../../components/PatientSelectionOverlay';
 import { getDiagnosticPackageDetail } from '../../services/diagnosticPackagesService';
+
+// PatientSelectionOverlay is only mounted when user opens the booking sheet — defer its ~14 KiB chunk.
+const PatientSelectionOverlay = lazy(() => import('../../components/PatientSelectionOverlay'));
 
 const TABS = [
   { key: 'home', label: 'Home' },
@@ -1221,13 +1223,17 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
         </div>
       ) : null}
 
-      <PatientSelectionOverlay
-        open={activeOverlay === 'patients'}
-        onClose={() => setActiveOverlay('')}
-        customFlow={isCustomReview}
-        initialPackage={overlayInitialPackage}
-        onBookingConfirmed={isCustomReview ? onCustomBookingConfirmed : undefined}
-      />
+      {activeOverlay === 'patients' ? (
+        <Suspense fallback={null}>
+          <PatientSelectionOverlay
+            open={activeOverlay === 'patients'}
+            onClose={() => setActiveOverlay('')}
+            customFlow={isCustomReview}
+            initialPackage={overlayInitialPackage}
+            onBookingConfirmed={isCustomReview ? onCustomBookingConfirmed : undefined}
+          />
+        </Suspense>
+      ) : null}
     </div>
   );
 };

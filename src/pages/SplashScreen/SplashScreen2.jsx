@@ -63,7 +63,7 @@ const SplashScreen2 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
         </div>
 
         <div className="splash-screen-2__tags splash-screen-2__tags--loading" aria-label="Product themes loading">
-          <span className="splash-screen-2__tag splash-screen-2__tag--w0">Bio-AI</span>
+          <span className="splash-screen-2__tag splash-screen-2__tag--w0" data-label="Bio-AI">Bio-AI</span>
           <span className="splash-screen-2__tag-arrow splash-screen-2__tag-arrow--a0" aria-hidden>
             <span className="splash-screen-2__tag-arrow__inner">
               <span className="splash-screen-2__tag-arrow__dot splash-screen-2__tag-arrow__dot--l" />
@@ -73,7 +73,7 @@ const SplashScreen2 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
               <span className="splash-screen-2__tag-arrow__dot splash-screen-2__tag-arrow__dot--r" />
             </span>
           </span>
-          <span className="splash-screen-2__tag splash-screen-2__tag--w1">Nutrition</span>
+          <span className="splash-screen-2__tag splash-screen-2__tag--w1" data-label="Nutrition">Nutrition</span>
           <span className="splash-screen-2__tag-arrow splash-screen-2__tag-arrow--a1" aria-hidden>
             <span className="splash-screen-2__tag-arrow__inner">
               <span className="splash-screen-2__tag-arrow__dot splash-screen-2__tag-arrow__dot--l" />
@@ -83,7 +83,7 @@ const SplashScreen2 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
               <span className="splash-screen-2__tag-arrow__dot splash-screen-2__tag-arrow__dot--r" />
             </span>
           </span>
-          <span className="splash-screen-2__tag splash-screen-2__tag--w2">Prevention</span>
+          <span className="splash-screen-2__tag splash-screen-2__tag--w2" data-label="Prevention">Prevention</span>
           <span className="splash-screen-2__tag-arrow splash-screen-2__tag-arrow--a2" aria-hidden>
             <span className="splash-screen-2__tag-arrow__inner">
               <span className="splash-screen-2__tag-arrow__dot splash-screen-2__tag-arrow__dot--l" />
@@ -93,7 +93,7 @@ const SplashScreen2 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
               <span className="splash-screen-2__tag-arrow__dot splash-screen-2__tag-arrow__dot--r" />
             </span>
           </span>
-          <span className="splash-screen-2__tag splash-screen-2__tag--w3">Longevity</span>
+          <span className="splash-screen-2__tag splash-screen-2__tag--w3" data-label="Longevity">Longevity</span>
         </div>
       </div>
 

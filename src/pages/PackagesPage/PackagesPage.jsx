@@ -1,9 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, Suspense, lazy } from 'react';
 import './PackagesPage.css';
 import NavBar from '../../components/NavBar';
-import PatientSelectionOverlay from '../../components/PatientSelectionOverlay';
 import { listDiagnosticPackages, listPublicDiagnosticPackageFilterChips } from '../../services/diagnosticPackagesService';
 import { getAccessToken } from '../../utils/authStorage';
+
+// PatientSelectionOverlay is a large (~14 KiB) booking sheet that only renders when the user
+// taps "Book"; keep it out of the initial Packages bundle via React.lazy + Suspense.
+const PatientSelectionOverlay = lazy(() => import('../../components/PatientSelectionOverlay'));
 
 const ALL_FILTER = {
   filter_chip_id: 'all',
@@ -487,14 +490,18 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
         </section>
       </div>
 
-      <PatientSelectionOverlay
-        open={isPatientOverlayOpen}
-        onClose={() => {
-          setIsPatientOverlayOpen(false);
-          setBookingPackage(null);
-        }}
-        initialPackage={bookingPackage}
-      />
+      {isPatientOverlayOpen ? (
+        <Suspense fallback={null}>
+          <PatientSelectionOverlay
+            open={isPatientOverlayOpen}
+            onClose={() => {
+              setIsPatientOverlayOpen(false);
+              setBookingPackage(null);
+            }}
+            initialPackage={bookingPackage}
+          />
+        </Suspense>
+      ) : null}
 
       {!isPatientOverlayOpen ? <NavBar defaultActive="packages" onNavigate={handleNav} /> : null}
     </div>

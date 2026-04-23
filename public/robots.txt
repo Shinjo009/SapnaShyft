@@ -1,3 +1,8 @@
 # https://www.robotstxt.org/robotstxt.html
+# Only standard robots.txt directives below — anything else (e.g. non-standard
+# "Content-Signal" lines injected upstream by a CDN) is not a valid directive
+# and must not appear here, otherwise Lighthouse SEO flags a parse error.
+
 User-agent: *
+Allow: /
 Disallow:

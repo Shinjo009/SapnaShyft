@@ -1,41 +1,9 @@
 import './App.css';
-import { useState, useEffect, useRef } from 'react';
-import LoginPage from './pages/LoginPage';
-import OTPPage from './pages/OTPPage';
-import SignupPage from './pages/SignupPage';
-import HealthInsightsPage from './pages/HealthInsightsPage';
+import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import SplashScreen from './pages/SplashScreen';
-import HomePage from './pages/HomePage';
-import HealthScanIndexPage from './pages/HealthScanIndexPage';
-import ProfilePage from './pages/ProfilePage';
-import AllAppointmentsPage from './pages/AllAppointmentsPage';
-import ReportsPage from './pages/ReportsPage';
-import NutritionPage from './pages/NutritionPage';
-import CustomerSupportPage from './pages/CustomerSupportPage';
-import PermissionsPage from './pages/PermissionsPage';
-import AddAccountPage from './pages/AddAccountPage';
-import EditProfilePage from './pages/EditProfilePage';
-import FAQPage from './pages/FAQPage';
-import TermsConditionsPage from './pages/TermsConditionsPage';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import HealthAssessmentPage from './pages/HealthAssessmentPage';
-import QuestionnaireBlankPage from './pages/QuestionnaireBlankPage';
-import BloodMarkersPage from './pages/BloodMarkersPage/BloodMarkersPage';
-import PackagesPage from './pages/PackagesPage';
-import PackageDetailsPage from './pages/PackageDetailsPage';
-import CreateCustomPackagePage from './pages/CreateCustomPackagePage/CreateCustomPackagePage';
-import AccountSelectionPage from './pages/AccountSelectionPage';
-import DoctorsPage from './pages/DoctorsPage';
-import ExpertDetailsPage from './pages/ExpertDetailsPage';
-import IntegratedHealthProgramPage from './pages/IntegratedHealthProgramPage';
-import SuperClubPage from './pages/SuperClubPage/SuperClubPage';
-import SuperClubPlaylistPage from './pages/SuperClubPage/SuperClubPlaylistPage';
-import SuperClubPage2 from './pages/SuperClubPage/SuperClubPage2';
+import LoginPage from './pages/LoginPage';
 import { getSuperClubLikedSportIds } from './pages/SuperClubPage/superClubStorage';
 import { getSuperClubSportsByIds } from './pages/SuperClubPage/superClubSportImages';
-
-import DiseaseRiskAnalysisPage from './pages/DiseaseRiskAnalysisPage';
-import DiseaseDetailPage from './pages/DiseaseDetailPage';
 import { sendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
 import { createUser, getMyProfiles, invalidateMyProfilesCache } from './services/usersService';
 import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
@@ -53,8 +21,44 @@ import {
 } from './utils/authStorage';
 import { trackAppScreen } from './analytics/googleAnalytics';
 import AppTooltipTour from './components/AppTooltipTour/AppTooltipTour';
-import popupOneImage from './images/popup1.png';
-import popupTwoImage from './images/popup2.png';
+import popupOneImage from './images/popup1.webp';
+import popupTwoImage from './images/popup2.webp';
+import { prefetchNavbarRoutes } from './utils/routePrefetch';
+
+// Route-level code splitting: every non-entry page loads its own JS/CSS chunk on demand.
+// Splash + Login stay eager because they're the first paint; everything else is deferred
+// so the initial main bundle stays small (~172 KiB of unused JS audit finding).
+const OTPPage = lazy(() => import('./pages/OTPPage'));
+const SignupPage = lazy(() => import('./pages/SignupPage'));
+const HealthInsightsPage = lazy(() => import('./pages/HealthInsightsPage'));
+const HomePage = lazy(() => import('./pages/HomePage'));
+const HealthScanIndexPage = lazy(() => import('./pages/HealthScanIndexPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const AllAppointmentsPage = lazy(() => import('./pages/AllAppointmentsPage'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const NutritionPage = lazy(() => import('./pages/NutritionPage'));
+const CustomerSupportPage = lazy(() => import('./pages/CustomerSupportPage'));
+const PermissionsPage = lazy(() => import('./pages/PermissionsPage'));
+const AddAccountPage = lazy(() => import('./pages/AddAccountPage'));
+const EditProfilePage = lazy(() => import('./pages/EditProfilePage'));
+const FAQPage = lazy(() => import('./pages/FAQPage'));
+const TermsConditionsPage = lazy(() => import('./pages/TermsConditionsPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const HealthAssessmentPage = lazy(() => import('./pages/HealthAssessmentPage'));
+const QuestionnaireBlankPage = lazy(() => import('./pages/QuestionnaireBlankPage'));
+const BloodMarkersPage = lazy(() => import('./pages/BloodMarkersPage/BloodMarkersPage'));
+const PackagesPage = lazy(() => import('./pages/PackagesPage'));
+const PackageDetailsPage = lazy(() => import('./pages/PackageDetailsPage'));
+const CreateCustomPackagePage = lazy(() => import('./pages/CreateCustomPackagePage/CreateCustomPackagePage'));
+const AccountSelectionPage = lazy(() => import('./pages/AccountSelectionPage'));
+const DoctorsPage = lazy(() => import('./pages/DoctorsPage'));
+const ExpertDetailsPage = lazy(() => import('./pages/ExpertDetailsPage'));
+const IntegratedHealthProgramPage = lazy(() => import('./pages/IntegratedHealthProgramPage'));
+const SuperClubPage = lazy(() => import('./pages/SuperClubPage/SuperClubPage'));
+const SuperClubPlaylistPage = lazy(() => import('./pages/SuperClubPage/SuperClubPlaylistPage'));
+const SuperClubPage2 = lazy(() => import('./pages/SuperClubPage/SuperClubPage2'));
+const DiseaseRiskAnalysisPage = lazy(() => import('./pages/DiseaseRiskAnalysisPage'));
+const DiseaseDetailPage = lazy(() => import('./pages/DiseaseDetailPage'));
 
 const SWIPE_BACK_BLOCKED_PAGES = new Set([
   'home',
@@ -379,6 +383,26 @@ function App() {
     };
 
     trySessionRestore();
+  }, []);
+
+  // Warm up the four NavBar destination chunks at idle so the first tap after
+  // app load doesn't pay the code-split fetch cost. React.lazy() shares the
+  // module cache with these manual import() calls, so navigation becomes
+  // effectively instant.
+  useEffect(() => {
+    const requestIdle = window.requestIdleCallback
+      || ((cb) => window.setTimeout(cb, 300));
+    const cancelIdle = window.cancelIdleCallback || window.clearTimeout;
+
+    const handle = requestIdle(() => {
+      prefetchNavbarRoutes();
+    });
+
+    return () => {
+      if (handle != null) {
+        cancelIdle(handle);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -781,6 +805,7 @@ function App() {
       )}
       <AppTooltipTour currentPage={currentPage} enabled scopeKey={tooltipTourScopeKey} />
       <div className="app-scroll" ref={appScrollRef}>
+      <Suspense fallback={null}>
       {currentPage === 'login' && (
         <LoginPage 
           onSuccess={handleSendOtp}
@@ -1343,6 +1368,7 @@ function App() {
           onSignup={() => setCurrentPage('signup')}
         />
       )}
+      </Suspense>
       </div>
     </div>
   );

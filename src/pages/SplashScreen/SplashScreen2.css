@@ -197,23 +197,47 @@
   white-space: nowrap;
   color: rgba(184, 184, 184, 0.42);
   text-shadow: none;
+  position: relative;
 }
 
-/* Cumulative brighten: earlier labels stay lit as the sequence advances (runs once) */
-.splash-screen-2__tag--w0 {
-  animation: splash-tag-w0 var(--load-cycle) var(--load-ease) 1 forwards;
+/*
+ * Perf: instead of animating `color` + `text-shadow` on the base text (which
+ * re-paints every frame), we stack an identical "lit" copy in a pseudo-element
+ * and animate only its opacity. Opacity is a GPU-composited property, so the
+ * splash word brighten no longer triggers non-composited animations and
+ * matches the original visual exactly.
+ */
+.splash-screen-2__tags--loading .splash-screen-2__tag::after {
+  content: attr(data-label);
+  position: absolute;
+  inset: 0;
+  color: #f4ffff;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  font: inherit;
+  letter-spacing: inherit;
+  white-space: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: opacity;
 }
 
-.splash-screen-2__tag--w1 {
-  animation: splash-tag-w1 var(--load-cycle) var(--load-ease) 1 forwards;
+.splash-screen-2__tags--loading .splash-screen-2__tag--w0::after {
+  animation: splash-tag-lit-w0 var(--load-cycle) var(--load-ease) 1 forwards;
 }
 
-.splash-screen-2__tag--w2 {
-  animation: splash-tag-w2 var(--load-cycle) var(--load-ease) 1 forwards;
+.splash-screen-2__tags--loading .splash-screen-2__tag--w1::after {
+  animation: splash-tag-lit-w1 var(--load-cycle) var(--load-ease) 1 forwards;
 }
 
-.splash-screen-2__tag--w3 {
-  animation: splash-tag-w3 var(--load-cycle) var(--load-ease) 1 forwards;
+.splash-screen-2__tags--loading .splash-screen-2__tag--w2::after {
+  animation: splash-tag-lit-w2 var(--load-cycle) var(--load-ease) 1 forwards;
+}
+
+.splash-screen-2__tags--loading .splash-screen-2__tag--w3::after {
+  animation: splash-tag-lit-w3 var(--load-cycle) var(--load-ease) 1 forwards;
 }
 
 /* Dot–line–dot: one L→R clip reveal on inner (no staggered pauses between parts) */
@@ -236,10 +260,17 @@
   gap: 3px;
 }
 
-/* Whole connector (both dots + full wire) reveals as one unit */
+/*
+ * Whole connector (both dots + full wire) reveals as one unit.
+ * We use transform: scaleX() from origin left/center instead of clip-path so the
+ * animation runs on the compositor (GPU) and no longer shows up as a
+ * non-composited animation in Lighthouse.
+ */
 .splash-screen-2__tags--loading .splash-screen-2__tag-arrow__inner {
-  clip-path: inset(0 100% 0 0);
-  will-change: clip-path;
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .splash-screen-2__tag-arrow--a0 .splash-screen-2__tag-arrow__inner {
@@ -296,117 +327,107 @@
 
 /*
  * One-shot timeline; 100% = final lit state.
- * Words overlap the tail of the previous connector clip so there is no dead pause
- * before the next label reads as “on” (w1 with a0, w2 with a1, w3 with a2).
+ * Words overlap the tail of the previous connector reveal so there is no dead pause
+ * before the next label reads as "on" (w1 with a0, w2 with a1, w3 with a2).
+ * Only `opacity` (::after lit overlay) and `transform` (connector scaleX)
+ * are animated here, so the motion is fully GPU-composited.
  */
-@keyframes splash-tag-w0 {
+@keyframes splash-tag-lit-w0 {
   0% {
-    color: rgba(184, 184, 184, 0.38);
-    text-shadow: none;
+    opacity: 0;
   }
 
   2% {
-    color: rgba(205, 225, 225, 0.62);
-    text-shadow: 0 0 4px rgba(0, 255, 255, 0.12);
+    opacity: 0.6;
   }
 
   5%,
   100% {
-    color: #f4ffff;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
+    opacity: 1;
   }
 }
 
-@keyframes splash-tag-w1 {
+@keyframes splash-tag-lit-w1 {
   0%,
   12% {
-    color: rgba(184, 184, 184, 0.38);
-    text-shadow: none;
+    opacity: 0;
   }
 
   13% {
-    color: rgba(205, 225, 225, 0.62);
-    text-shadow: 0 0 4px rgba(0, 255, 255, 0.12);
+    opacity: 0.6;
   }
 
   19%,
   100% {
-    color: #f4ffff;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
+    opacity: 1;
   }
 }
 
-@keyframes splash-tag-w2 {
+@keyframes splash-tag-lit-w2 {
   0%,
   27% {
-    color: rgba(184, 184, 184, 0.38);
-    text-shadow: none;
+    opacity: 0;
   }
 
   28% {
-    color: rgba(205, 225, 225, 0.62);
-    text-shadow: 0 0 4px rgba(0, 255, 255, 0.12);
+    opacity: 0.6;
   }
 
   31%,
   100% {
-    color: #f4ffff;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
+    opacity: 1;
   }
 }
 
-@keyframes splash-tag-w3 {
+@keyframes splash-tag-lit-w3 {
   0%,
   39% {
-    color: rgba(184, 184, 184, 0.38);
-    text-shadow: none;
+    opacity: 0;
   }
 
   40% {
-    color: rgba(205, 225, 225, 0.62);
-    text-shadow: 0 0 4px rgba(0, 255, 255, 0.12);
+    opacity: 0.6;
   }
 
   43%,
   100% {
-    color: #f4ffff;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
+    opacity: 1;
   }
 }
 
-/* Slightly shorter clips; next segment can start overlapping for a continuous flow */
+/* Connector reveals: transform: scaleX from origin left instead of clip-path inset */
 @keyframes splash-conn-reveal-a0 {
   0%,
   4% {
-    clip-path: inset(0 100% 0 0);
+    transform: scaleX(0);
   }
 
   19%,
   100% {
-    clip-path: inset(0 0% 0 0);
+    transform: scaleX(1);
   }
 }
 
 @keyframes splash-conn-reveal-a1 {
   0%,
   17% {
-    clip-path: inset(0 100% 0 0);
+    transform: scaleX(0);
   }
 
   31%,
   100% {
-    clip-path: inset(0 0% 0 0);
+    transform: scaleX(1);
   }
 }
 
 @keyframes splash-conn-reveal-a2 {
   0%,
   30% {
-    clip-path: inset(0 100% 0 0);
+    transform: scaleX(0);
   }
 
   43%,
   100% {
-    clip-path: inset(0 0% 0 0);
+    transform: scaleX(1);
   }
 }

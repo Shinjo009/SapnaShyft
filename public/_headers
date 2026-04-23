@@ -1,0 +1,35 @@
+#
+# Cloudflare Pages / Netlify compatible headers file.
+# CRA ships every hashed asset under /static/**; changing content produces a
+# new hash, so these files are safe to cache for a full year.
+#
+
+# All hashed JS/CSS/media chunks — immutable for a year
+/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Fonts copied into build output (if any) — same treatment
+/static/media/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML shell must revalidate every request so users pick up new builds
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Service worker + manifest must not be long-cached
+/serviceWorker.js
+  Cache-Control: public, max-age=0, must-revalidate
+/manifest.json
+  Cache-Control: public, max-age=3600
+
+# Favicons / PWA icons — cache for a day
+/favicon.ico
+  Cache-Control: public, max-age=86400
+/logo192.png
+  Cache-Control: public, max-age=86400
+/logo512.png
+  Cache-Control: public, max-age=86400
+/super-shyft-favicon.png
+  Cache-Control: public, max-age=86400
