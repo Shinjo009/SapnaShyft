@@ -469,10 +469,63 @@
 .disease-detail-info-section {
   margin-top: 20px;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
 }
 
-.disease-detail-info-heading {
-  margin: 0;
+.disease-detail-pill {
+  display: flex;
+  padding: 20px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.disease-detail-pill-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.disease-detail-pill-accent {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.disease-detail-pill-accent--causes {
+  background: #EE8B48;
+  box-shadow: 2px 0 12px 0 rgba(238, 139, 72, 0.60);
+}
+
+.disease-detail-pill-accent--effects {
+  background: #DAC15A;
+  box-shadow: 2px 0 12px 0 rgba(218, 193, 90, 0.60);
+}
+
+.disease-detail-pill-accent--insights {
+  background: #90DF9E;
+  box-shadow: 2px 0 12px 0 rgba(144, 223, 158, 0.60);
+}
+
+.disease-detail-pill-title {
+  flex: 1;
   color: #FFF;
   font-family: Lato, sans-serif;
   font-size: 16px;
@@ -481,53 +534,25 @@
   line-height: 24px;
 }
 
-.disease-detail-chip-row {
-  margin-top: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.disease-detail-pill-chevron {
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
 }
 
-.disease-detail-chip {
-  display: flex;
-  padding: 2px 8px;
-  justify-content: center;
-  align-items: center;
-  border-radius: 30px;
-  border: 0.5px solid #C4C4C4;
+.disease-detail-pill-chevron--open {
+  transform: rotate(180deg);
+}
+
+.disease-detail-pill-body {
+  margin: 0;
+  overflow: hidden;
   color: #C4C4C4;
-  text-align: center;
+  text-overflow: ellipsis;
   font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
-  line-height: normal;
-  letter-spacing: 0.1px;
-}
-
-.disease-detail-effects-heading {
-  margin-top: 20px;
-}
-
-.disease-detail-effects-list {
-  margin-top: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.disease-detail-effect-text {
-  margin: 0;
-  color: #999;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 500;
-  line-height: 20px;
-}
-
-.disease-detail-insights-heading {
-  margin-top: 20px;
+  line-height: 18px;
 }
 
 .disease-detail-trends-section {

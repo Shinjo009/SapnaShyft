@@ -142,6 +142,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   const [activeInfoPopup, setActiveInfoPopup] = useState(null);
   const [animatedHealthRankScore, setAnimatedHealthRankScore] = useState(0);
   const [apiDetail, setApiDetail] = useState(null);
+  const [expandedPill, setExpandedPill] = useState(null);
   const title = disease?.name?.replace('\n', ' ') || 'Oxidative Stress';
   const diseaseCode = useMemo(() => {
     const rawCode = normalizeDiseaseCode(disease?.code);
@@ -658,26 +659,40 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
       </section>
 
       <section className="disease-detail-info-section">
-        <h3 className="disease-detail-info-heading">Causes</h3>
-        <div className="disease-detail-chip-row">
-          {causes.map((item) => (
-            <span key={`cause-${item}`} className="disease-detail-chip">{item}</span>
-          ))}
-        </div>
-
-        <h3 className="disease-detail-info-heading disease-detail-effects-heading">Effects</h3>
-        <div className="disease-detail-effects-list">
-          {effects.map((item) => (
-            <p key={`effect-${item}`} className="disease-detail-effect-text">{item}</p>
-          ))}
-        </div>
-
-        <h3 className="disease-detail-info-heading disease-detail-insights-heading">Actionable Insights</h3>
-        <div className="disease-detail-chip-row">
-          {actionableInsights.map((item) => (
-            <span key={`insight-${item}`} className="disease-detail-chip">{item}</span>
-          ))}
-        </div>
+        {[
+          { key: 'causes', label: 'Causes', items: causes, accentClass: 'disease-detail-pill-accent--causes' },
+          { key: 'effects', label: 'Effects', items: effects, accentClass: 'disease-detail-pill-accent--effects' },
+          { key: 'insights', label: 'Actionable Insights', items: actionableInsights, accentClass: 'disease-detail-pill-accent--insights' }
+        ].map(({ key, label, items, accentClass }) => (
+          <button
+            key={key}
+            type="button"
+            className="disease-detail-pill"
+            onClick={() => setExpandedPill(expandedPill === key ? null : key)}
+            aria-expanded={expandedPill === key}
+          >
+            <div className="disease-detail-pill-header">
+              <span className={`disease-detail-pill-accent ${accentClass}`} />
+              <span className="disease-detail-pill-title">{label}</span>
+              <svg
+                className={`disease-detail-pill-chevron${expandedPill === key ? ' disease-detail-pill-chevron--open' : ''}`}
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path d="M5 7.5L10 12.5L15 7.5" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            {expandedPill === key && (
+              <p className="disease-detail-pill-body">
+                {items.join('. ')}{items.length > 0 && items[items.length - 1] !== '-' ? '.' : ''}
+              </p>
+            )}
+          </button>
+        ))}
 
         <section className="disease-detail-trends-section" aria-label="Trends">
           <h3 className="disease-detail-trends-title">Trends</h3>

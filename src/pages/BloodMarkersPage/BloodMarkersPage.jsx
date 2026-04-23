@@ -666,6 +666,7 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
   const indicatorRef = useRef(null);
   const [diagnosticDetail, setDiagnosticDetail] = useState(null);
   const [isDiagnosticLoading, setIsDiagnosticLoading] = useState(Boolean(marker?.diagnosticTestId));
+  const [expandedPill, setExpandedPill] = useState(null);
 
   useEffect(() => {
     let isActive = true;
@@ -1046,25 +1047,58 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
       </section>
 
       <section className="blood-marker-detail__info-section">
-        <h3 className="blood-marker-detail__section-heading">Causes</h3>
-        {shouldWaitForDiagnosticData && isDiagnosticLoading ? (
-          <p className="blood-marker-detail__body-text">Loading causes...</p>
-        ) : detail.causes.length > 0 ? detail.causes.map((item) => (
-          <p key={item} className="blood-marker-detail__body-text">{item}</p>
-        )) : (
-          <p className="blood-marker-detail__body-text">No causes provided in report.</p>
-        )}
-
-        <h3 className="blood-marker-detail__section-heading blood-marker-detail__effects-heading">Effects</h3>
-        <div className="blood-marker-detail__effects-list">
-          {shouldWaitForDiagnosticData && isDiagnosticLoading ? (
-            <p className="blood-marker-detail__effect-item">Loading effects...</p>
-          ) : detail.effects.length > 0 ? detail.effects.map((effect) => (
-            <p key={effect} className="blood-marker-detail__effect-item">{effect}</p>
-          )) : (
-            <p className="blood-marker-detail__effect-item">No effects provided in report.</p>
-          )}
-        </div>
+        {[
+          {
+            key: 'causes',
+            label: 'Causes',
+            accentClass: 'blood-marker-detail__pill-accent--causes',
+            items: shouldWaitForDiagnosticData && isDiagnosticLoading ? null : detail.causes,
+            loading: shouldWaitForDiagnosticData && isDiagnosticLoading,
+            emptyText: 'No causes provided in report.'
+          },
+          {
+            key: 'effects',
+            label: 'Effects',
+            accentClass: 'blood-marker-detail__pill-accent--effects',
+            items: shouldWaitForDiagnosticData && isDiagnosticLoading ? null : detail.effects,
+            loading: shouldWaitForDiagnosticData && isDiagnosticLoading,
+            emptyText: 'No effects provided in report.'
+          }
+        ].map(({ key, label, accentClass, items, loading, emptyText }) => {
+          const bodyText = loading
+            ? `Loading ${key}...`
+            : items && items.length > 0
+              ? items.join('. ') + '.'
+              : emptyText;
+          return (
+            <button
+              key={key}
+              type="button"
+              className="blood-marker-detail__pill"
+              onClick={() => setExpandedPill(expandedPill === key ? null : key)}
+              aria-expanded={expandedPill === key}
+            >
+              <div className="blood-marker-detail__pill-header">
+                <span className={`blood-marker-detail__pill-accent ${accentClass}`} />
+                <span className="blood-marker-detail__pill-title">{label}</span>
+                <svg
+                  className={`blood-marker-detail__pill-chevron${expandedPill === key ? ' blood-marker-detail__pill-chevron--open' : ''}`}
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path d="M5 7.5L10 12.5L15 7.5" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              {expandedPill === key && (
+                <p className="blood-marker-detail__pill-body">{bodyText}</p>
+              )}
+            </button>
+          );
+        })}
       </section>
     </div>
   );
