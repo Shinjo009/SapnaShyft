@@ -1,48 +1,41 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import brandLogo from '../../images/SuperShyft - Logo [Final]-03 4.png';
+import brandLogoWhite from '../../images/Cube/SuperShyft - white logo.svg';
 
 /**
  * Logo Component - Reusable logo with configurable size
- * 
- * Can be used in:
- * - Headers
- * - Login/Signup screens
- * - Splash screens
- * - Navigation bars
+ *
+ * variant="onDark" — white mark (same asset as SplashScreen2) for dark auth / welcome UIs.
+ * variant="brand" — default red mark for light backgrounds.
  */
-const Logo = ({ 
+const Logo = ({
   size = 'md',
+  variant = 'brand',
   className = '',
   alt = 'Supershyft',
-  ...props 
+  ...props
 }) => {
-  
-  // Size presets (can be customized per design)
+  const src = variant === 'onDark' ? brandLogoWhite : brandLogo;
+
   const sizeClasses = {
     sm: 'w-12 h-12',
     md: 'w-16 h-16',
     lg: 'w-24 h-24',
     xl: 'w-32 h-32',
   };
-  
+
   return (
     <div className={`app-supershyft-logo flex justify-center items-center ${className}`} {...props}>
-      <img
-        src={brandLogo}
-        alt={alt}
-        className={`${sizeClasses[size]} object-contain`}
-      />
+      <img src={src} alt={alt} className={`${sizeClasses[size]} object-contain max-w-none`} />
     </div>
   );
 };
 
 Logo.propTypes = {
-  /** Size preset: sm (48px), md (64px), lg (96px), xl (128px) */
   size: PropTypes.oneOf(['sm', 'md', 'lg', 'xl']),
-  /** Additional CSS classes */
+  variant: PropTypes.oneOf(['brand', 'onDark']),
   className: PropTypes.string,
-  /** Alt text for accessibility */
   alt: PropTypes.string,
 };
 

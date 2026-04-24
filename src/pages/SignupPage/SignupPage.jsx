@@ -90,7 +90,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
 
   return (
     <div className="max-w-md mx-auto min-h-full px-6 pt-[75px] pb-6 flex flex-col">
-      <Logo size="lg" />
+      <Logo size="lg" variant="onDark" />
 
       <div className="mt-5">
         <Typography variant="heading" as="h2" align="center">
