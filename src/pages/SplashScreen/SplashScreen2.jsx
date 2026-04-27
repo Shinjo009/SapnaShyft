@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import RotatingCube from '../../components/RotatingCube/RotatingCube';
-import superShyftWhiteLogo from '../../images/Cube/SuperShyft - white logo.svg';
-import metfluxLogo from '../../images/metflux_logo.svg';
 import './SplashScreen2.css';
 
 const CUBE_FACE_CSS = 320;
@@ -51,10 +49,6 @@ const SplashScreen2 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
       className="splash-screen-2 max-w-md mx-auto h-full min-h-full pt-[86px] pb-6 flex flex-col overflow-hidden"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
     >
-      <div className="splash-screen-2__logo-wrap flex justify-center">
-        <img src={superShyftWhiteLogo} alt="Super Shyft" className="object-contain" />
-      </div>
-
       <div className="splash-screen-2__hero">
         <div className="splash-screen-2__cube-anchor" ref={cubeAnchorRef}>
           <div
@@ -127,15 +121,9 @@ const SplashScreen2 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
         </div>
 
         <div className="flex flex-col items-center gap-1 pb-1">
-          <span className="font-lato text-[8px] font-light leading-none tracking-[0.04px] text-[#CCC] opacity-80 text-center">
-            Powered by
+          <span className="font-lato text-[10px] font-light leading-none tracking-[0.04px] text-[#CCC] opacity-80 text-center">
+            Powered by Supershyft
           </span>
-          <img
-            src={metfluxLogo}
-            alt="MetFlux Research"
-            className="w-[60px] h-[22px]"
-            style={{ aspectRatio: '30 / 11' }}
-          />
         </div>
       </div>
     </div>
