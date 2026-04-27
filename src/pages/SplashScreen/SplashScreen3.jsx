@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import RotatingCube from '../../components/RotatingCube/RotatingCube';
-import superShyftWhiteLogo from '../../images/Cube/SuperShyft - white logo.svg';
-import metfluxLogo from '../../images/metflux_logo.svg';
 import './SplashScreen3.css';
 
 const CUBE_FACE_CSS = 320;
 const CUBE_ROTATION_OVERSHOOT = 1.62;
 const SCALE_MIN = 0.22;
-const SCALE_MAX = 0.46;
+const SCALE_MAX = 0.47;
 
 function computeCubeScale(anchorWidthPx, anchorHeightPx) {
   const m = Math.min(anchorWidthPx, anchorHeightPx);
@@ -41,28 +39,10 @@ const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
       className="splash-screen-2 max-w-md mx-auto h-full min-h-full pt-[86px] pb-6 flex flex-col overflow-hidden"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
     >
-      <div className="splash-screen-2__logo-wrap flex justify-center">
-        <img src={superShyftWhiteLogo} alt="Super Shyft" className="object-contain" />
-      </div>
-
       <div className="splash-screen-2__hero">
         <div className="splash-screen-2__cube-anchor" ref={cubeAnchorRef}>
-          <div className="splash-screen-2__pre-cube-flow" aria-hidden>
-            <div className="splash-screen-2__square-flow">
-              <span className="splash-screen-2__square-label splash-screen-2__square-label--tl">Bio-AI</span>
-              <span className="splash-screen-2__square-label splash-screen-2__square-label--tr">Nutrition</span>
-              <span className="splash-screen-2__square-label splash-screen-2__square-label--br">Prevention</span>
-              <span className="splash-screen-2__square-label splash-screen-2__square-label--bl">Longevity</span>
-
-              <span className="splash-screen-2__square-edge splash-screen-2__square-edge--top" />
-              <span className="splash-screen-2__square-edge splash-screen-2__square-edge--right" />
-              <span className="splash-screen-2__square-edge splash-screen-2__square-edge--bottom" />
-              <span className="splash-screen-2__square-edge splash-screen-2__square-edge--left" />
-            </div>
-          </div>
-
           <div
-            className="splash-screen-2__cube-scale-wrap splash-screen-2__cube-scale-wrap--delayed"
+            className="splash-screen-2__cube-scale-wrap"
             style={{
               transform: `scale(${cubeScale}) translateZ(0)`,
               transformOrigin: 'center center',
@@ -97,15 +77,9 @@ const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
         </div>
 
         <div className="flex flex-col items-center gap-1 pb-1">
-          <span className="font-lato text-[8px] font-light leading-none tracking-[0.04px] text-[#CCC] opacity-80 text-center">
-            Powered by
+          <span className="font-lato text-[10px] font-light leading-none tracking-[0.04px] text-[#CCC] opacity-80 text-center">
+            Powered by Supershyft
           </span>
-          <img
-            src={metfluxLogo}
-            alt="MetFlux Research"
-            className="w-[60px] h-[22px]"
-            style={{ aspectRatio: '30 / 11' }}
-          />
         </div>
       </div>
     </div>
