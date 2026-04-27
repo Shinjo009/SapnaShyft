@@ -78,6 +78,55 @@ const EDGE_SWIPE_TRIGGER_PX = 70;
 const EDGE_SWIPE_VERTICAL_TOLERANCE_PX = 80;
 const EDGE_SWIPE_START_ZONE_PX = 28;
 
+const normalizeRedirectTarget = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) {
+    return '';
+  }
+
+  const compact = normalized
+    .replace(/^\/+|\/+$/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/_/g, '-');
+
+  if (compact === 'blood-markers' || compact === 'bloodmarkers') {
+    return 'blood-markers';
+  }
+
+  return '';
+};
+
+const resolvePostLoginRedirectPage = () => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  try {
+    const searchParams = new URLSearchParams(window.location.search || '');
+    const fromQuery = normalizeRedirectTarget(
+      searchParams.get('redirect')
+      || searchParams.get('target')
+      || searchParams.get('goto')
+    );
+
+    if (fromQuery) {
+      return fromQuery;
+    }
+
+    const path = String(window.location.pathname || '').toLowerCase();
+    const pathSegments = path.split('/').filter(Boolean);
+    const lastSegment = normalizeRedirectTarget(pathSegments[pathSegments.length - 1] || '');
+
+    if (lastSegment) {
+      return lastSegment;
+    }
+  } catch (error) {
+    console.error('Failed to resolve post-login redirect page:', error);
+  }
+
+  return '';
+};
+
 function App() {
   const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -111,6 +160,7 @@ function App() {
   const pageHistoryRef = useRef([]);
   const previousPageRef = useRef(null);
   const skipHistoryForNextPageRef = useRef(false);
+  const postLoginRedirectPageRef = useRef(resolvePostLoginRedirectPage());
   const edgeSwipeStateRef = useRef({
     tracking: false,
     startX: 0,
@@ -641,6 +691,13 @@ function App() {
         setCurrentPage('account-selection');
         return;
       }
+
+      if (postLoginRedirectPageRef.current) {
+        const targetPage = postLoginRedirectPageRef.current;
+        postLoginRedirectPageRef.current = '';
+        setCurrentPage(targetPage);
+        return;
+      }
     } catch (profileError) {
       console.error('Failed to fetch user profile:', profileError);
     }
@@ -682,6 +739,13 @@ function App() {
       setSelectedAccountId(parsedTargetId);
     } catch (error) {
       console.error('Failed to enter selected account:', error);
+    }
+
+    if (postLoginRedirectPageRef.current) {
+      const targetPage = postLoginRedirectPageRef.current;
+      postLoginRedirectPageRef.current = '';
+      setCurrentPage(targetPage);
+      return;
     }
 
     await preloadHomeScreenData();
