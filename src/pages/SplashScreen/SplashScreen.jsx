@@ -1,4 +1,5 @@
-export { default } from './SplashScreen2';
+// export { default } from './SplashScreen2';
+export { default } from './SplashScreen3';
 
 /*
  * ---------------------------------------------------------------------------

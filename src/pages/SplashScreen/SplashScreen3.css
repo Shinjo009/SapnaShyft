@@ -1,0 +1,341 @@
+/*
+ * SplashScreen3 snapshot from today's SplashScreen2 iterations.
+ * Kept class names as splash-screen-2 for compatibility with existing JSX.
+ */
+
+.splash-screen-2 {
+  box-sizing: border-box;
+  padding-left: 21px;
+  padding-right: 20px;
+  --load-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --conn-ease: cubic-bezier(0.22, 0.82, 0.28, 1);
+  --sweep-ease: cubic-bezier(0.25, 0.46, 0.2, 1);
+}
+
+.splash-screen-2__logo-wrap img {
+  width: 78px !important;
+  height: 78px !important;
+  max-width: none;
+  object-fit: contain;
+}
+
+.splash-screen-2__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 336px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 33px;
+  gap: 12px;
+  position: relative;
+  z-index: 0;
+}
+
+.splash-screen-2__grow {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.splash-screen-2__cube-anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(315px, 100%);
+  height: 315px;
+  margin: 0 auto;
+  flex-shrink: 0;
+  overflow: hidden;
+  transform: translateY(18px);
+}
+
+.splash-screen-2__cube-scale-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.splash-screen-2__cube-scale-wrap--delayed {
+  opacity: 0;
+  visibility: hidden;
+  filter: brightness(0.8) blur(1.1px);
+  animation: splash-cube-reveal 1.04s cubic-bezier(0.22, 0.82, 0.28, 1) 6.72s forwards;
+}
+
+.splash-screen-2__pre-cube-flow {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transform-origin: center center;
+  animation: splash-pre-cube-fade 0.92s cubic-bezier(0.22, 0.82, 0.28, 1) 6.38s forwards;
+}
+
+.splash-screen-2 .parent-container,
+.splash-screen-2 .cube-container,
+.splash-screen-2 .cube-face {
+  will-change: auto;
+}
+
+.splash-screen-2 .cube-container {
+  animation: spin3D 7.5s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-screen-2 .cube-container {
+    animation: spin3D 34s linear infinite;
+  }
+}
+
+.splash-screen-2 .beam-outer,
+.splash-screen-2 .beam-inner {
+  animation: none;
+}
+
+.splash-screen-2 .beam-outer {
+  filter: blur(18px);
+  opacity: 0.42;
+}
+
+.splash-screen-2 .beam-inner {
+  filter: blur(12px);
+  opacity: 0.38;
+}
+
+.splash-screen-2 .beam-ring {
+  filter: blur(6px);
+  opacity: 0.4;
+}
+
+.splash-screen-2 .cube-face {
+  background: rgba(0, 255, 255, 0.08) !important;
+  border: 3px solid #00ffff !important;
+  box-shadow: inset 0 0 50px rgba(0, 255, 255, 0.14), 0 0 24px rgba(0, 255, 255, 0.22) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.splash-screen-2 .icon-circle {
+  border: 2px solid #00ffff !important;
+  background: rgba(0, 255, 255, 0.06) !important;
+  box-shadow: 0 0 14px rgba(0, 255, 255, 0.6), 0 0 28px rgba(0, 255, 255, 0.3), inset 0 0 10px rgba(0, 255, 255, 0.2) !important;
+}
+
+.splash-screen-2 .icon-circle::before {
+  inset: 8px;
+  border: 1.6px solid rgba(220, 255, 255, 0.55);
+  box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.16);
+}
+
+.splash-screen-2 .icon-circle::after {
+  inset: -9px;
+  border: 1.8px solid rgba(210, 255, 255, 0.45);
+  box-shadow: 0 0 16px rgba(0, 255, 255, 0.5), 0 0 34px rgba(0, 255, 255, 0.28), 0 0 54px rgba(0, 180, 255, 0.22);
+}
+
+.splash-screen-2 .cube-face .icon-circle img {
+  position: relative;
+  z-index: 1;
+  width: 62% !important;
+  height: 62% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  filter: brightness(0) saturate(100%) invert(82%) sepia(45%) saturate(550%) hue-rotate(145deg) brightness(108%)
+    contrast(104%) drop-shadow(0 0 1px rgba(0, 255, 255, 0.88)) drop-shadow(0 0 7px rgba(0, 255, 255, 0.4));
+}
+
+.splash-screen-2__square-flow {
+  position: relative;
+  width: min(266px, 100%);
+  height: 206px;
+  margin: 0 auto;
+  --sq-x-left: 46px;
+  --sq-x-right: calc(100% - 46px);
+  --sq-y-top: 20px;
+  --sq-y-bottom: calc(100% - 20px);
+}
+
+.splash-screen-2__square-label {
+  position: absolute;
+  font-family: 'Lato', sans-serif;
+  font-size: clamp(13px, 4vw, 17px);
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: 0.05px;
+  color: rgba(184, 184, 184, 0.4);
+  text-shadow: none;
+  opacity: 0;
+  transform: translateY(4px) scale(0.95);
+  animation: splash-square-label-reveal 0.84s var(--load-ease) forwards;
+}
+
+.splash-screen-2__square-label--tl {
+  left: calc(var(--sq-x-left) - 40px);
+  top: calc(var(--sq-y-top) - 22px);
+  animation-delay: 0.2s;
+}
+
+.splash-screen-2__square-label--tr {
+  right: calc(100% - var(--sq-x-right) - 40px);
+  top: calc(var(--sq-y-top) - 22px);
+  animation-delay: 0.95s;
+}
+
+.splash-screen-2__square-label--br {
+  right: calc(100% - var(--sq-x-right) - 40px);
+  bottom: calc(100% - var(--sq-y-bottom) - 24px);
+  animation-delay: 1.7s;
+}
+
+.splash-screen-2__square-label--bl {
+  left: calc(var(--sq-x-left) - 40px);
+  bottom: calc(100% - var(--sq-y-bottom) - 24px);
+  animation-delay: 2.45s;
+}
+
+.splash-screen-2__square-edge {
+  position: absolute;
+  display: block;
+  border-radius: 999px;
+  background: #85e5a5;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 10px #90df9e);
+  animation-fill-mode: forwards;
+}
+
+.splash-screen-2__square-edge--top,
+.splash-screen-2__square-edge--bottom {
+  left: var(--sq-x-left);
+  right: calc(100% - var(--sq-x-right));
+  height: 2px;
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: splash-square-edge-h 0.78s var(--sweep-ease) forwards, splash-square-edge-glow 1.9s ease-in-out 6.05s infinite alternate;
+}
+
+.splash-screen-2__square-edge--top {
+  top: var(--sq-y-top);
+  animation-delay: 3.2s, 6.05s;
+}
+
+.splash-screen-2__square-edge--bottom {
+  top: var(--sq-y-bottom);
+  transform-origin: right center;
+  animation-delay: 4.76s, 6.05s;
+}
+
+.splash-screen-2__square-edge--right,
+.splash-screen-2__square-edge--left {
+  top: var(--sq-y-top);
+  bottom: calc(100% - var(--sq-y-bottom));
+  width: 2px;
+  transform-origin: center top;
+  transform: scaleY(0);
+  animation: splash-square-edge-v 0.78s var(--sweep-ease) forwards, splash-square-edge-glow 1.9s ease-in-out 6.05s infinite alternate;
+}
+
+.splash-screen-2__square-edge--right {
+  left: var(--sq-x-right);
+  animation-delay: 3.98s, 6.05s;
+}
+
+.splash-screen-2__square-edge--left {
+  left: var(--sq-x-left);
+  transform-origin: center bottom;
+  animation-delay: 5.54s, 6.05s;
+}
+
+@keyframes splash-square-label-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.95);
+    color: rgba(184, 184, 184, 0.4);
+    text-shadow: none;
+  }
+  45% {
+    opacity: 0.7;
+    color: rgba(205, 225, 225, 0.66);
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.12);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    color: #f4ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.34), 0 0 18px rgba(0, 180, 255, 0.18);
+  }
+}
+
+@keyframes splash-square-edge-h {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes splash-square-edge-v {
+  0% {
+    transform: scaleY(0);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes splash-square-edge-glow {
+  0% {
+    opacity: 0.82;
+    filter: drop-shadow(0 0 8px #90df9e);
+  }
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 14px #90df9e);
+  }
+}
+
+@keyframes splash-cube-reveal {
+  0% {
+    opacity: 0;
+    visibility: visible;
+    filter: brightness(0.8) blur(1.1px);
+  }
+  60% {
+    opacity: 0.78;
+    visibility: visible;
+    filter: brightness(0.93) blur(0.45px);
+  }
+  100% {
+    opacity: 1;
+    visibility: visible;
+    filter: brightness(1) blur(0);
+  }
+}
+
+@keyframes splash-pre-cube-fade {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    filter: brightness(1) blur(0);
+  }
+  60% {
+    opacity: 0.84;
+    transform: scale(1.01);
+    filter: brightness(1.06) blur(0.3px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+    filter: brightness(1.12) blur(1.1px);
+  }
+}

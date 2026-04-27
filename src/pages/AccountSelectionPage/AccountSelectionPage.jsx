@@ -71,7 +71,7 @@ const AccountSelectionPage = ({
   return (
     <div className="account-selection-page">
       <div className="account-selection-logo-wrap">
-        <Logo size="lg" />
+        <Logo size="lg" variant="onDark" />
       </div>
 
       <div className="account-selection-block">
