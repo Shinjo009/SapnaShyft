@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './HealthScanNavBar.css';
 
 /**
- * HealthScanNavBar Component - Segmented control navigation for Health Scan Index page
+ * HealthScanNavBar Component - Segmented control navigation for Health Span Index page
  * 
  * Props:
  * - defaultActive: Default active tab (0, 1, or 2)

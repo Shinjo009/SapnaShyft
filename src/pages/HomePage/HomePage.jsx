@@ -480,9 +480,9 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
             </div>
           </div>
 
-          <section className="home-page-no-data__health-box" aria-label="Health Scan Index locked until test completion">
+          <section className="home-page-no-data__health-box" aria-label="Health Span Index locked until test completion">
             <div className="home-page-no-data__health-top">
-              <p className="home-page-no-data__health-title">Health Scan Index</p>
+              <p className="home-page-no-data__health-title">Health Span Index</p>
               <button type="button" className="home-page-no-data__see-more" aria-disabled="true">See more</button>
             </div>
             <p className="home-page-no-data__health-subtitle">Tap the card to know more</p>

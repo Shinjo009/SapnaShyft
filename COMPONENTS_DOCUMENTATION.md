@@ -270,7 +270,7 @@ const HealthParametersSection = ({ data = [
 
       <div className="health-parameters__box">
         <div className="health-parameters__text-group">
-          <p className="health-parameters__subheading">Health Scan Index</p>
+          <p className="health-parameters__subheading">Health Span Index</p>
           <p className="health-parameters__note">Tap the card to know more</p>
         </div>
 
@@ -940,7 +940,7 @@ HomePage (Main Container)
 ├── HealthParametersSection
 │   ├── Section Title & Link
 │   ├── Text Group
-│   │   ├── "Health Scan Index"
+│   │   ├── "Health Span Index"
 │   │   └── "Tap the card to know more"
 │   └── Cards Container
 │       ├── CircularProgressCard (1)

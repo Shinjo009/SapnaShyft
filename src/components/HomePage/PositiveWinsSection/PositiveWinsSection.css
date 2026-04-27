@@ -93,8 +93,6 @@
   background-clip: padding-box;
   box-sizing: border-box;
   overflow: hidden;
-  -webkit-mask-image: -webkit-radial-gradient(white, black);
-  mask-image: radial-gradient(white, black);
   will-change: transform;
   backface-visibility: hidden;
   transition:

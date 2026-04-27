@@ -19,7 +19,7 @@ import sleepIcon from '../../images/Sleep.svg';
 import familyHistoryIcon from '../../images/FamilyHistory.svg';
 
 /**
- * HealthScanIndexPage - Detail page for Health Scan Index with tab navigation
+ * HealthScanIndexPage - Detail page for Health Span Index with tab navigation
  */
 const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
   const [activeTab, setActiveTab] = React.useState(initialTab);

@@ -856,12 +856,12 @@ function App() {
           preloadedData={preloadedHomeData}
           forceRefreshFromProfile={forceHomeApiRefresh}
           onNavigateToHealthScan={() => {
-            console.log('Navigate to Health Scan Index');
+            console.log('Navigate to Health Span Index');
             setSelectedHealthScanTab(0);
             setCurrentPage('health-scan-index');
           }}
           onNavigateToHealthScanTab={(tabIndex) => {
-            console.log('Navigate to Health Scan Index tab:', tabIndex);
+            console.log('Navigate to Health Span Index tab:', tabIndex);
             setSelectedHealthScanTab(tabIndex);
             setCurrentPage('health-scan-index');
           }}
