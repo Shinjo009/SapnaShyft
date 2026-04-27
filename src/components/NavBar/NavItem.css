@@ -12,7 +12,8 @@
   width: 72px;
   height: 43px;
   color: #FFFFFF;
-  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-item__icon-wrapper {
@@ -22,12 +23,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   transform: translateY(-2px);
 }
 
 .nav-item--active .nav-item__icon-wrapper {
-  transform: translateY(-10px);
+  transform: translateY(-11px);
 }
 
 .nav-item__circle {
@@ -42,6 +43,18 @@
   transform: translate(-50%, -50%);
   z-index: 0;
   pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.68);
+  transition:
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.28s ease,
+    box-shadow 0.32s ease;
+}
+
+.nav-item__circle.is-active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 .nav-item__icon {
@@ -49,7 +62,11 @@
   height: var(--nav-icon-size, 23px);
   position: relative;
   z-index: 1;
-  transition: width 0.34s cubic-bezier(0.22, 1, 0.36, 1), height 0.34s cubic-bezier(0.22, 1, 0.36, 1), filter 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    width 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.24s ease;
 }
 
 @media (display-mode: browser) {
@@ -71,13 +88,17 @@
   white-space: nowrap;
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 0.22s ease, transform 0.22s ease;
+  transition: opacity 0.24s ease, transform 0.24s ease;
 }
 
 .nav-item--active .nav-item__label {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(9px);
   pointer-events: none;
+}
+
+.nav-item:active .nav-item__icon {
+  transform: scale(0.94);
 }
 
 /* Remove default button focus outline and add custom */

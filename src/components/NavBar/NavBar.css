@@ -9,12 +9,8 @@
   z-index: 1000;
   backdrop-filter: blur(32.5px);
   -webkit-backdrop-filter: blur(32.5px);
-}
-
-@media (display-mode: browser) {
-  .navbar {
-    height: 50px;
-  }
+  transform: translateZ(0);
+  transition: filter 0.22s ease;
 }
 
 .navbar__notch-svg {
@@ -28,8 +24,15 @@
 }
 
 .navbar__notch-path {
-  will-change: d;
-  transition: d 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: auto;
+}
+
+.navbar--transitioning .navbar__notch-svg {
+  filter: drop-shadow(0 -1px 4px rgba(255, 255, 255, 0.08));
+}
+
+.navbar--transitioning .nav-item__circle.is-active {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
 .navbar__container {
@@ -97,5 +100,15 @@
 
   .navbar__container {
     width: 100%;
+  }
+}
+
+@media (display-mode: browser) {
+  .navbar {
+    height: 50px;
+  }
+
+  .navbar--transitioning .navbar__notch-svg {
+    filter: drop-shadow(0 -1px 3px rgba(255, 255, 255, 0.06));
   }
 }

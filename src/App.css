@@ -211,6 +211,38 @@ button[aria-label^="Back"]::before {
   line-height: 1.4;
 }
 
+.app-install-popup-ios-steps {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(144, 223, 158, 0.35);
+  background: rgba(144, 223, 158, 0.08);
+}
+
+.app-install-popup-ios-step {
+  margin: 0;
+  color: #d8eee0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.app-install-popup-ios-step + .app-install-popup-ios-step {
+  margin-top: 6px;
+}
+
+.app-install-popup-ios-step--arrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #90df9e;
+}
+
+.app-install-popup-ios-share {
+  color: #ffffff;
+  font-weight: 600;
+}
+
 .app-install-popup-image-stack {
   display: flex;
   align-items: center;

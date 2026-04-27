@@ -142,6 +142,7 @@ function App() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isIosInstallFlow, setIsIosInstallFlow] = useState(false);
   const [installHelpMessage, setInstallHelpMessage] = useState('');
+  const [showIosInstallGuide, setShowIosInstallGuide] = useState(false);
   const [selectedHealthScanTab, setSelectedHealthScanTab] = useState(0);
   const [linkedAccounts, setLinkedAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState(null);
@@ -459,15 +460,17 @@ function App() {
     const userAgent = window.navigator.userAgent || '';
     const isIosDevice = /iPhone|iPad|iPod/i.test(userAgent)
       || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    const isStandalone = (typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches)
       || window.navigator.standalone === true;
 
     if (!isStandalone) {
       setIsIosInstallFlow(isIosDevice);
       setShowInstallPrompt(true);
+      setShowIosInstallGuide(false);
     } else {
       setIsIosInstallFlow(false);
       setShowInstallPrompt(false);
+      setShowIosInstallGuide(false);
     }
 
     const handleBeforeInstallPrompt = (e) => {
@@ -475,6 +478,7 @@ function App() {
       setDeferredPrompt(e);
       setIsIosInstallFlow(false);
       setInstallHelpMessage('');
+      setShowIosInstallGuide(false);
       setShowInstallPrompt(true);
       console.log('Install prompt available');
     };
@@ -484,6 +488,7 @@ function App() {
       setShowInstallPrompt(false);
       setDeferredPrompt(null);
       setInstallHelpMessage('');
+      setShowIosInstallGuide(false);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -531,20 +536,12 @@ function App() {
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
       if (isIosInstallFlow) {
-        if (typeof window.navigator.share === 'function') {
-          try {
-            await window.navigator.share({
-              title: 'Supershyft',
-              text: 'Install Supershyft on your home screen',
-              url: window.location.href,
-            });
-          } catch (error) {
-            console.log('iOS share sheet was dismissed or failed:', error);
-          }
-        }
-
-        setInstallHelpMessage('On iOS Safari: Tap Share, then Add to Home Screen.');
+        // iOS Safari does not allow websites to directly open the browser
+        // action sheet entry where "Add to Home Screen" lives.
+        setShowIosInstallGuide(true);
+        setInstallHelpMessage('In Safari, tap Share, then Add to Home Screen.');
       } else {
+        setShowIosInstallGuide(false);
         setInstallHelpMessage('Use browser menu and choose Install app/Add to Home Screen.');
       }
 
@@ -558,11 +555,13 @@ function App() {
     setDeferredPrompt(null);
     setShowInstallPrompt(false);
     setInstallHelpMessage('');
+    setShowIosInstallGuide(false);
   };
 
   const handleDismissInstall = () => {
     setShowInstallPrompt(false);
     setInstallHelpMessage('');
+    setShowIosInstallGuide(false);
   };
 
   const preloadHomeScreenData = async () => {
@@ -855,6 +854,18 @@ function App() {
                 >
                   Download App
                 </button>
+                {showIosInstallGuide ? (
+                  <div className="app-install-popup-ios-steps" role="note" aria-live="polite">
+                    <p className="app-install-popup-ios-step">
+                      1. Tap Safari <span className="app-install-popup-ios-share">Share</span> button
+                      {' '}(square icon with up arrow)
+                    </p>
+                    <p className="app-install-popup-ios-step app-install-popup-ios-step--arrow">
+                      <span aria-hidden="true">↳</span>
+                      <span>Select <strong>Add to Home Screen</strong></span>
+                    </p>
+                  </div>
+                ) : null}
                 {Boolean(installHelpMessage) && (
                   <p className="app-install-popup-ios-hint">{installHelpMessage}</p>
                 )}

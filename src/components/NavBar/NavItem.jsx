@@ -29,7 +29,7 @@ const NavItem = ({ id, label, icon, isActive, onClick, iconSize = 23 }) => {
       data-tour={id === 'super-sync' ? 'nav-super-care' : id === 'packages' ? 'nav-packages' : undefined}
     >
       <div className="nav-item__icon-wrapper">
-        {isActive && <div className="nav-item__circle" />}
+        <div className={`nav-item__circle ${isActive ? 'is-active' : ''}`} />
         <img 
           src={icon} 
           alt="" 
