@@ -125,6 +125,24 @@ const toTimestamp = (value) => {
 const normalizeAssessmentStatus = (status) => String(status || '').trim().toLowerCase();
 const normalizeCategoryStatus = (status) => String(status || '').trim().toLowerCase();
 
+const getAssessmentInstanceId = (assessment) => {
+  return Number(
+    assessment?.assessment_instance_id
+    || assessment?.assessment_id
+    || assessment?.id
+    || 0
+  );
+};
+
+const isActiveIncompleteAssessment = (assessment) => {
+  const status = normalizeAssessmentStatus(assessment?.status);
+  const normalizedCompletedAt = assessment?.completed_at || assessment?.completedAt || null;
+  const isCompleteFlag = Boolean(assessment?.is_completed ?? assessment?.isComplete ?? false);
+
+  const activeStatuses = new Set(['active', 'in_progress', 'in-progress', 'assigned', 'pending']);
+  return activeStatuses.has(status) && !normalizedCompletedAt && !isCompleteFlag;
+};
+
 const extractCategoriesFromAssessmentStatus = (payload) => {
   if (Array.isArray(payload)) {
     return payload;
@@ -233,18 +251,49 @@ const sortCategories = (categories) => {
 const pickLatestIncompleteActiveAssessment = (assessments) => {
   const activeIncomplete = assessments
     .filter((row) => {
-      const status = normalizeAssessmentStatus(row?.status);
-      return status === 'active' && !row?.completed_at;
+      return isActiveIncompleteAssessment(row);
     })
     .sort((a, b) => {
       const byAssigned = toTimestamp(b?.assigned_at) - toTimestamp(a?.assigned_at);
       if (byAssigned !== 0) {
         return byAssigned;
       }
-      return Number(b?.assessment_instance_id || 0) - Number(a?.assessment_instance_id || 0);
+      return getAssessmentInstanceId(b) - getAssessmentInstanceId(a);
     });
 
   return activeIncomplete[0] || null;
+};
+
+const extractAssessmentsFromListPayload = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+
+  if (Array.isArray(payload.items)) {
+    return payload.items;
+  }
+
+  if (Array.isArray(payload.results)) {
+    return payload.results;
+  }
+
+  if (Array.isArray(payload.rows)) {
+    return payload.rows;
+  }
+
+  if (Array.isArray(payload.data?.items)) {
+    return payload.data.items;
+  }
+
+  if (Array.isArray(payload.data?.results)) {
+    return payload.data.results;
+  }
+
+  return [];
 };
 
 export const listMyAssessments = (page = 1, limit = 20) => authorizedGet('/assessments/me', { page, limit });
@@ -264,10 +313,11 @@ export const submitQuestionnaireResponses = (assessmentInstanceId, categoryId, r
 };
 
 export const loadQuestionnaireContext = async () => {
-  const assessments = await listMyAssessments(1, 50);
-  const latestAssessment = pickLatestIncompleteActiveAssessment(Array.isArray(assessments) ? assessments : []);
+  const assessmentsPayload = await listMyAssessments(1, 50);
+  const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
+  const latestAssessment = pickLatestIncompleteActiveAssessment(assessments);
 
-  const assessmentInstanceId = Number(latestAssessment?.assessment_instance_id || 0);
+  const assessmentInstanceId = getAssessmentInstanceId(latestAssessment);
 
   if (!latestAssessment || assessmentInstanceId <= 0) {
     throw new Error('No active incomplete assessment is assigned to this user.');
@@ -282,7 +332,7 @@ export const loadQuestionnaireContext = async () => {
         category_id: Number(category?.category_id || category?.id || 0),
         category_key: category?.category_key || category?.key || '',
         display_name: category?.display_name || category?.name || category?.category_name || '',
-        assessment_instance_id: Number(category?.assessment_instance_id || assessmentInstanceId),
+        assessment_instance_id: Number(category?.assessment_instance_id || category?.assessment_id || assessmentInstanceId),
       };
 
       return {
