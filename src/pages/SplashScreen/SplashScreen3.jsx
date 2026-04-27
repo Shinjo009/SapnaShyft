@@ -5,7 +5,7 @@ import './SplashScreen3.css';
 const CUBE_FACE_CSS = 320;
 const CUBE_ROTATION_OVERSHOOT = 1.62;
 const SCALE_MIN = 0.22;
-const SCALE_MAX = 0.48;
+const SCALE_MAX = 0.47;
 
 function computeCubeScale(anchorWidthPx, anchorHeightPx) {
   const m = Math.min(anchorWidthPx, anchorHeightPx);
