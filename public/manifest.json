@@ -4,19 +4,19 @@
   "description": "Supershyft — advanced health scanning, disease risk analysis, and wellness tools.",
   "icons": [
     {
-      "src": "new-pwa-icon.jpeg?v=1",
+      "src": "new-pwa-icon.jpeg?v=2",
       "sizes": "192x192",
       "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "new-pwa-icon.jpeg?v=1",
+      "src": "new-pwa-icon.jpeg?v=2",
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "new-pwa-icon.jpeg?v=1",
+      "src": "new-pwa-icon.jpeg?v=2",
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "maskable"
@@ -37,7 +37,7 @@
       "url": "/health-insights",
       "icons": [
         {
-          "src": "new-pwa-icon.jpeg?v=1",
+          "src": "new-pwa-icon.jpeg?v=2",
           "sizes": "192x192",
           "type": "image/jpeg"
         }
