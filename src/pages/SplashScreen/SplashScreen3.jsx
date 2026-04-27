@@ -5,7 +5,7 @@ import './SplashScreen3.css';
 const CUBE_FACE_CSS = 320;
 const CUBE_ROTATION_OVERSHOOT = 1.62;
 const SCALE_MIN = 0.22;
-const SCALE_MAX = 0.46;
+const SCALE_MAX = 0.48;
 
 function computeCubeScale(anchorWidthPx, anchorHeightPx) {
   const m = Math.min(anchorWidthPx, anchorHeightPx);
@@ -41,22 +41,8 @@ const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
     >
       <div className="splash-screen-2__hero">
         <div className="splash-screen-2__cube-anchor" ref={cubeAnchorRef}>
-          <div className="splash-screen-2__pre-cube-flow" aria-hidden>
-            <div className="splash-screen-2__square-flow">
-              <span className="splash-screen-2__square-label splash-screen-2__square-label--tl">Bio-AI</span>
-              <span className="splash-screen-2__square-label splash-screen-2__square-label--tr">Nutrition</span>
-              <span className="splash-screen-2__square-label splash-screen-2__square-label--br">Prevention</span>
-              <span className="splash-screen-2__square-label splash-screen-2__square-label--bl">Longevity</span>
-
-              <span className="splash-screen-2__square-edge splash-screen-2__square-edge--top" />
-              <span className="splash-screen-2__square-edge splash-screen-2__square-edge--right" />
-              <span className="splash-screen-2__square-edge splash-screen-2__square-edge--bottom" />
-              <span className="splash-screen-2__square-edge splash-screen-2__square-edge--left" />
-            </div>
-          </div>
-
           <div
-            className="splash-screen-2__cube-scale-wrap splash-screen-2__cube-scale-wrap--delayed"
+            className="splash-screen-2__cube-scale-wrap"
             style={{
               transform: `scale(${cubeScale}) translateZ(0)`,
               transformOrigin: 'center center',

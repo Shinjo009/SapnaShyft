@@ -50,7 +50,7 @@
   margin: 0 auto;
   flex-shrink: 0;
   overflow: hidden;
-  transform: translateY(18px);
+  transform: translateY(36px);
 }
 
 .splash-screen-2__cube-scale-wrap {
