@@ -1,88 +1,13 @@
-import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../config/appConfig';
-import { getAccessToken } from '../utils/authStorage';
+import { authorizedRequest } from './apiClient';
 
-const parseResponseBody = async (response) => {
-  const text = await response.text();
-
-  if (!text) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
-};
-
-const getErrorMessage = (parsedBody) => {
-  if (!parsedBody) {
-    return 'Request failed. Please try again.';
-  }
-
-  if (typeof parsedBody === 'string') {
-    return parsedBody;
-  }
-
-  if (Array.isArray(parsedBody.detail) && parsedBody.detail.length > 0) {
-    return parsedBody.detail[0]?.msg || 'Validation error. Please check your input.';
-  }
-
-  if (typeof parsedBody.detail === 'string') {
-    return parsedBody.detail;
-  }
-
-  if (typeof parsedBody.message === 'string') {
-    return parsedBody.message;
-  }
-
-  return 'Request failed. Please try again.';
-};
-
-const resolveAccessTokenFromPayload = (payload) => {
-  if (!payload || typeof payload !== 'object') {
-    return '';
-  }
-
-  return String(
-    payload?.accessToken
-    ?? payload?.access_token
-    ?? payload?.token
-    ?? ''
-  ).trim();
-};
-
-const authorizedGet = async (path, payload) => {
-  if (!BACKEND_ENABLED) {
-    throw new Error(
-      'Backend base URL is not configured. Set REACT_APP_BACKEND_BASE_URL in .env and restart the app.'
-    );
-  }
-
-  const accessToken = resolveAccessTokenFromPayload(payload) || getAccessToken();
-  if (!accessToken) {
-    throw new Error('You are not logged in. Please login again.');
-  }
-
-  const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
+const authorizedGet = async (path) => {
+  return authorizedRequest(path, {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
   });
-
-  const parsedBody = await parseResponseBody(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(parsedBody));
-  }
-
-  return parsedBody;
 };
 
-export const listDiagnosticPackages = async (payload) => {
-  const response = await authorizedGet('/diagnostic-packages', payload);
+export const listDiagnosticPackages = async (_payload) => {
+  const response = await authorizedGet('/diagnostic-packages');
 
   if (Array.isArray(response?.data)) {
     return response.data;
@@ -95,16 +20,16 @@ export const listDiagnosticPackages = async (payload) => {
   return [];
 };
 
-export const listDiagnosticPackageFilterChips = async (payload, options) => {
+export const listDiagnosticPackageFilterChips = async (_payload, options) => {
   const requestedChipFor = String(
     options?.chipFor
-    ?? payload?.chipFor
-    ?? payload?.chip_for
+    ?? _payload?.chipFor
+    ?? _payload?.chip_for
     ?? 'custom_package'
   ).trim();
 
   const chipFor = requestedChipFor || 'custom_package';
-  const response = await authorizedGet(`/diagnostic-packages/filters-chips?for=${encodeURIComponent(chipFor)}`, payload);
+  const response = await authorizedGet(`/diagnostic-packages/filters-chips?for=${encodeURIComponent(chipFor)}`);
 
   if (Array.isArray(response?.data)) {
     return response.data;
@@ -125,8 +50,8 @@ export const listDiagnosticPackageFilterChips = async (payload, options) => {
   return [];
 };
 
-export const listPublicDiagnosticPackageFilterChips = async (payload) => {
-  const response = await authorizedGet('/diagnostic-packages/filters-chips', payload);
+export const listPublicDiagnosticPackageFilterChips = async (_payload) => {
+  const response = await authorizedGet('/diagnostic-packages/filters-chips');
 
   if (Array.isArray(response?.data)) {
     return response.data;
@@ -147,14 +72,14 @@ export const listPublicDiagnosticPackageFilterChips = async (payload) => {
   return [];
 };
 
-export const getDiagnosticPackageDetail = async (packageId, payload) => {
+export const getDiagnosticPackageDetail = async (packageId, _payload) => {
   const parsedId = Number(packageId);
 
   if (!Number.isFinite(parsedId) || parsedId <= 0) {
     throw new Error('Invalid diagnostic package id.');
   }
 
-  const response = await authorizedGet(`/diagnostic-packages/${parsedId}`, payload);
+  const response = await authorizedGet(`/diagnostic-packages/${parsedId}`);
 
   if (response?.data && typeof response.data === 'object') {
     return response.data;
@@ -185,9 +110,9 @@ const appendFilterChipQuery = (path, filterChip) => {
   return `${path}?${encoded.join('&')}`;
 };
 
-export const listDiagnosticTestGroups = async (filterChip, payload) => {
+export const listDiagnosticTestGroups = async (filterChip, _payload) => {
   const path = appendFilterChipQuery('/diagnostic-test-groups', filterChip);
-  const response = await authorizedGet(path, payload);
+  const response = await authorizedGet(path);
 
   if (Array.isArray(response?.data)) {
     return response.data;
@@ -208,14 +133,14 @@ export const listDiagnosticTestGroups = async (filterChip, payload) => {
   return [];
 };
 
-export const listDiagnosticTestGroupTests = async (groupId, payload) => {
+export const listDiagnosticTestGroupTests = async (groupId, _payload) => {
   const parsedId = Number(groupId);
 
   if (!Number.isFinite(parsedId) || parsedId <= 0) {
     throw new Error('Invalid diagnostic test group id.');
   }
 
-  const response = await authorizedGet(`/diagnostic-test-groups/${parsedId}/tests`, payload);
+  const response = await authorizedGet(`/diagnostic-test-groups/${parsedId}/tests`);
 
   if (Array.isArray(response?.data)) {
     return response.data;

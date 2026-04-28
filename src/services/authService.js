@@ -1,5 +1,5 @@
 import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../config/appConfig';
-import { getAccessToken } from '../utils/authStorage';
+import { authorizedRequest } from './apiClient';
 
 const parseResponseBody = async (response) => {
   const text = await response.text();
@@ -92,10 +92,8 @@ export const switchAccount = (targetUserId) => {
     throw new Error('Invalid target user id for account switch.');
   }
 
-  const accessToken = getAccessToken();
-  if (!accessToken) {
-    throw new Error('You are not logged in. Please login again.');
-  }
-
-  return post(`/auth/switch/${parsedTargetUserId}`, {}, { Authorization: `Bearer ${accessToken}` });
+  return authorizedRequest(`/auth/switch/${parsedTargetUserId}`, {
+    method: 'POST',
+    payload: {},
+  });
 };

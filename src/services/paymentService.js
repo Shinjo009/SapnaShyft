@@ -13,8 +13,8 @@
  *   GET  /payments/booking/{booking_id}/status
  */
 
-import { BACKEND_BASE_URL, BACKEND_ENABLED, RAZORPAY_KEY_ID, PAYMENT_DEMO_MODE } from '../config/appConfig';
-import { getAccessToken } from '../utils/authStorage';
+import { BACKEND_ENABLED, RAZORPAY_KEY_ID, PAYMENT_DEMO_MODE } from '../config/appConfig';
+import { authorizedRequest } from './apiClient';
 
 const CREATE_ORDER_PATH =
   process.env.REACT_APP_RAZORPAY_ORDER_PATH || '/payments/create-order';
@@ -26,16 +26,6 @@ const BOOKING_STATUS_PATH_PREFIX =
   process.env.REACT_APP_RAZORPAY_BOOKING_STATUS_PATH_PREFIX || '/payments/booking';
 
 const RAZORPAY_SCRIPT = 'https://checkout.razorpay.com/v1/checkout.js';
-
-const parseResponseBody = async (response) => {
-  const text = await response.text();
-  if (!text) return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
-};
 
 const normalizeMaybeJsonString = (value) => {
   if (typeof value !== 'string') {
@@ -55,44 +45,17 @@ const normalizeMaybeJsonString = (value) => {
   }
 };
 
-const getErrorMessage = (parsedBody) => {
-  const normalized = normalizeMaybeJsonString(parsedBody);
-  if (!normalized) return 'Request failed. Please try again.';
-  if (typeof normalized === 'string') return normalized;
-  if (typeof normalized.message === 'string') return normalized.message;
-  if (typeof normalized.detail === 'string') return normalized.detail;
-  if (Array.isArray(normalized.detail) && normalized.detail.length > 0) {
-    const firstIssue = normalized.detail[0];
-    if (typeof firstIssue?.msg === 'string' && firstIssue.msg.trim()) {
-      return firstIssue.msg;
-    }
-  }
-  return 'Request failed. Please try again.';
-};
-
 const authorizedPost = async (path, payload) => {
   if (!BACKEND_ENABLED) {
     throw new Error(
       'Server is not configured. Set REACT_APP_BACKEND_BASE_URL, or set REACT_APP_PAYMENT_DEMO=true for local UI-only testing.',
     );
   }
-  const accessToken = getAccessToken();
-  if (!accessToken) {
-    throw new Error('Please log in to complete payment.');
-  }
-  const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
+  return authorizedRequest(path, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
+    payload,
+    missingAuthMessage: 'Please log in to complete payment.',
   });
-  const parsed = await parseResponseBody(response);
-  if (!response.ok) {
-    throw new Error(getErrorMessage(parsed));
-  }
-  return parsed;
 };
 
 const authorizedGet = async (path) => {
@@ -101,22 +64,10 @@ const authorizedGet = async (path) => {
       'Server is not configured. Set REACT_APP_BACKEND_BASE_URL, or set REACT_APP_PAYMENT_DEMO=true for local UI-only testing.',
     );
   }
-  const accessToken = getAccessToken();
-  if (!accessToken) {
-    throw new Error('Please log in to complete payment.');
-  }
-  const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
+  return authorizedRequest(path, {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
+    missingAuthMessage: 'Please log in to complete payment.',
   });
-  const parsed = await parseResponseBody(response);
-  if (!response.ok) {
-    throw new Error(getErrorMessage(parsed));
-  }
-  return parsed;
 };
 
 export function loadRazorpayScript() {

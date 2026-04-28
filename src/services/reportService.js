@@ -1,5 +1,4 @@
-import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../config/appConfig';
-import { getAccessToken } from '../utils/authStorage';
+import { authorizedRequest } from './apiClient';
 
 const cacheStore = new Map();
 const inFlightStore = new Map();
@@ -44,19 +43,6 @@ export const clearStoredLatestAssessmentId = () => {
 
   if (typeof window !== 'undefined') {
     window.localStorage.removeItem(LATEST_ASSESSMENT_STORAGE_KEY);
-  }
-};
-
-const parseResponseBody = async (response) => {
-  const text = await response.text();
-  if (!text) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
   }
 };
 
@@ -121,29 +107,7 @@ const getSortedAssessmentIds = (assessments) => {
 };
 
 const requestWithAuth = async (path) => {
-  if (!BACKEND_ENABLED) {
-    throw new Error('Backend base URL is not configured.');
-  }
-
-  const accessToken = getAccessToken();
-  if (!accessToken) {
-    throw new Error('You are not logged in.');
-  }
-
-  const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  const body = await parseResponseBody(response);
-  if (!response.ok) {
-    throw new Error(body?.message || body?.detail || 'Request failed.');
-  }
-
-  return body;
+  return authorizedRequest(path, { method: 'GET' });
 };
 
 export const authorizedGetCached = async (path, ttlMs = 45000) => {

@@ -501,9 +501,89 @@ function App() {
         const refreshResponse = await refreshToken(refreshTokenValue);
         const tokens = extractTokensFromResponse(refreshResponse, refreshTokenValue);
         saveAuthTokens(tokens);
+
+        const profileResponse = await getMyProfile({ forceRefresh: true });
+        const profile = profileResponse?.data && typeof profileResponse.data === 'object'
+          ? profileResponse.data
+          : profileResponse;
+        setUserName(profile?.first_name || '');
+        setUserAge(getAgeFromProfile(profile));
+
+        const activeUserId = Number(profile?.user_id || 0);
+        const normalizedCurrentUserId = activeUserId > 0 ? activeUserId : null;
+        setCurrentUserId(normalizedCurrentUserId);
+
+        const linkedProfilesResponse = await getMyProfiles({ forceRefresh: true });
+        const linkedProfiles = Array.isArray(linkedProfilesResponse?.data)
+          ? linkedProfilesResponse.data
+          : Array.isArray(linkedProfilesResponse)
+            ? linkedProfilesResponse
+            : [];
+
+        const normalizedLinkedAccounts = linkedProfiles
+          .map((item) => {
+            const accountId = Number(item?.user_id || item?.id || 0);
+            if (accountId <= 0) {
+              return null;
+            }
+
+            const firstName = String(item?.first_name || '').trim();
+            const lastName = String(item?.last_name || '').trim();
+            const relationship = String(item?.relationship || '').trim();
+            const relationshipLabel = relationship
+              ? relationship.charAt(0).toUpperCase() + relationship.slice(1)
+              : accountId === normalizedCurrentUserId
+                ? 'Primary Account'
+                : 'Linked Account';
+
+            return {
+              id: accountId,
+              name: [firstName, lastName].filter(Boolean).join(' ') || 'User',
+              relationshipLabel,
+              gender: item?.gender || '',
+              isPrimary: relationship.toLowerCase() === 'primary account' || accountId === normalizedCurrentUserId,
+            };
+          })
+          .filter(Boolean);
+
+        const hasCurrentInLinked = normalizedLinkedAccounts.some(
+          (account) => Number(account.id) === Number(normalizedCurrentUserId)
+        );
+
+        const currentAccount = normalizedCurrentUserId
+          ? {
+              id: normalizedCurrentUserId,
+              name: [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'User',
+              relationshipLabel: 'Primary Account',
+              gender: profile?.gender || '',
+              isPrimary: true,
+            }
+          : null;
+
+        const normalizedAccounts = hasCurrentInLinked || !currentAccount
+          ? normalizedLinkedAccounts
+          : [currentAccount, ...normalizedLinkedAccounts];
+
+        setLinkedAccounts(normalizedAccounts);
+        setSelectedAccountId(normalizedCurrentUserId || normalizedAccounts[0]?.id || null);
+
+        if (normalizedAccounts.length > 1) {
+          setCurrentPage('account-selection');
+          return;
+        }
+
+        if (postLoginRedirectPageRef.current) {
+          const targetPage = postLoginRedirectPageRef.current;
+          postLoginRedirectPageRef.current = '';
+          setCurrentPage(targetPage);
+          return;
+        }
+
+        setCurrentPage('home');
       } catch (error) {
         console.error('Token refresh failed:', error);
         clearAuthTokens();
+        setCurrentPage('login');
       }
     };
 
