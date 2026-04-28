@@ -7,7 +7,7 @@ import { getSuperClubSportsByIds } from './pages/SuperClubPage/superClubSportIma
 import { sendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
 import { createUser, getMyProfiles, invalidateMyProfilesCache } from './services/usersService';
 import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
-import { loadQuestionnaireContext, submitQuestionnaireResponses } from './services/questionnaireService';
+import { loadQuestionnaireContext, submitQuestionnaireResponses, submitAssessment } from './services/questionnaireService';
 import {
   fetchLatestAssessmentReport,
   clearReportRequestCache,
@@ -136,6 +136,8 @@ function App() {
   const [questionnaireProgress, setQuestionnaireProgress] = useState(0);
   const [expandedQuestionnaireStep, setExpandedQuestionnaireStep] = useState(null);
   const [questionnaireSteps, setQuestionnaireSteps] = useState([]);
+  const [questionnaireCurrentAssessment, setQuestionnaireCurrentAssessment] = useState(null);
+  const [questionnaireAssessments, setQuestionnaireAssessments] = useState([]);
   const [questionnaireQuestionsByCategoryId, setQuestionnaireQuestionsByCategoryId] = useState({});
   const [questionnaireDraftResponsesByRoute, setQuestionnaireDraftResponsesByRoute] = useState({});
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -351,6 +353,47 @@ function App() {
     return questionnaireQuestionsByCategoryId[String(category.category_id)] || [];
   };
 
+  const getDraftResponsesByRouteFromContext = (categories = [], responsesByCategoryId = {}) => {
+    if (!Array.isArray(categories) || !responsesByCategoryId || typeof responsesByCategoryId !== 'object') {
+      return {};
+    }
+
+    return categories.reduce((acc, category) => {
+      const routeId = String(category?.routeId || '');
+      if (!routeId) {
+        return acc;
+      }
+
+      const responses = responsesByCategoryId[String(category?.category_id)] || [];
+      if (!Array.isArray(responses) || responses.length === 0) {
+        return acc;
+      }
+
+      acc[routeId] = responses;
+      return acc;
+    }, {});
+  };
+
+  const getAssessmentSourceIdsForTarget = (targetAssessmentInstanceId) => {
+    const targetId = Number(targetAssessmentInstanceId || 0);
+    if (targetId <= 0 || !Array.isArray(questionnaireAssessments)) {
+      return targetId > 0 ? [targetId] : [];
+    }
+
+    const targetAssessment = questionnaireAssessments.find((assessment) => {
+      return Number(assessment?.assessment_instance_id || assessment?.assessment_id || assessment?.id || 0) === targetId;
+    });
+
+    const engagementId = Number(targetAssessment?.engagement_id || 0);
+    const sourceIds = questionnaireAssessments
+      .filter((assessment) => Number(assessment?.engagement_id || 0) === engagementId)
+      .map((assessment) => Number(assessment?.assessment_instance_id || assessment?.assessment_id || assessment?.id || 0))
+      .filter((id) => id > 0);
+
+    const uniqueIds = Array.from(new Set(sourceIds));
+    return uniqueIds.length > 0 ? uniqueIds : [targetId];
+  };
+
   const handleStepComplete = async (routeId, responses = []) => {
     const routeProgressMap = {
       'anthropometry': 1,
@@ -394,20 +437,51 @@ function App() {
     setExpandedQuestionnaireStep(null);
   };
 
+  const handleStepDraftSave = async (routeId, responses = []) => {
+    const normalizedResponses = Array.isArray(responses) ? responses : [];
+
+    setQuestionnaireDraftResponsesByRoute((prev) => ({
+      ...prev,
+      [routeId]: normalizedResponses,
+    }));
+
+    const targetCategory = getCategoryByRoute(routeId);
+    const categoryId = Number(targetCategory?.category_id || 0);
+    const assessmentInstanceId = Number(targetCategory?.assessment_instance_id || 0);
+
+    if (categoryId <= 0 || assessmentInstanceId <= 0 || normalizedResponses.length === 0) {
+      return;
+    }
+
+    try {
+      await submitQuestionnaireResponses(assessmentInstanceId, categoryId, normalizedResponses);
+    } catch (error) {
+      console.error(`Failed to autosave questionnaire responses for ${routeId}:`, error);
+    }
+  };
+
   const initializeQuestionnaire = async () => {
     try {
       const context = await loadQuestionnaireContext();
       const categories = context?.categories || [];
+      const draftResponsesByRoute = getDraftResponsesByRouteFromContext(
+        categories,
+        context?.responsesByCategoryId || {}
+      );
 
+      setQuestionnaireCurrentAssessment(context?.assessment || null);
+      setQuestionnaireAssessments(Array.isArray(context?.assessments) ? context.assessments : []);
       setQuestionnaireSteps(categories);
       setQuestionnaireQuestionsByCategoryId(context?.questionsByCategoryId || {});
-      setQuestionnaireDraftResponsesByRoute({});
+      setQuestionnaireDraftResponsesByRoute(draftResponsesByRoute);
 
       const completedProgress = getProgressFromCategories(categories);
       setQuestionnaireProgress(completedProgress);
       setExpandedQuestionnaireStep(null);
     } catch (error) {
       setQuestionnaireSteps([]);
+      setQuestionnaireCurrentAssessment(null);
+      setQuestionnaireAssessments([]);
       setQuestionnaireQuestionsByCategoryId({});
       setQuestionnaireProgress(0);
       setQuestionnaireDraftResponsesByRoute({});
@@ -762,6 +836,8 @@ function App() {
     setPhoneNumber('');
     setUserAge(null);
     setQuestionnaireSteps([]);
+    setQuestionnaireCurrentAssessment(null);
+    setQuestionnaireAssessments([]);
     setQuestionnaireQuestionsByCategoryId({});
     setQuestionnaireProgress(0);
     setExpandedQuestionnaireStep(null);
@@ -1192,7 +1268,27 @@ function App() {
             'nutrition-log': getQuestionsByRoute('nutrition-log'),
             'vitals': getQuestionsByRoute('vitals'),
           }}
+          initialResponsesByRoute={questionnaireDraftResponsesByRoute}
           onStepComplete={handleStepComplete}
+          onStepDraftSave={handleStepDraftSave}
+          onAssessmentSubmit={async () => {
+            const targetAssessmentInstanceId = Number(
+              questionnaireCurrentAssessment?.assessment_instance_id
+              || questionnaireCurrentAssessment?.assessment_id
+              || questionnaireCurrentAssessment?.id
+              || 0
+            );
+
+            const sourceIds = getAssessmentSourceIdsForTarget(targetAssessmentInstanceId);
+
+            if (targetAssessmentInstanceId <= 0) {
+              throw new Error('Unable to determine the assessment to submit.');
+            }
+
+            await submitAssessment(targetAssessmentInstanceId, sourceIds);
+            clearReportRequestCache();
+            clearStoredLatestAssessmentId();
+          }}
           onNavigateHome={() => setCurrentPage('home')}
         />
       )}

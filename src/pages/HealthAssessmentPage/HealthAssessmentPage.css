@@ -1458,6 +1458,27 @@
   letter-spacing: 0.075px;
 }
 
+.question-required-mark {
+  margin-left: 4px;
+  color: #ff667d;
+  font-weight: 700;
+}
+
+@keyframes questionnaire-card-shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+  100% { transform: translateX(0); }
+}
+
+.family-history-page__card.is-shaking,
+.lifestyle-habits-page__card.is-shaking,
+.nutrition-log-page__card.is-shaking {
+  animation: questionnaire-card-shake 340ms ease-in-out;
+}
+
 .family-history-page__question-row {
   width: 100%;
   display: flex;
@@ -1534,6 +1555,34 @@
   font-style: normal;
   font-weight: 400;
   line-height: 24px;
+}
+
+.family-history-page__text-input-wrap {
+  width: 100%;
+}
+
+.family-history-page__text-input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 0.5px solid rgba(160, 170, 176, 0.5);
+  background: rgba(0, 0, 0, 0.15);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.family-history-page__text-input::placeholder {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.family-history-page__text-input:focus {
+  outline: none;
+  border-color: rgba(208, 208, 208, 0.95);
+  box-shadow: 0 0 0 2px rgba(82, 177, 193, 0.18);
 }
 
 .family-history-page__tick {
@@ -1862,6 +1911,34 @@ background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(144, 22
   font-style: normal;
   font-weight: 400;
   line-height: 24px;
+}
+
+.lifestyle-habits-page__text-input-wrap {
+  width: 100%;
+}
+
+.lifestyle-habits-page__text-input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 0.5px solid rgba(160, 170, 176, 0.5);
+  background: rgba(0, 0, 0, 0.15);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.lifestyle-habits-page__text-input::placeholder {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.lifestyle-habits-page__text-input:focus {
+  outline: none;
+  border-color: rgba(208, 208, 208, 0.95);
+  box-shadow: 0 0 0 2px rgba(238, 134, 176, 0.17);
 }
 
 .lifestyle-habits-page__tick {
@@ -2213,6 +2290,34 @@ background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(144, 22
   font-style: normal;
   font-weight: 400;
   line-height: 24px;
+}
+
+.nutrition-log-page__text-input-wrap {
+  width: 100%;
+}
+
+.nutrition-log-page__text-input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 0.5px solid rgba(160, 170, 176, 0.5);
+  background: rgba(0, 0, 0, 0.15);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.nutrition-log-page__text-input::placeholder {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.nutrition-log-page__text-input:focus {
+  outline: none;
+  border-color: rgba(208, 208, 208, 0.95);
+  box-shadow: 0 0 0 2px rgba(109, 157, 214, 0.2);
 }
 
 .nutrition-log-page__tick {

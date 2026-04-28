@@ -113,6 +113,36 @@ const authorizedPut = async (path, body) => {
   return parsedBody?.data ?? parsedBody;
 };
 
+const authorizedPost = async (path, body) => {
+  if (!BACKEND_ENABLED) {
+    throw new Error(
+      'Backend base URL is not configured. Set REACT_APP_BACKEND_BASE_URL in .env and restart the app.'
+    );
+  }
+
+  const accessToken = getAccessToken();
+  if (!accessToken) {
+    throw new Error('You are not logged in. Please login again.');
+  }
+
+  const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body || {}),
+  });
+
+  const parsedBody = await parseResponseBody(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(parsedBody));
+  }
+
+  return parsedBody?.data ?? parsedBody;
+};
+
 const toTimestamp = (value) => {
   if (!value) {
     return 0;
@@ -201,6 +231,119 @@ const extractQuestionsFromCategoryPayload = (payload) => {
   }
 
   return [];
+};
+
+const isNil = (value) => value === null || value === undefined;
+
+const isBlankString = (value) => typeof value === 'string' && value.trim() === '';
+
+const isEmptyAnswer = (value) => {
+  if (isNil(value)) {
+    return true;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+
+  if (isBlankString(value)) {
+    return true;
+  }
+
+  return false;
+};
+
+const normalizeCategoryResponseItem = (item) => {
+  if (!item || typeof item !== 'object') {
+    return null;
+  }
+
+  const questionId = Number(item.question_id || item.questionId || item.id || 0);
+  if (questionId <= 0) {
+    return null;
+  }
+
+  const answer = item.answer
+    ?? item.response
+    ?? item.value
+    ?? item.selected_option
+    ?? item.selected_options
+    ?? item.answers;
+
+  if (isEmptyAnswer(answer)) {
+    return null;
+  }
+
+  return {
+    question_id: questionId,
+    answer,
+  };
+};
+
+const extractResponseCandidates = (payload) => {
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+
+  const candidates = [
+    payload.responses,
+    payload.answers,
+    payload.user_responses,
+    payload.user_answers,
+    payload.question_responses,
+    payload.data?.responses,
+    payload.data?.answers,
+    payload.data?.user_responses,
+    payload.questionnaire_responses,
+  ];
+
+  return candidates.filter(Array.isArray);
+};
+
+const extractResponsesFromQuestions = (questions = []) => {
+  if (!Array.isArray(questions)) {
+    return [];
+  }
+
+  return questions
+    .map((question) => {
+      const questionId = Number(question?.question_id || question?.id || 0);
+      if (questionId <= 0) {
+        return null;
+      }
+
+      const answer = question?.answer
+        ?? question?.response
+        ?? question?.value
+        ?? question?.selected_option
+        ?? question?.selected_options
+        ?? question?.user_answer
+        ?? question?.user_response;
+
+      if (isEmptyAnswer(answer)) {
+        return null;
+      }
+
+      return {
+        question_id: questionId,
+        answer,
+      };
+    })
+    .filter(Boolean);
+};
+
+const extractResponsesFromCategoryPayload = (payload, questions = []) => {
+  const responsesFromPayload = extractResponseCandidates(payload)
+    .flatMap((responseArray) => responseArray.map(normalizeCategoryResponseItem).filter(Boolean));
+
+  const responsesFromQuestions = extractResponsesFromQuestions(questions);
+  const mergedByQuestionId = new Map();
+
+  for (const response of [...responsesFromPayload, ...responsesFromQuestions]) {
+    mergedByQuestionId.set(response.question_id, response);
+  }
+
+  return Array.from(mergedByQuestionId.values());
 };
 
 const mapCategoryToRouteId = (category) => {
@@ -312,6 +455,14 @@ export const submitQuestionnaireResponses = (assessmentInstanceId, categoryId, r
   });
 };
 
+export const submitAssessment = (assessmentInstanceId, sourceAssessmentInstanceIds = []) => {
+  return authorizedPost(`/assessments/${assessmentInstanceId}/submit`, {
+    source_assessment_instance_ids: Array.isArray(sourceAssessmentInstanceIds)
+      ? sourceAssessmentInstanceIds
+      : [],
+  });
+};
+
 export const loadQuestionnaireContext = async () => {
   const assessmentsPayload = await listMyAssessments(1, 50);
   const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
@@ -350,13 +501,24 @@ export const loadQuestionnaireContext = async () => {
       const categoryAssessmentInstanceId = Number(category?.assessment_instance_id || assessmentInstanceId);
       const questionnairePayload = await getCategoryQuestionnaire(categoryAssessmentInstanceId, category.category_id);
       const questions = extractQuestionsFromCategoryPayload(questionnairePayload);
-      return [String(category.category_id), questions];
+      const responses = extractResponsesFromCategoryPayload(questionnairePayload, questions);
+      return [String(category.category_id), { questions, responses }];
     })
   );
 
+  const questionsByCategoryId = {};
+  const responsesByCategoryId = {};
+
+  for (const [categoryId, entry] of questionEntries) {
+    questionsByCategoryId[categoryId] = entry.questions;
+    responsesByCategoryId[categoryId] = entry.responses;
+  }
+
   return {
+    assessments,
     assessment: latestAssessment,
     categories,
-    questionsByCategoryId: Object.fromEntries(questionEntries),
+    questionsByCategoryId,
+    responsesByCategoryId,
   };
 };

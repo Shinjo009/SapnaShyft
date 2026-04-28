@@ -74,14 +74,158 @@ const AnthropometryUnitDropdown = ({ value, options, onChange }) => {
 
 const normalizeUnitToken = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
+const roundToSingleDecimal = (value) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return 0;
+  }
+
+  return Math.round(numericValue * 10) / 10;
+};
+
+const formatOneDecimalValue = (value) => {
+  const roundedValue = roundToSingleDecimal(value);
+  return roundedValue.toFixed(1);
+};
+
+const roundToWholeNumber = (value, fallback = 0) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return fallback;
+  }
+
+  return Math.round(numericValue);
+};
+
+const resolvePreferredUnitOption = (options = [], preferredUnit = '', fallback = '-') => {
+  if (!Array.isArray(options) || options.length === 0) {
+    return fallback;
+  }
+
+  const normalizedPreferred = normalizeUnitToken(preferredUnit);
+  if (!normalizedPreferred) {
+    return options[0];
+  }
+
+  const byExact = options.find((option) => normalizeUnitToken(option) === normalizedPreferred);
+  if (byExact) {
+    return byExact;
+  }
+
+  const byPartial = options.find((option) => {
+    const normalizedOption = normalizeUnitToken(option);
+    return normalizedOption.includes(normalizedPreferred) || normalizedPreferred.includes(normalizedOption);
+  });
+  if (byPartial) {
+    return byPartial;
+  }
+
+  const unitMatchers = [
+    {
+      match: (token) => isFeetInchesUnit(token),
+      optionMatch: (optionToken) => isFeetInchesUnit(optionToken),
+    },
+    {
+      match: (token) => isCentimeterUnit(token),
+      optionMatch: (optionToken) => isCentimeterUnit(optionToken),
+    },
+    {
+      match: (token) => token === 'kg' || token.includes('kilogram'),
+      optionMatch: (optionToken) => optionToken === 'kg' || optionToken.includes('kilogram'),
+    },
+    {
+      match: (token) => token === 'lb' || token === 'lbs' || token.includes('pound'),
+      optionMatch: (optionToken) => optionToken === 'lb' || optionToken === 'lbs' || optionToken.includes('pound'),
+    },
+    {
+      match: (token) => token === 'in' || token.includes('inch'),
+      optionMatch: (optionToken) => optionToken === 'in' || optionToken.includes('inch'),
+    },
+  ];
+
+  const matchedGroup = unitMatchers.find((matcher) => matcher.match(normalizedPreferred));
+  if (matchedGroup) {
+    const byGroup = options.find((option) => matchedGroup.optionMatch(normalizeUnitToken(option)));
+    if (byGroup) {
+      return byGroup;
+    }
+  }
+
+  return options[0];
+};
+
+const resolveUnitLabelFromQuestion = (question, unitValue = '') => {
+  const normalizedUnit = String(unitValue || '').trim();
+  if (!normalizedUnit || !Array.isArray(question?.options)) {
+    return normalizedUnit;
+  }
+
+  const byExactOptionValue = question.options.find((option) => {
+    return String(option?.option_value || '').trim() === normalizedUnit;
+  });
+  if (byExactOptionValue) {
+    return String(byExactOptionValue.display_name || byExactOptionValue.option_value || normalizedUnit).trim();
+  }
+
+  const normalizedTarget = normalizeUnitToken(normalizedUnit);
+  const byDisplayMatch = question.options.find((option) => {
+    const displayToken = normalizeUnitToken(option?.display_name || '');
+    const valueToken = normalizeUnitToken(option?.option_value || '');
+    return displayToken === normalizedTarget || valueToken === normalizedTarget;
+  });
+
+  if (byDisplayMatch) {
+    return String(byDisplayMatch.display_name || byDisplayMatch.option_value || normalizedUnit).trim();
+  }
+
+  return normalizedUnit;
+};
+
 const isFeetInchesUnit = (value) => {
   const token = normalizeUnitToken(value);
-  return token.includes('ftin') || token.includes('feetinch') || token === 'ft' || token.includes('footinch');
+  return token.includes('ftin')
+    || token.includes('feetinch')
+    || token.includes('footinch')
+    || token === 'ft'
+    || token === 'feet'
+    || token === 'foot'
+    || token.includes('feet')
+    || token.includes('foot');
 };
 
 const isCentimeterUnit = (value) => {
   const token = normalizeUnitToken(value);
   return token === 'cm' || token.includes('centimeter') || token.includes('centimetre');
+};
+
+const isInchUnit = (value) => {
+  const token = normalizeUnitToken(value);
+  return token === 'in' || token === 'inch' || token.includes('inches');
+};
+
+const isMeterUnit = (value) => {
+  const token = normalizeUnitToken(value);
+  return token === 'm' || token === 'meter' || token === 'metre' || token.includes('meters') || token.includes('metres');
+};
+
+const convertHeightToCm = (value, unit) => {
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+
+  if (isFeetInchesUnit(unit)) {
+    return value * 30.48;
+  }
+
+  if (isInchUnit(unit)) {
+    return value * 2.54;
+  }
+
+  if (isMeterUnit(unit)) {
+    return value * 100;
+  }
+
+  return value;
 };
 
 const getQuestionOptionLabel = (option) => String(option?.display_name || option?.option_value || '').trim();
@@ -121,12 +265,43 @@ const extractUnitOptionsFromQuestion = (question) => {
   return uniqueApiOptions.length > 0 ? uniqueApiOptions : ['-'];
 };
 
+const prioritizeHeightUnitOptions = (options = []) => {
+  const normalizedOptions = Array.isArray(options) ? options.filter(Boolean) : [];
+  if (normalizedOptions.length === 0) {
+    return ['ft/in', 'cm'];
+  }
+
+  const feetOption = normalizedOptions.find((option) => isFeetInchesUnit(option));
+  const cmOption = normalizedOptions.find((option) => isCentimeterUnit(option));
+  const prioritized = [];
+
+  if (feetOption) {
+    prioritized.push(feetOption);
+  } else {
+    prioritized.push('ft/in');
+  }
+
+  if (cmOption) {
+    prioritized.push(cmOption);
+  } else {
+    prioritized.push('cm');
+  }
+
+  for (const option of normalizedOptions) {
+    if (!prioritized.some((existing) => normalizeUnitToken(existing) === normalizeUnitToken(option))) {
+      prioritized.push(option);
+    }
+  }
+
+  return prioritized;
+};
+
 const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initialValues = {} }) => {
   const [height, setHeight] = useState(initialValues?.height ?? 152);
   const [weight, setWeight] = useState(
     initialValues?.weight != null && initialValues?.weight !== '' ? String(initialValues.weight) : '0'
   );
-  const [waist, setWaist] = useState(initialValues?.waist ?? 32);
+  const [waist, setWaist] = useState(roundToWholeNumber(initialValues?.waist, 32));
   const [heightUnit, setHeightUnit] = useState(initialValues?.heightUnit || '-');
   const [weightUnit, setWeightUnit] = useState(initialValues?.weightUnit || '-');
   const [waistUnit, setWaistUnit] = useState(initialValues?.waistUnit || '-');
@@ -148,7 +323,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
   );
 
   const heightUnitOptions = useMemo(
-    () => extractUnitOptionsFromQuestion(heightQuestionConfig),
+    () => prioritizeHeightUnitOptions(extractUnitOptionsFromQuestion(heightQuestionConfig)),
     [heightQuestionConfig]
   );
   const weightUnitOptions = useMemo(
@@ -172,13 +347,39 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
   useEffect(() => {
     setHeight(initialValues?.height ?? 152);
     setWeight(initialValues?.weight != null && initialValues?.weight !== '' ? String(initialValues.weight) : '0');
-    setWaist(initialValues?.waist ?? 32);
-    setHeightUnit(initialValues?.heightUnit || '-');
-    setWeightUnit(initialValues?.weightUnit || '-');
-    setWaistUnit(initialValues?.waistUnit || '-');
+    setWaist(roundToWholeNumber(initialValues?.waist, 32));
+    setHeightUnit(
+      resolvePreferredUnitOption(
+        heightUnitOptions,
+        resolveUnitLabelFromQuestion(heightQuestionConfig, initialValues?.heightUnit || ''),
+        '-'
+      )
+    );
+    setWeightUnit(
+      resolvePreferredUnitOption(
+        weightUnitOptions,
+        resolveUnitLabelFromQuestion(weightQuestionConfig, initialValues?.weightUnit || ''),
+        '-'
+      )
+    );
+    setWaistUnit(
+      resolvePreferredUnitOption(
+        waistUnitOptions,
+        resolveUnitLabelFromQuestion(waistQuestionConfig, initialValues?.waistUnit || ''),
+        '-'
+      )
+    );
     setHeightFeet(initialValues?.heightFeet ?? 5);
     setHeightInches(initialValues?.heightInches ?? 0);
-  }, [initialValues]);
+  }, [
+    initialValues,
+    heightUnitOptions,
+    weightUnitOptions,
+    waistUnitOptions,
+    heightQuestionConfig,
+    weightQuestionConfig,
+    waistQuestionConfig,
+  ]);
 
   useEffect(() => {
     if (!heightUnitOptions.includes(heightUnit)) {
@@ -420,7 +621,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
             <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{heightInches === 0 ? 11 : heightInches - 1}</span>
           </div>
         ) : (
-          <div className="anthropometry-page__faded">{height - 1}</div>
+          <div className="anthropometry-page__faded">{formatOneDecimalValue(height - 1)}</div>
         )}
         <div className="anthropometry-page__row-centered">
           <div className="anthropometry-page__arrow-wrap"><AnthropometryTriangleArrow direction="right" /></div>
@@ -465,7 +666,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
             </div>
           ) : (
             <div className="anthropometry-page__selected-box anthropometry-page__selected-box--height">
-              <span className="anthropometry-page__selected-value">{height}</span>
+              <span className="anthropometry-page__selected-value">{formatOneDecimalValue(height)}</span>
             </div>
           )}
           <div className="anthropometry-page__arrow-wrap"><AnthropometryTriangleArrow direction="left" /></div>
@@ -476,7 +677,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
             <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{heightInches === 11 ? 0 : heightInches + 1}</span>
           </div>
         ) : (
-          <div className="anthropometry-page__faded">{height + 1}</div>
+          <div className="anthropometry-page__faded">{formatOneDecimalValue(height + 1)}</div>
         )}
       </div>
 
@@ -546,7 +747,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
           onContinue?.({
             height,
             weight: Number.isFinite(parsedWeight) ? parsedWeight : null,
-            waist,
+            waist: roundToWholeNumber(waist, 32),
             heightUnit,
             weightUnit,
             waistUnit,
@@ -629,7 +830,7 @@ const FollowupUnitDropdown = ({ value, options, onChange }) => {
 };
 
 const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], initialValues = {} }) => {
-  const [hipSize, setHipSize] = useState(initialValues?.hipSize ?? 33);
+  const [hipSize, setHipSize] = useState(roundToWholeNumber(initialValues?.hipSize, 33));
   const [bodyFat, setBodyFat] = useState(initialValues?.bodyFat ?? 20);
   const [hipUnit, setHipUnit] = useState(initialValues?.hipUnit || '-');
   const [showHipInfoPopup, setShowHipInfoPopup] = useState(false);
@@ -645,10 +846,16 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
   );
 
   useEffect(() => {
-    setHipSize(initialValues?.hipSize ?? 33);
+    setHipSize(roundToWholeNumber(initialValues?.hipSize, 33));
     setBodyFat(initialValues?.bodyFat ?? 20);
-    setHipUnit(initialValues?.hipUnit || '-');
-  }, [initialValues]);
+    setHipUnit(
+      resolvePreferredUnitOption(
+        hipUnitOptions,
+        resolveUnitLabelFromQuestion(hipQuestionConfig, initialValues?.hipUnit || ''),
+        '-'
+      )
+    );
+  }, [initialValues, hipUnitOptions, hipQuestionConfig]);
 
   useEffect(() => {
     if (!hipUnitOptions.includes(hipUnit)) {
@@ -762,7 +969,7 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
         className="anthropometry-followup-page__done"
         onClick={() => {
           onDone?.({
-            hipSize,
+            hipSize: roundToWholeNumber(hipSize, 33),
             bodyFat,
             hipUnit,
           });
@@ -858,6 +1065,7 @@ const toFamilyApiCards = (questions = []) => {
   return questions.map((question) => {
     const key = question?.question_key || `question-${question?.question_id}`;
     const isMulti = ['multi_choice', 'multiple_choice'].includes(String(question?.question_type || '').toLowerCase());
+    const isTextInput = isTextQuestionWithoutOptions(question);
     const options = Array.isArray(question?.options)
       ? [...new Set(
           question.options
@@ -879,6 +1087,7 @@ const toFamilyApiCards = (questions = []) => {
       options,
       defaultSelected: [],
       multi: isMulti,
+      isTextInput,
     };
   });
 };
@@ -966,6 +1175,282 @@ const mapOptionLabelToValue = (question, label) => {
   return matchedOption.option_value || matchedOption.display_name || normalizedLabel;
 };
 
+const mapOptionValueToLabel = (question, value) => {
+  const normalizedValue = String(value || '').trim();
+  if (!normalizedValue) return '';
+
+  const matchedOption = Array.isArray(question?.options)
+    ? question.options.find((option) => {
+        const displayName = String(option?.display_name || '').trim();
+        const optionValue = String(option?.option_value || '').trim();
+        return displayName === normalizedValue || optionValue === normalizedValue;
+      })
+    : null;
+
+  if (!matchedOption) {
+    return normalizedValue;
+  }
+
+  return matchedOption.display_name || matchedOption.option_value || normalizedValue;
+};
+
+const normalizeResponseItems = (responses = []) => {
+  if (!Array.isArray(responses)) {
+    return [];
+  }
+
+  return responses
+    .map((item) => {
+      const questionId = Number(item?.question_id || item?.questionId || item?.id || 0);
+      if (questionId <= 0) {
+        return null;
+      }
+
+      const answer = item?.answer
+        ?? item?.response
+        ?? item?.value
+        ?? item?.selected_option
+        ?? item?.selected_options
+        ?? item?.answers;
+
+      if (isEmptyAnswer(answer)) {
+        return null;
+      }
+
+      return {
+        question_id: questionId,
+        answer,
+      };
+    })
+    .filter(Boolean);
+};
+
+const getResponseAnswerForQuestion = (question, responses = []) => {
+  const questionId = Number(question?.question_id || question?.id || 0);
+  if (questionId <= 0) {
+    return null;
+  }
+
+  const matchedResponse = responses.find((response) => response.question_id === questionId);
+  return matchedResponse ? matchedResponse.answer : null;
+};
+
+const toSelectionArray = (question, rawAnswer) => {
+  if (isEmptyAnswer(rawAnswer)) {
+    return [];
+  }
+
+  const questionType = normalizeQuestionType(question?.question_type);
+  const values = (questionType === 'multiple_choice' || questionType === 'multi_choice')
+    ? (Array.isArray(rawAnswer) ? rawAnswer : [rawAnswer])
+    : [Array.isArray(rawAnswer) ? rawAnswer[0] : rawAnswer];
+
+  return [...new Set(
+    values
+      .map((value) => mapOptionValueToLabel(question, value))
+      .filter((value) => !isEmptyAnswer(value))
+  )];
+};
+
+const toNumericAnswer = (rawAnswer) => {
+  if (isEmptyAnswer(rawAnswer)) {
+    return null;
+  }
+
+  const selected = Array.isArray(rawAnswer) ? rawAnswer[0] : rawAnswer;
+
+  if (typeof selected === 'number') {
+    return Number.isFinite(selected) ? selected : null;
+  }
+
+  if (typeof selected === 'string') {
+    const trimmed = selected.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const directNumber = Number(trimmed);
+    if (Number.isFinite(directNumber)) {
+      return directNumber;
+    }
+
+    const extracted = trimmed.match(/-?\d+(?:\.\d+)?/);
+    if (!extracted) {
+      return null;
+    }
+
+    const parsed = Number(extracted[0]);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  if (selected && typeof selected === 'object') {
+    const nestedValue = selected.value
+      ?? selected.answer
+      ?? selected.response
+      ?? selected.numeric_value
+      ?? selected.measurement
+      ?? selected.quantity
+      ?? selected.amount;
+
+    return toNumericAnswer(nestedValue);
+  }
+
+  const numberValue = Number(selected);
+  return Number.isFinite(numberValue) ? numberValue : null;
+};
+
+const toUnitAnswer = (rawAnswer) => {
+  if (isEmptyAnswer(rawAnswer)) {
+    return '';
+  }
+
+  const selected = Array.isArray(rawAnswer) ? rawAnswer[0] : rawAnswer;
+
+  if (typeof selected === 'string') {
+    return selected.trim();
+  }
+
+  if (selected && typeof selected === 'object') {
+    const unitValue = selected.unit
+      ?? selected.units
+      ?? selected.measurement_unit
+      ?? selected.unit_name
+      ?? selected.selected_unit
+      ?? selected.label
+      ?? selected.value;
+
+    return String(unitValue || '').trim();
+  }
+
+  return String(selected || '').trim();
+};
+
+const buildSelectionStateFromResponses = (questions = [], responses = []) => {
+  const normalizedResponses = normalizeResponseItems(responses);
+  if (!Array.isArray(questions) || questions.length === 0 || normalizedResponses.length === 0) {
+    return {};
+  }
+
+  return questions.reduce((acc, question) => {
+    const questionId = question?.question_id || question?.id;
+    const key = question?.question_key || `question-${questionId}`;
+    if (!key) {
+      return acc;
+    }
+
+    const answer = getResponseAnswerForQuestion(question, normalizedResponses);
+    const selectedOptions = toSelectionArray(question, answer);
+
+    if (selectedOptions.length > 0) {
+      acc[key] = selectedOptions;
+    }
+
+    return acc;
+  }, {});
+};
+
+const buildAnthropometryInitialValuesFromResponses = (questions = [], responses = []) => {
+  const normalizedResponses = normalizeResponseItems(responses);
+  if (!Array.isArray(questions) || questions.length === 0 || normalizedResponses.length === 0) {
+    return {
+      primary: {},
+      followup: {},
+    };
+  }
+
+  const getAnswer = (aliases, textHints = []) => {
+    const question = findQuestionByKeys(questions, aliases, textHints);
+    if (!question) {
+      return {
+        question: null,
+        rawAnswer: null,
+        numericValue: null,
+        unitValue: '',
+      };
+    }
+
+    const rawAnswer = getResponseAnswerForQuestion(question, normalizedResponses);
+    return {
+      question,
+      rawAnswer,
+      numericValue: toNumericAnswer(rawAnswer),
+      unitValue: toUnitAnswer(rawAnswer),
+    };
+  };
+
+  const heightAnswer = getAnswer(['height'], ['height']);
+  const weightAnswer = getAnswer(['weight'], ['weight', 'body weight']);
+  const waistAnswer = getAnswer(['waist_circumference', 'waist'], ['waist']);
+  const hipAnswer = getAnswer(['hip_circumference', 'hip_size', 'hip'], ['hip']);
+  const bodyFatAnswer = getAnswer(['body_fat_percentage', 'body_fat', 'fat_percentage'], ['body fat', 'bodyfat']);
+  const heightUnitAnswer = getAnswer(['height_unit', 'heightunit'], ['height unit']);
+  const weightUnitAnswer = getAnswer(['weight_unit', 'weightunit'], ['weight unit']);
+  const waistUnitAnswer = getAnswer(['waist_unit', 'waistunit', 'waist_circumference_unit'], ['waist unit']);
+  const hipUnitAnswer = getAnswer(['hip_unit', 'hipunit', 'hip_circumference_unit'], ['hip unit']);
+
+  const primary = {};
+  const followup = {};
+
+  const rawHeightUnit = heightUnitAnswer.unitValue || heightAnswer.unitValue;
+  const rawWeightUnit = weightUnitAnswer.unitValue || weightAnswer.unitValue;
+  const rawWaistUnit = waistUnitAnswer.unitValue || waistAnswer.unitValue;
+  const rawHipUnit = hipUnitAnswer.unitValue || hipAnswer.unitValue;
+
+  let heightUnit = resolveUnitLabelFromQuestion(heightAnswer.question || heightUnitAnswer.question, rawHeightUnit);
+  const weightUnit = resolveUnitLabelFromQuestion(weightAnswer.question || weightUnitAnswer.question, rawWeightUnit);
+  const waistUnit = resolveUnitLabelFromQuestion(waistAnswer.question || waistUnitAnswer.question, rawWaistUnit);
+  const hipUnit = resolveUnitLabelFromQuestion(hipAnswer.question || hipUnitAnswer.question, rawHipUnit);
+
+  if (!heightUnit && Number.isFinite(heightAnswer.numericValue) && heightAnswer.numericValue > 0 && heightAnswer.numericValue <= 9.5) {
+    // Height values like 5.58 without explicit unit are most likely feet.
+    heightUnit = 'ft/in';
+  }
+
+  const normalizedHeightInCm = Number.isFinite(heightAnswer.numericValue)
+    ? convertHeightToCm(heightAnswer.numericValue, heightUnit)
+    : null;
+
+  if (normalizedHeightInCm != null) primary.height = normalizedHeightInCm;
+  if (weightAnswer.numericValue != null) primary.weight = weightAnswer.numericValue;
+  if (waistAnswer.numericValue != null) primary.waist = roundToWholeNumber(waistAnswer.numericValue, 32);
+  if (hipAnswer.numericValue != null) followup.hipSize = roundToWholeNumber(hipAnswer.numericValue, 33);
+  if (bodyFatAnswer.numericValue != null) followup.bodyFat = bodyFatAnswer.numericValue;
+
+  if (heightUnit) primary.heightUnit = heightUnit;
+  if (weightUnit) primary.weightUnit = weightUnit;
+  if (waistUnit) primary.waistUnit = waistUnit;
+  if (hipUnit) followup.hipUnit = hipUnit;
+
+  return {
+    primary,
+    followup,
+  };
+};
+
+const buildVitalsInitialValuesFromResponses = (questions = [], responses = []) => {
+  const normalizedResponses = normalizeResponseItems(responses);
+  if (!Array.isArray(questions) || questions.length === 0 || normalizedResponses.length === 0) {
+    return {
+      systolic: null,
+      diastolic: null,
+    };
+  }
+
+  const getValue = (aliases) => {
+    const question = findQuestionByKeys(questions, aliases);
+    if (!question) {
+      return null;
+    }
+
+    return toNumericAnswer(getResponseAnswerForQuestion(question, normalizedResponses));
+  };
+
+  return {
+    systolic: getValue(['systolic_blood_pressure', 'systolic']),
+    diastolic: getValue(['diastolic_blood_pressure', 'diastolic']),
+  };
+};
+
 const normalizeAnswerForQuestion = (question, rawAnswer) => {
   const questionType = normalizeQuestionType(question?.question_type);
 
@@ -995,7 +1480,7 @@ const normalizeAnswerForQuestion = (question, rawAnswer) => {
 };
 
 const buildResponseItem = (question, rawAnswer) => {
-  const questionId = Number(question?.question_id || 0);
+  const questionId = Number(question?.question_id || question?.id || 0);
   if (questionId <= 0) return null;
 
   const answer = normalizeAnswerForQuestion(question, rawAnswer);
@@ -1014,7 +1499,8 @@ const buildResponsesFromSelections = (questions = [], selections = {}) => {
 
   return questions
     .map((question) => {
-      const key = question?.question_key || `question-${question?.question_id}`;
+      const questionId = question?.question_id || question?.id;
+      const key = question?.question_key || `question-${questionId}`;
       return buildResponseItem(question, selections[key]);
     })
     .filter(Boolean);
@@ -1034,6 +1520,27 @@ const buildSelectionStateFromCards = (cardsData = [], initialSelections = {}) =>
     acc[key] = Array.isArray(nextValue) ? [...nextValue] : [];
     return acc;
   }, {});
+};
+
+const hasCardAnswer = (card = {}, selectionValue = []) => {
+  if (!card || card.key === 'empty') {
+    return true;
+  }
+
+  if (card.isTextInput) {
+    const textValue = Array.isArray(selectionValue) ? selectionValue[0] : '';
+    return String(textValue || '').trim().length > 0;
+  }
+
+  return Array.isArray(selectionValue) && selectionValue.length > 0;
+};
+
+const isTextQuestionWithoutOptions = (question) => {
+  const questionType = normalizeQuestionType(question?.question_type);
+  const hasOptions = Array.isArray(question?.options)
+    && question.options.some((option) => Boolean(option?.display_name || option?.option_value));
+
+  return !hasOptions && ['text', 'short_text', 'long_text', 'textarea'].includes(questionType);
 };
 
 const normalizeLookupText = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1084,9 +1591,13 @@ const buildAnthropometryResponses = (questions = [], primaryValues = {}, followu
 
   const fieldMap = [
     { aliases: ['height'], textHints: ['height'], value: mergedValues.height },
+    { aliases: ['height_unit', 'heightunit'], textHints: ['height unit'], value: mergedValues.heightUnit },
     { aliases: ['weight'], textHints: ['weight', 'body weight'], value: mergedValues.weight },
+    { aliases: ['weight_unit', 'weightunit'], textHints: ['weight unit'], value: mergedValues.weightUnit },
     { aliases: ['waist_circumference', 'waist'], textHints: ['waist'], value: mergedValues.waist },
+    { aliases: ['waist_unit', 'waistunit', 'waist_circumference_unit'], textHints: ['waist unit'], value: mergedValues.waistUnit },
     { aliases: ['hip_circumference', 'hip_size', 'hip'], textHints: ['hip'], value: mergedValues.hipSize },
+    { aliases: ['hip_unit', 'hipunit', 'hip_circumference_unit'], textHints: ['hip unit'], value: mergedValues.hipUnit },
     { aliases: ['body_fat_percentage', 'body_fat', 'fat_percentage'], textHints: ['body fat', 'bodyfat'], value: mergedValues.bodyFat },
   ];
 
@@ -1128,7 +1639,7 @@ const buildVitalsResponses = (questions = [], values = {}) => {
     .filter(Boolean);
 };
 
-const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [], initialSelections = {} }) => {
+const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {} }) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const cardsData = useMemo(() => {
@@ -1138,6 +1649,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [], initialSele
   const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
   const touchStartYRef = useRef(null);
   const lastWheelAtRef = useRef(0);
+  const cardRef = useRef(null);
 
   useEffect(() => {
     setCardIndex(0);
@@ -1183,6 +1695,28 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [], initialSele
     setCardIndex((prev) => Math.min(totalCards - 1, prev + 1));
   };
 
+  const triggerCardShake = () => {
+    const cardElement = cardRef.current;
+    if (!cardElement) {
+      return;
+    }
+
+    cardElement.classList.remove('is-shaking');
+    void cardElement.offsetWidth;
+    cardElement.classList.add('is-shaking');
+  };
+
+  const attemptGoNext = () => {
+    if (!hasCardAnswer(activeCard, activeSelections)) {
+      triggerCardShake();
+      return;
+    }
+
+    onDraftSave?.(selections);
+
+    goNext();
+  };
+
   const handleTouchStart = (e) => {
     touchStartYRef.current = e.touches[0].clientY;
   };
@@ -1192,7 +1726,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [], initialSele
     const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
     if (Math.abs(deltaY) > 40) {
       if (deltaY < 0) {
-        goNext();
+        attemptGoNext();
       } else {
         goPrev();
       }
@@ -1207,7 +1741,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [], initialSele
     lastWheelAtRef.current = now;
 
     if (e.deltaY > 0) {
-      goNext();
+      attemptGoNext();
     } else if (e.deltaY < 0) {
       goPrev();
     }
@@ -1242,6 +1776,16 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [], initialSele
     });
   };
 
+  const handleTextInputChange = (event) => {
+    const nextValue = String(event?.target?.value || '');
+    setSelections((prev) => ({
+      ...prev,
+      [activeCard.key]: nextValue ? [nextValue] : [],
+    }));
+  };
+
+  const textInputValue = activeSelections[0] || '';
+
   return (
     <div className="family-history-page">
       <div className="family-history-page__header">
@@ -1266,14 +1810,17 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [], initialSele
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div key={activeCard.key} className="family-history-page__card">
+        <div key={activeCard.key} ref={cardRef} className="family-history-page__card">
           <div className="family-history-page__progress">
             <span className="family-history-page__progress-main">{progressNumerator}</span>
             <span className="family-history-page__progress-sub">/{totalCards}</span>
           </div>
 
           <div className="family-history-page__question-row">
-            <p className="family-history-page__question">{activeCard.title}</p>
+            <p className="family-history-page__question">
+              {activeCard.title}
+              <span className="question-required-mark" aria-hidden="true">*</span>
+            </p>
             {activeCard.infoLines?.length ? (
               <button
                 type="button"
@@ -1289,19 +1836,33 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [], initialSele
           </div>
           {activeCard.helper ? <p className="family-history-page__helper">{activeCard.helper}</p> : null}
 
-          <div className={`family-history-page__chips ${activeCard.multi ? 'family-history-page__chips--multi' : ''}`}>
-            {activeCard.options.map((opt) => {
-              const selected = activeSelections.includes(opt);
-              return (
-                <button key={opt} type="button" className={chipClass(opt)} onClick={() => handleChipClick(opt)}>
-                  {activeCard.multi && selected ? (
-                    <img src={tickIcon} alt="" aria-hidden="true" className="family-history-page__tick" />
-                  ) : null}
-                  <span>{opt}</span>
-                </button>
-              );
-            })}
-          </div>
+          {activeCard.isTextInput ? (
+            <div className="family-history-page__text-input-wrap">
+              <input
+                type="text"
+                className="family-history-page__text-input"
+                value={textInputValue}
+                onChange={handleTextInputChange}
+                placeholder="Type your answer"
+                aria-label={activeCard.title || 'Answer'}
+                onWheel={(event) => event.stopPropagation()}
+              />
+            </div>
+          ) : (
+            <div className={`family-history-page__chips ${activeCard.multi ? 'family-history-page__chips--multi' : ''}`}>
+              {activeCard.options.map((opt) => {
+                const selected = activeSelections.includes(opt);
+                return (
+                  <button key={opt} type="button" className={chipClass(opt)} onClick={() => handleChipClick(opt)}>
+                    {activeCard.multi && selected ? (
+                      <img src={tickIcon} alt="" aria-hidden="true" className="family-history-page__tick" />
+                    ) : null}
+                    <span>{opt}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {stackCardCount >= 1 ? (
@@ -1315,7 +1876,21 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, questions = [], initialSele
       <p className="family-history-page__swipe-hint">Scroll up / down to navigate</p>
 
       {cardIndex === totalCards - 1 ? (
-        <button type="button" className="family-history-page__done" onClick={() => onDone?.(selections)}>Done</button>
+        <button
+          type="button"
+          className="family-history-page__done"
+          onClick={() => {
+            if (!hasCardAnswer(activeCard, activeSelections)) {
+              triggerCardShake();
+              return;
+            }
+
+            onDraftSave?.(selections);
+            onDone?.(selections);
+          }}
+        >
+          Done
+        </button>
       ) : null}
 
       {showInfoPopup && infoLines.length ? (
@@ -1506,6 +2081,7 @@ const toLifestyleApiCards = (questions = []) => {
   return questions.map((question) => {
     const key = question?.question_key || `question-${question?.question_id}`;
     const isMulti = ['multi_choice', 'multiple_choice'].includes(String(question?.question_type || '').toLowerCase());
+    const isTextInput = isTextQuestionWithoutOptions(question);
     const options = Array.isArray(question?.options)
       ? [...new Map(question.options.map((option) => {
           const label = option?.display_name || option?.option_value || '';
@@ -1530,11 +2106,12 @@ const toLifestyleApiCards = (questions = []) => {
       defaultSelected: [],
       multi: isMulti,
       maxSelections: key === 'wellness-priorities' || key === 'wellness_priorities' ? 2 : undefined,
+      isTextInput,
     };
   });
 };
 
-const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [], initialSelections = {} }) => {
+const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {} }) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const cardsData = useMemo(() => {
@@ -1544,6 +2121,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [], initialSe
   const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
   const touchStartYRef = useRef(null);
   const lastWheelAtRef = useRef(0);
+  const cardRef = useRef(null);
 
   useEffect(() => {
     setCardIndex(0);
@@ -1590,6 +2168,28 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [], initialSe
     setCardIndex((prev) => Math.min(totalCards - 1, prev + 1));
   };
 
+  const triggerCardShake = () => {
+    const cardElement = cardRef.current;
+    if (!cardElement) {
+      return;
+    }
+
+    cardElement.classList.remove('is-shaking');
+    void cardElement.offsetWidth;
+    cardElement.classList.add('is-shaking');
+  };
+
+  const attemptGoNext = () => {
+    if (!hasCardAnswer(activeCard, activeSelections)) {
+      triggerCardShake();
+      return;
+    }
+
+    onDraftSave?.(selections);
+
+    goNext();
+  };
+
   const handleTouchStart = (e) => {
     touchStartYRef.current = e.touches[0].clientY;
   };
@@ -1599,7 +2199,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [], initialSe
     const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
     if (Math.abs(deltaY) > 40) {
       if (deltaY < 0) {
-        goNext();
+        attemptGoNext();
       } else {
         goPrev();
       }
@@ -1614,7 +2214,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [], initialSe
     lastWheelAtRef.current = now;
 
     if (e.deltaY > 0) {
-      goNext();
+      attemptGoNext();
     } else if (e.deltaY < 0) {
       goPrev();
     }
@@ -1651,6 +2251,16 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [], initialSe
     });
   };
 
+  const handleTextInputChange = (event) => {
+    const nextValue = String(event?.target?.value || '');
+    setSelections((prev) => ({
+      ...prev,
+      [activeCard.key]: nextValue ? [nextValue] : [],
+    }));
+  };
+
+  const textInputValue = activeSelections[0] || '';
+
   return (
     <div className="lifestyle-habits-page">
       <div className="lifestyle-habits-page__header">
@@ -1675,14 +2285,17 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [], initialSe
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div key={activeCard.key} className="lifestyle-habits-page__card">
+        <div key={activeCard.key} ref={cardRef} className="lifestyle-habits-page__card">
           <div className="lifestyle-habits-page__progress">
             <span className="lifestyle-habits-page__progress-main">{progressNumerator}</span>
             <span className="lifestyle-habits-page__progress-sub">/{totalCards}</span>
           </div>
 
           <div className="lifestyle-habits-page__question-row">
-            <p className="lifestyle-habits-page__question">{activeCard.title}</p>
+            <p className="lifestyle-habits-page__question">
+              {activeCard.title}
+              <span className="question-required-mark" aria-hidden="true">*</span>
+            </p>
             {activeCard.infoLines?.length ? (
               <button
                 type="button"
@@ -1699,24 +2312,38 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [], initialSe
 
           {activeCard.helper ? <p className="lifestyle-habits-page__helper">{activeCard.helper}</p> : null}
 
-          <div className={`lifestyle-habits-page__chips ${activeCard.multi ? 'lifestyle-habits-page__chips--multi' : ''}`}>
-            {activeCard.options.map((option) => {
-              const selected = activeSelections.includes(option.label);
-              return (
-                <button
-                  key={option.label}
-                  type="button"
-                  className={chipClass(option)}
-                  onClick={() => handleChipClick(option.label)}
-                >
-                  {activeCard.multi && selected ? (
-                    <img src={tickIcon} alt="" aria-hidden="true" className="lifestyle-habits-page__tick" />
-                  ) : null}
-                  <span>{option.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {activeCard.isTextInput ? (
+            <div className="lifestyle-habits-page__text-input-wrap">
+              <input
+                type="text"
+                className="lifestyle-habits-page__text-input"
+                value={textInputValue}
+                onChange={handleTextInputChange}
+                placeholder="Type your answer"
+                aria-label={activeCard.title || 'Answer'}
+                onWheel={(event) => event.stopPropagation()}
+              />
+            </div>
+          ) : (
+            <div className={`lifestyle-habits-page__chips ${activeCard.multi ? 'lifestyle-habits-page__chips--multi' : ''}`}>
+              {activeCard.options.map((option) => {
+                const selected = activeSelections.includes(option.label);
+                return (
+                  <button
+                    key={option.label}
+                    type="button"
+                    className={chipClass(option)}
+                    onClick={() => handleChipClick(option.label)}
+                  >
+                    {activeCard.multi && selected ? (
+                      <img src={tickIcon} alt="" aria-hidden="true" className="lifestyle-habits-page__tick" />
+                    ) : null}
+                    <span>{option.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {stackCardCount >= 1 ? <div className="lifestyle-habits-page__stack-card lifestyle-habits-page__stack-card--one" aria-hidden="true" /> : null}
@@ -1726,7 +2353,21 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, questions = [], initialSe
       <p className="lifestyle-habits-page__swipe-hint">Scroll up / down to navigate</p>
 
       {cardIndex === totalCards - 1 ? (
-        <button type="button" className="lifestyle-habits-page__done" onClick={() => onDone?.(selections)}>Done</button>
+        <button
+          type="button"
+          className="lifestyle-habits-page__done"
+          onClick={() => {
+            if (!hasCardAnswer(activeCard, activeSelections)) {
+              triggerCardShake();
+              return;
+            }
+
+            onDraftSave?.(selections);
+            onDone?.(selections);
+          }}
+        >
+          Done
+        </button>
       ) : null}
 
       {showInfoPopup && infoLines.length ? (
@@ -1995,6 +2636,7 @@ const toNutritionApiCards = (questions = []) => {
   return questions.map((question) => {
     const key = question?.question_key || `question-${question?.question_id}`;
     const isMulti = ['multi_choice', 'multiple_choice'].includes(String(question?.question_type || '').toLowerCase());
+    const isTextInput = isTextQuestionWithoutOptions(question);
     const options = Array.isArray(question?.options)
       ? [...new Map(question.options.map((option) => {
           const label = option?.display_name || option?.option_value || '';
@@ -2025,11 +2667,12 @@ const toNutritionApiCards = (questions = []) => {
       options,
       defaultSelected: [],
       multi: isMulti,
+      isTextInput,
     };
   });
 };
 
-const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [], initialSelections = {} }) => {
+const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {} }) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const cardsData = useMemo(() => {
@@ -2039,6 +2682,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [], initialSelec
   const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
   const touchStartYRef = useRef(null);
   const lastWheelAtRef = useRef(0);
+  const cardRef = useRef(null);
 
   useEffect(() => {
     setCardIndex(0);
@@ -2085,6 +2729,28 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [], initialSelec
     setCardIndex((prev) => Math.min(totalCards - 1, prev + 1));
   };
 
+  const triggerCardShake = () => {
+    const cardElement = cardRef.current;
+    if (!cardElement) {
+      return;
+    }
+
+    cardElement.classList.remove('is-shaking');
+    void cardElement.offsetWidth;
+    cardElement.classList.add('is-shaking');
+  };
+
+  const attemptGoNext = () => {
+    if (!hasCardAnswer(activeCard, activeSelections)) {
+      triggerCardShake();
+      return;
+    }
+
+    onDraftSave?.(selections);
+
+    goNext();
+  };
+
   const handleTouchStart = (e) => {
     touchStartYRef.current = e.touches[0].clientY;
   };
@@ -2094,7 +2760,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [], initialSelec
     const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
     if (Math.abs(deltaY) > 40) {
       if (deltaY < 0) {
-        goNext();
+        attemptGoNext();
       } else {
         goPrev();
       }
@@ -2109,7 +2775,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [], initialSelec
     lastWheelAtRef.current = now;
 
     if (e.deltaY > 0) {
-      goNext();
+      attemptGoNext();
     } else if (e.deltaY < 0) {
       goPrev();
     }
@@ -2144,6 +2810,16 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [], initialSelec
     });
   };
 
+  const handleTextInputChange = (event) => {
+    const nextValue = String(event?.target?.value || '');
+    setSelections((prev) => ({
+      ...prev,
+      [activeCard.key]: nextValue ? [nextValue] : [],
+    }));
+  };
+
+  const textInputValue = activeSelections[0] || '';
+
   return (
     <div className="nutrition-log-page">
       <div className="nutrition-log-page__header">
@@ -2168,14 +2844,17 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [], initialSelec
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div key={activeCard.key} className="nutrition-log-page__card">
+        <div key={activeCard.key} ref={cardRef} className="nutrition-log-page__card">
           <div className="nutrition-log-page__progress">
             <span className="nutrition-log-page__progress-main">{progressNumerator}</span>
             <span className="nutrition-log-page__progress-sub">/{totalCards}</span>
           </div>
 
           <div className="nutrition-log-page__question-row">
-            <p className="nutrition-log-page__question">{activeCard.title}</p>
+            <p className="nutrition-log-page__question">
+              {activeCard.title}
+              <span className="question-required-mark" aria-hidden="true">*</span>
+            </p>
             {activeCard.infoLines?.length ? (
               <button
                 type="button"
@@ -2192,24 +2871,38 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [], initialSelec
 
           {activeCard.helper ? <p className="nutrition-log-page__helper">{activeCard.helper}</p> : null}
 
-          <div className={`nutrition-log-page__chips ${activeCard.multi ? 'nutrition-log-page__chips--multi' : ''}`}>
-            {activeCard.options.map((option) => {
-              const selected = activeSelections.includes(option.label);
-              return (
-                <button
-                  key={option.label}
-                  type="button"
-                  className={chipClass(option)}
-                  onClick={() => handleChipClick(option.label)}
-                >
-                  {activeCard.multi && selected ? (
-                    <img src={tickIcon} alt="" aria-hidden="true" className="nutrition-log-page__tick" />
-                  ) : null}
-                  <span>{option.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {activeCard.isTextInput ? (
+            <div className="nutrition-log-page__text-input-wrap">
+              <input
+                type="text"
+                className="nutrition-log-page__text-input"
+                value={textInputValue}
+                onChange={handleTextInputChange}
+                placeholder="Type your answer"
+                aria-label={activeCard.title || 'Answer'}
+                onWheel={(event) => event.stopPropagation()}
+              />
+            </div>
+          ) : (
+            <div className={`nutrition-log-page__chips ${activeCard.multi ? 'nutrition-log-page__chips--multi' : ''}`}>
+              {activeCard.options.map((option) => {
+                const selected = activeSelections.includes(option.label);
+                return (
+                  <button
+                    key={option.label}
+                    type="button"
+                    className={chipClass(option)}
+                    onClick={() => handleChipClick(option.label)}
+                  >
+                    {activeCard.multi && selected ? (
+                      <img src={tickIcon} alt="" aria-hidden="true" className="nutrition-log-page__tick" />
+                    ) : null}
+                    <span>{option.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {stackCardCount >= 1 ? <div className="nutrition-log-page__stack-card nutrition-log-page__stack-card--one" aria-hidden="true" /> : null}
@@ -2219,7 +2912,21 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, questions = [], initialSelec
       <p className="nutrition-log-page__swipe-hint">Scroll up / down to navigate</p>
 
       {cardIndex === totalCards - 1 ? (
-        <button type="button" className="nutrition-log-page__done" onClick={() => onDone?.(selections)}>Done</button>
+        <button
+          type="button"
+          className="nutrition-log-page__done"
+          onClick={() => {
+            if (!hasCardAnswer(activeCard, activeSelections)) {
+              triggerCardShake();
+              return;
+            }
+
+            onDraftSave?.(selections);
+            onDone?.(selections);
+          }}
+        >
+          Done
+        </button>
       ) : null}
 
       {showInfoPopup && infoLines.length ? (
@@ -2431,7 +3138,10 @@ const HealthAssessmentPage = ({
   onExpandStep,
   steps = [],
   questionsByRouteId = {},
+  initialResponsesByRoute = {},
   onStepComplete,
+  onStepDraftSave,
+  onAssessmentSubmit,
   onNavigateHome,
 }) => {
   const [activeSubPage, setActiveSubPage] = useState(null);
@@ -2445,6 +3155,60 @@ const HealthAssessmentPage = ({
     systolic: null,
     diastolic: null,
   });
+  const anthropometryInitialValues = useMemo(() => {
+    return buildAnthropometryInitialValuesFromResponses(
+      questionsByRouteId['anthropometry'] || [],
+      initialResponsesByRoute['anthropometry'] || []
+    );
+  }, [questionsByRouteId, initialResponsesByRoute]);
+  const familyInitialSelections = useMemo(() => {
+    return buildSelectionStateFromResponses(
+      questionsByRouteId['family-history'] || [],
+      initialResponsesByRoute['family-history'] || []
+    );
+  }, [questionsByRouteId, initialResponsesByRoute]);
+  const lifestyleInitialSelections = useMemo(() => {
+    return buildSelectionStateFromResponses(
+      questionsByRouteId['lifestyle-habits'] || [],
+      initialResponsesByRoute['lifestyle-habits'] || []
+    );
+  }, [questionsByRouteId, initialResponsesByRoute]);
+  const nutritionInitialSelections = useMemo(() => {
+    return buildSelectionStateFromResponses(
+      questionsByRouteId['nutrition-log'] || [],
+      initialResponsesByRoute['nutrition-log'] || []
+    );
+  }, [questionsByRouteId, initialResponsesByRoute]);
+  const vitalsInitialValues = useMemo(() => {
+    return buildVitalsInitialValuesFromResponses(
+      questionsByRouteId.vitals || [],
+      initialResponsesByRoute.vitals || []
+    );
+  }, [questionsByRouteId, initialResponsesByRoute]);
+
+  useEffect(() => {
+    if (activeSubPage) {
+      return;
+    }
+
+    setAnthropometryPrimaryValues(anthropometryInitialValues.primary || {});
+    setAnthropometryFollowupValues(anthropometryInitialValues.followup || {});
+    setFamilyHistorySelections(familyInitialSelections);
+    setLifestyleHabitsSelections(lifestyleInitialSelections);
+    setNutritionLogSelections(nutritionInitialSelections);
+    setVitalsValues({
+      systolic: vitalsInitialValues?.systolic ?? null,
+      diastolic: vitalsInitialValues?.diastolic ?? null,
+    });
+  }, [
+    activeSubPage,
+    anthropometryInitialValues,
+    familyInitialSelections,
+    lifestyleInitialSelections,
+    nutritionInitialSelections,
+    vitalsInitialValues,
+  ]);
+
   const resolvedSteps = defaultSteps.map((defaultStep) => {
     const matchedStep = Array.isArray(steps)
       ? steps.find((step) => step?.routeId === defaultStep.id || step?.id === defaultStep.id)
@@ -2528,6 +3292,15 @@ const HealthAssessmentPage = ({
         questions={questionsByRouteId['family-history'] || []}
         initialSelections={familyHistorySelections}
         onBack={() => setActiveSubPage(null)}
+        onDraftSave={(selections) => {
+          const safeSelections = selections || {};
+          const responses = buildResponsesFromSelections(
+            questionsByRouteId['family-history'] || [],
+            safeSelections
+          );
+
+          onStepDraftSave?.('family-history', responses);
+        }}
         onDone={(selections) => {
           setFamilyHistorySelections(selections || {});
           const responses = buildResponsesFromSelections(
@@ -2548,6 +3321,15 @@ const HealthAssessmentPage = ({
         questions={questionsByRouteId['lifestyle-habits'] || []}
         initialSelections={lifestyleHabitsSelections}
         onBack={() => setActiveSubPage(null)}
+        onDraftSave={(selections) => {
+          const safeSelections = selections || {};
+          const responses = buildResponsesFromSelections(
+            questionsByRouteId['lifestyle-habits'] || [],
+            safeSelections
+          );
+
+          onStepDraftSave?.('lifestyle-habits', responses);
+        }}
         onDone={(selections) => {
           setLifestyleHabitsSelections(selections || {});
           const responses = buildResponsesFromSelections(
@@ -2568,6 +3350,15 @@ const HealthAssessmentPage = ({
         questions={questionsByRouteId['nutrition-log'] || []}
         initialSelections={nutritionLogSelections}
         onBack={() => setActiveSubPage(null)}
+        onDraftSave={(selections) => {
+          const safeSelections = selections || {};
+          const responses = buildResponsesFromSelections(
+            questionsByRouteId['nutrition-log'] || [],
+            safeSelections
+          );
+
+          onStepDraftSave?.('nutrition-log', responses);
+        }}
         onDone={(selections) => {
           setNutritionLogSelections(selections || {});
           const responses = buildResponsesFromSelections(
@@ -2594,7 +3385,11 @@ const HealthAssessmentPage = ({
 
           setActiveSubPage(null);
           onStepComplete?.('vitals', responses);
-          onNavigateHome?.();
+          Promise.resolve(onAssessmentSubmit?.())
+            .then(() => onNavigateHome?.())
+            .catch((error) => {
+              console.error('Failed to submit assessment:', error);
+            });
         }}
         onSkip={() => {
           setActiveSubPage(null);
