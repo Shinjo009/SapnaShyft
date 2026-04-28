@@ -624,7 +624,7 @@
 
 .home-page-scheduled__checklist-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   width: 100%;
 }
@@ -652,13 +652,15 @@
 
 .home-page-scheduled__checklist-item p {
   margin: 0;
+  flex: 1;
+  min-width: 0;
   color: #fff;
   text-align: left;
   font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
-  line-height: normal;
+  line-height: 1.35;
 }
 
 .home-page-scheduled__scroll-indicator {
@@ -709,13 +711,14 @@
 
 .home-page-analyzing__subtitle {
   margin: 0;
-  color: #fff;
+  max-width: 320px;
+  color: rgba(255, 255, 255, 0.85);
   text-align: center;
   font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   font-style: normal;
-  font-weight: 500;
-  line-height: normal;
+  font-weight: 400;
+  line-height: 1.45;
 }
 
 .home-page-analyzing__eta {
@@ -808,6 +811,12 @@
   box-shadow: 0 1px 3px 0 #90df9e;
 }
 
+.home-page-analyzing__timeline-node--current {
+  background: transparent;
+  border: 2px solid #4b8d83;
+  box-shadow: 0 0 0 1px rgba(144, 223, 158, 0.35);
+}
+
 .home-page-analyzing__timeline-line {
   position: absolute;
   top: 17px;
@@ -877,6 +886,20 @@
   justify-content: center;
 }
 
+.home-page-analyzing__info-badge--btn {
+  padding: 0;
+  margin: 0;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-page-analyzing__info-badge--btn:active {
+  opacity: 0.85;
+  transform: scale(0.96);
+}
+
 .home-page-analyzing__next-list {
   margin: 0;
   padding-left: 24px;
@@ -899,6 +922,124 @@
 .home-page-analyzing__next-list li::marker {
   color: #fff;
   font-size: 14px;
+}
+
+.home-page--b2b-camp .home-page-scheduled__hero-copy p.home-page-b2b__organizer {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.home-page--slot-loading {
+  min-height: 40vh;
+}
+
+.home-page-b2b__slot-card {
+  padding: 16px;
+}
+
+.home-page-b2b__slot-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+
+.home-page-b2b__slot-title {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.home-page-b2b__slot-head .home-page-b2b__arrive-pill {
+  flex-shrink: 0;
+}
+
+.home-page-b2b__arrive-pill {
+  display: inline-flex;
+  padding: 4px 10px;
+  align-items: center;
+  border-radius: 36px;
+  border: 1px solid rgba(65, 171, 153, 0.6);
+  background: rgba(41, 99, 89, 0.35);
+  color: #e8fffa;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.home-page-b2b__arrive-pill--btn {
+  cursor: pointer;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-page-b2b__arrive-pill--btn:active {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+.home-page-b2b__preview-actions {
+  margin: 0 16px 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.home-page-b2b__preview-link {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.home-page-b2b__preview-link:active {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.home-page-b2b__cta-wrap {
+  margin: 16px 16px 8px;
+  padding-bottom: 8px;
+}
+
+.home-page-b2b__cta {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 20px;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  border-radius: 36px;
+  cursor: pointer;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.home-page-b2b__cta:active {
+  transform: scale(0.99);
 }
 
 /* Removed background image classes - using global fixed background */

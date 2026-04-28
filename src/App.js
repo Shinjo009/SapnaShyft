@@ -25,6 +25,9 @@ import popupOneImage from './images/popup1.webp';
 import popupTwoImage from './images/popup2.webp';
 import { prefetchNavbarRoutes } from './utils/routePrefetch';
 
+// Same asset as Profile logout modal (`/public/BG-1.png`).
+const questionnaireSuccessModalBg = `${process.env.PUBLIC_URL || ''}/BG-1.png`;
+
 // Route-level code splitting: every non-entry page loads its own JS/CSS chunk on demand.
 // Splash + Login stay eager because they're the first paint; everything else is deferred
 // so the initial main bundle stays small (~172 KiB of unused JS audit finding).
@@ -135,11 +138,21 @@ const resolveOverviewPayload = (payload) => {
   return payload;
 };
 
+const deriveEmployerOrganizerName = (profile) => {
+  const raw = profile?.referred_by
+    || profile?.organization_name
+    || profile?.employer_name
+    || profile?.camp_organizer
+    || profile?.corporate_partner_name;
+  return String(raw || '').trim();
+};
+
 function App() {
   const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
   const [isBootstrappingSession, setIsBootstrappingSession] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [userName, setUserName] = useState('');
+  const [employerOrganizerName, setEmployerOrganizerName] = useState('');
   const [userAge, setUserAge] = useState(null);
   const [selectedDisease, setSelectedDisease] = useState(null);
   const [questionnaireProgress, setQuestionnaireProgress] = useState(0);
@@ -149,6 +162,7 @@ function App() {
   const [questionnaireAssessments, setQuestionnaireAssessments] = useState([]);
   const [questionnaireQuestionsByCategoryId, setQuestionnaireQuestionsByCategoryId] = useState({});
   const [questionnaireDraftResponsesByRoute, setQuestionnaireDraftResponsesByRoute] = useState({});
+  const [questionnaireSuccessMessage, setQuestionnaireSuccessMessage] = useState(null);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isIosInstallFlow, setIsIosInstallFlow] = useState(false);
@@ -420,24 +434,34 @@ function App() {
 
     setQuestionnaireDraftResponsesByRoute(nextDraftResponses);
 
+    const persistRoute = async (route) => {
+      const targetCategory = getCategoryByRoute(route);
+      const categoryId = Number(targetCategory?.category_id || 0);
+      const assessmentInstanceId = Number(targetCategory?.assessment_instance_id || 0);
+      const routeResponses = Array.isArray(nextDraftResponses[route]) ? nextDraftResponses[route] : [];
+
+      if (categoryId <= 0 || assessmentInstanceId <= 0 || routeResponses.length === 0) {
+        return;
+      }
+
+      try {
+        await submitQuestionnaireResponses(assessmentInstanceId, categoryId, routeResponses);
+      } catch (error) {
+        console.error(`Failed to submit questionnaire responses for ${route}:`, error);
+      }
+    };
+
+    // Persist this step immediately so answers are not lost if the user drops off before vitals
+    // or if a later batch step fails silently.
+    if (normalizedResponses.length > 0) {
+      await persistRoute(routeId);
+    }
+
     if (routeId === 'vitals') {
       const submissionOrder = ['anthropometry', 'family-history', 'lifestyle-habits', 'nutrition-log', 'vitals'];
 
       for (const route of submissionOrder) {
-        const targetCategory = getCategoryByRoute(route);
-        const categoryId = Number(targetCategory?.category_id || 0);
-        const assessmentInstanceId = Number(targetCategory?.assessment_instance_id || 0);
-        const routeResponses = Array.isArray(nextDraftResponses[route]) ? nextDraftResponses[route] : [];
-
-        if (categoryId <= 0 || assessmentInstanceId <= 0 || routeResponses.length === 0) {
-          continue;
-        }
-
-        try {
-          await submitQuestionnaireResponses(assessmentInstanceId, categoryId, routeResponses);
-        } catch (error) {
-          console.error(`Failed to submit questionnaire responses for ${route}:`, error);
-        }
+        await persistRoute(route);
       }
     }
 
@@ -498,6 +522,16 @@ function App() {
     }
   };
 
+  const handleOpenB2bHealthAssessment = () => {
+    try {
+      sessionStorage.setItem('ss_b2b_opened_questionnaire', '1');
+    } catch {
+      // private mode / disabled storage
+    }
+    setCurrentPage('health-assessment');
+    initializeQuestionnaire();
+  };
+
   useEffect(() => {
     const trySessionRestore = async () => {
       const refreshTokenValue = getRefreshToken();
@@ -526,6 +560,7 @@ function App() {
           ? profileResponse.data
           : profileResponse;
         setUserName(profile?.first_name || '');
+        setEmployerOrganizerName(deriveEmployerOrganizerName(profile));
         setUserAge(getAgeFromProfile(profile));
 
         const activeUserId = Number(profile?.user_id || 0);
@@ -739,6 +774,12 @@ function App() {
     setShowIosInstallGuide(false);
   };
 
+  const handleQuestionnaireSuccessOk = () => {
+    setQuestionnaireSuccessMessage(null);
+    setCurrentPage('home');
+    setForceHomeApiRefresh(true);
+  };
+
   const preloadHomeScreenData = async () => {
     setPreloadedHomeData(null);
 
@@ -796,6 +837,7 @@ function App() {
         ? profileResponse.data
         : profileResponse;
       setUserName(profile?.first_name || '');
+      setEmployerOrganizerName(deriveEmployerOrganizerName(profile));
       setUserAge(getAgeFromProfile(profile));
 
       const activeUserId = Number(profile?.user_id || 0);
@@ -902,6 +944,7 @@ function App() {
         : profileResponse;
 
       setUserName(profile?.first_name || '');
+      setEmployerOrganizerName(deriveEmployerOrganizerName(profile));
       setUserAge(getAgeFromProfile(profile));
       const refreshedUserId = Number(profile?.user_id || 0);
       setCurrentUserId(refreshedUserId > 0 ? refreshedUserId : null);
@@ -939,6 +982,14 @@ function App() {
     setExpandedQuestionnaireStep(null);
     setQuestionnaireDraftResponsesByRoute({});
     setPreloadedHomeData(null);
+    setUserName('');
+    setEmployerOrganizerName('');
+    try {
+      localStorage.removeItem('ss_b2b_questionnaire_submitted');
+      sessionStorage.removeItem('ss_b2b_opened_questionnaire');
+    } catch {
+      // ignore
+    }
     setCurrentPage('login');
   };
 
@@ -1105,6 +1156,7 @@ function App() {
         <HomePage 
           userName={userName}
           userAge={userAge}
+          employerOrganizerFallback={employerOrganizerName}
           preloadedData={preloadedHomeData}
           forceRefreshFromProfile={forceHomeApiRefresh}
           onNavigateToHealthScan={() => {
@@ -1133,6 +1185,7 @@ function App() {
             setCurrentPage('health-assessment');
             initializeQuestionnaire();
           }}
+          onOpenB2bHealthAssessment={handleOpenB2bHealthAssessment}
           onNavigateToBloodMarkers={() => {
             console.log('Navigate to Blood Markers');
             setCurrentPage('blood-markers');
@@ -1382,17 +1435,30 @@ function App() {
 
             const sourceIds = getAssessmentSourceIdsForTarget(targetAssessmentInstanceId);
 
-            if (targetAssessmentInstanceId <= 0 || sourceIds.length === 0) {
-              throw new Error('Unable to determine the assessment(s) to submit.');
+            try {
+              if (targetAssessmentInstanceId > 0 && sourceIds.length > 0) {
+                try {
+                  await submitAssessment(targetAssessmentInstanceId, sourceIds);
+                  try {
+                    localStorage.setItem('ss_b2b_questionnaire_submitted', '1');
+                    sessionStorage.removeItem('ss_b2b_opened_questionnaire');
+                  } catch {
+                    // ignore
+                  }
+                  clearReportRequestCache();
+                  clearStoredLatestAssessmentId();
+                } catch (error) {
+                  console.error('Assessment submit failed:', error);
+                }
+              }
+            } finally {
+              setQuestionnaireSuccessMessage('Submitted successfully!');
             }
-
-            for (const instanceId of sourceIds) {
-              await submitAssessment(instanceId, sourceIds);
-            }
-            clearReportRequestCache();
-            clearStoredLatestAssessmentId();
           }}
-          onNavigateHome={() => setCurrentPage('home')}
+          onNavigateHome={() => {
+            setQuestionnaireSuccessMessage(null);
+            setCurrentPage('home');
+          }}
         />
       )}
 
@@ -1450,6 +1516,7 @@ function App() {
               : null;
 
             setUserName(switchedProfile?.first_name || '');
+            setEmployerOrganizerName(deriveEmployerOrganizerName(switchedProfile));
             setUserAge(getAgeFromProfile(switchedProfile));
 
             const switchedUserId = Number(switchedProfile?.user_id || 0);
@@ -1644,6 +1711,50 @@ function App() {
       )}
       </Suspense>
       </div>
+      {Boolean(questionnaireSuccessMessage) && (
+        <div
+          className="questionnaire-success-overlay"
+          role="alertdialog"
+          aria-modal="true"
+          aria-live="polite"
+          aria-labelledby="questionnaire-success-title"
+          onClick={handleQuestionnaireSuccessOk}
+        >
+          <div
+            className="questionnaire-success-modal"
+            style={{
+              backgroundImage: `url(${questionnaireSuccessModalBg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="questionnaire-success-close"
+              onClick={handleQuestionnaireSuccessOk}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <h3 id="questionnaire-success-title" className="questionnaire-success-title">
+              {questionnaireSuccessMessage}
+            </h3>
+            <p className="questionnaire-success-description">
+              You can review your results from the home screen anytime.
+            </p>
+            <div className="questionnaire-success-actions">
+              <button
+                type="button"
+                className="questionnaire-success-btn questionnaire-success-btn--ok"
+                onClick={handleQuestionnaireSuccessOk}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -145,3 +145,12 @@ export const unlinkMyProfile = (payload = {}) => {
   const safePayload = payload && typeof payload === 'object' ? payload : {};
   return authorizedUsersRequest('/users/me/unlink', 'POST', safePayload);
 };
+
+/** Upcoming health camp / collection slot; includes B2B vs B2C on engagement. */
+export const getMyUpcomingSlot = async () => {
+  const parsedBody = await authorizedUsersRequest('/users/me/upcoming-slot', 'GET');
+  if (parsedBody?.data && typeof parsedBody.data === 'object') {
+    return parsedBody.data;
+  }
+  return parsedBody && typeof parsedBody === 'object' ? parsedBody : null;
+};

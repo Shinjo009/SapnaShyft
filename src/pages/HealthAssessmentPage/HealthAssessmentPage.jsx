@@ -1641,7 +1641,35 @@ const normalizeAnswerForQuestion = (question, rawAnswer) => {
     return mapOptionLabelToValue(question, selected);
   }
 
-  if (questionType === 'number' || questionType === 'numeric' || questionType === 'scale' || questionType === 'integer') {
+  if (questionType === 'scale') {
+    if (rawAnswer != null && typeof rawAnswer === 'object' && !Array.isArray(rawAnswer)) {
+      const valRaw = rawAnswer.value ?? rawAnswer.answer ?? rawAnswer.response;
+      const unitRaw = rawAnswer.unit ?? rawAnswer.units;
+      const num = Number(valRaw);
+      if (!Number.isFinite(num)) {
+        return null;
+      }
+      const unitStr = String(unitRaw ?? '').trim();
+      const unitCode = mapOptionLabelToValue(question, unitStr) || unitStr;
+      if (!unitCode) {
+        return null;
+      }
+      return { value: num, unit: unitCode };
+    }
+    const primitive = Array.isArray(rawAnswer) ? rawAnswer[0] : rawAnswer;
+    const coerced = Number(primitive);
+    if (!Number.isFinite(coerced)) {
+      return null;
+    }
+    const firstOpt = Array.isArray(question?.options) ? question.options[0] : null;
+    const unitCode = String(firstOpt?.option_value ?? '').trim();
+    if (!unitCode) {
+      return null;
+    }
+    return { value: coerced, unit: unitCode };
+  }
+
+  if (questionType === 'number' || questionType === 'numeric' || questionType === 'integer') {
     const selected = Array.isArray(rawAnswer) ? rawAnswer[0] : rawAnswer;
     const numberValue = Number(selected);
     return Number.isFinite(numberValue) ? numberValue : null;
@@ -1665,6 +1693,42 @@ const buildResponseItem = (question, rawAnswer) => {
     question_id: questionId,
     answer,
   };
+};
+
+/** API ``scale`` questions require ``{ value, unit }`` with ``unit`` as questionnaire option_value (e.g. Metsights codes). */
+const buildScaleResponseItem = (question, numericValue, unitLabel, opts = {}) => {
+  const forceValueCmUnitZero = Boolean(opts?.forceValueCmUnitZero);
+  const questionId = Number(question?.question_id || question?.id || 0);
+  if (questionId <= 0) {
+    return null;
+  }
+  if (numericValue == null || numericValue === '') {
+    return null;
+  }
+  const n = Number(numericValue);
+  if (!Number.isFinite(n)) {
+    return null;
+  }
+
+  const qType = normalizeQuestionType(question?.question_type);
+  if (qType !== 'scale') {
+    return buildResponseItem(question, n);
+  }
+
+  let unitCode;
+  if (forceValueCmUnitZero) {
+    unitCode = '0';
+  } else {
+    unitCode = mapOptionLabelToValue(question, String(unitLabel || '').trim());
+    if (!unitCode && Array.isArray(question?.options) && question.options.length > 0) {
+      unitCode = String(question.options[0].option_value ?? '').trim();
+    }
+  }
+  if (!unitCode) {
+    return null;
+  }
+
+  return buildResponseItem(question, { value: n, unit: unitCode });
 };
 
 const buildResponsesFromSelections = (questions = [], selections = {}) => {
@@ -1802,19 +1866,41 @@ const buildAnthropometryResponses = (questions = [], primaryValues = {}, followu
   };
 
   const fieldMap = [
-    { aliases: ['height'], textHints: ['height'], value: mergedValues.height },
-    { aliases: ['height_unit', 'heightunit'], textHints: ['height unit'], value: mergedValues.heightUnit },
-    { aliases: ['weight'], textHints: ['weight', 'body weight'], value: mergedValues.weight },
-    { aliases: ['weight_unit', 'weightunit'], textHints: ['weight unit'], value: mergedValues.weightUnit },
-    { aliases: ['waist_circumference', 'waist'], textHints: ['waist'], value: mergedValues.waist },
-    { aliases: ['waist_unit', 'waistunit', 'waist_circumference_unit'], textHints: ['waist unit'], value: mergedValues.waistUnit },
-    { aliases: ['hip_circumference', 'hip_size', 'hip'], textHints: ['hip'], value: mergedValues.hipSize },
-    { aliases: ['hip_unit', 'hipunit', 'hip_circumference_unit'], textHints: ['hip unit'], value: mergedValues.hipUnit },
-    { aliases: ['body_fat_percentage', 'body_fat', 'fat_percentage'], textHints: ['body fat', 'bodyfat'], value: mergedValues.bodyFat },
+    {
+      aliases: ['height'],
+      textHints: ['height'],
+      value: mergedValues.height,
+      unitLabel: mergedValues.heightUnit,
+      forceValueCmUnitZero: true,
+    },
+    {
+      aliases: ['weight'],
+      textHints: ['weight', 'body weight'],
+      value: mergedValues.weight,
+      unitLabel: mergedValues.weightUnit,
+    },
+    {
+      aliases: ['waist_circumference', 'waist'],
+      textHints: ['waist'],
+      value: mergedValues.waist,
+      unitLabel: mergedValues.waistUnit,
+    },
+    {
+      aliases: ['hip_circumference', 'hip_size', 'hip'],
+      textHints: ['hip'],
+      value: mergedValues.hipSize,
+      unitLabel: mergedValues.hipUnit,
+    },
+    {
+      aliases: ['body_fat_percentage', 'body_fat', 'fat_percentage'],
+      textHints: ['body fat', 'bodyfat'],
+      value: mergedValues.bodyFat,
+      unitLabel: '%',
+    },
   ];
 
   return fieldMap
-    .map(({ aliases, textHints, value }) => {
+    .map(({ aliases, textHints, value, unitLabel, forceValueCmUnitZero }) => {
       if (value == null || value === '') {
         return null;
       }
@@ -1824,7 +1910,7 @@ const buildAnthropometryResponses = (questions = [], primaryValues = {}, followu
         return null;
       }
 
-      return buildResponseItem(question, value);
+      return buildScaleResponseItem(question, value, unitLabel, { forceValueCmUnitZero });
     })
     .filter(Boolean);
 };
@@ -1846,7 +1932,8 @@ const buildVitalsResponses = (questions = [], values = {}) => {
         return null;
       }
 
-      return buildResponseItem(question, value);
+      const defaultUnitLabel = extractUnitOptionsFromQuestion(question)[0] || 'mmHG';
+      return buildScaleResponseItem(question, value, defaultUnitLabel);
     })
     .filter(Boolean);
 };
@@ -1859,6 +1946,8 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
   }, [questions]);
 
   const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
+  const selectionsRef = useRef(selections);
+  selectionsRef.current = selections;
   const touchStartYRef = useRef(null);
   const lastWheelAtRef = useRef(0);
   const cardRef = useRef(null);
@@ -1930,7 +2019,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
       return;
     }
 
-    onDraftSave?.(selections);
+    onDraftSave?.(selectionsRef.current);
 
     goNext();
   };
@@ -2132,8 +2221,8 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
               return;
             }
 
-            onDraftSave?.(selections);
-            onDone?.(selections);
+            onDraftSave?.(selectionsRef.current);
+            onDone?.(selectionsRef.current);
           }}
         >
           Done
@@ -2369,6 +2458,8 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
   }, [questions]);
 
   const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
+  const selectionsRef = useRef(selections);
+  selectionsRef.current = selections;
   const touchStartYRef = useRef(null);
   const lastWheelAtRef = useRef(0);
   const cardRef = useRef(null);
@@ -2441,7 +2532,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
       return;
     }
 
-    onDraftSave?.(selections);
+    onDraftSave?.(selectionsRef.current);
 
     goNext();
   };
@@ -2647,8 +2738,8 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
               return;
             }
 
-            onDraftSave?.(selections);
-            onDone?.(selections);
+            onDraftSave?.(selectionsRef.current);
+            onDone?.(selectionsRef.current);
           }}
         >
           Done
@@ -2968,6 +3059,8 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
   }, [questions]);
 
   const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
+  const selectionsRef = useRef(selections);
+  selectionsRef.current = selections;
   const touchStartYRef = useRef(null);
   const lastWheelAtRef = useRef(0);
   const cardRef = useRef(null);
@@ -3040,7 +3133,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
       return;
     }
 
-    onDraftSave?.(selections);
+    onDraftSave?.(selectionsRef.current);
 
     goNext();
   };
@@ -3244,8 +3337,8 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
               return;
             }
 
-            onDraftSave?.(selections);
-            onDone?.(selections);
+            onDraftSave?.(selectionsRef.current);
+            onDone?.(selectionsRef.current);
           }}
         >
           Done
@@ -3399,8 +3492,8 @@ const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [], initialVal
                 onClick={() => {
                   setShowSubmitPopup(false);
                   onDone?.({
-                    systolic,
-                    diastolic,
+                    systolic: systolic ?? VITALS_DEFAULTS.systolic,
+                    diastolic: diastolic ?? VITALS_DEFAULTS.diastolic,
                   });
                 }}
               >
@@ -3702,17 +3795,18 @@ const HealthAssessmentPage = ({
         questions={questionsByRouteId['vitals'] || []}
         initialValues={vitalsValues}
         onBack={() => setActiveSubPage(null)}
-        onDone={(values) => {
+        onDone={async (values) => {
           setVitalsValues(values || {});
           const responses = buildVitalsResponses(questionsByRouteId['vitals'] || [], values || {});
 
           setActiveSubPage(null);
-          onStepComplete?.('vitals', responses);
-          Promise.resolve(onAssessmentSubmit?.())
-            .then(() => onNavigateHome?.())
-            .catch((error) => {
-              console.error('Failed to submit assessment:', error);
-            });
+          try {
+            await onStepComplete?.('vitals', responses);
+            await onAssessmentSubmit?.();
+            // Success overlay is shown in App; user taps OK there to go home — do not call onNavigateHome here.
+          } catch (error) {
+            console.error('Failed to submit assessment:', error);
+          }
         }}
         onSkip={() => {
           setActiveSubPage(null);

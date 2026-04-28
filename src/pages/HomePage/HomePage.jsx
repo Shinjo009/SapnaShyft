@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import './HomePage.css';
 import Header from '../../components/HomePage/Header';
 import MetabolicAgeOrb from '../../metabolic-age-orb/MetabolicAgeOrb.jsx';
@@ -7,6 +7,7 @@ import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/P
 import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
+import { getMyUpcomingSlot } from '../../services/usersService';
 
 const AvatarGlyph = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42" fill="none" aria-hidden="true">
@@ -138,12 +139,6 @@ const PlaceRowIcon = () => (
   </svg>
 );
 
-const HomeMiniIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="15" viewBox="0 0 14 15" fill="none" aria-hidden="true">
-    <path d="M0 13.2857V5.57143C0 5.3 0.0621248 5.04286 0.186375 4.8C0.310625 4.55714 0.481833 4.35714 0.7 4.2L5.95 0.342857C6.25625 0.114286 6.60625 0 7 0C7.39375 0 7.74375 0.114286 8.05 0.342857L13.3 4.2C13.5187 4.35714 13.6902 4.55714 13.8145 4.8C13.9387 5.04286 14.0006 5.3 14 5.57143V13.2857C14 13.7571 13.8285 14.1609 13.4855 14.4969C13.1425 14.8329 12.7307 15.0006 12.25 15H9.625C9.37708 15 9.16941 14.9177 9.002 14.7531C8.83458 14.5886 8.75058 14.3851 8.75 14.1429V9.85714C8.75 9.61428 8.666 9.41086 8.498 9.24686C8.33 9.08286 8.12233 9.00057 7.875 9H6.125C5.87708 9 5.66941 9.08228 5.502 9.24686C5.33458 9.41143 5.25058 9.61486 5.25 9.85714V14.1429C5.25 14.3857 5.166 14.5894 4.998 14.754C4.83 14.9186 4.62233 15.0006 4.375 15H1.75C1.26875 15 0.856916 14.8323 0.5145 14.4969C0.172083 14.1614 0.000583333 13.7577 0 13.2857Z" fill="white" />
-  </svg>
-);
-
 const PrepIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <g clipPath="url(#clip0_3481_11808)">
@@ -178,18 +173,26 @@ const ChecklistTickIcon = () => (
   </svg>
 );
 
-const scheduledChecklistItems = [
-  'Fasting Required ( 8-12 hours )',
-  'Avoid alcohol 24 hours before the test',
-  'Continue medication as prescribed unless advised otherwise by your Doctor.',
-  'Avoid heavy workout 2 hours before the test',
-  'Avoid high-fat or high-sugar foods before the test',
+const b2bCampChecklistItems = [
+  'Fasting (10–12 hrs) preferred',
+  'OR have a light breakfast: idli, dosa, poha, black tea/coffee, coconut water, apple/guava, or a few nuts',
+  'Avoid: Fried food, dairy, sugary drinks, bananas & mangoes',
+  'Heavy/sugary food can affect your test results',
+  'Drink plenty of water',
+  'Avoid heavy exercise 1–2 hours before the test',
 ];
 
 const analyzingTimelineItems = [
   { id: 'sample-collected', label: 'Sample Collected', time: '9:15 AM', state: 'done' },
-  { id: 'questionnaire-completed', label: 'Questionnaire Completed', time: '14:05 PM', state: 'done' },
+  { id: 'questionnaire-completed', label: 'Questionnaire Completed', time: '2:05 PM', state: 'done' },
   { id: 'analysis-progress', label: 'Analysis in Progress', time: 'NOW', state: 'active' },
+  { id: 'reports-generated', label: 'Reports Generated', time: 'Expected Tomorrow', state: 'pending' },
+];
+
+const analyzingQuestionnairePendingTimeline = [
+  { id: 'sample-collected', label: 'Sample Collected', time: '9:15 AM', state: 'done' },
+  { id: 'questionnaire-pending', label: 'Questionnaire Completion', time: 'NOW', state: 'current' },
+  { id: 'analysis-pending', label: 'Analysis Completed', time: 'Expected Today', state: 'pending' },
   { id: 'reports-generated', label: 'Reports Generated', time: 'Expected Tomorrow', state: 'pending' },
 ];
 
@@ -207,7 +210,77 @@ const resolveOverviewPayload = (payload) => {
   return payload;
 };
 
-const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, forceRefreshFromProfile = false, onNavigateToHealthScan, onNavigateToHealthScanTab, onNavigateToProfile, onNavigateToRiskAnalysis, onNavigateToDiseaseDetail, onOpenHealthAssessment, onNavigateToBloodMarkers, onNavigateToPackages, onNavigateToDoctors, onNavigateToSuperClub }) => {
+const EMPTY_UPCOMING_SLOT = {
+  hasScheduledSlot: false,
+  isB2b: false,
+  organizationName: '',
+  slotStart: '',
+  slotEnd: '',
+  engagementDateRaw: '',
+  locationDisplay: '',
+  locationType: '',
+};
+
+const normalizeUpcomingSlotPayload = (root) => {
+  if (!root || typeof root !== 'object') {
+    return { ...EMPTY_UPCOMING_SLOT };
+  }
+
+  const hasScheduled = Boolean(root.has_scheduled_slot);
+  const slots = Array.isArray(root.slots) ? root.slots : [];
+  const first = slots[0] || {};
+  const engagement = first.engagement && typeof first.engagement === 'object' ? first.engagement : {};
+  const slot = first.slot && typeof first.slot === 'object' ? first.slot : {};
+  const location = first.location && typeof first.location === 'object' ? first.location : {};
+  const engagementType = String(engagement.engagement_type || '').trim().toLowerCase();
+
+  return {
+    hasScheduledSlot: hasScheduled && slots.length > 0,
+    isB2b: engagementType === 'b2b',
+    organizationName: String(engagement.organization_name || '').trim(),
+    slotStart: String(slot.slot_start_time || '').trim(),
+    slotEnd: String(slot.slot_end_time || '').trim(),
+    engagementDateRaw: String(slot.engagement_date || '').trim(),
+    locationDisplay: String(location.display || '').trim(),
+    locationType: String(location.type || '').trim(),
+  };
+};
+
+const formatEngagementDateLabel = (raw) => {
+  const ymd = String(raw || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return raw ? String(raw) : '';
+  }
+  const d = new Date(`${ymd}T12:00:00`);
+  if (Number.isNaN(d.getTime())) {
+    return ymd;
+  }
+  const formatted = new Intl.DateTimeFormat('en-IN', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(d);
+  return `${formatted} (Day 1)`;
+};
+
+const HomePage = ({
+  userName = 'User',
+  userAge = null,
+  employerOrganizerFallback = '',
+  preloadedData = null,
+  forceRefreshFromProfile = false,
+  onNavigateToHealthScan,
+  onNavigateToHealthScanTab,
+  onNavigateToProfile,
+  onNavigateToRiskAnalysis,
+  onNavigateToDiseaseDetail,
+  onOpenHealthAssessment,
+  onOpenB2bHealthAssessment,
+  onNavigateToBloodMarkers,
+  onNavigateToPackages,
+  onNavigateToDoctors,
+  onNavigateToSuperClub,
+}) => {
   const [metabolicAgeValue, setMetabolicAgeValue] = useState(preloadedData?.metabolicAgeValue || '-');
   const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
   const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
@@ -215,6 +288,79 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
   const [isOverviewResolved, setIsOverviewResolved] = useState(Boolean(preloadedData));
   const [noDataStage, setNoDataStage] = useState('welcome');
   const [checklistScrollProgress, setChecklistScrollProgress] = useState(0);
+  const [upcomingSlotNormalized, setUpcomingSlotNormalized] = useState(null);
+  const [upcomingSlotStatus, setUpcomingSlotStatus] = useState('idle');
+
+  const slotNorm = upcomingSlotNormalized || EMPTY_UPCOMING_SLOT;
+  const campFlowActive = Boolean(slotNorm.hasScheduledSlot)
+    || process.env.REACT_APP_B2B_CAMP_FLOW === 'true';
+
+  const organizerDisplayName = String(
+    slotNorm.organizationName || employerOrganizerFallback || '',
+  ).trim();
+
+  const openB2bQuestionnaire = () => {
+    if (onOpenB2bHealthAssessment) {
+      onOpenB2bHealthAssessment();
+      return;
+    }
+    if (onOpenHealthAssessment) {
+      onOpenHealthAssessment();
+    }
+  };
+
+  const handlePreviewArriveEarly = () => {
+    try {
+      sessionStorage.setItem('ss_b2b_opened_questionnaire', '1');
+    } catch {
+      // ignore
+    }
+    setNoDataStage('analyzing_questionnaire_pending');
+  };
+
+  const handlePreviewAnalysisInProgress = () => {
+    try {
+      localStorage.setItem('ss_b2b_questionnaire_submitted', '1');
+      sessionStorage.removeItem('ss_b2b_opened_questionnaire');
+    } catch {
+      // ignore
+    }
+    setNoDataStage('analyzing');
+  };
+
+  const handleBackToCampScheduled = () => {
+    try {
+      sessionStorage.removeItem('ss_b2b_opened_questionnaire');
+      localStorage.removeItem('ss_b2b_questionnaire_submitted');
+    } catch {
+      // ignore
+    }
+    setNoDataStage('camp_scheduled');
+  };
+
+  useLayoutEffect(() => {
+    if (!isNoDataHome || upcomingSlotStatus !== 'ready' || !campFlowActive) {
+      return;
+    }
+    try {
+      if (localStorage.getItem('ss_b2b_questionnaire_submitted') === '1') {
+        setNoDataStage('analyzing');
+        return;
+      }
+      if (sessionStorage.getItem('ss_b2b_opened_questionnaire') === '1') {
+        setNoDataStage('analyzing_questionnaire_pending');
+        return;
+      }
+    } catch {
+      // ignore
+    }
+    setNoDataStage('camp_scheduled');
+  }, [
+    isNoDataHome,
+    upcomingSlotStatus,
+    campFlowActive,
+    forceRefreshFromProfile,
+  ]);
 
   const metabolicAgeDetail = useMemo(() => {
     const chronologicalAge = Number(userAge);
@@ -340,6 +486,46 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
     };
   }, [forceRefreshFromProfile]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isOverviewResolved) {
+      return undefined;
+    }
+
+    if (!isNoDataHome) {
+      setUpcomingSlotStatus('idle');
+      setUpcomingSlotNormalized(null);
+      return undefined;
+    }
+
+    setUpcomingSlotStatus('loading');
+    setUpcomingSlotNormalized(null);
+
+    (async () => {
+      try {
+        const data = await getMyUpcomingSlot();
+        if (cancelled) {
+          return;
+        }
+        setUpcomingSlotNormalized(normalizeUpcomingSlotPayload(data));
+      } catch {
+        if (cancelled) {
+          return;
+        }
+        setUpcomingSlotNormalized({ ...EMPTY_UPCOMING_SLOT });
+      } finally {
+        if (!cancelled) {
+          setUpcomingSlotStatus('ready');
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
+
   if (!isOverviewResolved) {
     return <div className="home-page" aria-hidden="true" />;
   }
@@ -418,7 +604,7 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
   };
 
   const handleBioMarkersClick = () => {
-    setNoDataStage('scheduled');
+    setNoDataStage('camp_scheduled');
     setChecklistScrollProgress(0);
   };
 
@@ -434,11 +620,11 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
     setChecklistScrollProgress(element.scrollTop / maxScroll);
   };
 
-  const handleNavigateToAnalyzingStage = () => {
-    setNoDataStage('analyzing');
-  };
-
   if (isNoDataHome) {
+    if (upcomingSlotStatus === 'loading') {
+      return <div className="home-page home-page--slot-loading" aria-busy="true" aria-label="Loading schedule" />;
+    }
+
     if (noDataStage === 'welcome') {
       return (
         <div className="home-page home-page--no-data">
@@ -515,7 +701,13 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
       );
     }
 
-    if (noDataStage === 'analyzing') {
+    if (noDataStage === 'analyzing' || noDataStage === 'analyzing_questionnaire_pending') {
+      const timelineItems = noDataStage === 'analyzing_questionnaire_pending'
+        ? analyzingQuestionnairePendingTimeline
+        : analyzingTimelineItems;
+      const lineMutedAfterIndex = noDataStage === 'analyzing_questionnaire_pending' ? 1 : 2;
+      const showQuestionnaireCta = noDataStage === 'analyzing_questionnaire_pending';
+
       return (
         <div className="home-page home-page--no-data-analyzing">
           <Header
@@ -531,26 +723,47 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
             </div>
             <div className="home-page-analyzing__copy">
               <h2>Analyzing your Bio-Markers</h2>
-              <p className="home-page-analyzing__subtitle">We&rsquo;re preparing your Health Playbook</p>
-              <p className="home-page-analyzing__eta">Report ready in 24-48 hours</p>
+              <p className="home-page-analyzing__subtitle">
+                We&rsquo;re preparing your Health Playbook. Report ready in 24-48 hours.
+              </p>
             </div>
           </section>
 
           <section className="home-page-analyzing__card">
             <h3>Status Timeline</h3>
             <div className="home-page-analyzing__timeline">
-              {analyzingTimelineItems.map((item, index) => (
+              {timelineItems.map((item, index) => (
                 <div key={item.id} className="home-page-analyzing__timeline-row">
                   <div className="home-page-analyzing__timeline-rail" aria-hidden="true">
-                    <span className={`home-page-analyzing__timeline-node home-page-analyzing__timeline-node--${item.state}`}>
+                    <span
+                      className={`home-page-analyzing__timeline-node home-page-analyzing__timeline-node--${
+                        item.state === 'current' ? 'current' : item.state
+                      }`}
+                    >
                       {item.state === 'done' ? <ChecklistTickIcon /> : null}
                     </span>
-                    {index < analyzingTimelineItems.length - 1 ? (
-                      <span className={`home-page-analyzing__timeline-line${index === 2 ? ' is-muted' : ''}`} />
+                    {index < timelineItems.length - 1 ? (
+                      <span
+                        className={`home-page-analyzing__timeline-line${
+                          index === lineMutedAfterIndex ? ' is-muted' : ''
+                        }`}
+                      />
                     ) : null}
                   </div>
-                  <p className={`home-page-analyzing__timeline-label home-page-analyzing__timeline-label--${item.state}`}>{item.label}</p>
-                  <p className={`home-page-analyzing__timeline-time home-page-analyzing__timeline-time--${item.state}`}>{item.time}</p>
+                  <p
+                    className={`home-page-analyzing__timeline-label home-page-analyzing__timeline-label--${
+                      item.state === 'current' ? 'active' : item.state
+                    }`}
+                  >
+                    {item.label}
+                  </p>
+                  <p
+                    className={`home-page-analyzing__timeline-time home-page-analyzing__timeline-time--${
+                      item.state === 'current' ? 'active' : item.state
+                    }`}
+                  >
+                    {item.time}
+                  </p>
                 </div>
               ))}
             </div>
@@ -558,9 +771,14 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
 
           <section className="home-page-analyzing__card">
             <div className="home-page-analyzing__next-head">
-              <span className="home-page-analyzing__info-badge" aria-hidden="true">
+              <button
+                type="button"
+                className="home-page-analyzing__info-badge home-page-analyzing__info-badge--btn"
+                onClick={handleBackToCampScheduled}
+                aria-label="Back to health camp schedule"
+              >
                 <InfoCircleIcon />
-              </span>
+              </button>
               <h3>What happens next?</h3>
             </div>
 
@@ -571,109 +789,147 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
             </ul>
           </section>
 
+          {showQuestionnaireCta ? (
+            <>
+              <div className="home-page-b2b__cta-wrap">
+                <button type="button" className="home-page-b2b__cta" onClick={openB2bQuestionnaire}>
+                  Complete your Health Assessment
+                </button>
+              </div>
+              <div className="home-page-b2b__preview-actions">
+                <button
+                  type="button"
+                  className="home-page-b2b__preview-link"
+                  onClick={handlePreviewAnalysisInProgress}
+                >
+                  Preview: analysis in progress
+                </button>
+              </div>
+            </>
+          ) : null}
+
           <NavBar defaultActive="home" onNavigate={handleNavigate} />
         </div>
       );
     }
 
-    return (
-      <div className="home-page home-page--no-data-scheduled">
-        <Header
-          name={userName}
-          onMenuClick={handleMenuClick}
-          onSearchClick={handleSearchClick}
-        />
+    if (noDataStage === 'camp_scheduled') {
+      const slotWindowTitle = [slotNorm.slotStart, slotNorm.slotEnd].filter(Boolean).join(' – ') || '—';
+      const dateLine = formatEngagementDateLabel(slotNorm.engagementDateRaw) || '—';
+      const locationTitle = slotNorm.locationDisplay || '—';
+      const locationSub = slotNorm.locationType
+        ? `${String(slotNorm.locationType).charAt(0).toUpperCase()}${String(slotNorm.locationType).slice(1)}`
+        : 'Location';
+      const campHeroTitle = slotNorm.isB2b ? 'Your Health Camp is Scheduled' : 'Your Test is Scheduled';
 
-        <section className="home-page-scheduled__hero">
-          <div className="home-page-scheduled__hero-inner">
-            <div className="home-page-scheduled__clock-wrap" aria-hidden="true">
-              <span className="home-page-scheduled__clock-glow" />
-              <ClockIcon />
-            </div>
-            <div className="home-page-scheduled__hero-copy">
-              <h2>Your Test is Scheduled</h2>
-              <p>February 3, 2026</p>
-            </div>
-          </div>
-        </section>
+      return (
+        <div className="home-page home-page--no-data-scheduled home-page--b2b-camp">
+          <Header
+            name={userName}
+            onMenuClick={handleMenuClick}
+            onSearchClick={handleSearchClick}
+          />
 
-        <section className="home-page-scheduled__card home-page-scheduled__collection">
-          <div className="home-page-scheduled__collection-top">
-            <h3>Home Collection</h3>
-            <button type="button" className="home-page-scheduled__eta-pill home-page-scheduled__eta-pill-btn" onClick={handleNavigateToAnalyzingStage}>2 hours left</button>
-          </div>
-
-          <div className="home-page-scheduled__time-place">
-            <div className="home-page-scheduled__line-item">
-              <div className="home-page-scheduled__icon-box" aria-hidden="true">
-                <TimeRowIcon />
+          <section className="home-page-scheduled__hero">
+            <div className="home-page-scheduled__hero-inner">
+              <div className="home-page-scheduled__clock-wrap" aria-hidden="true">
+                <span className="home-page-scheduled__clock-glow" />
+                <ClockIcon />
               </div>
-              <div className="home-page-scheduled__line-copy">
-                <p className="home-page-scheduled__line-title">9:00 AM - 10:00 AM</p>
-                <p className="home-page-scheduled__line-sub">Collection Window</p>
+              <div className="home-page-scheduled__hero-copy">
+                <h2>{campHeroTitle}</h2>
+                {organizerDisplayName ? (
+                  <p className="home-page-b2b__organizer">Organized for {organizerDisplayName}</p>
+                ) : null}
               </div>
             </div>
-            <div className="home-page-scheduled__line-item">
-              <div className="home-page-scheduled__icon-box" aria-hidden="true">
-                <PlaceRowIcon />
-              </div>
-              <div className="home-page-scheduled__line-copy">
-                <p className="home-page-scheduled__line-title">123 Marol Naka</p>
-                <p className="home-page-scheduled__line-sub">Mumbai, Maharashtra</p>
-              </div>
+          </section>
+
+          <section className="home-page-scheduled__card home-page-b2b__slot-card">
+            <div className="home-page-b2b__slot-head">
+              <h3 className="home-page-b2b__slot-title">Your Assigned Slot</h3>
+              <button
+                type="button"
+                className="home-page-b2b__arrive-pill home-page-b2b__arrive-pill--btn"
+                onClick={handlePreviewArriveEarly}
+              >
+                Arrive 10 mins early
+              </button>
             </div>
-          </div>
-
-          <div className="home-page-scheduled__divider" aria-hidden="true" />
-
-          <div className="home-page-scheduled__status-row">
-            <div className="home-page-scheduled__status-icons" aria-hidden="true">
-              <span className="home-page-scheduled__status-dot home-page-scheduled__status-dot--one" />
-              <span className="home-page-scheduled__status-link home-page-scheduled__status-link--one" />
-              <span className="home-page-scheduled__status-dot home-page-scheduled__status-dot--two" />
-              <span className="home-page-scheduled__status-link home-page-scheduled__status-link--two" />
-              <span className="home-page-scheduled__status-dot home-page-scheduled__status-dot--three" />
-              <span className="home-page-scheduled__status-link home-page-scheduled__status-link--three" />
-              <span className="home-page-scheduled__status-home"><HomeMiniIcon /></span>
-            </div>
-            <p className="home-page-scheduled__status-text">Your Health Companion is on the way</p>
-          </div>
-        </section>
-
-        <section className="home-page-scheduled__card home-page-scheduled__prep">
-          <div className="home-page-scheduled__prep-head">
-            <PrepIcon />
-            <div className="home-page-scheduled__prep-head-copy">
-              <h3>Preparation Checklist</h3>
-              <p>Complete all</p>
-            </div>
-          </div>
-
-          <div className="home-page-scheduled__divider" aria-hidden="true" />
-
-          <div className="home-page-scheduled__checklist-wrap">
-            <div className="home-page-scheduled__checklist-list" onScroll={handleChecklistScroll}>
-              {scheduledChecklistItems.map((item) => (
-                <div key={item} className="home-page-scheduled__checklist-item">
-                  <span className="home-page-scheduled__check-icon" aria-hidden="true">
-                    <ChecklistTickIcon />
-                  </span>
-                  <p>{item}</p>
+            <div className="home-page-scheduled__time-place">
+              <div className="home-page-scheduled__line-item">
+                <div className="home-page-scheduled__icon-box" aria-hidden="true">
+                  <TimeRowIcon />
                 </div>
-              ))}
+                <div className="home-page-scheduled__line-copy">
+                  <p className="home-page-scheduled__line-title">{slotWindowTitle}</p>
+                  <p className="home-page-scheduled__line-sub">Testing Window</p>
+                </div>
+              </div>
+              <div className="home-page-scheduled__line-item">
+                <div className="home-page-scheduled__icon-box" aria-hidden="true">
+                  <TimeRowIcon />
+                </div>
+                <div className="home-page-scheduled__line-copy">
+                  <p className="home-page-scheduled__line-title">{dateLine}</p>
+                  <p className="home-page-scheduled__line-sub">Camp day</p>
+                </div>
+              </div>
+              <div className="home-page-scheduled__line-item">
+                <div className="home-page-scheduled__icon-box" aria-hidden="true">
+                  <PlaceRowIcon />
+                </div>
+                <div className="home-page-scheduled__line-copy">
+                  <p className="home-page-scheduled__line-title">{locationTitle}</p>
+                  <p className="home-page-scheduled__line-sub">{locationSub}</p>
+                </div>
+              </div>
             </div>
-            <div className="home-page-scheduled__scroll-indicator" aria-hidden="true">
-              <span
-                className="home-page-scheduled__scroll-thumb"
-                style={{ top: `${7 + checklistScrollProgress * 60.933}px` }}
-              />
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <NavBar defaultActive="home" onNavigate={handleNavigate} />
-      </div>
-    );
+          <section className="home-page-scheduled__card home-page-scheduled__prep">
+            <div className="home-page-scheduled__prep-head">
+              <PrepIcon />
+              <div className="home-page-scheduled__prep-head-copy">
+                <h3>Preparation Checklist</h3>
+                <p>Complete all</p>
+              </div>
+            </div>
+
+            <div className="home-page-scheduled__divider" aria-hidden="true" />
+
+            <div className="home-page-scheduled__checklist-wrap">
+              <div className="home-page-scheduled__checklist-list" onScroll={handleChecklistScroll}>
+                {b2bCampChecklistItems.map((item) => (
+                  <div key={item} className="home-page-scheduled__checklist-item">
+                    <span className="home-page-scheduled__check-icon" aria-hidden="true">
+                      <ChecklistTickIcon />
+                    </span>
+                    <p>{item}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="home-page-scheduled__scroll-indicator" aria-hidden="true">
+                <span
+                  className="home-page-scheduled__scroll-thumb"
+                  style={{ top: `${7 + checklistScrollProgress * 60.933}px` }}
+                />
+              </div>
+            </div>
+          </section>
+
+          <div className="home-page-b2b__cta-wrap">
+            <button type="button" className="home-page-b2b__cta" onClick={openB2bQuestionnaire}>
+              Complete your Health Assessment
+            </button>
+          </div>
+
+          <NavBar defaultActive="home" onNavigate={handleNavigate} />
+        </div>
+      );
+    }
+
+    return null;
   }
 
   return (
