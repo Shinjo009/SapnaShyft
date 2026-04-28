@@ -340,10 +340,8 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
   const [isDragging, setIsDragging] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const stackRef = useRef(null);
-  const activePointerIdRef = useRef(null);
-  const pointerStartXRef = useRef(null);
-  const pointerStartYRef = useRef(null);
-  const stackWidthRef = useRef(260);
+  const touchStartXRef = useRef(null);
+  const touchStartYRef = useRef(null);
   const isHorizontalSwipeRef = useRef(false);
   const pendingDragXRef = useRef(0);
   const dragFrameRef = useRef(null);
@@ -439,42 +437,26 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
     startAnimation('next');
   };
 
-  const handlePointerDown = (event) => {
-    const isPrimaryButton = event.button === undefined || event.button === 0;
-    if (isAnimating || !isPrimaryButton) {
+  const handleTouchStart = (event) => {
+    if (isAnimating) {
       return;
     }
 
-    activePointerIdRef.current = event.pointerId;
-    pointerStartXRef.current = event.clientX;
-    pointerStartYRef.current = event.clientY;
-    stackWidthRef.current = stackRef.current?.clientWidth || 260;
+    touchStartXRef.current = event.touches[0].clientX;
+    touchStartYRef.current = event.touches[0].clientY;
     isHorizontalSwipeRef.current = false;
     didMoveRef.current = false;
     setIsDragging(false);
     resetDragOffset();
-
-    if (event.currentTarget?.setPointerCapture) {
-      try {
-        event.currentTarget.setPointerCapture(event.pointerId);
-      } catch {
-        // Ignore environments where pointer capture is unavailable.
-      }
-    }
   };
 
-  const handlePointerMove = (event) => {
-    if (
-      activePointerIdRef.current !== event.pointerId
-      || pointerStartXRef.current == null
-      || pointerStartYRef.current == null
-      || isAnimating
-    ) {
+  const handleTouchMove = (event) => {
+    if (touchStartXRef.current == null || touchStartYRef.current == null || isAnimating) {
       return;
     }
 
-    const deltaX = event.clientX - pointerStartXRef.current;
-    const deltaY = event.clientY - pointerStartYRef.current;
+    const deltaX = event.touches[0].clientX - touchStartXRef.current;
+    const deltaY = event.touches[0].clientY - touchStartYRef.current;
 
     if (!isHorizontalSwipeRef.current) {
       const hasEnoughMovement = Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6;
@@ -493,7 +475,7 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
     didMoveRef.current = true;
     event.preventDefault();
 
-    const stackWidth = stackWidthRef.current;
+    const stackWidth = stackRef.current?.clientWidth || 260;
     const softLimit = Math.max(120, stackWidth * 0.55);
     const absDelta = Math.abs(deltaX);
     const direction = deltaX < 0 ? -1 : 1;
@@ -506,23 +488,22 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
     applyDragOffset(dragValue);
   };
 
-  const handlePointerEnd = (event) => {
-    if (activePointerIdRef.current !== event.pointerId || pointerStartXRef.current == null) {
+  const handleTouchEnd = (event) => {
+    if (touchStartXRef.current == null) {
       return;
     }
 
     if (!isHorizontalSwipeRef.current) {
-      activePointerIdRef.current = null;
-      pointerStartXRef.current = null;
-      pointerStartYRef.current = null;
+      touchStartXRef.current = null;
+      touchStartYRef.current = null;
       setIsDragging(false);
       resetDragOffset();
       return;
     }
 
-    const stackWidth = stackWidthRef.current;
+    const stackWidth = stackRef.current?.clientWidth || 260;
     const swipeThreshold = Math.max(30, stackWidth * 0.14);
-    const deltaX = event.clientX - pointerStartXRef.current;
+    const deltaX = event.changedTouches[0].clientX - touchStartXRef.current;
     if (Math.abs(deltaX) > swipeThreshold) {
       if (deltaX < 0) {
         goNext();
@@ -534,39 +515,17 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
       resetDragOffset();
     }
 
-    activePointerIdRef.current = null;
-    pointerStartXRef.current = null;
-    pointerStartYRef.current = null;
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
     isHorizontalSwipeRef.current = false;
-
-    if (event.currentTarget?.releasePointerCapture) {
-      try {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      } catch {
-        // Ignore environments where pointer capture is unavailable.
-      }
-    }
   };
 
-  const handlePointerCancel = (event) => {
-    if (activePointerIdRef.current !== event.pointerId) {
-      return;
-    }
-
-    activePointerIdRef.current = null;
-    pointerStartXRef.current = null;
-    pointerStartYRef.current = null;
+  const handleTouchCancel = () => {
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
     isHorizontalSwipeRef.current = false;
     setIsDragging(false);
     resetDragOffset();
-
-    if (event.currentTarget?.releasePointerCapture) {
-      try {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      } catch {
-        // Ignore environments where pointer capture is unavailable.
-      }
-    }
   };
 
   const handleStackTransitionEnd = (event) => {
@@ -647,10 +606,10 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
           '--risk-analysis-wins-back-two-top': 'var(--risk-analysis-wins-back-one-top)',
           '--risk-analysis-wins-back-two-fade': 'var(--risk-analysis-wins-back-one-fade)',
         } : undefined}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerEnd}
-        onPointerCancel={handlePointerCancel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
         onTransitionEnd={handleStackTransitionEnd}
         data-dragging={isDragging ? 'true' : 'false'}
         data-resetting={isResetting ? 'true' : 'false'}

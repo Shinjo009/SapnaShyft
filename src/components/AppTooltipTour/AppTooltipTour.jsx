@@ -163,9 +163,35 @@ const getSideVector = (side) => {
   return { x: -1, y: 0 };
 };
 
+const getTourSeenStorageKey = (scopeKey) => `appTooltipTourSeen:${scopeKey || 'global'}`;
+
+const readTourSeen = (scopeKey) => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    return window.localStorage.getItem(getTourSeenStorageKey(scopeKey)) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const writeTourSeen = (scopeKey) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(getTourSeenStorageKey(scopeKey), '1');
+  } catch {
+    // Ignore storage failures in restricted browser modes.
+  }
+};
+
 const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => readTourSeen(scopeKey));
   const [targetRect, setTargetRect] = useState(null);
   const [bubbleSize, setBubbleSize] = useState({ width: 192, height: 132 });
   const bubbleRef = useRef(null);
@@ -194,9 +220,15 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
 
   useEffect(() => {
     setCurrentStepIndex(0);
-    setDismissed(false);
+    setDismissed(readTourSeen(scopeKey));
     setTargetRect(null);
   }, [scopeKey]);
+
+  useEffect(() => {
+    if (dismissed) {
+      writeTourSeen(scopeKey);
+    }
+  }, [dismissed, scopeKey]);
 
   const isVisibleOnPage = useMemo(() => {
     if (!enabled || dismissed || !currentStep) {

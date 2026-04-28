@@ -212,6 +212,7 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
   const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
   const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
   const [isNoDataHome, setIsNoDataHome] = useState(false);
+  const [isOverviewResolved, setIsOverviewResolved] = useState(Boolean(preloadedData));
   const [noDataStage, setNoDataStage] = useState('welcome');
   const [checklistScrollProgress, setChecklistScrollProgress] = useState(0);
 
@@ -288,6 +289,7 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
             setRiskAnalysisData([]);
             setIsNoDataHome(true);
             setNoDataStage('welcome');
+            setIsOverviewResolved(true);
           }
           return;
         }
@@ -303,6 +305,7 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
             setRiskAnalysisData([]);
             setIsNoDataHome(true);
             setNoDataStage('welcome');
+            setIsOverviewResolved(true);
           }
           return;
         }
@@ -316,6 +319,7 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
           setRiskAnalysisData(Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : []);
           setIsNoDataHome(false);
           setNoDataStage('welcome');
+          setIsOverviewResolved(true);
         }
       } catch {
         if (isActive) {
@@ -324,6 +328,7 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
           setRiskAnalysisData([]);
           setIsNoDataHome(true);
           setNoDataStage('welcome');
+          setIsOverviewResolved(true);
         }
       }
     };
@@ -334,6 +339,10 @@ const HomePage = ({ userName = 'User', userAge = null, preloadedData = null, for
       isActive = false;
     };
   }, [forceRefreshFromProfile]);
+
+  if (!isOverviewResolved) {
+    return <div className="home-page" aria-hidden="true" />;
+  }
 
   const handleMenuClick = () => {
     console.log('Menu clicked');

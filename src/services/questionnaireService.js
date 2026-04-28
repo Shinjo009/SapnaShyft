@@ -45,6 +45,71 @@ const getAssessmentInstanceId = (assessment) => {
   );
 };
 
+/**
+ * Prefer Metsights Pro/Basic over FitPrint — only compares rows that share the same engagement_id.
+ */
+const normalizePackageCode = (row) => String(row?.package_code || row?.packageCode || '').trim()
+  .toUpperCase()
+  .replace(/\s+/g, '_');
+
+const getPackagePriorityTier = (row) => {
+  const code = normalizePackageCode(row);
+
+  const isFitPrint = code === 'MY_FITNESS_PRINT'
+    || code.includes('FITPRINT')
+    || code.includes('FITNESS_PRINT');
+
+  if (code.includes('METSIGHTS') && code.includes('PRO')) {
+    return 3;
+  }
+
+  if (code === 'METSIGHTS_BASIC' || (code.includes('METSIGHTS') && code.includes('BASIC'))) {
+    return 2;
+  }
+
+  if (isFitPrint) {
+    return 0;
+  }
+
+  return 1;
+};
+
+const groupAssessmentsByEngagementId = (rows = []) => {
+  const buckets = new Map();
+
+  rows.forEach((row) => {
+    const engagementId = Number(row?.engagement_id || row?.engagementId || 0);
+    const instanceId = getAssessmentInstanceId(row);
+    const key = engagementId > 0 ? String(engagementId) : `single_${instanceId}`;
+    if (!buckets.has(key)) {
+      buckets.set(key, []);
+    }
+    buckets.get(key).push(row);
+  });
+
+  return buckets;
+};
+
+const pickPreferredAssessmentInEngagementGroup = (group = []) => {
+  if (group.length <= 1) {
+    return group[0] || null;
+  }
+
+  return [...group].sort((a, b) => {
+    const tierDiff = getPackagePriorityTier(b) - getPackagePriorityTier(a);
+    if (tierDiff !== 0) {
+      return tierDiff;
+    }
+
+    const byAssigned = toTimestamp(b?.assigned_at) - toTimestamp(a?.assigned_at);
+    if (byAssigned !== 0) {
+      return byAssigned;
+    }
+
+    return getAssessmentInstanceId(b) - getAssessmentInstanceId(a);
+  })[0];
+};
+
 const isActiveIncompleteAssessment = (assessment) => {
   const status = normalizeAssessmentStatus(assessment?.status);
   const normalizedCompletedAt = assessment?.completed_at || assessment?.completedAt || null;
@@ -274,18 +339,30 @@ const sortCategories = (categories) => {
 
 const pickLatestIncompleteActiveAssessment = (assessments) => {
   const activeIncomplete = assessments
-    .filter((row) => {
-      return isActiveIncompleteAssessment(row);
-    })
-    .sort((a, b) => {
-      const byAssigned = toTimestamp(b?.assigned_at) - toTimestamp(a?.assigned_at);
-      if (byAssigned !== 0) {
-        return byAssigned;
-      }
-      return getAssessmentInstanceId(b) - getAssessmentInstanceId(a);
-    });
+    .filter((row) => isActiveIncompleteAssessment(row));
 
-  return activeIncomplete[0] || null;
+  if (activeIncomplete.length === 0) {
+    return null;
+  }
+
+  if (activeIncomplete.length === 1) {
+    return activeIncomplete[0];
+  }
+
+  const engagementBuckets = groupAssessmentsByEngagementId(activeIncomplete);
+  const representatives = Array.from(engagementBuckets.values())
+    .map((group) => pickPreferredAssessmentInEngagementGroup(group))
+    .filter(Boolean);
+
+  const sortedRepresentatives = representatives.sort((a, b) => {
+    const byAssigned = toTimestamp(b?.assigned_at) - toTimestamp(a?.assigned_at);
+    if (byAssigned !== 0) {
+      return byAssigned;
+    }
+    return getAssessmentInstanceId(b) - getAssessmentInstanceId(a);
+  });
+
+  return sortedRepresentatives[0] || null;
 };
 
 const extractAssessmentsFromListPayload = (payload) => {

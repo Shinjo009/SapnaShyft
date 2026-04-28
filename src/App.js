@@ -127,8 +127,17 @@ const resolvePostLoginRedirectPage = () => {
   return '';
 };
 
+const resolveOverviewPayload = (payload) => {
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload.data && typeof payload.data === 'object') return payload.data;
+  if (payload.result && typeof payload.result === 'object') return payload.result;
+  if (payload.item && typeof payload.item === 'object') return payload.item;
+  return payload;
+};
+
 function App() {
   const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
+  const [isBootstrappingSession, setIsBootstrappingSession] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [userName, setUserName] = useState('');
   const [userAge, setUserAge] = useState(null);
@@ -494,6 +503,8 @@ function App() {
       const refreshTokenValue = getRefreshToken();
 
       if (!refreshTokenValue) {
+        setCurrentPage('splash');
+        setIsBootstrappingSession(false);
         return;
       }
 
@@ -501,7 +512,15 @@ function App() {
         const refreshResponse = await refreshToken(refreshTokenValue);
         const tokens = extractTokensFromResponse(refreshResponse, refreshTokenValue);
         saveAuthTokens(tokens);
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+        clearAuthTokens();
+        setCurrentPage('login');
+        setIsBootstrappingSession(false);
+        return;
+      }
 
+      try {
         const profileResponse = await getMyProfile({ forceRefresh: true });
         const profile = profileResponse?.data && typeof profileResponse.data === 'object'
           ? profileResponse.data
@@ -569,6 +588,7 @@ function App() {
 
         if (normalizedAccounts.length > 1) {
           setCurrentPage('account-selection');
+          setIsBootstrappingSession(false);
           return;
         }
 
@@ -576,15 +596,16 @@ function App() {
           const targetPage = postLoginRedirectPageRef.current;
           postLoginRedirectPageRef.current = '';
           setCurrentPage(targetPage);
+          setIsBootstrappingSession(false);
           return;
         }
-
-        setCurrentPage('home');
-      } catch (error) {
-        console.error('Token refresh failed:', error);
-        clearAuthTokens();
-        setCurrentPage('login');
+      } catch (bootstrapError) {
+        console.error('Session bootstrap fallback due to non-auth error:', bootstrapError);
       }
+
+      await preloadHomeScreenData();
+      setCurrentPage('health-insights');
+      setIsBootstrappingSession(false);
     };
 
     trySessionRestore();
@@ -722,14 +743,6 @@ function App() {
     setPreloadedHomeData(null);
 
     try {
-      const resolveOverviewPayload = (payload) => {
-        if (!payload || typeof payload !== 'object') return null;
-        if (payload.data && typeof payload.data === 'object') return payload.data;
-        if (payload.result && typeof payload.result === 'object') return payload.result;
-        if (payload.item && typeof payload.item === 'object') return payload.item;
-        return payload;
-      };
-
       const { response } = await fetchLatestAssessmentReport(
         (assessmentId) => `/reports/${assessmentId}/overview`
       );
@@ -744,12 +757,15 @@ function App() {
           positiveWinsData: overview?.positive_wins && typeof overview.positive_wins === 'object' ? overview.positive_wins : null,
           riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
         });
+        return true;
       } else {
         setPreloadedHomeData(null);
+        return false;
       }
     } catch (err) {
       console.error('Failed to preload home screen data:', err);
       setPreloadedHomeData(null);
+      return false;
     }
   };
 
@@ -863,7 +879,7 @@ function App() {
     const parsedTargetId = Number(targetAccountId || 0);
     if (parsedTargetId <= 0) {
       await preloadHomeScreenData();
-      setCurrentPage('home');
+      setCurrentPage('health-insights');
       return;
     }
 
@@ -902,7 +918,7 @@ function App() {
     }
 
     await preloadHomeScreenData();
-    setCurrentPage('home');
+    setCurrentPage('health-insights');
   };
 
   const handleLogout = async () => {
@@ -976,6 +992,11 @@ function App() {
   };
 
   const tooltipTourScopeKey = String(selectedAccountId || currentUserId || 'global');
+  const isTooltipEligibleHome = Boolean(preloadedHomeData);
+
+  if (isBootstrappingSession) {
+    return null;
+  }
 
   return (
     <div
@@ -1034,7 +1055,7 @@ function App() {
           </div>
         </>
       )}
-      <AppTooltipTour currentPage={currentPage} enabled scopeKey={tooltipTourScopeKey} />
+      <AppTooltipTour currentPage={currentPage} enabled={isTooltipEligibleHome} scopeKey={tooltipTourScopeKey} />
       <div className="app-scroll" ref={appScrollRef}>
       <Suspense fallback={null}>
       {currentPage === 'login' && (
@@ -1361,11 +1382,13 @@ function App() {
 
             const sourceIds = getAssessmentSourceIdsForTarget(targetAssessmentInstanceId);
 
-            if (targetAssessmentInstanceId <= 0) {
-              throw new Error('Unable to determine the assessment to submit.');
+            if (targetAssessmentInstanceId <= 0 || sourceIds.length === 0) {
+              throw new Error('Unable to determine the assessment(s) to submit.');
             }
 
-            await submitAssessment(targetAssessmentInstanceId, sourceIds);
+            for (const instanceId of sourceIds) {
+              await submitAssessment(instanceId, sourceIds);
+            }
             clearReportRequestCache();
             clearStoredLatestAssessmentId();
           }}

@@ -1062,7 +1062,9 @@ const familyHelperByQuestionKey = {
 };
 
 const toFamilyApiCards = (questions = []) => {
-  return questions.map((question) => {
+  return questions
+    .filter((question) => !isLikelyOtherTextQuestion(question))
+    .map((question) => {
     const key = question?.question_key || `question-${question?.question_id}`;
     const isMulti = ['multi_choice', 'multiple_choice'].includes(String(question?.question_type || '').toLowerCase());
     const isTextInput = isTextQuestionWithoutOptions(question);
@@ -1084,15 +1086,146 @@ const toFamilyApiCards = (questions = []) => {
       title: question?.question_text || '',
       helper,
       infoLines: question?.help_text ? [question.help_text] : undefined,
-      options,
+      options: moveOtherLabelToEnd(options),
       defaultSelected: [],
       multi: isMulti,
       isTextInput,
+      otherTextQuestionKey: findMappedOtherTextQuestion(questions, question)?.question_key || '',
     };
-  });
+    });
 };
 
-const shouldUseFullWidthOption = (label) => String(label || '').length > 20;
+const shouldUseFullWidthOption = (label) => {
+  const normalizedLabel = String(label || '').trim();
+  return normalizedLabel.length > 20 || isOtherOptionLabel(normalizedLabel);
+};
+const OTHER_TEXT_SELECTION_KEY_SUFFIX = '__other_text';
+const OTHER_HINT_REGEX = /(other|specify|please\s*specify)/i;
+
+const isOtherOptionLabel = (label) => {
+  return normalizeLookupText(label) === 'other';
+};
+
+const getOptionLabel = (option) => {
+  if (typeof option === 'string') {
+    return option;
+  }
+
+  return option?.label || option?.display_name || option?.option_value || option?.value || '';
+};
+
+const getOtherTextSelectionKey = (questionKey) => `${questionKey}${OTHER_TEXT_SELECTION_KEY_SUFFIX}`;
+
+const moveOtherOptionToEnd = (options = []) => {
+  const normalizedOptions = Array.isArray(options) ? options : [];
+  const regularOptions = normalizedOptions.filter((option) => !isOtherOptionLabel(option?.label));
+  const otherOptions = normalizedOptions
+    .filter((option) => isOtherOptionLabel(option?.label))
+    .map((option) => ({ ...option, fullWidth: true }));
+  return [...regularOptions, ...otherOptions];
+};
+
+const moveOtherLabelToEnd = (options = []) => {
+  const normalizedOptions = (Array.isArray(options) ? options : [])
+    .map((option) => String(option || '').trim())
+    .filter(Boolean);
+  const regularOptions = normalizedOptions.filter((option) => !isOtherOptionLabel(option));
+  const otherOptions = normalizedOptions.filter((option) => isOtherOptionLabel(option));
+  return [...regularOptions, ...otherOptions];
+};
+
+const isLikelyOtherTextQuestion = (question) => {
+  const key = String(question?.question_key || '').trim();
+  const title = String(question?.question_text || '').trim();
+  const help = String(question?.help_text || '').trim();
+  const questionType = normalizeQuestionType(question?.question_type);
+  const hasOptions = Array.isArray(question?.options)
+    && question.options.some((option) => Boolean(option?.display_name || option?.option_value));
+
+  if (hasOptions) {
+    return false;
+  }
+
+  if (!['text', 'short_text', 'long_text', 'textarea'].includes(questionType)) {
+    return false;
+  }
+
+  return OTHER_HINT_REGEX.test(key) || OTHER_HINT_REGEX.test(title) || OTHER_HINT_REGEX.test(help);
+};
+
+const findMappedOtherTextQuestion = (questions = [], sourceQuestion = null) => {
+  if (!Array.isArray(questions) || !sourceQuestion) {
+    return null;
+  }
+
+  const sourceId = Number(sourceQuestion?.question_id || sourceQuestion?.id || 0);
+  const sourceKey = normalizeLookupText(sourceQuestion?.question_key);
+  const sourceTitle = normalizeLookupText(sourceQuestion?.question_text);
+  const mappedOtherQuestionIdFromQuestion = Number(
+    sourceQuestion?.other_question_id
+    || sourceQuestion?.other_text_question_id
+    || sourceQuestion?.otherTextQuestionId
+    || 0
+  );
+
+  const otherOption = Array.isArray(sourceQuestion?.options)
+    ? sourceQuestion.options.find((option) => {
+        const label = option?.display_name || option?.option_value || option?.label || option?.value || '';
+        return isOtherOptionLabel(label);
+      })
+    : null;
+
+  const mappedOtherQuestionIdFromOption = Number(
+    otherOption?.other_question_id
+    || otherOption?.other_text_question_id
+    || otherOption?.otherTextQuestionId
+    || otherOption?.mapped_question_id
+    || otherOption?.mappedQuestionId
+    || otherOption?.linked_question_id
+    || otherOption?.linkedQuestionId
+    || otherOption?.text_question_id
+    || otherOption?.textQuestionId
+    || 0
+  );
+
+  const mappedOtherQuestionId = mappedOtherQuestionIdFromQuestion > 0
+    ? mappedOtherQuestionIdFromQuestion
+    : mappedOtherQuestionIdFromOption;
+
+  if (mappedOtherQuestionId > 0) {
+    const explicitMatch = questions.find((question) => {
+      const id = Number(question?.question_id || question?.id || 0);
+      return id === mappedOtherQuestionId;
+    });
+
+    if (explicitMatch) {
+      return explicitMatch;
+    }
+  }
+
+  const otherTextCandidates = questions.filter((question) => {
+    const id = Number(question?.question_id || question?.id || 0);
+    return id !== sourceId && isLikelyOtherTextQuestion(question);
+  });
+
+  const byKey = otherTextCandidates.find((question) => {
+    const key = normalizeLookupText(question?.question_key);
+    return sourceKey && key && (key.includes(sourceKey) || sourceKey.includes(key));
+  });
+  if (byKey) {
+    return byKey;
+  }
+
+  const byText = otherTextCandidates.find((question) => {
+    const text = normalizeLookupText(question?.question_text);
+    return sourceTitle && text && (text.includes(sourceTitle) || sourceTitle.includes(text));
+  });
+  if (byText) {
+    return byText;
+  }
+
+  return otherTextCandidates[0] || null;
+};
 
 const normalizeInfoLines = (infoLines = []) => {
   return infoLines.flatMap((line) => {
@@ -1331,7 +1464,7 @@ const buildSelectionStateFromResponses = (questions = [], responses = []) => {
     return {};
   }
 
-  return questions.reduce((acc, question) => {
+  const baseSelections = questions.reduce((acc, question) => {
     const questionId = question?.question_id || question?.id;
     const key = question?.question_key || `question-${questionId}`;
     if (!key) {
@@ -1347,6 +1480,48 @@ const buildSelectionStateFromResponses = (questions = [], responses = []) => {
 
     return acc;
   }, {});
+
+  const questionsByKey = new Map(
+    questions.map((question) => [
+      question?.question_key || `question-${question?.question_id || question?.id || ''}`,
+      question,
+    ])
+  );
+
+  questions.forEach((question) => {
+    const questionId = question?.question_id || question?.id;
+    const key = question?.question_key || `question-${questionId}`;
+    if (!key) {
+      return;
+    }
+
+    const selectedValues = Array.isArray(baseSelections[key]) ? baseSelections[key] : [];
+    const hasOtherSelected = selectedValues.some((value) => isOtherOptionLabel(value));
+    if (!hasOtherSelected) {
+      return;
+    }
+
+    const mappedOtherQuestion = findMappedOtherTextQuestion(questions, question);
+    if (!mappedOtherQuestion) {
+      return;
+    }
+
+    const mappedOtherKey = mappedOtherQuestion?.question_key
+      || `question-${mappedOtherQuestion?.question_id || mappedOtherQuestion?.id || ''}`;
+    const otherAnswer = getResponseAnswerForQuestion(mappedOtherQuestion, normalizedResponses);
+    if (isEmptyAnswer(otherAnswer)) {
+      return;
+    }
+
+    const otherSelectionKey = getOtherTextSelectionKey(key);
+    baseSelections[otherSelectionKey] = [String(Array.isArray(otherAnswer) ? otherAnswer[0] : otherAnswer || '').trim()].filter(Boolean);
+
+    if (!questionsByKey.has(mappedOtherKey)) {
+      questionsByKey.set(mappedOtherKey, mappedOtherQuestion);
+    }
+  });
+
+  return baseSelections;
 };
 
 const buildAnthropometryInitialValuesFromResponses = (questions = [], responses = []) => {
@@ -1497,13 +1672,50 @@ const buildResponsesFromSelections = (questions = [], selections = {}) => {
     return [];
   }
 
-  return questions
+  const primaryResponses = questions
     .map((question) => {
       const questionId = question?.question_id || question?.id;
       const key = question?.question_key || `question-${questionId}`;
       return buildResponseItem(question, selections[key]);
     })
     .filter(Boolean);
+
+  const extraResponses = [];
+
+  questions.forEach((question) => {
+    const questionId = question?.question_id || question?.id;
+    const key = question?.question_key || `question-${questionId}`;
+    if (!key) {
+      return;
+    }
+
+    const selectedValues = selections[key];
+    const normalizedSelection = Array.isArray(selectedValues) ? selectedValues : [selectedValues];
+    const hasOtherSelected = normalizedSelection.some((value) => isOtherOptionLabel(value));
+    if (!hasOtherSelected) {
+      return;
+    }
+
+    const otherTextKey = getOtherTextSelectionKey(key);
+    const otherTextAnswer = Array.isArray(selections[otherTextKey])
+      ? selections[otherTextKey][0]
+      : selections[otherTextKey];
+    if (isEmptyAnswer(otherTextAnswer)) {
+      return;
+    }
+
+    const mappedOtherQuestion = findMappedOtherTextQuestion(questions, question);
+    if (!mappedOtherQuestion) {
+      return;
+    }
+
+    const responseItem = buildResponseItem(mappedOtherQuestion, String(otherTextAnswer || '').trim());
+    if (responseItem) {
+      extraResponses.push(responseItem);
+    }
+  });
+
+  return [...primaryResponses, ...extraResponses];
 };
 
 const buildSelectionStateFromCards = (cardsData = [], initialSelections = {}) => {
@@ -1667,6 +1879,12 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
     multi: false,
   };
   const activeSelections = selections[activeCard.key] || [];
+  const hasOtherOption = !activeCard.isTextInput
+    && Array.isArray(activeCard.options)
+    && activeCard.options.some((option) => isOtherOptionLabel(getOptionLabel(option)));
+  const hasOtherSelected = hasOtherOption && activeSelections.some((option) => isOtherOptionLabel(option));
+  const otherTextSelectionKey = getOtherTextSelectionKey(activeCard.key);
+  const otherTextInputValue = (Array.isArray(selections[otherTextSelectionKey]) ? selections[otherTextSelectionKey][0] : '') || '';
   const progressNumerator = cardIndex + 1;
   const questionsLeft = totalCards - progressNumerator;
   const stackCardCount = questionsLeft >= 2 ? 2 : questionsLeft;
@@ -1769,11 +1987,26 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
       const exists = withoutNone.includes(option);
       const next = exists ? withoutNone.filter((item) => item !== option) : [...withoutNone, option];
 
-      return {
+      const nextState = {
         ...prev,
         [activeCard.key]: next,
       };
+
+      const hasOtherInNext = next.some((item) => isOtherOptionLabel(item));
+      if (!hasOtherInNext && Object.prototype.hasOwnProperty.call(nextState, otherTextSelectionKey)) {
+        delete nextState[otherTextSelectionKey];
+      }
+
+      return nextState;
     });
+  };
+
+  const handleOtherInputChange = (event) => {
+    const nextValue = String(event?.target?.value || '');
+    setSelections((prev) => ({
+      ...prev,
+      [otherTextSelectionKey]: nextValue ? [nextValue] : [],
+    }));
   };
 
   const handleTextInputChange = (event) => {
@@ -1863,6 +2096,20 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
               })}
             </div>
           )}
+
+          {hasOtherSelected ? (
+            <div className="family-history-page__other-input-wrap">
+              <input
+                type="text"
+                className="family-history-page__other-input"
+                value={otherTextInputValue}
+                onChange={handleOtherInputChange}
+                placeholder="Please specify"
+                aria-label={`${activeCard.title || 'Other'} - please specify`}
+                onWheel={(event) => event.stopPropagation()}
+              />
+            </div>
+          ) : null}
         </div>
 
         {stackCardCount >= 1 ? (
@@ -2078,7 +2325,9 @@ const lifestyleFullWidthByQuestionKey = {
 };
 
 const toLifestyleApiCards = (questions = []) => {
-  return questions.map((question) => {
+  return questions
+    .filter((question) => !isLikelyOtherTextQuestion(question))
+    .map((question) => {
     const key = question?.question_key || `question-${question?.question_id}`;
     const isMulti = ['multi_choice', 'multiple_choice'].includes(String(question?.question_type || '').toLowerCase());
     const isTextInput = isTextQuestionWithoutOptions(question);
@@ -2102,13 +2351,14 @@ const toLifestyleApiCards = (questions = []) => {
       title: question?.question_text || '',
       helper,
       infoLines: question?.help_text ? [question.help_text] : undefined,
-      options,
+      options: moveOtherOptionToEnd(options),
       defaultSelected: [],
       multi: isMulti,
       maxSelections: key === 'wellness-priorities' || key === 'wellness_priorities' ? 2 : undefined,
       isTextInput,
+      otherTextQuestionKey: findMappedOtherTextQuestion(questions, question)?.question_key || '',
     };
-  });
+    });
 };
 
 const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {} }) => {
@@ -2139,6 +2389,12 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
     multi: false,
   };
   const activeSelections = selections[activeCard.key] || [];
+  const hasOtherOption = !activeCard.isTextInput
+    && Array.isArray(activeCard.options)
+    && activeCard.options.some((option) => isOtherOptionLabel(getOptionLabel(option)));
+  const hasOtherSelected = hasOtherOption && activeSelections.some((option) => isOtherOptionLabel(option));
+  const otherTextSelectionKey = getOtherTextSelectionKey(activeCard.key);
+  const otherTextInputValue = (Array.isArray(selections[otherTextSelectionKey]) ? selections[otherTextSelectionKey][0] : '') || '';
   const progressNumerator = cardIndex + 1;
   const questionsLeft = totalCards - progressNumerator;
   const stackCardCount = questionsLeft >= 2 ? 2 : questionsLeft;
@@ -2244,11 +2500,26 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
         next = next.slice(next.length - activeCard.maxSelections);
       }
 
-      return {
+      const nextState = {
         ...prev,
         [activeCard.key]: next,
       };
+
+      const hasOtherInNext = next.some((item) => isOtherOptionLabel(item));
+      if (!hasOtherInNext && Object.prototype.hasOwnProperty.call(nextState, otherTextSelectionKey)) {
+        delete nextState[otherTextSelectionKey];
+      }
+
+      return nextState;
     });
+  };
+
+  const handleOtherInputChange = (event) => {
+    const nextValue = String(event?.target?.value || '');
+    setSelections((prev) => ({
+      ...prev,
+      [otherTextSelectionKey]: nextValue ? [nextValue] : [],
+    }));
   };
 
   const handleTextInputChange = (event) => {
@@ -2344,6 +2615,20 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
               })}
             </div>
           )}
+
+          {hasOtherSelected ? (
+            <div className="lifestyle-habits-page__other-input-wrap">
+              <input
+                type="text"
+                className="lifestyle-habits-page__other-input"
+                value={otherTextInputValue}
+                onChange={handleOtherInputChange}
+                placeholder="Please specify"
+                aria-label={`${activeCard.title || 'Other'} - please specify`}
+                onWheel={(event) => event.stopPropagation()}
+              />
+            </div>
+          ) : null}
         </div>
 
         {stackCardCount >= 1 ? <div className="lifestyle-habits-page__stack-card lifestyle-habits-page__stack-card--one" aria-hidden="true" /> : null}
@@ -2633,7 +2918,9 @@ const nutritionFullWidthByQuestionKey = {
 };
 
 const toNutritionApiCards = (questions = []) => {
-  return questions.map((question) => {
+  return questions
+    .filter((question) => !isLikelyOtherTextQuestion(question))
+    .map((question) => {
     const key = question?.question_key || `question-${question?.question_id}`;
     const isMulti = ['multi_choice', 'multiple_choice'].includes(String(question?.question_type || '').toLowerCase());
     const isTextInput = isTextQuestionWithoutOptions(question);
@@ -2664,12 +2951,13 @@ const toNutritionApiCards = (questions = []) => {
       title: question?.question_text || '',
       helper,
       infoLines: question?.help_text ? [question.help_text] : undefined,
-      options,
+      options: moveOtherOptionToEnd(options),
       defaultSelected: [],
       multi: isMulti,
       isTextInput,
+      otherTextQuestionKey: findMappedOtherTextQuestion(questions, question)?.question_key || '',
     };
-  });
+    });
 };
 
 const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {} }) => {
@@ -2700,6 +2988,12 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
     multi: false,
   };
   const activeSelections = selections[activeCard.key] || [];
+  const hasOtherOption = !activeCard.isTextInput
+    && Array.isArray(activeCard.options)
+    && activeCard.options.some((option) => isOtherOptionLabel(getOptionLabel(option)));
+  const hasOtherSelected = hasOtherOption && activeSelections.some((option) => isOtherOptionLabel(option));
+  const otherTextSelectionKey = getOtherTextSelectionKey(activeCard.key);
+  const otherTextInputValue = (Array.isArray(selections[otherTextSelectionKey]) ? selections[otherTextSelectionKey][0] : '') || '';
   const progressNumerator = cardIndex + 1;
   const questionsLeft = totalCards - progressNumerator;
   const stackCardCount = questionsLeft >= 2 ? 2 : questionsLeft;
@@ -2803,11 +3097,26 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
       const exists = withoutNone.includes(optionLabel);
       const next = exists ? withoutNone.filter((item) => item !== optionLabel) : [...withoutNone, optionLabel];
 
-      return {
+      const nextState = {
         ...prev,
         [activeCard.key]: next,
       };
+
+      const hasOtherInNext = next.some((item) => isOtherOptionLabel(item));
+      if (!hasOtherInNext && Object.prototype.hasOwnProperty.call(nextState, otherTextSelectionKey)) {
+        delete nextState[otherTextSelectionKey];
+      }
+
+      return nextState;
     });
+  };
+
+  const handleOtherInputChange = (event) => {
+    const nextValue = String(event?.target?.value || '');
+    setSelections((prev) => ({
+      ...prev,
+      [otherTextSelectionKey]: nextValue ? [nextValue] : [],
+    }));
   };
 
   const handleTextInputChange = (event) => {
@@ -2903,6 +3212,20 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
               })}
             </div>
           )}
+
+          {hasOtherSelected ? (
+            <div className="nutrition-log-page__other-input-wrap">
+              <input
+                type="text"
+                className="nutrition-log-page__other-input"
+                value={otherTextInputValue}
+                onChange={handleOtherInputChange}
+                placeholder="Please specify"
+                aria-label={`${activeCard.title || 'Other'} - please specify`}
+                onWheel={(event) => event.stopPropagation()}
+              />
+            </div>
+          ) : null}
         </div>
 
         {stackCardCount >= 1 ? <div className="nutrition-log-page__stack-card nutrition-log-page__stack-card--one" aria-hidden="true" /> : null}
