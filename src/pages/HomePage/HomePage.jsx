@@ -132,10 +132,29 @@ const TimeRowIcon = () => (
   </svg>
 );
 
-const PlaceRowIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-    <path d="M15 7.5C15 12.375 9 16.5 9 16.5C9 16.5 3 12.375 3 7.5C3 5.9087 3.63214 4.38258 4.75736 3.25736C5.88258 2.13214 7.4087 1.5 9 1.5C10.5913 1.5 12.1174 2.13214 13.2426 3.25736C14.3679 4.38258 15 5.9087 15 7.5Z" stroke="#E6E6E6" />
-    <path d="M11.25 7.5C11.25 8.09674 11.0129 8.66903 10.591 9.09099C10.169 9.51295 9.59674 9.75 9 9.75C8.40326 9.75 7.83097 9.51295 7.40901 9.09099C6.98705 8.66903 6.75 8.09674 6.75 7.5C6.75 6.90326 6.98705 6.33097 7.40901 5.90901C7.83097 5.48705 8.40326 5.25 9 5.25C9.59674 5.25 10.169 5.48705 10.591 5.90901C11.0129 6.33097 11.25 6.90326 11.25 7.5Z" stroke="#E6E6E6" />
+const SlotDateCalendarIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+    <path
+      d="M6.66699 1.66602V4.99935M13.3337 1.66602V4.99935"
+      stroke="#CCCCCC"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M4.16667 3.33398H15.8333C16.7538 3.33398 17.5 4.08018 17.5 5.00065V16.6673C17.5 17.5878 16.7538 18.334 15.8333 18.334H4.16667C3.24619 18.334 2.5 17.5878 2.5 16.6673V5.00065C2.5 4.08018 3.24619 3.33398 4.16667 3.33398V3.33398"
+      stroke="#CCCCCC"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M2.5 8.33398H17.5"
+      stroke="#CCCCCC"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -783,10 +802,6 @@ const HomePage = ({
     if (noDataStage === 'camp_scheduled') {
       const slotWindowTitle = [slotNorm.slotStart, slotNorm.slotEnd].filter(Boolean).join(' – ') || '—';
       const dateLine = formatEngagementDateLabel(slotNorm.engagementDateRaw) || '—';
-      const locationTitle = slotNorm.locationDisplay || '—';
-      const locationSub = slotNorm.locationType
-        ? `${String(slotNorm.locationType).charAt(0).toUpperCase()}${String(slotNorm.locationType).slice(1)}`
-        : 'Location';
       const campHeroTitle = slotNorm.isB2b ? 'Your Health Camp is Scheduled' : 'Your Test is Scheduled';
 
       return (
@@ -831,20 +846,11 @@ const HomePage = ({
               </div>
               <div className="home-page-scheduled__line-item">
                 <div className="home-page-scheduled__icon-box" aria-hidden="true">
-                  <TimeRowIcon />
+                  <SlotDateCalendarIcon />
                 </div>
                 <div className="home-page-scheduled__line-copy">
                   <p className="home-page-scheduled__line-title">{dateLine}</p>
                   <p className="home-page-scheduled__line-sub">Camp day</p>
-                </div>
-              </div>
-              <div className="home-page-scheduled__line-item">
-                <div className="home-page-scheduled__icon-box" aria-hidden="true">
-                  <PlaceRowIcon />
-                </div>
-                <div className="home-page-scheduled__line-copy">
-                  <p className="home-page-scheduled__line-title">{locationTitle}</p>
-                  <p className="home-page-scheduled__line-sub">{locationSub}</p>
                 </div>
               </div>
             </div>

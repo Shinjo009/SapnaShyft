@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './PositiveWinsSection.css';
 
 const PositiveWinsHeaderIcon = () => (
@@ -46,6 +46,7 @@ const barSegments = [
 
 const defaultCards = [
   {
+    id: 'pw-healthy-habits',
     title: 'Healthy\nHabits',
     Icon: HealthyHabitsIcon,
     aspects: [
@@ -55,6 +56,7 @@ const defaultCards = [
     ],
   },
   {
+    id: 'pw-healthy-profiles',
     title: 'Healthy\nProfiles',
     Icon: HealthyProfilesIcon,
     aspects: [
@@ -64,6 +66,7 @@ const defaultCards = [
     ],
   },
   {
+    id: 'pw-low-risk',
     title: 'Low Risk',
     Icon: LowRiskIcon,
     aspects: [
@@ -117,18 +120,21 @@ const buildPositiveWinsCardsFromApi = (positiveWins) => {
 
   return [
     {
+      id: 'pw-healthy-habits',
       title: 'Healthy\nHabits',
       Icon: HealthyHabitsIcon,
       aspects: healthyHabitRows.length > 0 ? healthyHabitRows : [{ label: '-' }],
       statusLabel: healthyHabitRows.length > 0 ? 'Optimal' : '-',
     },
     {
+      id: 'pw-healthy-profiles',
       title: 'Healthy\nProfiles',
       Icon: HealthyProfilesIcon,
       aspects: healthyProfileRows.length > 0 ? healthyProfileRows : [{ label: '-' }],
       statusLabel: healthyProfileRows.length > 0 ? 'Optimal' : '-',
     },
     {
+      id: 'pw-low-risk',
       title: 'Low Risk',
       Icon: LowRiskIcon,
       aspects: lowRiskRows.length > 0 ? lowRiskRows : [{ label: '-', percent: '-' }],
@@ -137,16 +143,31 @@ const buildPositiveWinsCardsFromApi = (positiveWins) => {
   ];
 };
 
+const setStackDraggingAttr = (stackEl, isDragging) => {
+  if (!stackEl) return;
+  if (isDragging) {
+    stackEl.setAttribute('data-dragging', 'true');
+  } else {
+    stackEl.removeAttribute('data-dragging');
+  }
+};
+
 const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
-  const stackCards = (apiPositiveWins !== undefined
-    ? buildPositiveWinsCardsFromApi(apiPositiveWins)
-    : cards.slice(0, 3)
-  ).slice(0, 3);
+  const stackCards = useMemo(() => {
+    const raw = (apiPositiveWins !== undefined
+      ? buildPositiveWinsCardsFromApi(apiPositiveWins)
+      : (Array.isArray(cards) ? cards : defaultCards).slice(0, 3)
+    ).slice(0, 3);
+
+    return raw.map((card, index) => ({
+      ...card,
+      id: card.id || `pw-slot-${index}`,
+    }));
+  }, [apiPositiveWins, cards]);
   const cardCount = stackCards.length;
   const [activeIndex, setActiveIndex] = useState(Math.max(cardCount - 1, 0));
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const stackRef = useRef(null);
   const touchStartXRef = useRef(null);
@@ -155,8 +176,8 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
   const latestDragXRef = useRef(0);
   const pendingDragXRef = useRef(0);
   const dragFrameRef = useRef(null);
-  const animationTimeoutRef = useRef(null);
-  const animationSettledRef = useRef(false);
+  /** True after startAnimation until we settle once (left and/or transform both fire on the front card). */
+  const stackSwapAwaitingSettleRef = useRef(false);
 
   const commitDragOffset = (value) => {
     latestDragXRef.current = value;
@@ -174,32 +195,6 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
     commitDragOffset(0);
   };
 
-  const clearAnimationFallback = () => {
-    if (animationTimeoutRef.current !== null) {
-      clearTimeout(animationTimeoutRef.current);
-      animationTimeoutRef.current = null;
-    }
-  };
-
-  const completeStackAnimation = () => {
-    if (animationSettledRef.current || !isAnimating) {
-      return;
-    }
-
-    animationSettledRef.current = true;
-    clearAnimationFallback();
-    setIsResetting(true);
-    setActiveIndex((prev) => (prev + 1) % cardCount);
-    setIsAnimating(false);
-    resetDragOffset();
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setIsResetting(false);
-      });
-    });
-  };
-
   const applyDragOffset = (value) => {
     pendingDragXRef.current = value;
     if (dragFrameRef.current !== null) {
@@ -213,28 +208,27 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
   };
 
   useEffect(() => {
+    const stackEl = stackRef.current;
     return () => {
       if (dragFrameRef.current !== null) {
         cancelAnimationFrame(dragFrameRef.current);
       }
-      clearAnimationFallback();
+      stackSwapAwaitingSettleRef.current = false;
+      setStackDraggingAttr(stackEl, false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    setActiveIndex((prev) => Math.min(prev, Math.max(cardCount - 1, 0)));
+  }, [cardCount]);
 
   const startAnimation = (direction) => {
     if (cardCount <= 1) return;
-    animationSettledRef.current = false;
-    clearAnimationFallback();
-    setIsDragging(false);
+    stackSwapAwaitingSettleRef.current = true;
+    setStackDraggingAttr(stackRef.current, false);
     resetDragOffset();
     setSwipeDirection(direction);
     setIsAnimating(true);
-
-    // Fallback in case transitionend is dropped on some browsers under heavy touch input.
-    animationTimeoutRef.current = setTimeout(() => {
-      completeStackAnimation();
-    }, 760);
   };
 
   const goPrev = () => {
@@ -255,7 +249,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
     touchStartXRef.current = event.touches[0].clientX;
     touchStartYRef.current = event.touches[0].clientY;
     isHorizontalSwipeRef.current = false;
-    setIsDragging(false);
+    setStackDraggingAttr(stackRef.current, false);
     resetDragOffset();
   };
 
@@ -278,7 +272,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
         return;
       }
 
-      setIsDragging(true);
+      setStackDraggingAttr(stackRef.current, true);
     }
 
     event.preventDefault();
@@ -304,7 +298,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
     if (!isHorizontalSwipeRef.current) {
       touchStartXRef.current = null;
       touchStartYRef.current = null;
-      setIsDragging(false);
+      setStackDraggingAttr(stackRef.current, false);
       resetDragOffset();
       return;
     }
@@ -319,7 +313,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
         goPrev();
       }
     } else {
-      setIsDragging(false);
+      setStackDraggingAttr(stackRef.current, false);
       resetDragOffset();
     }
 
@@ -332,16 +326,27 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
     touchStartXRef.current = null;
     touchStartYRef.current = null;
     isHorizontalSwipeRef.current = false;
-    setIsDragging(false);
+    setStackDraggingAttr(stackRef.current, false);
     resetDragOffset();
   };
 
   const handleStackTransitionEnd = (event) => {
-    if (!isAnimating) return;
+    if (!stackSwapAwaitingSettleRef.current) return;
     if (!event.target.classList.contains('positive-wins__stack-card--front')) return;
-    if (event.propertyName !== 'transform' && event.propertyName !== 'left') return;
+    if (event.propertyName !== 'left' && event.propertyName !== 'transform') return;
 
-    completeStackAnimation();
+    stackSwapAwaitingSettleRef.current = false;
+
+    setIsResetting(true);
+    setActiveIndex((prev) => (prev + 1) % cardCount);
+    setIsAnimating(false);
+    resetDragOffset();
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsResetting(false);
+      });
+    });
   };
 
   return (
@@ -359,13 +364,18 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
       <div
         ref={stackRef}
         className={`positive-wins__stack${isAnimating ? ` positive-wins__stack--moving-${swipeDirection}` : ''}`}
+        style={cardCount === 2 ? {
+          '--positive-wins-back-two-left': 'var(--positive-wins-back-one-left)',
+          '--positive-wins-back-two-top': 'var(--positive-wins-back-one-top)',
+          '--positive-wins-back-two-fade': 'var(--positive-wins-back-one-fade)',
+        } : undefined}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
         onTransitionEnd={handleStackTransitionEnd}
-        data-dragging={isDragging ? 'true' : 'false'}
         data-resetting={isResetting ? 'true' : 'false'}
+        data-card-count={cardCount}
       >
         {stackCards.map((card, index) => {
           const CardIcon = card.Icon;
@@ -380,7 +390,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
 
           return (
             <article
-              key={`${card.title}-${index}`}
+              key={card.id}
               className={`positive-wins__stack-card positive-wins__stack-card--${role}`}
             >
               <div className="positive-wins__card-top-row">

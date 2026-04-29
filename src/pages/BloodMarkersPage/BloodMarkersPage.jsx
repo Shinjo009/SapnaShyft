@@ -1122,6 +1122,8 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
   const latestDragXRef = useRef(0);
   const pendingDragXRef = useRef(0);
   const dragFrameRef = useRef(null);
+  /** True after startAnimation until we settle once (left and/or transform both fire on the front card). */
+  const stackSwapAwaitingSettleRef = useRef(false);
 
   const commitDragOffset = (value) => {
     latestDragXRef.current = value;
@@ -1156,11 +1158,13 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
       if (dragFrameRef.current !== null) {
         cancelAnimationFrame(dragFrameRef.current);
       }
+      stackSwapAwaitingSettleRef.current = false;
     };
   }, []);
 
   const startAnimation = (direction) => {
     if (cardCount <= 1) return;
+    stackSwapAwaitingSettleRef.current = true;
     setIsDragging(false);
     resetDragOffset();
     setSwipeDirection(direction);
@@ -1265,9 +1269,11 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
   };
 
   const handleStackTransitionEnd = (event) => {
-    if (!isAnimating) return;
+    if (!stackSwapAwaitingSettleRef.current) return;
     if (!event.target.classList.contains('blood-markers-page__stack-card--front')) return;
-    if (event.propertyName !== 'transform') return;
+    if (event.propertyName !== 'left' && event.propertyName !== 'transform') return;
+
+    stackSwapAwaitingSettleRef.current = false;
 
     setIsResetting(true);
     setActiveIndex((prev) => (prev + 1) % cardCount);

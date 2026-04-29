@@ -121,7 +121,7 @@ const toRiskAnalysisCardsFromApi = (riskAnalysis) => {
     const keyFromName = normalizeDiseaseKey(name);
 
     return {
-      id: `api-risk-${code || index}`,
+      id: `api-risk-${index}-${code || 'row'}`,
       code,
       name,
       icon: DISEASE_ICON_BY_CODE[code] || MetabolicIcon,
@@ -265,6 +265,15 @@ const buildBloodMarkersFromGroups = (groups) => {
   return rows;
 };
 
+const setStackDraggingAttr = (stackEl, isDragging) => {
+  if (!stackEl) return;
+  if (isDragging) {
+    stackEl.setAttribute('data-dragging', 'true');
+  } else {
+    stackEl.removeAttribute('data-dragging');
+  }
+};
+
 const orderByHierarchy = (markers) => {
   const source = Array.isArray(markers) ? markers : [];
   const high = source.filter((item) => item.riskKey === 'high');
@@ -278,7 +287,7 @@ const orderByHierarchy = (markers) => {
   return [...high, ...low, ...optimal];
 };
 
-const GaugeDial = ({ score, scoreDisplay }) => {
+const GaugeDial = React.memo(function GaugeDial({ score, scoreDisplay }) {
   const safeScore = Math.max(0, Math.min(100, score ?? 0));
   const pathD = 'M4 40 A36 36 0 0 1 76 40';
   const approxLength = 113.1;
@@ -309,15 +318,18 @@ const GaugeDial = ({ score, scoreDisplay }) => {
       </div>
     </div>
   );
-};
+});
 
 const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseSelect, onSeeMore, onBloodMarkersSeeMore }) => {
   const stackCards = useMemo(() => {
-    if (apiRiskAnalysis !== undefined) {
-      return toRiskAnalysisCardsFromApi(apiRiskAnalysis);
-    }
+    const raw = apiRiskAnalysis !== undefined
+      ? toRiskAnalysisCardsFromApi(apiRiskAnalysis)
+      : (Array.isArray(cards) ? cards : defaultCards).slice(0, 3);
 
-    return cards.slice(0, 3);
+    return raw.map((card, index) => ({
+      ...card,
+      id: card.id != null ? String(card.id) : `risk-slot-${index}`,
+    }));
   }, [apiRiskAnalysis, cards]);
   const [apiBloodMarkers, setApiBloodMarkers] = useState([]);
   const bloodMarkers = useMemo(() => {
@@ -337,7 +349,6 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
   const [activeIndex, setActiveIndex] = useState(Math.max(cardCount - 1, 0));
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const stackRef = useRef(null);
   const touchStartXRef = useRef(null);
@@ -345,9 +356,9 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
   const isHorizontalSwipeRef = useRef(false);
   const pendingDragXRef = useRef(0);
   const dragFrameRef = useRef(null);
-  const animationTimeoutRef = useRef(null);
-  const animationSettledRef = useRef(false);
   const didMoveRef = useRef(false);
+  /** True after startAnimation until we settle once (left and/or transform both fire on the front card). */
+  const stackSwapAwaitingSettleRef = useRef(false);
 
   const commitDragOffset = (value) => {
     if (stackRef.current) {
@@ -376,55 +387,28 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
     });
   };
 
-  const clearAnimationFallback = () => {
-    if (animationTimeoutRef.current !== null) {
-      clearTimeout(animationTimeoutRef.current);
-      animationTimeoutRef.current = null;
-    }
-  };
-
-  const completeStackAnimation = () => {
-    if (animationSettledRef.current || !isAnimating) {
-      return;
-    }
-
-    animationSettledRef.current = true;
-    clearAnimationFallback();
-    setIsResetting(true);
-    setActiveIndex((prev) => (prev + 1) % cardCount);
-    setIsAnimating(false);
-    resetDragOffset();
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setIsResetting(false);
-      });
-    });
-  };
-
   useEffect(() => {
+    const stackEl = stackRef.current;
     return () => {
       if (dragFrameRef.current !== null) {
         cancelAnimationFrame(dragFrameRef.current);
       }
-      clearAnimationFallback();
+      stackSwapAwaitingSettleRef.current = false;
+      setStackDraggingAttr(stackEl, false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    setActiveIndex((prev) => Math.min(prev, Math.max(cardCount - 1, 0)));
+  }, [cardCount]);
 
   const startAnimation = (direction) => {
     if (cardCount <= 1) return;
-    animationSettledRef.current = false;
-    clearAnimationFallback();
-    setIsDragging(false);
+    stackSwapAwaitingSettleRef.current = true;
+    setStackDraggingAttr(stackRef.current, false);
     resetDragOffset();
     setSwipeDirection(direction);
     setIsAnimating(true);
-
-    // Fallback in case transitionend is dropped on some browsers under heavy touch input.
-    animationTimeoutRef.current = setTimeout(() => {
-      completeStackAnimation();
-    }, 760);
   };
 
   const goPrev = () => {
@@ -446,7 +430,7 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
     touchStartYRef.current = event.touches[0].clientY;
     isHorizontalSwipeRef.current = false;
     didMoveRef.current = false;
-    setIsDragging(false);
+    setStackDraggingAttr(stackRef.current, false);
     resetDragOffset();
   };
 
@@ -469,7 +453,7 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
         return;
       }
 
-      setIsDragging(true);
+      setStackDraggingAttr(stackRef.current, true);
     }
 
     didMoveRef.current = true;
@@ -496,8 +480,9 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
     if (!isHorizontalSwipeRef.current) {
       touchStartXRef.current = null;
       touchStartYRef.current = null;
-      setIsDragging(false);
+      setStackDraggingAttr(stackRef.current, false);
       resetDragOffset();
+      didMoveRef.current = false;
       return;
     }
 
@@ -511,29 +496,42 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
         goPrev();
       }
     } else {
-      setIsDragging(false);
+      setStackDraggingAttr(stackRef.current, false);
       resetDragOffset();
     }
 
     touchStartXRef.current = null;
     touchStartYRef.current = null;
     isHorizontalSwipeRef.current = false;
+    didMoveRef.current = false;
   };
 
   const handleTouchCancel = () => {
     touchStartXRef.current = null;
     touchStartYRef.current = null;
     isHorizontalSwipeRef.current = false;
-    setIsDragging(false);
+    setStackDraggingAttr(stackRef.current, false);
     resetDragOffset();
+    didMoveRef.current = false;
   };
 
   const handleStackTransitionEnd = (event) => {
-    if (!isAnimating) return;
+    if (!stackSwapAwaitingSettleRef.current) return;
     if (!event.target.classList.contains('risk-analysis-wins__stack-card--front')) return;
-    if (event.propertyName !== 'transform' && event.propertyName !== 'left') return;
+    if (event.propertyName !== 'left' && event.propertyName !== 'transform') return;
 
-    completeStackAnimation();
+    stackSwapAwaitingSettleRef.current = false;
+
+    setIsResetting(true);
+    setActiveIndex((prev) => (prev + 1) % cardCount);
+    setIsAnimating(false);
+    resetDragOffset();
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsResetting(false);
+      });
+    });
   };
 
   const handleCardClick = (card) => {
@@ -611,8 +609,8 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
         onTransitionEnd={handleStackTransitionEnd}
-        data-dragging={isDragging ? 'true' : 'false'}
         data-resetting={isResetting ? 'true' : 'false'}
+        data-card-count={cardCount}
       >
         {stackCards.map((card, index) => {
           const CardIcon = card.icon;
@@ -627,7 +625,7 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
 
           return (
             <article
-              key={`${card.id}-${index}`}
+              key={card.id}
               className={`risk-analysis-wins__stack-card risk-analysis-wins__stack-card--${role}`}
               onClick={() => handleCardClick(card)}
               onKeyDown={(event) => {

@@ -74,6 +74,7 @@
   height: calc(var(--positive-wins-card-height) + var(--positive-wins-stack-tail));
   overflow: visible;
   touch-action: pan-y;
+  isolation: isolate;
 }
 
 .positive-wins__stack-card {
@@ -83,7 +84,8 @@
   top: 0;
   height: var(--positive-wins-card-height);
   border-radius: 24px;
-  display: block;
+  display: flex;
+  flex-direction: column;
   padding: 24px;
   border: 1px solid rgba(144, 223, 158, 0.3);
   background:
@@ -103,6 +105,8 @@
 .positive-wins__stack[data-dragging='true'] .positive-wins__stack-card {
   transition-property: transform;
   transition-duration: 0ms;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .positive-wins__stack[data-resetting='true'] .positive-wins__stack-card {
@@ -140,6 +144,7 @@
   top: var(--positive-wins-back-one-top);
   transform: translate3d(0, 0, 0);
   z-index: 2;
+  opacity: 1;
   pointer-events: none;
 }
 
@@ -152,6 +157,7 @@
   top: var(--positive-wins-back-two-top);
   transform: translate3d(0, 0, 0);
   z-index: 1;
+  opacity: 1;
   pointer-events: none;
 }
 
@@ -240,6 +246,47 @@
 
 .positive-wins__stack--moving-prev .positive-wins__stack-card--back-two::after {
   opacity: var(--positive-wins-back-one-fade);
+}
+
+/* Two-card stack: match BloodMarkers detail (hide third slot; front exits to back-one slot). */
+.positive-wins__stack[data-card-count='2'] .positive-wins__stack-card--back-two,
+.positive-wins__stack[data-card-count='2'] .positive-wins__stack-card--hidden {
+  display: none;
+}
+
+.positive-wins__stack[data-card-count='2'].positive-wins__stack--moving-next .positive-wins__stack-card--front,
+.positive-wins__stack[data-card-count='2'].positive-wins__stack--moving-prev .positive-wins__stack-card--front {
+  left: var(--positive-wins-back-one-left);
+  top: var(--positive-wins-back-one-top);
+  transform: translate3d(0, 0, 0);
+  z-index: 1;
+}
+
+.positive-wins__stack[data-card-count='2'].positive-wins__stack--moving-next .positive-wins__stack-card--front::after,
+.positive-wins__stack[data-card-count='2'].positive-wins__stack--moving-prev .positive-wins__stack-card--front::after {
+  opacity: var(--positive-wins-back-one-fade);
+}
+
+/* Match BloodMarkers stack: keep inner chrome tied to each physical card layer during the swap. */
+.positive-wins__stack-card--back-one .positive-wins__card-top-row,
+.positive-wins__stack-card--back-one .positive-wins__card-content,
+.positive-wins__stack-card--back-two .positive-wins__card-top-row,
+.positive-wins__stack-card--back-two .positive-wins__card-content,
+.positive-wins__stack-card--hidden .positive-wins__card-top-row,
+.positive-wins__stack-card--hidden .positive-wins__card-content {
+  opacity: 1;
+}
+
+.positive-wins__stack-card--hidden .positive-wins__card-top-row,
+.positive-wins__stack-card--hidden .positive-wins__card-content {
+  opacity: 0;
+}
+
+.positive-wins__stack--moving-next .positive-wins__stack-card--back-one .positive-wins__card-top-row,
+.positive-wins__stack--moving-next .positive-wins__stack-card--back-one .positive-wins__card-content,
+.positive-wins__stack--moving-prev .positive-wins__stack-card--back-one .positive-wins__card-top-row,
+.positive-wins__stack--moving-prev .positive-wins__stack-card--back-one .positive-wins__card-content {
+  opacity: 1;
 }
 
 .positive-wins__card-top-row,

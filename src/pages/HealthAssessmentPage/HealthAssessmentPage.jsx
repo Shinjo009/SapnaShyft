@@ -2018,7 +2018,8 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
 
   const medicationOptions = useMemo(() => {
     const diseaseSelections = [];
-    const sourceKeys = [familyHistoryKeys.familyBloodKey, familyHistoryKeys.diagnosedKey].filter(Boolean);
+    // Medication choices follow only self-reported diagnoses, not family-history conditions.
+    const sourceKeys = [familyHistoryKeys.diagnosedKey].filter(Boolean);
 
     sourceKeys.forEach((key) => {
       const selected = Array.isArray(selections[key]) ? selections[key] : [];

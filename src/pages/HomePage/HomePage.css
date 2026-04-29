@@ -624,7 +624,7 @@
 
 .home-page-scheduled__checklist-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   width: 100%;
 }

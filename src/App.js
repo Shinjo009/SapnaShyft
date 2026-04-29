@@ -21,8 +21,6 @@ import {
 } from './utils/authStorage';
 import { trackAppScreen } from './analytics/googleAnalytics';
 import AppTooltipTour from './components/AppTooltipTour/AppTooltipTour';
-import popupOneImage from './images/popup1.webp';
-import popupTwoImage from './images/popup2.webp';
 import { prefetchNavbarRoutes } from './utils/routePrefetch';
 
 // Same asset as Profile logout modal (`/public/BG-1.png`).
@@ -162,8 +160,6 @@ function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isIosInstallFlow, setIsIosInstallFlow] = useState(false);
-  const [installHelpMessage, setInstallHelpMessage] = useState('');
-  const [showIosInstallGuide, setShowIosInstallGuide] = useState(false);
   const [selectedHealthScanTab, setSelectedHealthScanTab] = useState(0);
   const [linkedAccounts, setLinkedAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState(null);
@@ -676,19 +672,15 @@ function App() {
     if (!isStandalone) {
       setIsIosInstallFlow(isIosDevice);
       setShowInstallPrompt(true);
-      setShowIosInstallGuide(isIosDevice);
     } else {
       setIsIosInstallFlow(false);
       setShowInstallPrompt(false);
-      setShowIosInstallGuide(false);
     }
 
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setIsIosInstallFlow(false);
-      setInstallHelpMessage('');
-      setShowIosInstallGuide(false);
       setShowInstallPrompt(true);
       console.log('Install prompt available');
     };
@@ -697,8 +689,6 @@ function App() {
       console.log('App installed');
       setShowInstallPrompt(false);
       setDeferredPrompt(null);
-      setInstallHelpMessage('');
-      setShowIosInstallGuide(false);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -745,33 +735,27 @@ function App() {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
-      if (isIosInstallFlow) {
-        // iOS Safari does not allow websites to directly open the browser
-        // action sheet entry where "Add to Home Screen" lives.
-        setShowIosInstallGuide(true);
-        setInstallHelpMessage('In Safari, tap Share, then Add to Home Screen.');
-      } else {
-        setShowIosInstallGuide(false);
-        setInstallHelpMessage('Use browser menu and choose Install app/Add to Home Screen.');
-      }
-
       return;
     }
 
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     console.log(`User response: ${outcome}`);
-    
+
     setDeferredPrompt(null);
     setShowInstallPrompt(false);
-    setInstallHelpMessage('');
-    setShowIosInstallGuide(false);
   };
 
   const handleDismissInstall = () => {
     setShowInstallPrompt(false);
-    setInstallHelpMessage('');
-    setShowIosInstallGuide(false);
+  };
+
+  const handleInstallGotIt = async () => {
+    if (!isIosInstallFlow && deferredPrompt) {
+      await handleInstallClick();
+      return;
+    }
+    handleDismissInstall();
   };
 
   const handleQuestionnaireSuccessOk = () => {
@@ -1053,6 +1037,7 @@ function App() {
 
   const tooltipTourScopeKey = String(selectedAccountId || currentUserId || 'global');
   const isTooltipEligibleHome = Boolean(preloadedHomeData);
+  const canDirectInstallPwa = Boolean(deferredPrompt) && !isIosInstallFlow;
 
   if (isBootstrappingSession) {
     return null;
@@ -1069,9 +1054,7 @@ function App() {
       <div className="app-background" aria-hidden="true" />
       {/* PWA Install Prompt Banner - Fixed outside scroll container */}
       {showInstallPrompt && (
-        <>
-          <div className="app-install-popup-backdrop" aria-hidden="true" />
-          <div className="app-install-popup-wrap" role="dialog" aria-live="polite" aria-label="Install app">
+        <div className="app-install-popup-wrap" role="dialog" aria-live="polite" aria-label="Install app">
             <button
               type="button"
               className="app-install-popup-close"
@@ -1082,40 +1065,47 @@ function App() {
             </button>
             <div className="app-install-popup-card">
               <div className="app-install-popup-content">
-                <p className="app-install-popup-title">Use the app for a smoother experience</p>
-                <p className="app-install-popup-subtitle">Unlock personalized insights.</p>
-                {!isIosInstallFlow ? (
-                  <button
-                    type="button"
-                    className="app-install-popup-download-btn"
-                    onClick={handleInstallClick}
-                  >
-                    Download App
-                  </button>
-                ) : null}
-                {showIosInstallGuide ? (
-                  <div className="app-install-popup-ios-steps" role="note" aria-live="polite">
-                    <p className="app-install-popup-ios-step">
-                      1. Tap Safari <span className="app-install-popup-ios-share">Share</span> button
-                      {' '}(square icon with up arrow)
-                    </p>
-                    <p className="app-install-popup-ios-step app-install-popup-ios-step--arrow">
-                      <span aria-hidden="true">↳</span>
-                      <span>Select <strong>Add to Home Screen</strong></span>
-                    </p>
-                  </div>
-                ) : null}
-                {Boolean(installHelpMessage) && (
-                  <p className="app-install-popup-ios-hint">{installHelpMessage}</p>
-                )}
-              </div>
-              <div className="app-install-popup-image-stack" aria-hidden="true">
-                <img src={popupOneImage} alt="" className="app-install-popup-image app-install-popup-image--main" />
-                <img src={popupTwoImage} alt="" className="app-install-popup-image app-install-popup-image--secondary" />
+                <div className="app-install-popup-title-row">
+                  <span className="app-install-popup-title-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M12 4v8M9 11l3 3 3-3M7 17h10"
+                        stroke="currentColor"
+                        strokeWidth="1.65"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  <p className="app-install-popup-title">Install SuperShyft App</p>
+                </div>
+                <p className="app-install-popup-body">
+                  {canDirectInstallPwa ? (
+                    <>
+                      Install SuperShyft on your device for a better experience with offline access and faster loading.
+                    </>
+                  ) : isIosInstallFlow ? (
+                    <>
+                      (Tap the <strong className="app-install-popup-share-word">Share</strong> button{' '}
+                      <span className="app-install-popup-share-glyph" aria-hidden="true">
+                        ⎋
+                      </span>{' '}
+                      at the bottom, then select &quot;Add to Home Screen&quot; to install SuperMom).
+                    </>
+                  ) : (
+                    <>When your browser offers it, use Install or add this site to your home screen to install SuperShyft.</>
+                  )}
+                </p>
+                <button
+                  type="button"
+                  className={`app-install-popup-got-it${canDirectInstallPwa ? ' app-install-popup-got-it--install' : ''}`}
+                  onClick={handleInstallGotIt}
+                >
+                  {canDirectInstallPwa ? 'Install Now' : 'Got it'}
+                </button>
               </div>
             </div>
-          </div>
-        </>
+        </div>
       )}
       <AppTooltipTour currentPage={currentPage} enabled={isTooltipEligibleHome} scopeKey={tooltipTourScopeKey} />
       <div className="app-scroll" ref={appScrollRef}>

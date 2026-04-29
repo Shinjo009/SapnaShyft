@@ -7,6 +7,9 @@ import superClubIcon from '../../images/SuperClub.svg';
 import packagesIcon from '../../images/Packages.svg';
 import { prefetchRouteChunk } from '../../utils/routePrefetch';
 
+/** Set to `false` when Super Care should be tappable again. */
+const SUPER_CARE_NAV_TEMPORARILY_LOCKED = true;
+
 let lastNavActiveItem = 'home';
 let lastNavCenter = 53.999;
 
@@ -42,7 +45,13 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
   const navItems = useMemo(
     () => [
       { id: 'home', label: 'Home', icon: homeIcon, iconSize: 19 },
-      { id: 'super-sync', label: 'Super Care', icon: superCareIcon, iconSize: 23 },
+      {
+        id: 'super-sync',
+        label: 'Super Care',
+        icon: superCareIcon,
+        iconSize: 23,
+        locked: SUPER_CARE_NAV_TEMPORARILY_LOCKED,
+      },
       { id: 'super-club', label: 'Super Club', icon: superClubIcon, iconSize: 23 },
       { id: 'packages', label: 'Packages', icon: packagesIcon, iconSize: 19 },
     ],
@@ -91,6 +100,11 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
   }, []);
 
   const handleItemClick = (id) => {
+    const clicked = navItems.find((item) => item.id === id);
+    if (clicked?.locked) {
+      return;
+    }
+
     // Kick off the destination's lazy chunk before doing anything else so the
     // fetch overlaps with React's state update instead of blocking mount.
     prefetchRouteChunk(id);
@@ -299,6 +313,7 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
             label={item.label}
             icon={item.icon}
             iconSize={item.iconSize}
+            locked={Boolean(item.locked)}
             isActive={activeItem === item.id}
             useFloatingActiveOrb
             hideActiveIconInItem={isFloatingIconLifted}
