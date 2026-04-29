@@ -183,17 +183,17 @@ const b2bCampChecklistItems = [
 ];
 
 const analyzingTimelineItems = [
-  { id: 'sample-collected', label: 'Sample Collected', time: '9:15 AM', state: 'done' },
-  { id: 'questionnaire-completed', label: 'Questionnaire Completed', time: '2:05 PM', state: 'done' },
-  { id: 'analysis-progress', label: 'Analysis in Progress', time: 'NOW', state: 'active' },
-  { id: 'reports-generated', label: 'Reports Generated', time: 'Expected Tomorrow', state: 'pending' },
+  { id: 'sample-collected', label: 'Sample Collected', state: 'done' },
+  { id: 'questionnaire-completed', label: 'Questionnaire Completion', state: 'done' },
+  { id: 'analysis-progress', label: 'Analysis in Progress', state: 'active' },
+  { id: 'reports-generated', label: 'Reports Generated', state: 'pending' },
 ];
 
 const analyzingQuestionnairePendingTimeline = [
-  { id: 'sample-collected', label: 'Sample Collected', time: '9:15 AM', state: 'done' },
-  { id: 'questionnaire-pending', label: 'Questionnaire Completion', time: 'NOW', state: 'current' },
-  { id: 'analysis-pending', label: 'Analysis Completed', time: 'Expected Today', state: 'pending' },
-  { id: 'reports-generated', label: 'Reports Generated', time: 'Expected Tomorrow', state: 'pending' },
+  { id: 'sample-collected', label: 'Sample Collected', state: 'done' },
+  { id: 'questionnaire-pending', label: 'Questionnaire Completion', state: 'current' },
+  { id: 'analysis-pending', label: 'Analysis in Progress', state: 'pending' },
+  { id: 'reports-generated', label: 'Reports Generated', state: 'pending' },
 ];
 
 const analyzingNextItems = [
@@ -309,35 +309,6 @@ const HomePage = ({
     }
   };
 
-  const handlePreviewArriveEarly = () => {
-    try {
-      sessionStorage.setItem('ss_b2b_opened_questionnaire', '1');
-    } catch {
-      // ignore
-    }
-    setNoDataStage('analyzing_questionnaire_pending');
-  };
-
-  const handlePreviewAnalysisInProgress = () => {
-    try {
-      localStorage.setItem('ss_b2b_questionnaire_submitted', '1');
-      sessionStorage.removeItem('ss_b2b_opened_questionnaire');
-    } catch {
-      // ignore
-    }
-    setNoDataStage('analyzing');
-  };
-
-  const handleBackToCampScheduled = () => {
-    try {
-      sessionStorage.removeItem('ss_b2b_opened_questionnaire');
-      localStorage.removeItem('ss_b2b_questionnaire_submitted');
-    } catch {
-      // ignore
-    }
-    setNoDataStage('camp_scheduled');
-  };
-
   useLayoutEffect(() => {
     if (!isNoDataHome || upcomingSlotStatus !== 'ready' || !campFlowActive) {
       return;
@@ -361,6 +332,25 @@ const HomePage = ({
     campFlowActive,
     forceRefreshFromProfile,
   ]);
+
+  useLayoutEffect(() => {
+    if (!isNoDataHome || upcomingSlotStatus !== 'ready' || !campFlowActive) {
+      return;
+    }
+    let shouldForceAnalyzing = false;
+    try {
+      shouldForceAnalyzing = sessionStorage.getItem('ss_b2b_post_submit_redirect') === '1';
+      if (shouldForceAnalyzing) {
+        sessionStorage.removeItem('ss_b2b_post_submit_redirect');
+      }
+    } catch {
+      shouldForceAnalyzing = false;
+    }
+    if (!shouldForceAnalyzing) {
+      return;
+    }
+    setNoDataStage('analyzing');
+  }, [isNoDataHome, upcomingSlotStatus, campFlowActive]);
 
   const metabolicAgeDetail = useMemo(() => {
     const chronologicalAge = Number(userAge);
@@ -757,13 +747,6 @@ const HomePage = ({
                   >
                     {item.label}
                   </p>
-                  <p
-                    className={`home-page-analyzing__timeline-time home-page-analyzing__timeline-time--${
-                      item.state === 'current' ? 'active' : item.state
-                    }`}
-                  >
-                    {item.time}
-                  </p>
                 </div>
               ))}
             </div>
@@ -771,14 +754,9 @@ const HomePage = ({
 
           <section className="home-page-analyzing__card">
             <div className="home-page-analyzing__next-head">
-              <button
-                type="button"
-                className="home-page-analyzing__info-badge home-page-analyzing__info-badge--btn"
-                onClick={handleBackToCampScheduled}
-                aria-label="Back to health camp schedule"
-              >
+              <span className="home-page-analyzing__info-badge" aria-hidden="true">
                 <InfoCircleIcon />
-              </button>
+              </span>
               <h3>What happens next?</h3>
             </div>
 
@@ -790,22 +768,11 @@ const HomePage = ({
           </section>
 
           {showQuestionnaireCta ? (
-            <>
-              <div className="home-page-b2b__cta-wrap">
-                <button type="button" className="home-page-b2b__cta" onClick={openB2bQuestionnaire}>
-                  Complete your Health Assessment
-                </button>
-              </div>
-              <div className="home-page-b2b__preview-actions">
-                <button
-                  type="button"
-                  className="home-page-b2b__preview-link"
-                  onClick={handlePreviewAnalysisInProgress}
-                >
-                  Preview: analysis in progress
-                </button>
-              </div>
-            </>
+            <div className="home-page-b2b__cta-wrap">
+              <button type="button" className="home-page-b2b__cta" onClick={openB2bQuestionnaire}>
+                Complete your Health Assessment
+              </button>
+            </div>
           ) : null}
 
           <NavBar defaultActive="home" onNavigate={handleNavigate} />
@@ -848,13 +815,9 @@ const HomePage = ({
           <section className="home-page-scheduled__card home-page-b2b__slot-card">
             <div className="home-page-b2b__slot-head">
               <h3 className="home-page-b2b__slot-title">Your Assigned Slot</h3>
-              <button
-                type="button"
-                className="home-page-b2b__arrive-pill home-page-b2b__arrive-pill--btn"
-                onClick={handlePreviewArriveEarly}
-              >
+              <span className="home-page-b2b__arrive-pill">
                 Arrive 10 mins early
-              </button>
+              </span>
             </div>
             <div className="home-page-scheduled__time-place">
               <div className="home-page-scheduled__line-item">

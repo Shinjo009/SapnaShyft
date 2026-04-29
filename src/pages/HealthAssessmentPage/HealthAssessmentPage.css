@@ -9,6 +9,30 @@
   touch-action: none;
 }
 
+.health-assessment-page__header {
+  display: grid;
+  grid-template-columns: 24px 1fr 24px;
+  align-items: center;
+  padding: 0 22px;
+}
+
+.health-assessment-page__back {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.health-assessment-page__header-spacer {
+  width: 24px;
+  height: 24px;
+}
+
 .health-assessment-page__title {
   margin: 0;
   color: #fff;
@@ -2745,66 +2769,100 @@ background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(144, 22
 .vitals-page__confirm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.58);
+  z-index: 10050;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  z-index: 60;
+  padding: 24px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.45);
 }
 
 .vitals-page__confirm-popup {
-  width: 100%;
-  max-width: 360px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: #131722;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
-  padding: 18px 16px 14px;
+  display: flex;
+  width: 325px;
+  max-width: 100%;
+  min-height: 240px;
+  padding: 5px 16px 20px 16px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+  border-radius: 8px;
+  border: 1px solid #fff;
+  background-color: rgba(40, 70, 70, 0.4);
+  box-shadow: 0 2px 8px 0 rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
 }
 
 .vitals-page__confirm-title {
   margin: 0;
+  text-align: center;
+  font-family: Lato, 'DM Sans', sans-serif;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 24px;
   color: #fff;
-  font-family: Lato;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.3;
+  padding: 28px 28px 0;
 }
 
 .vitals-page__confirm-text {
-  margin: 10px 0 0;
-  color: #d4d4d4;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.45;
+  width: 213px;
+  max-width: 100%;
+  color: #fff;
+  text-align: center;
+  font-family: Lato, 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 300;
+  line-height: normal;
+  letter-spacing: 0.06px;
+  margin: 0;
+  padding: 0;
 }
 
 .vitals-page__confirm-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: auto;
+  padding-top: 24px;
 }
 
 .vitals-page__confirm-btn {
-  border-radius: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  border-radius: 24px;
   height: 36px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  font-family: Lato;
-  font-size: 13px;
+  font-family: Lato, 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-style: normal;
   font-weight: 600;
+  letter-spacing: 0.28px;
   cursor: pointer;
+  transition: opacity 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .vitals-page__confirm-btn--secondary {
   background: transparent;
-  color: #ddd;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+  padding: 10px 16px;
 }
 
 .vitals-page__confirm-btn--primary {
-  border-color: #2b7f71;
+  min-width: 88px;
+  padding: 10px 28px;
+  border: 1px solid #969696;
   background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
   color: #fff;
 }

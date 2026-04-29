@@ -30,6 +30,7 @@ const ProfilePage = ({
   onBack,
   onOpenReports,
   onOpenNutrition,
+  onOpenHealthAssessment,
   onOpenCustomerSupport,
   onOpenPermissions,
   onOpenAllAppointments,
@@ -431,6 +432,12 @@ const ProfilePage = ({
               </button>
               <button type="button" className="profile-page__menu-sub-item" onClick={onOpenNutrition}>
                 <span>Nutrition</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
+                  <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button type="button" className="profile-page__menu-sub-item" onClick={onOpenHealthAssessment}>
+                <span>Health Assessment</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
                   <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>

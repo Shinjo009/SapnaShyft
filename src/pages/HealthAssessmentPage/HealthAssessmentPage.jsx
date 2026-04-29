@@ -11,6 +11,8 @@ import waistGif from '../../images/waist-gif.gif';
 import hipGif from '../../images/hip-gif.gif';
 import './HealthAssessmentPage.css';
 
+const questionnaireSuccessModalBg = `${process.env.PUBLIC_URL || ''}/BG-1.png`;
+
 const AnthropometryTriangleArrow = ({ direction = 'right' }) => {
   const rotation = direction === 'left' ? '180deg' : direction === 'up' ? '-90deg' : direction === 'down' ? '90deg' : '0deg';
   return (
@@ -74,20 +76,6 @@ const AnthropometryUnitDropdown = ({ value, options, onChange }) => {
 
 const normalizeUnitToken = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-const roundToSingleDecimal = (value) => {
-  const numericValue = Number(value);
-  if (!Number.isFinite(numericValue)) {
-    return 0;
-  }
-
-  return Math.round(numericValue * 10) / 10;
-};
-
-const formatOneDecimalValue = (value) => {
-  const roundedValue = roundToSingleDecimal(value);
-  return roundedValue.toFixed(1);
-};
-
 const roundToWholeNumber = (value, fallback = 0) => {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) {
@@ -96,6 +84,9 @@ const roundToWholeNumber = (value, fallback = 0) => {
 
   return Math.round(numericValue);
 };
+
+const MIN_HEIGHT_INCHES = 47;
+const MAX_HEIGHT_INCHES = 84; // 7'0"
 
 const resolvePreferredUnitOption = (options = [], preferredUnit = '', fallback = '-') => {
   if (!Array.isArray(options) || options.length === 0) {
@@ -297,7 +288,7 @@ const prioritizeHeightUnitOptions = (options = []) => {
 };
 
 const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initialValues = {} }) => {
-  const [height, setHeight] = useState(initialValues?.height ?? 152);
+  const [height, setHeight] = useState(roundToWholeNumber(initialValues?.height, 152));
   const [weight, setWeight] = useState(
     initialValues?.weight != null && initialValues?.weight !== '' ? String(initialValues.weight) : '0'
   );
@@ -345,7 +336,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
   useEffect(() => {
-    setHeight(initialValues?.height ?? 152);
+    setHeight(roundToWholeNumber(initialValues?.height, 152));
     setWeight(initialValues?.weight != null && initialValues?.weight !== '' ? String(initialValues.weight) : '0');
     setWaist(roundToWholeNumber(initialValues?.waist, 32));
     setHeightUnit(
@@ -459,7 +450,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
 
   useEffect(() => {
     if (!usesFeetInchesHeightUnit) return;
-    const totalInches = Math.max(0, Math.round(height / 2.54));
+    const totalInches = clamp(Math.round(height / 2.54), MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES);
     const nextFeet = Math.floor(totalInches / 12);
     const nextInches = totalInches % 12;
     setHeightFeet(nextFeet);
@@ -472,12 +463,12 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
     const nextUsesCentimeter = isCentimeterUnit(nextUnit);
 
     if (nextUsesFeetInches) {
-      const totalInches = Math.max(0, Math.round(height / 2.54));
+      const totalInches = clamp(Math.round(height / 2.54), MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES);
       setHeightFeet(Math.floor(totalInches / 12));
       setHeightInches(totalInches % 12);
     }
     if (currentUsesFeetInches && nextUsesCentimeter) {
-      const totalInches = clamp(heightFeet * 12 + heightInches, 47, 91);
+      const totalInches = clamp(heightFeet * 12 + heightInches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES);
       setHeight(Math.round(totalInches * 2.54));
     }
     setHeightUnit(nextUnit);
@@ -485,16 +476,16 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
 
   const handleFeetChange = (e) => {
     const raw = e.target.value.replace(/[^0-9]/g, '').slice(0, 1);
-    const nextFeet = raw === '' ? 0 : clamp(Number(raw), 3, 8);
+    const nextFeet = raw === '' ? 0 : clamp(Number(raw), 3, 7);
     setHeightFeet(nextFeet);
-    const totalInches = clamp(nextFeet * 12 + heightInches, 47, 91);
+    const totalInches = clamp(nextFeet * 12 + heightInches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES);
     setHeight(Math.round(totalInches * 2.54));
   };
 
   const handleFeetStep = (delta) => {
     setHeightFeet((prev) => {
-      const nextFeet = clamp(prev + delta, 3, 8);
-      const totalInches = clamp(nextFeet * 12 + heightInches, 47, 91);
+      const nextFeet = clamp(prev + delta, 3, 7);
+      const totalInches = clamp(nextFeet * 12 + heightInches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES);
       setHeight(Math.round(totalInches * 2.54));
       return nextFeet;
     });
@@ -533,14 +524,14 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
     const raw = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
     const nextInches = raw === '' ? 0 : clamp(Number(raw), 0, 11);
     setHeightInches(nextInches);
-    const totalInches = clamp(heightFeet * 12 + nextInches, 47, 91);
+    const totalInches = clamp(heightFeet * 12 + nextInches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES);
     setHeight(Math.round(totalInches * 2.54));
   };
 
   const handleInchesStep = (delta) => {
     setHeightInches((prev) => {
       const nextInches = clamp(prev + delta, 0, 11);
-      const totalInches = clamp(heightFeet * 12 + nextInches, 47, 91);
+      const totalInches = clamp(heightFeet * 12 + nextInches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES);
       setHeight(Math.round(totalInches * 2.54));
       return nextInches;
     });
@@ -621,7 +612,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
             <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{heightInches === 0 ? 11 : heightInches - 1}</span>
           </div>
         ) : (
-          <div className="anthropometry-page__faded">{formatOneDecimalValue(height - 1)}</div>
+          <div className="anthropometry-page__faded">{height - 1}</div>
         )}
         <div className="anthropometry-page__row-centered">
           <div className="anthropometry-page__arrow-wrap"><AnthropometryTriangleArrow direction="right" /></div>
@@ -666,18 +657,18 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
             </div>
           ) : (
             <div className="anthropometry-page__selected-box anthropometry-page__selected-box--height">
-              <span className="anthropometry-page__selected-value">{formatOneDecimalValue(height)}</span>
+              <span className="anthropometry-page__selected-value">{height}</span>
             </div>
           )}
           <div className="anthropometry-page__arrow-wrap"><AnthropometryTriangleArrow direction="left" /></div>
         </div>
         {usesFeetInchesHeightUnit ? (
           <div className="anthropometry-page__height-dual-faded-row" aria-hidden="true">
-            <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{Math.min(8, heightFeet + 1)}</span>
+            <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{Math.min(7, heightFeet + 1)}</span>
             <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{heightInches === 11 ? 0 : heightInches + 1}</span>
           </div>
         ) : (
-          <div className="anthropometry-page__faded">{formatOneDecimalValue(height + 1)}</div>
+          <div className="anthropometry-page__faded">{height + 1}</div>
         )}
       </div>
 
@@ -1118,7 +1109,14 @@ const getOtherTextSelectionKey = (questionKey) => `${questionKey}${OTHER_TEXT_SE
 
 const moveOtherOptionToEnd = (options = []) => {
   const normalizedOptions = Array.isArray(options) ? options : [];
-  const regularOptions = normalizedOptions.filter((option) => !isOtherOptionLabel(option?.label));
+  const regularOptions = normalizedOptions
+    .filter((option) => !isOtherOptionLabel(option?.label))
+    .sort((a, b) => {
+      const aIsLong = Boolean(a?.fullWidth) || shouldUseFullWidthOption(a?.label);
+      const bIsLong = Boolean(b?.fullWidth) || shouldUseFullWidthOption(b?.label);
+      if (aIsLong === bIsLong) return 0;
+      return aIsLong ? -1 : 1;
+    });
   const otherOptions = normalizedOptions
     .filter((option) => isOtherOptionLabel(option?.label))
     .map((option) => ({ ...option, fullWidth: true }));
@@ -1129,7 +1127,14 @@ const moveOtherLabelToEnd = (options = []) => {
   const normalizedOptions = (Array.isArray(options) ? options : [])
     .map((option) => String(option || '').trim())
     .filter(Boolean);
-  const regularOptions = normalizedOptions.filter((option) => !isOtherOptionLabel(option));
+  const regularOptions = normalizedOptions
+    .filter((option) => !isOtherOptionLabel(option))
+    .sort((a, b) => {
+      const aIsLong = shouldUseFullWidthOption(a);
+      const bIsLong = shouldUseFullWidthOption(b);
+      if (aIsLong === bIsLong) return 0;
+      return aIsLong ? -1 : 1;
+    });
   const otherOptions = normalizedOptions.filter((option) => isOtherOptionLabel(option));
   return [...regularOptions, ...otherOptions];
 };
@@ -1585,7 +1590,7 @@ const buildAnthropometryInitialValuesFromResponses = (questions = [], responses 
     ? convertHeightToCm(heightAnswer.numericValue, heightUnit)
     : null;
 
-  if (normalizedHeightInCm != null) primary.height = normalizedHeightInCm;
+  if (normalizedHeightInCm != null) primary.height = roundToWholeNumber(normalizedHeightInCm, 152);
   if (weightAnswer.numericValue != null) primary.weight = weightAnswer.numericValue;
   if (waistAnswer.numericValue != null) primary.waist = roundToWholeNumber(waistAnswer.numericValue, 32);
   if (hipAnswer.numericValue != null) followup.hipSize = roundToWholeNumber(hipAnswer.numericValue, 33);
@@ -1798,6 +1803,47 @@ const buildSelectionStateFromCards = (cardsData = [], initialSelections = {}) =>
   }, {});
 };
 
+const isNoneOptionLabel = (label) => normalizeLookupText(label) === 'none';
+
+const areStringArraysEqual = (left = [], right = []) => {
+  if (left.length !== right.length) {
+    return false;
+  }
+  return left.every((item, index) => item === right[index]);
+};
+
+const findFamilyHistoryCardKeys = (cardsData = []) => {
+  const getCardKey = (matcher) => {
+    const matched = cardsData.find((card) => matcher(card));
+    return matched?.key || '';
+  };
+
+  const familyBloodKey = getCardKey((card) => {
+    const key = normalizeLookupText(card?.key);
+    const title = normalizeLookupText(card?.title);
+    return key.includes('familyhealthconditions')
+      || key.includes('familyblood')
+      || title.includes('closebloodrelatives');
+  });
+
+  const diagnosedKey = getCardKey((card) => {
+    const key = normalizeLookupText(card?.key);
+    const title = normalizeLookupText(card?.title);
+    return key.includes('diagnoseddiseases')
+      || key.includes('diagnosed')
+      || title.includes('areyoudiagnosedwiththefollowingdiseases');
+  });
+
+  const medicationKey = getCardKey((card) => {
+    const key = normalizeLookupText(card?.key);
+    const title = normalizeLookupText(card?.title);
+    return key.includes('medication')
+      || title.includes('takingmedicationsforthefollowingdiseases');
+  });
+
+  return { familyBloodKey, diagnosedKey, medicationKey };
+};
+
 const hasCardAnswer = (card = {}, selectionValue = []) => {
   if (!card || card.key === 'empty') {
     return true;
@@ -1910,7 +1956,17 @@ const buildAnthropometryResponses = (questions = [], primaryValues = {}, followu
         return null;
       }
 
-      return buildScaleResponseItem(question, value, unitLabel, { forceValueCmUnitZero });
+      const shouldUseWholeNumber = aliases.some((alias) => (
+        alias === 'height'
+        || alias === 'waist_circumference'
+        || alias === 'waist'
+        || alias === 'hip_circumference'
+        || alias === 'hip_size'
+        || alias === 'hip'
+      ));
+      const normalizedValue = shouldUseWholeNumber ? roundToWholeNumber(value, 0) : value;
+
+      return buildScaleResponseItem(question, normalizedValue, unitLabel, { forceValueCmUnitZero });
     })
     .filter(Boolean);
 };
@@ -1958,8 +2014,82 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
     setSelections(buildSelectionStateFromCards(cardsData, initialSelections));
   }, [cardsData, initialSelections]);
 
-  const totalCards = Math.max(cardsData.length, 1);
-  const activeCard = cardsData[cardIndex] || {
+  const familyHistoryKeys = useMemo(() => findFamilyHistoryCardKeys(cardsData), [cardsData]);
+
+  const medicationOptions = useMemo(() => {
+    const diseaseSelections = [];
+    const sourceKeys = [familyHistoryKeys.familyBloodKey, familyHistoryKeys.diagnosedKey].filter(Boolean);
+
+    sourceKeys.forEach((key) => {
+      const selected = Array.isArray(selections[key]) ? selections[key] : [];
+      selected.forEach((value) => {
+        const label = String(value || '').trim();
+        if (!label) {
+          return;
+        }
+        if (isNoneOptionLabel(label)) {
+          return;
+        }
+        diseaseSelections.push(label);
+      });
+    });
+
+    const uniqueSelections = [...new Set(diseaseSelections)];
+    if (uniqueSelections.length === 0) {
+      return ['None'];
+    }
+    return moveOtherLabelToEnd([...uniqueSelections, 'None']);
+  }, [familyHistoryKeys, selections]);
+
+  useEffect(() => {
+    const medicationKey = familyHistoryKeys.medicationKey;
+    if (!medicationKey) {
+      return;
+    }
+
+    setSelections((prev) => {
+      const currentSelections = Array.isArray(prev[medicationKey]) ? prev[medicationKey] : [];
+      const allowedOptions = new Set(medicationOptions);
+      let nextSelections = currentSelections.filter((item) => allowedOptions.has(item));
+
+      const medicationHasOnlyNone = medicationOptions.length === 1 && isNoneOptionLabel(medicationOptions[0]);
+      if (medicationHasOnlyNone) {
+        nextSelections = ['None'];
+      } else if (nextSelections.length > 1 && nextSelections.some((item) => isNoneOptionLabel(item))) {
+        nextSelections = nextSelections.filter((item) => !isNoneOptionLabel(item));
+      }
+
+      if (areStringArraysEqual(currentSelections, nextSelections)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [medicationKey]: nextSelections,
+      };
+    });
+  }, [familyHistoryKeys, medicationOptions]);
+
+  const resolvedCardsData = useMemo(() => {
+    const medicationKey = familyHistoryKeys.medicationKey;
+    if (!medicationKey) {
+      return cardsData;
+    }
+
+    return cardsData.map((card) => {
+      if (card.key !== medicationKey) {
+        return card;
+      }
+      return {
+        ...card,
+        options: medicationOptions,
+        multi: true,
+      };
+    });
+  }, [cardsData, familyHistoryKeys, medicationOptions]);
+
+  const totalCards = Math.max(resolvedCardsData.length, 1);
+  const activeCard = resolvedCardsData[cardIndex] || {
     key: 'empty',
     title: 'No questions available for this category yet.',
     helper: '',
@@ -3473,10 +3603,17 @@ const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [], initialVal
 
       {showSubmitPopup ? (
         <div className="vitals-page__confirm-overlay" role="dialog" aria-label="Confirm questionnaire submit">
-          <div className="vitals-page__confirm-popup">
+          <div
+            className="vitals-page__confirm-popup"
+            style={{
+              backgroundImage: `url(${questionnaireSuccessModalBg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          >
             <h2 className="vitals-page__confirm-title">Submit Health Assessment?</h2>
             <p className="vitals-page__confirm-text">
-              Once submitted, you can&apos;t edit this later. If you want to make changes, make them now before submitting.
+              You can edit this in Profile section.
             </p>
             <div className="vitals-page__confirm-actions">
               <button
@@ -3552,6 +3689,7 @@ const HealthAssessmentPage = ({
   progress = 0,
   expandedStep = null,
   onExpandStep,
+  onBack,
   steps = [],
   questionsByRouteId = {},
   initialResponsesByRoute = {},
@@ -3640,15 +3778,24 @@ const HealthAssessmentPage = ({
     };
   });
 
-  const activeIndex = progress < resolvedSteps.length ? progress : -1;
+  const canOpenAllSteps = (() => {
+    try {
+      return localStorage.getItem('ss_b2b_questionnaire_submitted') === '1';
+    } catch {
+      return false;
+    }
+  })();
+  const effectiveProgress = canOpenAllSteps ? resolvedSteps.length : progress;
+  const activeIndex = effectiveProgress < resolvedSteps.length ? effectiveProgress : -1;
   const focusedIndex = expandedStep != null ? expandedStep : activeIndex;
   const showPill = focusedIndex !== -1 && expandedStep === focusedIndex;
+  const isEditMode = canOpenAllSteps;
   const activeY = focusedIndex !== -1 ? `var(--y${focusedIndex})` : null;
-  const lineEndY = progress >= 4 ? 'var(--line-bottom)' : `var(--y${Math.min(progress, 4)})`;
+  const lineEndY = effectiveProgress >= 4 ? 'var(--line-bottom)' : `var(--y${Math.min(effectiveProgress, 4)})`;
   const activeConnectorHalfHeight = showPill ? '44px' : 'var(--node-radius)';
   const hideMiddleDotAtActivePill = showPill && focusedIndex >= 1 && focusedIndex <= 3;
 
-  const isCompleted = (index) => index < progress;
+  const isCompleted = (index) => index < effectiveProgress;
   useEffect(() => {
     if (activeIndex === -1 || activeSubPage) {
       return;
@@ -3819,7 +3966,24 @@ const HealthAssessmentPage = ({
 
   return (
     <div className="health-assessment-page">
-      <h1 className="health-assessment-page__title">Health Assessment</h1>
+      <div className="health-assessment-page__header">
+        {isEditMode ? (
+          <button
+            type="button"
+            className="health-assessment-page__back"
+            onClick={onBack}
+            aria-label="Go back"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        ) : (
+          <div className="health-assessment-page__header-spacer" aria-hidden="true" />
+        )}
+        <h1 className="health-assessment-page__title">Health Assessment</h1>
+        <div className="health-assessment-page__header-spacer" aria-hidden="true" />
+      </div>
 
       <div className="health-assessment-page__timeline-wrap">
         <div className="health-assessment-page__timeline" role="list" aria-label="Health assessment steps">
@@ -3845,7 +4009,7 @@ const HealthAssessmentPage = ({
           />
         )}
 
-        {progress > 0 && (
+        {effectiveProgress > 0 && (
           <>
             {!showPill && (
               <div
@@ -3877,7 +4041,7 @@ const HealthAssessmentPage = ({
         ))}
 
         {SEGMENT_GLOW_DOT_LEVELS.map((level) => (
-          progress >= level + 1 ? (
+          effectiveProgress >= level + 1 ? (
             <div key={`segment-glow-${level}`} className={`health-assessment-page__segment-dot-glow seg-dot--${level}`} />
           ) : null
         ))}
@@ -3948,13 +4112,13 @@ const HealthAssessmentPage = ({
             </>
           );
 
-          if (completed) {
+          if (completed || canOpenAllSteps) {
             return (
               <button
                 key={step.id}
                 type="button"
                 role="listitem"
-                className="health-assessment-page__circle health-assessment-page__circle--completed health-assessment-page__circle--button"
+                className={`health-assessment-page__circle ${completed ? 'health-assessment-page__circle--completed' : ''} health-assessment-page__circle--button`}
                 style={getCirclePositionStyle(step.side, index)}
                 onClick={() => onExpandStep?.(index)}
                 aria-label={`Open ${step.label} questionnaire`}

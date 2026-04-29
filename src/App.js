@@ -179,6 +179,8 @@ function App() {
   const [preloadedHomeData, setPreloadedHomeData] = useState(null);
   const [forceHomeApiRefresh, setForceHomeApiRefresh] = useState(false);
   const [superClubLikedSportIds, setSuperClubLikedSportIds] = useState(() => getSuperClubLikedSportIds());
+  const [isB2bQuestionnaireFlow, setIsB2bQuestionnaireFlow] = useState(false);
+  const [healthAssessmentBackPage, setHealthAssessmentBackPage] = useState('home');
   // const [superClubOnboardingDone, setSuperClubOnboardingDone] = useState(() =>
   //   isSuperClubOnboardingComplete(),
   // );
@@ -528,7 +530,9 @@ function App() {
     } catch {
       // private mode / disabled storage
     }
+    setHealthAssessmentBackPage('home');
     setCurrentPage('health-assessment');
+    setIsB2bQuestionnaireFlow(true);
     initializeQuestionnaire();
   };
 
@@ -676,7 +680,7 @@ function App() {
     if (!isStandalone) {
       setIsIosInstallFlow(isIosDevice);
       setShowInstallPrompt(true);
-      setShowIosInstallGuide(false);
+      setShowIosInstallGuide(isIosDevice);
     } else {
       setIsIosInstallFlow(false);
       setShowInstallPrompt(false);
@@ -775,6 +779,16 @@ function App() {
   };
 
   const handleQuestionnaireSuccessOk = () => {
+    try {
+      if (isB2bQuestionnaireFlow) {
+        localStorage.setItem('ss_b2b_questionnaire_submitted', '1');
+        sessionStorage.setItem('ss_b2b_post_submit_redirect', '1');
+      }
+      sessionStorage.removeItem('ss_b2b_opened_questionnaire');
+    } catch {
+      // ignore storage issues and continue navigation
+    }
+    setIsB2bQuestionnaireFlow(false);
     setQuestionnaireSuccessMessage(null);
     setCurrentPage('home');
     setForceHomeApiRefresh(true);
@@ -985,7 +999,6 @@ function App() {
     setUserName('');
     setEmployerOrganizerName('');
     try {
-      localStorage.removeItem('ss_b2b_questionnaire_submitted');
       sessionStorage.removeItem('ss_b2b_opened_questionnaire');
     } catch {
       // ignore
@@ -1075,13 +1088,15 @@ function App() {
               <div className="app-install-popup-content">
                 <p className="app-install-popup-title">Use the app for a smoother experience</p>
                 <p className="app-install-popup-subtitle">Unlock personalized insights.</p>
-                <button
-                  type="button"
-                  className="app-install-popup-download-btn"
-                  onClick={handleInstallClick}
-                >
-                  Download App
-                </button>
+                {!isIosInstallFlow ? (
+                  <button
+                    type="button"
+                    className="app-install-popup-download-btn"
+                    onClick={handleInstallClick}
+                  >
+                    Download App
+                  </button>
+                ) : null}
                 {showIosInstallGuide ? (
                   <div className="app-install-popup-ios-steps" role="note" aria-live="polite">
                     <p className="app-install-popup-ios-step">
@@ -1182,6 +1197,8 @@ function App() {
             setCurrentPage('disease-detail');
           }}
           onOpenHealthAssessment={() => {
+            setIsB2bQuestionnaireFlow(false);
+            setHealthAssessmentBackPage('home');
             setCurrentPage('health-assessment');
             initializeQuestionnaire();
           }}
@@ -1211,6 +1228,7 @@ function App() {
             setCurrentPage('profile');
           }}
           onSearchClick={() => {
+            setHealthAssessmentBackPage('super-club');
             setCurrentPage('health-assessment');
             initializeQuestionnaire();
           }}
@@ -1236,6 +1254,7 @@ function App() {
             setCurrentPage('profile');
           }}
           onSearchClick={() => {
+            setHealthAssessmentBackPage('super-club-swipe');
             setCurrentPage('health-assessment');
             initializeQuestionnaire();
           }}
@@ -1263,6 +1282,7 @@ function App() {
             setCurrentPage('profile');
           }}
           onSearchClick={() => {
+            setHealthAssessmentBackPage('super-club-2');
             setCurrentPage('health-assessment');
             initializeQuestionnaire();
           }}
@@ -1440,7 +1460,9 @@ function App() {
                 try {
                   await submitAssessment(targetAssessmentInstanceId, sourceIds);
                   try {
-                    localStorage.setItem('ss_b2b_questionnaire_submitted', '1');
+                    if (isB2bQuestionnaireFlow) {
+                      localStorage.setItem('ss_b2b_questionnaire_submitted', '1');
+                    }
                     sessionStorage.removeItem('ss_b2b_opened_questionnaire');
                   } catch {
                     // ignore
@@ -1458,6 +1480,9 @@ function App() {
           onNavigateHome={() => {
             setQuestionnaireSuccessMessage(null);
             setCurrentPage('home');
+          }}
+          onBack={() => {
+            setCurrentPage(healthAssessmentBackPage || 'home');
           }}
         />
       )}
@@ -1571,6 +1596,13 @@ function App() {
           onOpenNutrition={() => {
             console.log('Navigate to Nutrition');
             setCurrentPage('nutrition');
+          }}
+          onOpenHealthAssessment={() => {
+            console.log('Navigate to Health Assessment');
+            setIsB2bQuestionnaireFlow(false);
+            setHealthAssessmentBackPage('profile');
+            setCurrentPage('health-assessment');
+            initializeQuestionnaire();
           }}
           onOpenCustomerSupport={() => {
             console.log('Navigate to Customer Support');
