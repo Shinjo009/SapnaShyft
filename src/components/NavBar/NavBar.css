@@ -20,19 +20,28 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
-  filter: drop-shadow(0 -2px 10px rgba(255, 255, 255, 0.15));
 }
 
 .navbar__notch-path {
   will-change: auto;
 }
 
-.navbar--transitioning .navbar__notch-svg {
-  filter: drop-shadow(0 -1px 4px rgba(255, 255, 255, 0.08));
+.navbar--transitioning .nav-item__circle.is-active {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
-.navbar--transitioning .nav-item__circle.is-active {
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.2);
+.nav-item--floating-orb-mode .nav-item__circle {
+  opacity: 0 !important;
+  transform: translate(-50%, -50%) scale(0.68) !important;
+}
+
+.nav-item--floating-orb-mode.nav-item--active .nav-item__icon {
+  opacity: 1;
+}
+
+.nav-item--floating-orb-mode .nav-item__icon-wrapper,
+.nav-item--floating-orb-mode.nav-item--active .nav-item__icon-wrapper {
+  transform: translateY(-2px);
 }
 
 .navbar__container {
@@ -47,6 +56,54 @@
   background: transparent;
   position: relative;
   z-index: 1;
+}
+
+.navbar__active-orb {
+  position: absolute;
+  top: -14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.navbar__active-icon-lift {
+  position: absolute;
+  top: -14px;
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, 14px);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  pointer-events: none;
+  transition:
+    transform 1.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+    opacity 1.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.navbar__active-icon-lift.is-lifted {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
+.navbar__active-orb-icon {
+  width: var(--nav-orb-icon-size, 23px);
+  height: var(--nav-orb-icon-size, 23px);
+  filter: brightness(0) saturate(100%) invert(18%) sepia(18%) saturate(1454%) hue-rotate(145deg) brightness(96%) contrast(93%);
+}
+
+.nav-item--hide-active-icon.nav-item--active .nav-item__icon {
+  opacity: 0;
 }
 
 /* Mobile: 360px - 480px - Full Width */
@@ -108,7 +165,4 @@
     height: 50px;
   }
 
-  .navbar--transitioning .navbar__notch-svg {
-    filter: drop-shadow(0 -1px 3px rgba(255, 255, 255, 0.06));
-  }
 }

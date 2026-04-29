@@ -3,6 +3,7 @@
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 .packages-page__fixed-top {
@@ -22,8 +23,11 @@
 .packages-page__content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 220px 12px 92px;
   box-sizing: border-box;
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
 }
 
 .packages-page__header {
@@ -96,13 +100,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  width: calc(100% + 24px);
-  margin-left: -12px;
-  margin-right: -12px;
+  width: 100%;
   overflow-x: auto;
-  overflow-y: visible;
-  padding: 10px 10px 4px;
+  overflow-y: hidden;
+  padding: 10px 12px 6px;
   scrollbar-width: none;
+  touch-action: pan-x pinch-zoom;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .packages-page__filters::-webkit-scrollbar {
@@ -130,6 +135,8 @@
   background: transparent;
   white-space: nowrap;
   cursor: pointer;
+  flex-shrink: 0;
+  touch-action: pan-x;
 }
 
 .packages-page__filter-pill.is-active {
@@ -137,21 +144,14 @@
   gap: 12px;
   border-radius: 30px;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(144, 223, 158, 0.2);
-  box-shadow: 0 0 10px 0 rgba(144, 223, 158, 0.4);
+  background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(0, 242, 254, 0.20) 99.99%);
+  box-shadow: inset 0 0 0 1px rgba(144, 223, 158, 0.45);
   color: #fff;
   font-weight: 400;
 }
 
 .packages-page__filter-pill.is-active::before {
-  content: '';
-  position: absolute;
-  inset: -6px;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(144, 223, 158, 0.32) 0%, rgba(144, 223, 158, 0) 72%);
-  filter: blur(4px);
-  z-index: -1;
-  pointer-events: none;
+  content: none;
 }
 
 .packages-page__cards {
@@ -192,6 +192,7 @@
   align-items: center;
   gap: 6px;
   align-self: stretch;
+  flex-wrap: wrap;
 }
 
 .packages-card__badge {
@@ -204,6 +205,7 @@
   font-style: normal;
   font-weight: 600;
   line-height: normal;
+  white-space: nowrap;
 }
 
 .packages-card__badge--popular {
@@ -274,6 +276,7 @@
   font-weight: 400;
   line-height: normal;
   letter-spacing: 0.1px;
+  white-space: nowrap;
 }
 
 .packages-card__metrics {

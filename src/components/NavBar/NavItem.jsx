@@ -11,17 +11,28 @@ import './NavItem.css';
  * - isActive: Boolean indicating if this item is currently active
  * - onClick: Callback when item is clicked
  */
-const NavItem = ({ id, label, icon, isActive, onClick, iconSize = 23 }) => {
+const NavItem = ({
+  id,
+  label,
+  icon,
+  isActive,
+  onClick,
+  iconSize = 23,
+  useFloatingActiveOrb = false,
+  hideActiveIconInItem = false,
+}) => {
   const iconStyle = {
     '--nav-icon-size': `${iconSize}px`,
-    filter: isActive
+    filter: isActive && !useFloatingActiveOrb
       ? 'brightness(0) saturate(100%) invert(18%) sepia(18%) saturate(1454%) hue-rotate(145deg) brightness(96%) contrast(93%)'
       : 'none',
   };
 
   return (
     <button
-      className={`nav-item ${isActive ? 'nav-item--active' : ''}`}
+      className={`nav-item ${isActive ? 'nav-item--active' : ''} ${useFloatingActiveOrb ? 'nav-item--floating-orb-mode' : ''} ${
+        hideActiveIconInItem && isActive ? 'nav-item--hide-active-icon' : ''
+      }`}
       onClick={() => onClick(id)}
       aria-label={label}
       aria-current={isActive ? 'page' : undefined}

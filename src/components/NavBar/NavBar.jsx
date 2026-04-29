@@ -31,7 +31,9 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
   const [activeItem, setActiveItem] = useState(lastNavActiveItem || defaultActive);
   const [navbarWidth, setNavbarWidth] = useState(null);
   const [animatedCenter, setAnimatedCenter] = useState(lastNavCenter);
-  const [notchDepthScale, setNotchDepthScale] = useState(1);
+  const [floatingIconCenter, setFloatingIconCenter] = useState(lastNavCenter);
+  const [floatingIconItemId, setFloatingIconItemId] = useState(lastNavActiveItem || defaultActive);
+  const [isFloatingIconLifted, setIsFloatingIconLifted] = useState(false);
   const [isNotchTransitioning, setIsNotchTransitioning] = useState(false);
   const navRef = useRef(null);
   const notchAnimationRef = useRef(null);
@@ -46,9 +48,12 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
     ],
     []
   );
+  const activeNavItem = navItems.find((item) => item.id === activeItem) || navItems[0];
+  const floatingNavItem = navItems.find((item) => item.id === floatingIconItemId) || activeNavItem;
 
   useEffect(() => {
     setActiveItem(defaultActive);
+    setFloatingIconItemId(defaultActive);
     lastNavActiveItem = defaultActive;
   }, [defaultActive]);
 
@@ -125,33 +130,27 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
       animatedCenterRef.current = target;
       lastNavCenter = target;
       setAnimatedCenter(target);
-      setNotchDepthScale(1);
       setIsNotchTransitioning(false);
       return undefined;
     }
 
     const duration = 320;
-    const minDepthScale = 0.14;
     const start = performance.now();
     const easeOutCubic = (t) => 1 - ((1 - t) ** 3);
-    setIsNotchTransitioning(true);
+    setIsNotchTransitioning(false);
 
     const tick = (now) => {
       const elapsed = now - start;
       const progress = Math.min(1, elapsed / duration);
       const eased = easeOutCubic(progress);
       const nextCenter = from + delta * eased;
-      const flattenCurve = Math.sin(Math.PI * progress);
-      const nextDepthScale = 1 - ((1 - minDepthScale) * flattenCurve);
       animatedCenterRef.current = nextCenter;
       lastNavCenter = nextCenter;
       setAnimatedCenter(nextCenter);
-      setNotchDepthScale(nextDepthScale);
 
       if (progress < 1) {
         notchAnimationRef.current = requestAnimationFrame(tick);
       } else {
-        setNotchDepthScale(1);
         setIsNotchTransitioning(false);
         notchAnimationRef.current = null;
       }
@@ -165,6 +164,34 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
         notchAnimationRef.current = null;
       }
       setIsNotchTransitioning(false);
+    };
+  }, [activeItem, navbarWidth, navItems]);
+
+  useEffect(() => {
+    const navWidth = navbarWidth || 360;
+    const target = getCenterForItem(activeItem, navWidth, navItems);
+    if (!Number.isFinite(target)) {
+      return undefined;
+    }
+
+    let riseAnimationFrame = null;
+    let moveTimer = null;
+    setIsFloatingIconLifted(false);
+    moveTimer = window.setTimeout(() => {
+      setFloatingIconItemId(activeItem);
+      setFloatingIconCenter(target);
+      riseAnimationFrame = requestAnimationFrame(() => {
+        setIsFloatingIconLifted(true);
+      });
+    }, 10);
+
+    return () => {
+      if (moveTimer !== null) {
+        window.clearTimeout(moveTimer);
+      }
+      if (riseAnimationFrame !== null) {
+        cancelAnimationFrame(riseAnimationFrame);
+      }
     };
   }, [activeItem, navbarWidth, navItems]);
 
@@ -187,8 +214,8 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
     const offset = targetCenter - baseCenter;
 
     // Tunable wedge geometry
-    const wedgeWidthScale = 1.06 + (0.24 * notchDepthScale);
-    const wedgeDepth = 28 * notchDepthScale;
+    const wedgeWidthScale = 1.30;
+    const wedgeDepth = 28;
 
     const scaleAroundCenter = (value) => {
       const delta = value - baseCenter;
@@ -247,6 +274,23 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
           stroke="none"
         />
       </svg>
+      <div
+        className="navbar__active-orb"
+        style={{ left: `${animatedCenter}px` }}
+        aria-hidden="true"
+      />
+      <div
+        className={`navbar__active-icon-lift ${isFloatingIconLifted ? 'is-lifted' : ''}`}
+        style={{ left: `${floatingIconCenter}px` }}
+        aria-hidden="true"
+      >
+        <img
+          src={floatingNavItem?.icon || homeIcon}
+          alt=""
+          className="navbar__active-orb-icon"
+          style={{ '--nav-orb-icon-size': `${floatingNavItem?.iconSize || 23}px` }}
+        />
+      </div>
       <div className="navbar__container">
         {navItems.map((item) => (
           <NavItem
@@ -256,6 +300,8 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
             icon={item.icon}
             iconSize={item.iconSize}
             isActive={activeItem === item.id}
+            useFloatingActiveOrb
+            hideActiveIconInItem={isFloatingIconLifted}
             onClick={handleItemClick}
           />
         ))}

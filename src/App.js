@@ -65,10 +65,6 @@ const DiseaseDetailPage = lazy(() => import('./pages/DiseaseDetailPage'));
 
 const SWIPE_BACK_BLOCKED_PAGES = new Set([
   'home',
-  'packages',
-  'super-club',
-  'super-club-swipe',
-  'doctors',
   'login',
   'signup',
   'otp',
