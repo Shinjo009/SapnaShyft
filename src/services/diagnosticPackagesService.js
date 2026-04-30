@@ -92,6 +92,26 @@ export const getDiagnosticPackageDetail = async (packageId, _payload) => {
   return null;
 };
 
+export const getDiagnosticPackageTests = async (packageId, _payload) => {
+  const parsedId = Number(packageId);
+
+  if (!Number.isFinite(parsedId) || parsedId <= 0) {
+    throw new Error('Invalid diagnostic package id.');
+  }
+
+  const response = await authorizedGet(`/diagnostic-packages/${parsedId}/tests`);
+
+  if (response?.data && typeof response.data === 'object') {
+    return response.data;
+  }
+
+  if (response && typeof response === 'object') {
+    return response;
+  }
+
+  return { groups: [] };
+};
+
 const appendFilterChipQuery = (path, filterChip) => {
   if (filterChip == null || filterChip === '') {
     return path;

@@ -13,10 +13,17 @@
 }
 
 .splash-screen-2__logo-wrap img {
-  width: 78px !important;
-  height: 78px !important;
+  width: 96px !important;
+  height: 96px !important;
   max-width: none;
   object-fit: contain;
+}
+
+.splash-screen-2__logo-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
 }
 
 .splash-screen-2__hero {

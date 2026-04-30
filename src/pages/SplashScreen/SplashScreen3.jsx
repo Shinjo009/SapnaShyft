@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import RotatingCube from '../../components/RotatingCube/RotatingCube';
+import supershyftWhiteLogo from '../../images/Cube/SuperShyft - white logo.svg';
 import './SplashScreen3.css';
 
 const CUBE_FACE_CSS = 320;
@@ -39,6 +40,10 @@ const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
       className="splash-screen-2 max-w-md mx-auto h-full min-h-full pt-[86px] pb-6 flex flex-col overflow-hidden"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
     >
+      <div className="splash-screen-2__logo-wrap" aria-label="SuperShyft logo">
+        <img src={supershyftWhiteLogo} alt="SuperShyft" />
+      </div>
+
       <div className="splash-screen-2__hero">
         <div className="splash-screen-2__cube-anchor" ref={cubeAnchorRef}>
           <div

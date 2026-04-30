@@ -74,6 +74,7 @@ const SWIPE_BACK_BLOCKED_PAGES = new Set([
 const EDGE_SWIPE_TRIGGER_PX = 70;
 const EDGE_SWIPE_VERTICAL_TOLERANCE_PX = 80;
 const EDGE_SWIPE_START_ZONE_PX = 28;
+const IOS_STANDALONE_GET_STARTED_RELOAD_KEY = 'ss_ios_standalone_get_started_reload_v1';
 
 const normalizeRedirectTarget = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
@@ -778,6 +779,29 @@ function App() {
     handleDismissInstall();
   };
 
+  const handleHealthInsightsGetStarted = () => {
+    try {
+      const userAgent = window.navigator.userAgent || '';
+      const isIosDevice = /iPhone|iPad|iPod/i.test(userAgent)
+        || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
+      const isStandalone = (typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches)
+        || window.navigator.standalone === true;
+
+      if (isIosDevice && isStandalone) {
+        const alreadyReloaded = sessionStorage.getItem(IOS_STANDALONE_GET_STARTED_RELOAD_KEY) === '1';
+        if (!alreadyReloaded) {
+          sessionStorage.setItem(IOS_STANDALONE_GET_STARTED_RELOAD_KEY, '1');
+          window.location.reload();
+          return;
+        }
+      }
+    } catch {
+      // If storage/browser checks fail, continue normal navigation.
+    }
+
+    setCurrentPage('home');
+  };
+
   const handleQuestionnaireSuccessOk = () => {
     try {
       if (isB2bQuestionnaireFlow) {
@@ -1060,7 +1084,13 @@ function App() {
   const canDirectInstallPwa = Boolean(deferredPrompt) && !isIosInstallFlow;
 
   if (isBootstrappingSession) {
-    return null;
+    return (
+      <SplashScreen
+        onComplete={() => {}}
+        onLogin={() => {}}
+        onSignup={() => {}}
+      />
+    );
   }
 
   return (
@@ -1108,7 +1138,9 @@ function App() {
                     <>
                       (Tap the <strong className="app-install-popup-share-word">Share</strong> button{' '}
                       <span className="app-install-popup-share-glyph" aria-hidden="true">
-                        ⎋
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 22 22" fill="none">
+                          <path fillRule="evenodd" clipRule="evenodd" d="M10.75 1.51873e-07C10.8583 -6.87596e-05 10.9653 0.0233142 11.0637 0.0685414C11.1621 0.113769 11.2495 0.179767 11.32 0.262L14.32 3.762C14.4494 3.91317 14.5135 4.10957 14.4981 4.30798C14.4827 4.5064 14.3892 4.69057 14.238 4.82C14.0868 4.94943 13.8904 5.0135 13.692 4.99812C13.4936 4.98274 13.3094 4.88917 13.18 4.738L11.5 2.778V13.75C11.5 13.9489 11.421 14.1397 11.2803 14.2803C11.1397 14.421 10.9489 14.5 10.75 14.5C10.5511 14.5 10.3603 14.421 10.2197 14.2803C10.079 14.1397 10 13.9489 10 13.75V2.777L8.32 4.738C8.25591 4.81285 8.17771 4.87435 8.08986 4.91898C8.00201 4.96361 7.90623 4.9905 7.80798 4.99812C7.70974 5.00573 7.61096 4.99392 7.51728 4.96336C7.4236 4.9328 7.33685 4.88409 7.262 4.82C7.18715 4.75592 7.12565 4.67771 7.08102 4.58986C7.03639 4.50201 7.0095 4.40623 7.00188 4.30798C6.99427 4.20974 7.00608 4.11096 7.03664 4.01728C7.0672 3.9236 7.11592 3.83685 7.18 3.762L10.18 0.262C10.2505 0.179767 10.3379 0.113769 10.4363 0.0685414C10.5347 0.0233142 10.6417 -6.87596e-05 10.75 1.51873e-07ZM5.746 7.002C5.94491 7.00094 6.1361 7.07894 6.2775 7.21884C6.4189 7.35874 6.49894 7.54909 6.5 7.748C6.50106 7.94691 6.42306 8.1381 6.28316 8.2795C6.14326 8.4209 5.95291 8.50094 5.754 8.502C4.661 8.508 3.886 8.536 3.297 8.644C2.731 8.749 2.402 8.916 2.159 9.159C1.882 9.436 1.702 9.825 1.603 10.559C1.502 11.314 1.5 12.315 1.5 13.75V14.75C1.5 16.186 1.502 17.187 1.603 17.942C1.702 18.676 1.883 19.064 2.159 19.342C2.436 19.618 2.824 19.798 3.559 19.897C4.313 19.999 5.315 20 6.75 20H14.75C16.185 20 17.186 19.999 17.942 19.897C18.676 19.798 19.064 19.618 19.341 19.341C19.618 19.064 19.798 18.676 19.897 17.942C19.998 17.187 20 16.186 20 14.75V13.75C20 12.315 19.998 11.314 19.897 10.558C19.798 9.825 19.617 9.436 19.341 9.159C19.097 8.916 18.769 8.749 18.203 8.644C17.614 8.536 16.839 8.508 15.746 8.502C15.6475 8.50147 15.5501 8.48155 15.4593 8.44338C15.3685 8.4052 15.2861 8.34952 15.2168 8.2795C15.1476 8.20949 15.0928 8.12651 15.0556 8.03532C15.0184 7.94412 14.9995 7.84649 15 7.748C15.0005 7.64951 15.0204 7.55209 15.0586 7.46129C15.0968 7.3705 15.1525 7.28811 15.2225 7.21884C15.2925 7.14957 15.3755 7.09477 15.4667 7.05756C15.5579 7.02035 15.6555 7.00147 15.754 7.002C16.836 7.008 17.737 7.034 18.474 7.169C19.232 7.309 19.877 7.574 20.402 8.099C21.004 8.7 21.262 9.459 21.384 10.359C21.5 11.225 21.5 12.328 21.5 13.695V14.805C21.5 16.173 21.5 17.275 21.384 18.142C21.262 19.042 21.004 19.8 20.402 20.402C19.8 21.004 19.042 21.262 18.142 21.384C17.275 21.5 16.172 21.5 14.805 21.5H6.695C5.328 21.5 4.225 21.5 3.358 21.384C2.458 21.263 1.7 21.004 1.098 20.402C0.496 19.8 0.238 19.042 0.117 18.142C-1.49012e-08 17.275 0 16.172 0 14.805V13.695C0 12.328 -1.49012e-08 11.225 0.117 10.358C0.237 9.458 0.497 8.7 1.098 8.098C1.623 7.574 2.268 7.308 3.026 7.169C3.763 7.034 4.664 7.008 5.746 7.002Z" fill="white"/>
+                        </svg>
                       </span>{' '}
                       at the bottom, then select &quot;Add to Home Screen&quot; to install SuperShyft).
                     </>
@@ -1156,10 +1188,7 @@ function App() {
       {currentPage === 'health-insights' && (
         <HealthInsightsPage 
           userName={userName}
-          onGetStarted={() => {
-            console.log('Get Started clicked');
-            setCurrentPage('home');
-          }}
+          onGetStarted={handleHealthInsightsGetStarted}
         />
       )}
 

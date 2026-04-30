@@ -222,6 +222,8 @@ const formatPrice = (value) => {
   return `₹${Number(value).toLocaleString('en-IN')}`;
 };
 
+const normalizeBadgeToken = (value) => String(value || '').trim().toLowerCase();
+
 const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustomPackage, onNavigateToDoctors, onNavigateToSuperClub, customPackageCard }) => {
   const [activeFilterKey, setActiveFilterKey] = useState('all');
   const [filterChips, setFilterChips] = useState([ALL_FILTER]);
@@ -348,6 +350,29 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
     }
   };
 
+  const selectedFilterChip = filterChips.find(
+    (chip) => String(chip?.chip_key || '').trim().toLowerCase() === activeFilterKey
+  ) || null;
+  const selectedFilterKey = normalizeBadgeToken(selectedFilterChip?.chip_key || activeFilterKey);
+  const selectedFilterLabel = normalizeBadgeToken(selectedFilterChip?.display_name);
+  const shouldHighlightFilterBadge = selectedFilterKey !== 'all';
+
+  const getBadgeClass = (badge) => {
+    if (badge === 'Custom Built') {
+      return 'packages-card__badge--custom';
+    }
+
+    if (!shouldHighlightFilterBadge) {
+      return 'packages-card__badge--type';
+    }
+
+    const badgeToken = normalizeBadgeToken(badge);
+    const isSelectedFilterBadge = badgeToken
+      && (badgeToken === selectedFilterKey || (selectedFilterLabel && badgeToken === selectedFilterLabel));
+
+    return isSelectedFilterBadge ? 'packages-card__badge--popular' : 'packages-card__badge--type';
+  };
+
   return (
     <div className="packages-page">
       <div className="packages-page__fixed-top">
@@ -414,11 +439,9 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
             >
               <div className="packages-card__badges">
                 {(pkg.badges || []).map((badge, index) => {
-                  const badgeClass = index === 0
-                    ? (badge === 'Custom Built' ? 'packages-card__badge--custom' : 'packages-card__badge--popular')
-                    : 'packages-card__badge--type';
+                  const badgeClass = getBadgeClass(badge);
                   return (
-                    <span key={`${pkg.id}-${badge}`} className={`packages-card__badge ${badgeClass}`}>
+                    <span key={`${pkg.id}-${badge}-${index}`} className={`packages-card__badge ${badgeClass}`}>
                       {badge}
                     </span>
                   );

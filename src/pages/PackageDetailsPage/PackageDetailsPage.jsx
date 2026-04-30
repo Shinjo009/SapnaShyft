@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, Suspense, lazy } from 'react';
 import './PackageDetailsPage.css';
-import { getDiagnosticPackageDetail } from '../../services/diagnosticPackagesService';
+import { getDiagnosticPackageDetail, getDiagnosticPackageTests } from '../../services/diagnosticPackagesService';
 
 // PatientSelectionOverlay is only mounted when user opens the booking sheet — defer its ~14 KiB chunk.
 const PatientSelectionOverlay = lazy(() => import('../../components/PatientSelectionOverlay'));
@@ -317,27 +317,6 @@ const PARAMETER_GROUPS = [
 
 const MISSING_VALUE = '-';
 
-const toCollectionLabel = (value) => {
-  const normalized = String(value || '').trim().toLowerCase();
-
-  if (normalized === 'home_collection') {
-    return 'Home Sample Collection';
-  }
-
-  if (normalized === 'lab_collection') {
-    return 'Lab Sample Collection';
-  }
-
-  if (!normalized) {
-    return MISSING_VALUE;
-  }
-
-  return normalized
-    .split('_')
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ');
-};
-
 const toGenderLabel = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
 
@@ -404,6 +383,45 @@ const formatCurrency = (value) => {
   return `₹ ${parsedValue.toLocaleString('en-IN')}`;
 };
 
+const toTestGroupCards = (payload) => {
+  const groups = Array.isArray(payload?.groups) ? payload.groups : [];
+
+  const mapped = groups
+    .map((group, index) => {
+      const tests = Array.isArray(group?.tests) ? group.tests : [];
+      const testNames = tests
+        .map((test) => String(test?.test_name || test?.display_name || test?.name || '').trim())
+        .filter(Boolean)
+        .slice(0, 6);
+
+      while (testNames.length < 6) {
+        testNames.push('');
+      }
+
+      const title = String(group?.group_name || group?.name || '').trim();
+      if (!title) {
+        return null;
+      }
+
+      return {
+        id: String(group?.group_id || group?.id || `group-${index}`),
+        title,
+        items: testNames,
+        sortOrder: Number.isFinite(Number(group?.display_order)) ? Number(group.display_order) : Number.MAX_SAFE_INTEGER,
+        fallbackOrder: index,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (a.sortOrder !== b.sortOrder) {
+        return a.sortOrder - b.sortOrder;
+      }
+      return a.fallbackOrder - b.fallbackOrder;
+    });
+
+  return mapped.map(({ id, title, items }) => ({ id, title, items }));
+};
+
 const toDiscountLabel = (discountPercent, price, originalPrice) => {
   const parsedDiscount = Number(discountPercent);
   if (Number.isFinite(parsedDiscount) && parsedDiscount > 0) {
@@ -434,6 +452,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
   const [openFaqId, setOpenFaqId] = useState('faq-water');
   const [activeOverlay, setActiveOverlay] = useState('');
   const [packageDetail, setPackageDetail] = useState(null);
+  const [packageTests, setPackageTests] = useState(null);
   const faqSectionRef = useRef(null);
   const biomarkerSectionRef = useRef(null);
   const biomarkerAnimationStartedRef = useRef(false);
@@ -498,12 +517,14 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
   useEffect(() => {
     if (isCustomReview) {
       setPackageDetail(null);
+      setPackageTests(null);
       return;
     }
 
     const parsedPackageId = Number(packageId);
     if (!Number.isFinite(parsedPackageId) || parsedPackageId <= 0) {
       setPackageDetail(null);
+      setPackageTests(null);
       return;
     }
 
@@ -522,12 +543,35 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
       }
     };
 
+    const loadPackageTests = async () => {
+      try {
+        const response = await getDiagnosticPackageTests(parsedPackageId);
+        if (mounted) {
+          setPackageTests(response);
+        }
+      } catch {
+        if (mounted) {
+          setPackageTests(null);
+        }
+      }
+    };
+
     loadPackageDetail();
+    loadPackageTests();
 
     return () => {
       mounted = false;
     };
   }, [isCustomReview, packageId]);
+
+  const parameterGroups = useMemo(() => {
+    if (isCustomReview) {
+      return PARAMETER_GROUPS;
+    }
+
+    const fromApi = toTestGroupCards(packageTests);
+    return fromApi.length > 0 ? fromApi : PARAMETER_GROUPS;
+  }, [isCustomReview, packageTests]);
 
   const tagLabels = useMemo(() => extractTagLabels(packageDetail?.tags), [packageDetail]);
 
@@ -560,14 +604,6 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
 
     return tagLabels[0] || MISSING_VALUE;
   }, [isCustomReview, packageDetail, tagLabels]);
-
-  const collectionLabel = useMemo(() => {
-    if (isCustomReview) {
-      return 'Home Sample Collection';
-    }
-
-    return toCollectionLabel(packageDetail?.collection_type);
-  }, [isCustomReview, packageDetail]);
 
   const genderLabel = useMemo(() => {
     if (isCustomReview) {
@@ -884,13 +920,6 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
               <span>{primaryBadgeLabel}</span>
             </div>
 
-            <div className="package-details-page__badge package-details-page__badge--sample">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                <path d="M7.5 10.5V6.5C7.5 6.22404 7.27596 6 7 6H5C4.72404 6 4.5 6.22404 4.5 6.5V10.5" stroke="#CCCCCC" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M1.5 5.00024C1.49993 4.7058 1.62962 4.4263 1.8545 4.23624L5.3545 1.23624C5.72719 0.921253 6.27281 0.921253 6.6455 1.23624L10.1455 4.23624C10.3704 4.4263 10.5001 4.7058 10.5 5.00024V9.50024C10.5 10.0522 10.0519 10.5002 9.5 10.5002H2.5C1.94808 10.5002 1.5 10.0522 1.5 9.50024V5.00024" stroke="#CCCCCC" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span>{collectionLabel}</span>
-            </div>
           </div>
 
           <h2 className="package-details-page__pack-title">{packageTitle}</h2>
@@ -1166,7 +1195,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
 
             {activeOverlay === 'tests' ? (
               <div className="package-details-page__tests-scroll">
-                {PARAMETER_GROUPS.map((group) => (
+                {parameterGroups.map((group) => (
                   <section key={group.id} className="package-details-page__test-card" aria-label={group.title}>
                     <div className="package-details-page__test-head">
                       <div className="package-details-page__test-icon-box">
@@ -1192,25 +1221,6 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
                       ))}
                     </div>
 
-                    {group.locked ? (
-                      <div className="package-details-page__locked-layer" aria-hidden="true">
-                        <div className="package-details-page__locked-icon">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="23" height="27" viewBox="0 0 23 27" fill="none">
-                            <path d="M6.5 12V8.5C6.5 5.73858 8.73858 3.5 11.5 3.5C14.2614 3.5 16.5 5.73858 16.5 8.5V12" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                            <rect x="4" y="11" width="15" height="12" rx="2" fill="white"/>
-                            <circle cx="11.5" cy="17" r="1.4" fill="#071018"/>
-                          </svg>
-                        </div>
-                        <button type="button" className="package-details-page__locked-btn">Explore Other Packages</button>
-                        <div className="package-details-page__locked-note">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                            <path d="M1.16406 7.00033C1.16406 10.2198 3.77789 12.8337 6.9974 12.8337C10.2169 12.8337 12.8307 10.2198 12.8307 7.00033C12.8307 3.78082 10.2169 1.16699 6.9974 1.16699C3.77789 1.16699 1.16406 3.78082 1.16406 7.00033V7.00033" stroke="white" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round"/>
-                            <path d="M7 9.33366V7.00033M7 4.66699H7.00583" stroke="white" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                          <span>Locked markers available in higher packages</span>
-                        </div>
-                      </div>
-                    ) : null}
                   </section>
                 ))}
 

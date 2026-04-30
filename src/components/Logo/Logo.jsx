@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import brandLogo from '../../images/SuperShyft - Logo [Final]-03 4.png';
+import brandLogo from '../../images/Cube/SuperShyft - white logo.svg';
 import brandLogoWhite from '../../images/Cube/SuperShyft - white logo.svg';
 
 /**

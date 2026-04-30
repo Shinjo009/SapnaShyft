@@ -12,17 +12,24 @@
 /static/media/*
   Cache-Control: public, max-age=31536000, immutable
 
-# HTML shell must revalidate every request so users pick up new builds
+# HTML/document responses must always revalidate so iOS Home Screen launches
+# pick up fresh index.html and therefore new hashed bundles.
+/index
+  Cache-Control: public, max-age=0, must-revalidate
 /
   Cache-Control: public, max-age=0, must-revalidate
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
-
-# Service worker + manifest must not be long-cached
-/serviceWorker.js
+/*.html
   Cache-Control: public, max-age=0, must-revalidate
+/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Service worker + manifest must never be sticky on iOS.
+/serviceWorker.js
+  Cache-Control: no-store, no-cache, must-revalidate
 /manifest.json
-  Cache-Control: public, max-age=3600
+  Cache-Control: no-store, no-cache, must-revalidate
 
 # robots.txt must be served exactly as authored. If Cloudflare's "AI Audit /
 # Bot Management → Content-Signal" feature is enabled on this zone it will

@@ -304,7 +304,7 @@ const HomePage = ({
   const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
   const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
   const [isNoDataHome, setIsNoDataHome] = useState(false);
-  const [isOverviewResolved, setIsOverviewResolved] = useState(Boolean(preloadedData));
+  const [isOverviewResolved, setIsOverviewResolved] = useState(true);
   const [noDataStage, setNoDataStage] = useState('welcome');
   const [checklistScrollProgress, setChecklistScrollProgress] = useState(0);
   const [upcomingSlotNormalized, setUpcomingSlotNormalized] = useState(null);
@@ -534,10 +534,6 @@ const HomePage = ({
       cancelled = true;
     };
   }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
-
-  if (!isOverviewResolved) {
-    return <div className="home-page" aria-hidden="true" />;
-  }
 
   const handleMenuClick = () => {
     console.log('Menu clicked');

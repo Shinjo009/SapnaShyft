@@ -185,11 +185,19 @@ button[aria-label^="Back"]::before {
 }
 
 .app-install-popup-share-glyph {
-  display: inline;
+  display: inline-flex;
+  align-items: center;
   color: #fff;
-  font-size: 1.05em;
+  font-size: 1em;
   font-weight: 600;
   margin: 0 1px;
+  vertical-align: -0.08em;
+}
+
+.app-install-popup-share-glyph svg {
+  display: block;
+  width: 1em;
+  height: 1em;
 }
 
 .app-install-popup-got-it {
