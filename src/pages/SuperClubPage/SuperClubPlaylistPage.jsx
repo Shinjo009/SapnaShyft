@@ -6,10 +6,10 @@ import Button from '../../components/Button';
 
 const PLAYLIST_ITEMS = [
   { id: 1, title: '5v5 Football', location: 'Green Garden Arena', time: 'Tue, 6:00 PM' },
-  { id: 2, title: '5v5 Football', location: 'Green Garden Arena', time: 'Tue, 6:00 PM' },
-  { id: 3, title: '5v5 Football', location: 'Green Garden Arena', time: 'Tue, 6:00 PM' },
-  { id: 4, title: '5v5 Football', location: 'Green Garden Arena', time: 'Tue, 6:00 PM' },
-  { id: 5, title: '5v5 Football', location: 'Green Garden Arena', time: 'Tue, 6:00 PM' },
+  { id: 2, title: 'Cricket', location: 'KQX Arena', time: 'Wed, 7:00 PM' },
+  { id: 3, title: 'Pickleball', location: 'ZMW Club', time: 'Thu, 5:30 PM' },
+  { id: 4, title: 'Badminton', location: 'RPD Courts', time: 'Fri, 12:00 PM' },
+  { id: 5, title: 'Table Tennis', location: 'HJV Hall', time: 'Sat, 4:15 PM' },
 ];
 
 const CARD_OPACITY_BY_INDEX = [1, 0.9, 0.8, 0.6, 0.4];
@@ -25,7 +25,6 @@ const SportsGlyph = () => (
 export default function SuperClubPlaylistPage({
   userName = 'there',
   onMenuClick,
-  onSearchClick,
   onNavigateHome,
   onNavigateToDoctors,
   onNavigateToPackages,
@@ -52,7 +51,7 @@ export default function SuperClubPlaylistPage({
   return (
     <div className="super-club-playlist">
       <div className="super-club-playlist__header-wrap">
-        <Header name={userName} onMenuClick={onMenuClick} onSearchClick={onSearchClick} />
+        <Header name={userName} onMenuClick={onMenuClick} />
       </div>
 
       <main className="super-club-playlist__main">

@@ -8,7 +8,12 @@ import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
-import { getAssessmentStatus, listMyAssessments } from '../../services/questionnaireService';
+import {
+  hasFamilyHistoryQuestionnaireDraft,
+  peekFamilyHistoryQuestionnaireDraftCache,
+  invalidateFamilyHistoryQuestionnaireDraftCache,
+} from '../../services/questionnaireService';
+import clockHsSrc from '../../images/clock_HS.svg';
 
 const AvatarGlyph = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42" fill="none" aria-hidden="true">
@@ -105,13 +110,6 @@ const LockIcon = () => (
     <g mask="url(#lock-icon-mask)">
       <path d="M0 0H29V29H0V0Z" fill="white" />
     </g>
-  </svg>
-);
-
-const ClockIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="48" viewBox="0 0 22 48" fill="none" aria-hidden="true">
-    <path d="M11 1L11 37" stroke="white" strokeWidth="2" strokeLinecap="round" />
-    <path d="M1 1L1 37" stroke="white" strokeWidth="2" strokeLinecap="round" transform="translate(10 0)" />
   </svg>
 );
 
@@ -266,53 +264,6 @@ const normalizeUpcomingSlotPayload = (root) => {
   };
 };
 
-const extractAssessmentsFromListPayload = (payload) => {
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-  if (!payload || typeof payload !== 'object') {
-    return [];
-  }
-  if (Array.isArray(payload.items)) {
-    return payload.items;
-  }
-  if (Array.isArray(payload.results)) {
-    return payload.results;
-  }
-  if (Array.isArray(payload.rows)) {
-    return payload.rows;
-  }
-  if (Array.isArray(payload.data?.items)) {
-    return payload.data.items;
-  }
-  if (Array.isArray(payload.data?.results)) {
-    return payload.data.results;
-  }
-  return [];
-};
-
-const extractCategoriesFromAssessmentStatus = (payload) => {
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-  if (!payload || typeof payload !== 'object') {
-    return [];
-  }
-  if (Array.isArray(payload.categories)) {
-    return payload.categories;
-  }
-  if (Array.isArray(payload.category_statuses)) {
-    return payload.category_statuses;
-  }
-  if (Array.isArray(payload.assessment_categories)) {
-    return payload.assessment_categories;
-  }
-  if (Array.isArray(payload.data?.categories)) {
-    return payload.data.categories;
-  }
-  return [];
-};
-
 const formatEngagementDateLabel = (raw) => {
   const ymd = String(raw || '').slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
@@ -365,12 +316,16 @@ const HomePage = ({
   const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
   const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
   const [isNoDataHome, setIsNoDataHome] = useState(false);
-  const [isOverviewResolved, setIsOverviewResolved] = useState(false);
+  const [isOverviewResolved, setIsOverviewResolved] = useState(
+    () => hasRenderableOverviewData(preloadedData),
+  );
   const [noDataStage, setNoDataStage] = useState('welcome');
   const [checklistScrollProgress, setChecklistScrollProgress] = useState(0);
   const [upcomingSlotNormalized, setUpcomingSlotNormalized] = useState(null);
   const [upcomingSlotStatus, setUpcomingSlotStatus] = useState('idle');
   const [isQuestionnaireCompleted, setIsQuestionnaireCompleted] = useState(false);
+  /** When camp B2B no-data UI needs family-history draft check; false until that request finishes (avoids camp → analyzing flicker). */
+  const [isB2bCampNoDataGateResolved, setIsB2bCampNoDataGateResolved] = useState(true);
   const [hasStableOverviewData, setHasStableOverviewData] = useState(() => hasRenderableOverviewData(preloadedData));
 
   const slotNorm = upcomingSlotNormalized || EMPTY_UPCOMING_SLOT;
@@ -395,6 +350,9 @@ const HomePage = ({
     if (!isNoDataHome || upcomingSlotStatus !== 'ready' || !campFlowActive) {
       return;
     }
+    if (!isB2bCampNoDataGateResolved) {
+      return;
+    }
     try {
       if (isQuestionnaireCompleted) {
         setNoDataStage('analyzing');
@@ -412,6 +370,7 @@ const HomePage = ({
     isNoDataHome,
     upcomingSlotStatus,
     campFlowActive,
+    isB2bCampNoDataGateResolved,
     isQuestionnaireCompleted,
     forceRefreshFromProfile,
   ]);
@@ -419,49 +378,46 @@ const HomePage = ({
   useEffect(() => {
     let cancelled = false;
 
-    if (!isNoDataHome || upcomingSlotStatus !== 'ready' || !campFlowActive) {
+    if (!isNoDataHome) {
       setIsQuestionnaireCompleted(false);
+      setIsB2bCampNoDataGateResolved(true);
       return undefined;
     }
 
+    if (!campFlowActive || upcomingSlotStatus !== 'ready') {
+      setIsQuestionnaireCompleted(false);
+      setIsB2bCampNoDataGateResolved(true);
+      return undefined;
+    }
+
+    if (forceRefreshFromProfile) {
+      invalidateFamilyHistoryQuestionnaireDraftCache();
+    }
+
+    const cached = peekFamilyHistoryQuestionnaireDraftCache();
+    if (cached !== null) {
+      if (!cancelled) {
+        setIsQuestionnaireCompleted(cached);
+        setIsB2bCampNoDataGateResolved(true);
+      }
+      return undefined;
+    }
+
+    setIsB2bCampNoDataGateResolved(false);
+
     (async () => {
       try {
-        const assessmentsPayload = await listMyAssessments(1, 50);
-        const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
-        const latestAssessment = [...assessments]
-          .map((item) => ({
-            ...item,
-            assessmentInstanceId: Number(item?.assessment_instance_id || item?.assessment_id || item?.id || 0),
-            assignedAtTs: new Date(item?.assigned_at || item?.assignedAt || 0).getTime() || 0,
-          }))
-          .filter((item) => item.assessmentInstanceId > 0)
-          .sort((a, b) => {
-            if (b.assignedAtTs !== a.assignedAtTs) {
-              return b.assignedAtTs - a.assignedAtTs;
-            }
-            return b.assessmentInstanceId - a.assessmentInstanceId;
-          })[0];
-
-        const assessmentInstanceId = Number(latestAssessment?.assessmentInstanceId || 0);
-        if (assessmentInstanceId <= 0) {
-          if (!cancelled) {
-            setIsQuestionnaireCompleted(false);
-          }
-          return;
-        }
-
-        const statusPayload = await getAssessmentStatus(assessmentInstanceId);
-        const categories = extractCategoriesFromAssessmentStatus(statusPayload);
-        const allComplete = Array.isArray(categories)
-          && categories.length > 0
-          && categories.every((category) => String(category?.status || category?.category_status || '').trim().toLowerCase() === 'complete');
-
+        const hasFamilyDraft = await hasFamilyHistoryQuestionnaireDraft();
         if (!cancelled) {
-          setIsQuestionnaireCompleted(allComplete);
+          setIsQuestionnaireCompleted(hasFamilyDraft);
         }
       } catch {
         if (!cancelled) {
           setIsQuestionnaireCompleted(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsB2bCampNoDataGateResolved(true);
         }
       }
     })();
@@ -470,6 +426,15 @@ const HomePage = ({
       cancelled = true;
     };
   }, [isNoDataHome, upcomingSlotStatus, campFlowActive, forceRefreshFromProfile]);
+
+  // Warm family-history draft check in parallel with the upcoming-slot request so the camp gate often hits cache.
+  useEffect(() => {
+    if (!isOverviewResolved || !isNoDataHome) {
+      return undefined;
+    }
+    void hasFamilyHistoryQuestionnaireDraft().catch(() => {});
+    return undefined;
+  }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
 
   const metabolicAgeDetail = useMemo(() => {
     const chronologicalAge = Number(userAge);
@@ -561,6 +526,27 @@ const HomePage = ({
     };
 
     const loadOverviewData = async () => {
+      const paintFromCache = hasStableOverviewData && !forceRefreshFromProfile;
+
+      if (paintFromCache) {
+        setIsOverviewResolved(true);
+        try {
+          const parsed = await fetchOverviewData(45000);
+          if (!isActive || !parsed) {
+            return;
+          }
+          setMetabolicAgeValue(parsed.metabolicAgeValue);
+          setPositiveWinsData(parsed.positiveWinsData);
+          setRiskAnalysisData(parsed.riskAnalysisData);
+          setIsNoDataHome(false);
+          setHasStableOverviewData(true);
+          setNoDataStage('welcome');
+        } catch {
+          /* keep showing preloaded / last-good overview */
+        }
+        return;
+      }
+
       try {
         let parsed = null;
         try {
@@ -656,21 +642,10 @@ const HomePage = ({
     };
   }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
 
-  if (!isOverviewResolved) {
-    return <div className="home-page home-page--slot-loading" aria-busy="true" aria-label="Loading home" />;
-  }
-
   const handleMenuClick = () => {
     console.log('Menu clicked');
     if (onNavigateToProfile) {
       onNavigateToProfile();
-    }
-  };
-
-  const handleSearchClick = () => {
-    console.log('Search clicked');
-    if (onOpenHealthAssessment) {
-      onOpenHealthAssessment();
     }
   };
 
@@ -695,6 +670,14 @@ const HomePage = ({
       return;
     }
   };
+
+  if (!isOverviewResolved) {
+    return (
+      <div className="home-page home-page--slot-loading" aria-busy="true" aria-label="Loading home">
+        <NavBar defaultActive="home" onNavigate={handleNavigate} />
+      </div>
+    );
+  }
 
   const handleHealthScanSeeMore = () => {
     if (onNavigateToHealthScan) {
@@ -754,7 +737,20 @@ const HomePage = ({
     // Always wait for upcoming-slot resolution before choosing a no-data sub-screen.
     // This removes transient flashes (e.g. generic welcome) before final state is known.
     if (upcomingSlotStatus !== 'ready') {
-      return <div className="home-page home-page--slot-loading" aria-busy="true" aria-label="Loading schedule" />;
+      return (
+        <div className="home-page home-page--slot-loading" aria-busy="true" aria-label="Loading schedule">
+          <NavBar defaultActive="home" onNavigate={handleNavigate} />
+        </div>
+      );
+    }
+
+    // Camp flow: wait for family-history draft check before picking analyzing vs scheduled (avoids UI jumping).
+    if (campFlowActive && !isB2bCampNoDataGateResolved) {
+      return (
+        <div className="home-page home-page--slot-loading" aria-busy="true" aria-label="Loading health assessment status">
+          <NavBar defaultActive="home" onNavigate={handleNavigate} />
+        </div>
+      );
     }
 
     if (noDataStage === 'welcome') {
@@ -767,11 +763,7 @@ const HomePage = ({
                 <path d="M15.4574 10.4998C15.4574 11.3048 14.8041 11.9582 13.9991 11.9582V13.7082C14.85 13.7082 15.6661 13.3702 16.2677 12.7685C16.8694 12.1668 17.2074 11.3507 17.2074 10.4998H15.4574ZM13.9991 11.9582C13.1941 11.9582 12.5408 11.3048 12.5408 10.4998H10.7908C10.7908 11.3507 11.1288 12.1668 11.7305 12.7685C12.3322 13.3702 13.1482 13.7082 13.9991 13.7082V11.9582ZM12.5408 10.4998C12.5408 9.69484 13.1941 9.0415 13.9991 9.0415V7.2915C13.1482 7.2915 12.3322 7.62952 11.7305 8.2312C11.1288 8.83288 10.7908 9.64893 10.7908 10.4998H12.5408ZM13.9991 9.0415C14.8041 9.0415 15.4574 9.69484 15.4574 10.4998H17.2074C17.2074 9.64893 16.8694 8.83288 16.2677 8.2312C15.6661 7.62952 14.85 7.2915 13.9991 7.2915V9.0415ZM6.02611 20.8318L5.18728 20.5822L5.05078 21.0395L5.36228 21.4012L6.02611 20.8318ZM21.9721 20.8318L22.6371 21.4023L22.9474 21.0407L22.8109 20.5822L21.9721 20.8318ZM10.4991 18.3748H17.4991V16.6248H10.4991V18.3748ZM10.4991 16.6248C9.30564 16.6245 8.14395 17.0095 7.18687 17.7225C6.2298 18.4356 5.52849 19.4385 5.18728 20.5822L6.86495 21.0815C7.09857 20.2992 7.57845 19.6132 8.23323 19.1256C8.888 18.6379 9.68269 18.3746 10.4991 18.3748V16.6248ZM13.9991 23.6248C12.6101 23.6264 11.2373 23.3266 9.97538 22.7461C8.71348 22.1657 7.59255 21.3183 6.68995 20.2625L5.36228 21.4012C6.42915 22.6483 7.75376 23.6504 9.24482 24.3363C10.7359 25.0221 12.3579 25.3764 13.9991 25.3748V23.6248ZM17.4991 18.3748C19.2141 18.3748 20.6666 19.5158 21.1333 21.0815L22.8109 20.5822C22.4697 19.4385 21.7684 18.4356 20.8114 17.7225C19.8543 17.0095 18.6926 16.6245 17.4991 16.6248V18.3748ZM21.3083 20.2625C20.4057 21.3183 19.2847 22.1657 18.0228 22.7461C16.761 23.3266 15.3881 23.6264 13.9991 23.6248V25.3748C15.6403 25.3764 17.2624 25.0221 18.7534 24.3363C20.2445 23.6504 21.5702 22.6495 22.6371 21.4023L21.3083 20.2625Z" fill="white" />
               </svg>
             </button>
-            <button className="home-page-no-data__icon-btn" type="button" onClick={handleSearchClick} aria-label="Search">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M15.5 14H14.71L14.43 13.73C15.0549 13.0039 15.5117 12.1487 15.7675 11.2256C16.0234 10.3024 16.072 9.33413 15.91 8.38998C15.44 5.60998 13.12 3.38997 10.32 3.04997C9.33559 2.92544 8.33576 3.02775 7.397 3.34906C6.45824 3.67038 5.60542 4.20219 4.90381 4.90381C4.20219 5.60542 3.67038 6.45824 3.34906 7.397C3.02775 8.33576 2.92544 9.33559 3.04997 10.32C3.38997 13.12 5.60998 15.44 8.38998 15.91C9.33413 16.072 10.3024 16.0234 11.2256 15.7675C12.1487 15.5117 13.0039 15.0549 13.73 14.43L14 14.71V15.5L18.25 19.75C18.66 20.16 19.33 20.16 19.74 19.75C20.15 19.34 20.15 18.67 19.74 18.26L15.5 14ZM9.49997 14C7.00997 14 4.99997 11.99 4.99997 9.49997C4.99997 7.00997 7.00997 4.99997 9.49997 4.99997C11.99 4.99997 14 7.00997 14 9.49997C14 11.99 11.99 14 9.49997 14Z" fill="white" />
-              </svg>
-            </button>
+            <span className="home-page-no-data__topbar-spacer" aria-hidden="true" />
           </header>
 
           <section className="home-page-no-data__top-section">
@@ -845,7 +837,6 @@ const HomePage = ({
           <Header
             name={userName}
             onMenuClick={handleMenuClick}
-            onSearchClick={handleSearchClick}
           />
 
           <section className="home-page-analyzing__hero">
@@ -932,14 +923,20 @@ const HomePage = ({
           <Header
             name={userName}
             onMenuClick={handleMenuClick}
-            onSearchClick={handleSearchClick}
           />
 
           <section className="home-page-scheduled__hero">
             <div className="home-page-scheduled__hero-inner">
-              <div className="home-page-scheduled__clock-wrap" aria-hidden="true">
-                <span className="home-page-scheduled__clock-glow" />
-                <ClockIcon />
+              <div
+                className="home-page-scheduled__clock-wrap home-page-scheduled__clock-wrap--camp-hero"
+                aria-hidden="true"
+              >
+                <img
+                  src={clockHsSrc}
+                  alt=""
+                  className="home-page-scheduled__hero-clock"
+                  decoding="async"
+                />
               </div>
               <div className="home-page-scheduled__hero-copy">
                 <h2>{campHeroTitle}</h2>
@@ -1030,7 +1027,6 @@ const HomePage = ({
       <Header 
         name={userName} 
         onMenuClick={handleMenuClick}
-        onSearchClick={handleSearchClick}
       />
 
       <MetabolicAgeOrb

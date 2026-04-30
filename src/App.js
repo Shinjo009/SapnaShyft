@@ -1,5 +1,5 @@
 import './App.css';
-import { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy, useCallback } from 'react';
 import SplashScreen from './pages/SplashScreen';
 import LoginPage from './pages/LoginPage';
 import { getSuperClubLikedSportIds } from './pages/SuperClubPage/superClubStorage';
@@ -7,7 +7,12 @@ import { getSuperClubSportsByIds } from './pages/SuperClubPage/superClubSportIma
 import { sendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
 import { createUser, getMyProfiles, invalidateMyProfilesCache } from './services/usersService';
 import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
-import { loadQuestionnaireContext, submitQuestionnaireResponses } from './services/questionnaireService';
+import {
+  loadQuestionnaireContext,
+  submitQuestionnaireResponses,
+  markFamilyHistoryQuestionnaireDraftKnown,
+  invalidateFamilyHistoryQuestionnaireDraftCache,
+} from './services/questionnaireService';
 import {
   fetchLatestAssessmentReport,
   clearReportRequestCache,
@@ -21,7 +26,11 @@ import {
 } from './utils/authStorage';
 import { trackAppScreen } from './analytics/googleAnalytics';
 import AppTooltipTour from './components/AppTooltipTour/AppTooltipTour';
-import { prefetchNavbarRoutes } from './utils/routePrefetch';
+import {
+  prefetchNavbarRoutes,
+  prefetchSecondaryAppRouteChunks,
+  prefetchLikelyNextRoutes,
+} from './utils/routePrefetch';
 
 // Same asset as Profile logout modal (`/public/BG-1.png`).
 const questionnaireSuccessModalBg = `${process.env.PUBLIC_URL || ''}/BG-1.png`;
@@ -170,6 +179,10 @@ function App() {
   const [preloadedHomeData, setPreloadedHomeData] = useState(null);
   const [forceHomeApiRefresh, setForceHomeApiRefresh] = useState(false);
   const [superClubLikedSportIds, setSuperClubLikedSportIds] = useState(() => getSuperClubLikedSportIds());
+  const handleSuperClubOnboardingComplete = useCallback((likedIds) => {
+    setSuperClubLikedSportIds(Array.isArray(likedIds) ? likedIds : []);
+    setCurrentPage('super-club-2');
+  }, []);
   const [, setIsB2bQuestionnaireFlow] = useState(false);
   const [healthAssessmentBackPage, setHealthAssessmentBackPage] = useState('home');
   // const [superClubOnboardingDone, setSuperClubOnboardingDone] = useState(() =>
@@ -428,6 +441,9 @@ function App() {
     // or if a later batch step fails silently.
     if (normalizedResponses.length > 0) {
       await persistRoute(routeId);
+      if (routeId === 'family-history') {
+        markFamilyHistoryQuestionnaireDraftKnown(true);
+      }
     }
 
     if (routeId === 'vitals') {
@@ -461,12 +477,16 @@ function App() {
 
     try {
       await submitQuestionnaireResponses(assessmentInstanceId, categoryId, normalizedResponses);
+      if (routeId === 'family-history') {
+        markFamilyHistoryQuestionnaireDraftKnown(true);
+      }
     } catch (error) {
       console.error(`Failed to autosave questionnaire responses for ${routeId}:`, error);
     }
   };
 
   const initializeQuestionnaire = async () => {
+    invalidateFamilyHistoryQuestionnaireDraftCache();
     try {
       const context = await loadQuestionnaireContext();
       const categories = context?.categories || [];
@@ -621,25 +641,42 @@ function App() {
     trySessionRestore();
   }, []);
 
-  // Warm up the four NavBar destination chunks at idle so the first tap after
-  // app load doesn't pay the code-split fetch cost. React.lazy() shares the
-  // module cache with these manual import() calls, so navigation becomes
-  // effectively instant.
+  // Warm code-split chunks at idle: NavBar targets first, then the rest of the
+  // app so most navigations resolve cached modules (no chunk flash). This does
+  // not pre-mount screens (would duplicate effects/APIs).
   useEffect(() => {
     const requestIdle = window.requestIdleCallback
       || ((cb) => window.setTimeout(cb, 300));
     const cancelIdle = window.cancelIdleCallback || window.clearTimeout;
 
-    const handle = requestIdle(() => {
+    let outerHandle = null;
+    let innerHandle = null;
+
+    outerHandle = requestIdle(() => {
       prefetchNavbarRoutes();
+      innerHandle = requestIdle(() => {
+        prefetchSecondaryAppRouteChunks();
+      });
     });
 
     return () => {
-      if (handle != null) {
-        cancelIdle(handle);
+      if (outerHandle != null) {
+        cancelIdle(outerHandle);
+      }
+      if (innerHandle != null) {
+        cancelIdle(innerHandle);
       }
     };
   }, []);
+
+  // After each navigation, warm chunks for common exits from this screen (idle-scheduled).
+  useEffect(() => {
+    if (isBootstrappingSession) {
+      return undefined;
+    }
+    prefetchLikelyNextRoutes(currentPage);
+    return undefined;
+  }, [currentPage, isBootstrappingSession]);
 
   useEffect(() => {
     const userAgent = window.navigator.userAgent || '';
@@ -1194,11 +1231,6 @@ function App() {
           onMenuClick={() => {
             setCurrentPage('profile');
           }}
-          onSearchClick={() => {
-            setHealthAssessmentBackPage('super-club');
-            setCurrentPage('health-assessment');
-            initializeQuestionnaire();
-          }}
           onNavigateHome={() => {
             setCurrentPage('home');
           }}
@@ -1220,11 +1252,6 @@ function App() {
           onMenuClick={() => {
             setCurrentPage('profile');
           }}
-          onSearchClick={() => {
-            setHealthAssessmentBackPage('super-club-swipe');
-            setCurrentPage('health-assessment');
-            initializeQuestionnaire();
-          }}
           onNavigateHome={() => {
             setCurrentPage('home');
           }}
@@ -1234,10 +1261,7 @@ function App() {
           onNavigateToPackages={() => {
             setCurrentPage('packages');
           }}
-          onOnboardingComplete={(likedIds) => {
-            setSuperClubLikedSportIds(Array.isArray(likedIds) ? likedIds : []);
-            setCurrentPage('super-club-2');
-          }}
+          onOnboardingComplete={handleSuperClubOnboardingComplete}
         />
       )}
 
@@ -1247,11 +1271,6 @@ function App() {
           likedSports={getSuperClubSportsByIds(superClubLikedSportIds)}
           onMenuClick={() => {
             setCurrentPage('profile');
-          }}
-          onSearchClick={() => {
-            setHealthAssessmentBackPage('super-club-2');
-            setCurrentPage('health-assessment');
-            initializeQuestionnaire();
           }}
           onNavigateHome={() => {
             setCurrentPage('home');

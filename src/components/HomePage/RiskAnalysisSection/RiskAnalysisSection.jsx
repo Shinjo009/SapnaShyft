@@ -694,10 +694,28 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
       }
     };
 
-    loadHomepageBloodMarkers();
+    /** Defer until idle so home overview + first paint are not competing on the main thread / network. */
+    let idleId;
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(
+        () => {
+          if (isActive) void loadHomepageBloodMarkers();
+        },
+        { timeout: 2500 },
+      );
+    } else {
+      idleId = window.setTimeout(() => {
+        if (isActive) void loadHomepageBloodMarkers();
+      }, 80);
+    }
 
     return () => {
       isActive = false;
+      if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId);
+      } else {
+        clearTimeout(idleId);
+      }
     };
   }, []);
 

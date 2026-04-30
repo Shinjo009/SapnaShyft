@@ -52,13 +52,6 @@ const TOUR_STEPS = [
     placement: 'top-left',
   },
   {
-    id: 'profile-add-account',
-    page: 'profile',
-    text: 'Add multiple accounts linked to your profile',
-    target: '[data-tour="profile-add-account-text"]',
-    placement: 'top-left',
-  },
-  {
     id: 'profile-switch-account',
     page: 'profile',
     text: 'Go to different profiles by clicking on Switch',

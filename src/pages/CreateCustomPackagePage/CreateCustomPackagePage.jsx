@@ -119,7 +119,8 @@ const normalizeGroupRow = (row, index) => {
     oldPrice,
     tags,
     tests,
-    testsLoaded: false,
+    /** Skip expand-time fetch when the list endpoint already included parameters. */
+    testsLoaded: tests.length > 0,
   };
 };
 
@@ -269,54 +270,30 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
           }
         );
         const normalizedRows = (Array.isArray(rows) ? rows : [])
-          .map((row, index) => normalizeGroupRow(row, index));
-
-        // Preload all group tests up-front so card expand is instant.
-        const rowsWithTests = await Promise.all(
-          normalizedRows.map(async (row) => {
-            if (!row.groupId) {
-              return row;
-            }
-
-            try {
-              const testRows = await listDiagnosticTestGroupTests(row.groupId, {
-                accessToken: getAccessToken(),
-              });
-              const normalizedTests = normalizeTests(testRows);
-
-              return {
-                ...row,
-                tests: normalizedTests.length > 0 ? normalizedTests : row.tests,
-                testsLoaded: true,
-              };
-            } catch {
-              return {
-                ...row,
-                testsLoaded: true,
-              };
-            }
-          })
-        );
+          .map((row, index) => normalizeGroupRow(row, index))
+          .filter((row) => row.salePrice > 0);
 
         if (!isActive) {
           return;
         }
 
-        setCategoryData(rowsWithTests);
+        // Paint groups as soon as the list loads; tests load on expand (fetchTestsForCategoryIds).
+        // Up-front Promise.all(N) detail calls blocked first render for large catalogs.
+        setCategoryData(normalizedRows);
 
         setExpandedIds((prev) => {
           const next = new Set(
-            Array.from(prev).filter((id) => rowsWithTests.some((row) => row.id === id))
+            Array.from(prev).filter((id) => normalizedRows.some((row) => row.id === id))
           );
           return next;
         });
 
         setSelectedIds((prev) => {
           const next = new Set(
-            Array.from(prev).filter((id) => rowsWithTests.some((row) => row.id === id))
+            Array.from(prev).filter((id) => normalizedRows.some((row) => row.id === id))
           );
-          if (next.size === 0 && rowsWithTests[0]?.id) {
-            next.add(rowsWithTests[0].id);
+          if (next.size === 0 && normalizedRows[0]?.id) {
+            next.add(normalizedRows[0].id);
           }
           return next;
         });

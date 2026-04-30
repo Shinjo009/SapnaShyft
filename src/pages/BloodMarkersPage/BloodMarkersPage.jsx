@@ -1470,15 +1470,13 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
             aria-label="Parameters list"
             aria-hidden={!isOptimalExpanded}
           >
-            {parameterItems.map((item, index) => (
-              <React.Fragment key={`${section.id}-${item.name}`}>
+            {parameterItems.map((item) => (
+              <span key={`${section.id}-${item.name}`} className="blood-markers-page__optimal-param-chunk">
+                <span className="blood-markers-page__optimal-param-dot" aria-hidden="true">
+                  <DotBullet />
+                </span>
                 <span className="blood-markers-page__optimal-param-item">{`${item.name}: ${item.value}`}</span>
-                {index < parameterItems.length - 1 ? (
-                  <span className="blood-markers-page__optimal-param-dot" aria-hidden="true">
-                    <DotBullet />
-                  </span>
-                ) : null}
-              </React.Fragment>
+              </span>
             ))}
           </div>
         </article>
@@ -1625,15 +1623,13 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                   aria-label="Parameters list"
                   aria-hidden={!isLowCardExpanded}
                 >
-                  {parameterItems.map((item, itemIndex) => (
-                    <React.Fragment key={`${card.id}-${item.name}`}>
+                  {parameterItems.map((item) => (
+                    <span key={`${card.id}-${item.name}`} className="blood-markers-page__optimal-param-chunk">
+                      <span className="blood-markers-page__optimal-param-dot" aria-hidden="true">
+                        <DotBullet />
+                      </span>
                       <span className="blood-markers-page__optimal-param-item">{`${item.name}: ${item.value}`}</span>
-                      {itemIndex < parameterItems.length - 1 ? (
-                        <span className="blood-markers-page__optimal-param-dot" aria-hidden="true">
-                          <DotBullet />
-                        </span>
-                      ) : null}
-                    </React.Fragment>
+                    </span>
                   ))}
                 </div>
               ) : null}

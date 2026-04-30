@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { hasFamilyHistoryQuestionnaireDraft } from '../../services/questionnaireService';
 import ques1Icon from '../../images/ques-1.svg';
 import ques2Icon from '../../images/ques-2.svg';
 import ques3Icon from '../../images/ques-3.svg';
@@ -2137,8 +2138,34 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
     });
   }, [cardsData, familyHistoryKeys, medicationOptions]);
 
-  const totalCards = Math.max(resolvedCardsData.length, 1);
-  const activeCard = resolvedCardsData[cardIndex] || {
+  const isDiagnosedNoneOnly = useMemo(() => {
+    const diagnosedKey = familyHistoryKeys.diagnosedKey;
+    const medicationKey = familyHistoryKeys.medicationKey;
+    if (!diagnosedKey || !medicationKey) {
+      return false;
+    }
+    const diagnosedSel = Array.isArray(selections[diagnosedKey]) ? selections[diagnosedKey] : [];
+    if (diagnosedSel.length === 0) {
+      return false;
+    }
+    return diagnosedSel.every((item) => isNoneOptionLabel(item));
+  }, [familyHistoryKeys.diagnosedKey, familyHistoryKeys.medicationKey, selections]);
+
+  const visibleCardsData = useMemo(() => {
+    const medicationKey = familyHistoryKeys.medicationKey;
+    if (!medicationKey || !isDiagnosedNoneOnly) {
+      return resolvedCardsData;
+    }
+    return resolvedCardsData.filter((card) => card.key !== medicationKey);
+  }, [resolvedCardsData, familyHistoryKeys.medicationKey, isDiagnosedNoneOnly]);
+
+  useEffect(() => {
+    const maxIdx = Math.max(0, visibleCardsData.length - 1);
+    setCardIndex((prev) => (prev > maxIdx ? maxIdx : prev));
+  }, [visibleCardsData]);
+
+  const totalCards = Math.max(visibleCardsData.length, 1);
+  const activeCard = visibleCardsData[cardIndex] || {
     key: 'empty',
     title: 'No questions available for this category yet.',
     helper: '',
@@ -3818,9 +3845,46 @@ const HealthAssessmentPage = ({
     };
   });
 
-  const canOpenAllSteps = Array.isArray(steps)
+  const allCategoriesCompleteFromApi = Array.isArray(steps)
     && steps.length > 0
     && steps.every((step) => String(step?.status || '').trim().toLowerCase() === 'complete');
+
+  const optimisticFamilyHistoryDraft = useMemo(() => {
+    const responses = initialResponsesByRoute['family-history'];
+    return Array.isArray(responses) && responses.length > 0;
+  }, [initialResponsesByRoute]);
+
+  const [familyHistorySubmittedResolved, setFamilyHistorySubmittedResolved] = useState(false);
+  const [hasFamilyHistorySubmittedDraft, setHasFamilyHistorySubmittedDraft] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const drafted = await hasFamilyHistoryQuestionnaireDraft();
+        if (!cancelled) {
+          setHasFamilyHistorySubmittedDraft(drafted);
+        }
+      } catch {
+        if (!cancelled) {
+          setHasFamilyHistorySubmittedDraft(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setFamilyHistorySubmittedResolved(true);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const familyHistorySubmittedUnlock = familyHistorySubmittedResolved
+    ? hasFamilyHistorySubmittedDraft
+    : optimisticFamilyHistoryDraft;
+
+  const canOpenAllSteps = allCategoriesCompleteFromApi || familyHistorySubmittedUnlock;
   const effectiveProgress = canOpenAllSteps ? resolvedSteps.length : progress;
   const activeIndex = effectiveProgress < resolvedSteps.length ? effectiveProgress : -1;
   const focusedIndex = expandedStep != null ? expandedStep : activeIndex;
