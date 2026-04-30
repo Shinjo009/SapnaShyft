@@ -4,7 +4,9 @@ import Header from '../../components/HomePage/Header';
 import MetabolicAgeOrb from '../../metabolic-age-orb/MetabolicAgeOrb.jsx';
 import HealthParametersSection from '../../components/HomePage/HealthParametersSection';
 import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/PositiveWinsSection';
-import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
+import RiskAnalysisSection, {
+  buildHomeBloodMarkersFromBloodParametersResponse,
+} from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
@@ -327,6 +329,8 @@ const HomePage = ({
   /** When camp B2B no-data UI needs family-history draft check; false until that request finishes (avoids camp → analyzing flicker). */
   const [isB2bCampNoDataGateResolved, setIsB2bCampNoDataGateResolved] = useState(true);
   const [hasStableOverviewData, setHasStableOverviewData] = useState(() => hasRenderableOverviewData(preloadedData));
+  /** null = overview pipeline has not returned blood markers yet; array = rows for RiskAnalysisSection (avoids a second request + idle delay). */
+  const [homeBloodMarkersForSection, setHomeBloodMarkersForSection] = useState(null);
 
   const slotNorm = upcomingSlotNormalized || EMPTY_UPCOMING_SLOT;
   const campFlowActive = Boolean(slotNorm.hasScheduledSlot)
@@ -517,12 +521,28 @@ const HomePage = ({
       };
     };
 
-    const fetchOverviewData = async (ttlMs) => {
-      const { response } = await fetchLatestAssessmentReport(
-        (assessmentId) => `/reports/${assessmentId}/overview`,
-        ttlMs,
-      );
-      return parseOverviewResponse(response);
+    const fetchOverviewAndBloodMarkersParallel = async (ttlMs) => {
+      const [overviewSettled, bloodSettled] = await Promise.allSettled([
+        fetchLatestAssessmentReport(
+          (assessmentId) => `/reports/${assessmentId}/overview`,
+          ttlMs,
+        ),
+        fetchLatestAssessmentReport(
+          (assessmentId) => `/reports/${assessmentId}/blood-parameters`,
+          ttlMs,
+        ),
+      ]);
+
+      let parsed = null;
+      if (overviewSettled.status === 'fulfilled') {
+        parsed = parseOverviewResponse(overviewSettled.value.response);
+      }
+
+      const bloodMarkers = bloodSettled.status === 'fulfilled'
+        ? buildHomeBloodMarkersFromBloodParametersResponse(bloodSettled.value.response)
+        : [];
+
+      return { parsed, bloodMarkers };
     };
 
     const loadOverviewData = async () => {
@@ -531,13 +551,18 @@ const HomePage = ({
       if (paintFromCache) {
         setIsOverviewResolved(true);
         try {
-          const parsed = await fetchOverviewData(45000);
-          if (!isActive || !parsed) {
+          const { parsed, bloodMarkers } = await fetchOverviewAndBloodMarkersParallel(45000);
+          if (!isActive) {
+            return;
+          }
+          if (!parsed) {
+            setHomeBloodMarkersForSection([]);
             return;
           }
           setMetabolicAgeValue(parsed.metabolicAgeValue);
           setPositiveWinsData(parsed.positiveWinsData);
           setRiskAnalysisData(parsed.riskAnalysisData);
+          setHomeBloodMarkersForSection(bloodMarkers);
           setIsNoDataHome(false);
           setHasStableOverviewData(true);
           setNoDataStage('welcome');
@@ -548,19 +573,16 @@ const HomePage = ({
       }
 
       try {
-        let parsed = null;
-        try {
-          parsed = await fetchOverviewData(forceRefreshFromProfile ? 0 : 45000);
-        } catch {
-          parsed = null;
-        }
+        let { parsed, bloodMarkers } = await fetchOverviewAndBloodMarkersParallel(
+          forceRefreshFromProfile ? 0 : 45000,
+        );
 
-        // Prevent transient API/cache misses from flashing no-data UI.
         if (!parsed) {
           try {
-            parsed = await fetchOverviewData(0);
+            ({ parsed, bloodMarkers } = await fetchOverviewAndBloodMarkersParallel(0));
           } catch {
             parsed = null;
+            bloodMarkers = [];
           }
         }
 
@@ -569,6 +591,7 @@ const HomePage = ({
             setMetabolicAgeValue(parsed.metabolicAgeValue);
             setPositiveWinsData(parsed.positiveWinsData);
             setRiskAnalysisData(parsed.riskAnalysisData);
+            setHomeBloodMarkersForSection(bloodMarkers);
             setIsNoDataHome(false);
             setHasStableOverviewData(true);
             setNoDataStage('welcome');
@@ -576,6 +599,7 @@ const HomePage = ({
             setMetabolicAgeValue('-');
             setPositiveWinsData(null);
             setRiskAnalysisData([]);
+            setHomeBloodMarkersForSection([]);
             setIsNoDataHome(true);
             setNoDataStage('welcome');
           }
@@ -587,6 +611,7 @@ const HomePage = ({
             setMetabolicAgeValue('-');
             setPositiveWinsData(null);
             setRiskAnalysisData([]);
+            setHomeBloodMarkersForSection([]);
             setIsNoDataHome(true);
             setNoDataStage('welcome');
           }
@@ -1056,6 +1081,7 @@ const HomePage = ({
         onSeeMore={handleRiskAnalysisSeeMore}
         onDiseaseSelect={onNavigateToDiseaseDetail}
         onBloodMarkersSeeMore={handleBloodMarkersSeeMore}
+        prefetchedHomeBloodMarkers={homeBloodMarkersForSection}
       />
 
       <NavBar defaultActive="home" onNavigate={handleNavigate} />
