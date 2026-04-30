@@ -1110,7 +1110,7 @@ function App() {
                       <span className="app-install-popup-share-glyph" aria-hidden="true">
                         ⎋
                       </span>{' '}
-                      at the bottom, then select &quot;Add to Home Screen&quot; to install SuperMom).
+                      at the bottom, then select &quot;Add to Home Screen&quot; to install SuperShyft).
                     </>
                   ) : (
                     <>When your browser offers it, use Install or add this site to your home screen to install SuperShyft.</>
