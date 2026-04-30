@@ -141,6 +141,16 @@ const deriveEmployerOrganizerName = (profile) => {
   return String(raw || '').trim();
 };
 
+const normalizeAssessmentStatus = (status) => String(status || '').trim().toLowerCase();
+
+const isActiveIncompleteAssessment = (assessment) => {
+  const status = normalizeAssessmentStatus(assessment?.status);
+  const normalizedCompletedAt = assessment?.completed_at || assessment?.completedAt || null;
+  const isCompleteFlag = Boolean(assessment?.is_completed ?? assessment?.isComplete ?? false);
+  const activeStatuses = new Set(['active', 'in_progress', 'in-progress', 'assigned', 'pending']);
+  return activeStatuses.has(status) && !normalizedCompletedAt && !isCompleteFlag;
+};
+
 function App() {
   const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
   const [isBootstrappingSession, setIsBootstrappingSession] = useState(true);
@@ -403,12 +413,22 @@ function App() {
 
     const engagementId = Number(targetAssessment?.engagement_id || 0);
     const sourceIds = questionnaireAssessments
-      .filter((assessment) => Number(assessment?.engagement_id || 0) === engagementId)
+      .filter((assessment) => {
+        const assessmentId = Number(assessment?.assessment_instance_id || assessment?.assessment_id || assessment?.id || 0);
+        if (assessmentId <= 0) {
+          return false;
+        }
+
+        // Submit with only currently active/incomplete instances in the same engagement.
+        // This avoids sending stale historical IDs when multiple assessments exist.
+        const sameEngagement = Number(assessment?.engagement_id || 0) === engagementId;
+        return sameEngagement && isActiveIncompleteAssessment(assessment);
+      })
       .map((assessment) => Number(assessment?.assessment_instance_id || assessment?.assessment_id || assessment?.id || 0))
       .filter((id) => id > 0);
 
-    const uniqueIds = Array.from(new Set(sourceIds));
-    return uniqueIds.length > 0 ? uniqueIds : [targetId];
+    const uniqueSortedIds = Array.from(new Set(sourceIds)).sort((a, b) => a - b);
+    return uniqueSortedIds.length > 0 ? uniqueSortedIds : [targetId];
   };
 
   const handleStepComplete = async (routeId, responses = []) => {

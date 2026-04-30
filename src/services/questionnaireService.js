@@ -199,6 +199,57 @@ const isEmptyAnswer = (value) => {
   return false;
 };
 
+const normalizeScaleAnswer = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return value;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(value, 'value')) {
+    return value;
+  }
+
+  const numericValue = Number(value.value);
+  if (!Number.isFinite(numericValue)) {
+    return null;
+  }
+
+  const normalizedUnit = String(value.unit ?? '').trim();
+  if (!normalizedUnit) {
+    return null;
+  }
+
+  return {
+    value: numericValue,
+    unit: normalizedUnit,
+  };
+};
+
+const normalizeOutgoingAnswer = (answer) => {
+  if (answer == null) {
+    return answer;
+  }
+
+  if (Array.isArray(answer)) {
+    return answer
+      .map((item) => String(item ?? '').trim())
+      .filter((item) => item !== '');
+  }
+
+  if (typeof answer === 'object') {
+    return normalizeScaleAnswer(answer);
+  }
+
+  if (typeof answer === 'boolean') {
+    return answer ? 'true' : 'false';
+  }
+
+  if (typeof answer === 'number') {
+    return Number.isFinite(answer) ? String(answer) : null;
+  }
+
+  return answer;
+};
+
 const normalizeCategoryResponseItem = (item) => {
   if (!item || typeof item !== 'object') {
     return null;
@@ -216,13 +267,15 @@ const normalizeCategoryResponseItem = (item) => {
     ?? item.selected_options
     ?? item.answers;
 
-  if (isEmptyAnswer(answer)) {
+  const normalizedAnswer = normalizeOutgoingAnswer(answer);
+
+  if (isEmptyAnswer(normalizedAnswer)) {
     return null;
   }
 
   return {
     question_id: questionId,
-    answer,
+    answer: normalizedAnswer,
   };
 };
 
@@ -408,8 +461,12 @@ export const getCategoryQuestionnaire = (assessmentInstanceId, categoryId) => {
 };
 
 export const submitQuestionnaireResponses = (assessmentInstanceId, categoryId, responses = []) => {
+  const normalizedResponses = Array.isArray(responses)
+    ? responses.map(normalizeCategoryResponseItem).filter(Boolean)
+    : [];
+
   return authorizedPut(`/questionnaire/${assessmentInstanceId}/category/${categoryId}/responses`, {
-    responses: Array.isArray(responses) ? responses : [],
+    responses: normalizedResponses,
   });
 };
 

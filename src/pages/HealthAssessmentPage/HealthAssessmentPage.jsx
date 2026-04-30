@@ -85,8 +85,20 @@ const roundToWholeNumber = (value, fallback = 0) => {
   return Math.round(numericValue);
 };
 
+const MIN_HEIGHT_CM = 120;
+const MAX_HEIGHT_CM = 215;
 const MIN_HEIGHT_INCHES = 47;
-const MAX_HEIGHT_INCHES = 84; // 7'0"
+const MAX_HEIGHT_INCHES = 83; // 6'11"
+const DEFAULT_HEIGHT_CM = 165;
+const DEFAULT_HEIGHT_FEET = 5;
+const DEFAULT_HEIGHT_INCHES = 5;
+
+const MIN_CIRCUMFERENCE_INCHES = 22;
+const MAX_CIRCUMFERENCE_INCHES = 45;
+const MIN_CIRCUMFERENCE_CM = 60;
+const MAX_CIRCUMFERENCE_CM = 120;
+const DEFAULT_CIRCUMFERENCE_INCHES = 32;
+const DEFAULT_CIRCUMFERENCE_CM = 80;
 
 const resolvePreferredUnitOption = (options = [], preferredUnit = '', fallback = '-') => {
   if (!Array.isArray(options) || options.length === 0) {
@@ -194,6 +206,22 @@ const isInchUnit = (value) => {
   return token === 'in' || token === 'inch' || token.includes('inches');
 };
 
+const getCircumferenceRangeForUnit = (unit) => {
+  if (isCentimeterUnit(unit)) {
+    return {
+      min: MIN_CIRCUMFERENCE_CM,
+      max: MAX_CIRCUMFERENCE_CM,
+      defaultValue: DEFAULT_CIRCUMFERENCE_CM,
+    };
+  }
+
+  return {
+    min: MIN_CIRCUMFERENCE_INCHES,
+    max: MAX_CIRCUMFERENCE_INCHES,
+    defaultValue: DEFAULT_CIRCUMFERENCE_INCHES,
+  };
+};
+
 const isMeterUnit = (value) => {
   const token = normalizeUnitToken(value);
   return token === 'm' || token === 'meter' || token === 'metre' || token.includes('meters') || token.includes('metres');
@@ -288,16 +316,16 @@ const prioritizeHeightUnitOptions = (options = []) => {
 };
 
 const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initialValues = {} }) => {
-  const [height, setHeight] = useState(roundToWholeNumber(initialValues?.height, 152));
+  const [height, setHeight] = useState(roundToWholeNumber(initialValues?.height, DEFAULT_HEIGHT_CM));
   const [weight, setWeight] = useState(
     initialValues?.weight != null && initialValues?.weight !== '' ? String(initialValues.weight) : '0'
   );
-  const [waist, setWaist] = useState(roundToWholeNumber(initialValues?.waist, 32));
+  const [waist, setWaist] = useState(roundToWholeNumber(initialValues?.waist, DEFAULT_CIRCUMFERENCE_INCHES));
   const [heightUnit, setHeightUnit] = useState(initialValues?.heightUnit || '-');
   const [weightUnit, setWeightUnit] = useState(initialValues?.weightUnit || '-');
-  const [waistUnit, setWaistUnit] = useState(initialValues?.waistUnit || '-');
-  const [heightFeet, setHeightFeet] = useState(initialValues?.heightFeet ?? 5);
-  const [heightInches, setHeightInches] = useState(initialValues?.heightInches ?? 0);
+  const [waistUnit, setWaistUnit] = useState(initialValues?.waistUnit || 'in');
+  const [heightFeet, setHeightFeet] = useState(initialValues?.heightFeet ?? DEFAULT_HEIGHT_FEET);
+  const [heightInches, setHeightInches] = useState(initialValues?.heightInches ?? DEFAULT_HEIGHT_INCHES);
   const [showWaistInfoPopup, setShowWaistInfoPopup] = useState(false);
 
   const heightQuestionConfig = useMemo(
@@ -336,9 +364,9 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
   useEffect(() => {
-    setHeight(roundToWholeNumber(initialValues?.height, 152));
+    setHeight(roundToWholeNumber(initialValues?.height, DEFAULT_HEIGHT_CM));
     setWeight(initialValues?.weight != null && initialValues?.weight !== '' ? String(initialValues.weight) : '0');
-    setWaist(roundToWholeNumber(initialValues?.waist, 32));
+    setWaist(roundToWholeNumber(initialValues?.waist, DEFAULT_CIRCUMFERENCE_INCHES));
     setHeightUnit(
       resolvePreferredUnitOption(
         heightUnitOptions,
@@ -356,12 +384,12 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
     setWaistUnit(
       resolvePreferredUnitOption(
         waistUnitOptions,
-        resolveUnitLabelFromQuestion(waistQuestionConfig, initialValues?.waistUnit || ''),
-        '-'
+        resolveUnitLabelFromQuestion(waistQuestionConfig, initialValues?.waistUnit || 'in'),
+        'in'
       )
     );
-    setHeightFeet(initialValues?.heightFeet ?? 5);
-    setHeightInches(initialValues?.heightInches ?? 0);
+    setHeightFeet(initialValues?.heightFeet ?? DEFAULT_HEIGHT_FEET);
+    setHeightInches(initialValues?.heightInches ?? DEFAULT_HEIGHT_INCHES);
   }, [
     initialValues,
     heightUnitOptions,
@@ -390,11 +418,19 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
     }
   }, [waistUnit, waistUnitOptions]);
 
+  useEffect(() => {
+    const { min, max, defaultValue } = getCircumferenceRangeForUnit(waistUnit);
+    setWaist((prev) => {
+      const safePrev = Number.isFinite(prev) ? prev : defaultValue;
+      return clamp(safePrev, min, max);
+    });
+  }, [waistUnit]);
+
   const handleHeightWheel = (e) => {
     if (usesFeetInchesHeightUnit) return;
     e.preventDefault();
     const delta = e.deltaY > 0 ? 1 : -1;
-    setHeight((prev) => clamp(prev + delta, 120, 230));
+    setHeight((prev) => clamp(prev + delta, MIN_HEIGHT_CM, MAX_HEIGHT_CM));
   };
 
   const handleHeightTouchStart = (e) => {
@@ -406,7 +442,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
     const y = e.touches[0].clientY;
     const delta = heightTouchLastY.current - y;
     if (Math.abs(delta) >= 8) {
-      setHeight((prev) => clamp(prev + Math.sign(delta), 120, 230));
+      setHeight((prev) => clamp(prev + Math.sign(delta), MIN_HEIGHT_CM, MAX_HEIGHT_CM));
       heightTouchLastY.current = y;
     }
   };
@@ -417,7 +453,8 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
     e.preventDefault();
     const raw = e.deltaX !== 0 ? e.deltaX : e.deltaY;
     const delta = raw > 0 ? 1 : -1;
-    setWaist((prev) => clamp(prev + delta, 20, 60));
+    const { min, max } = getCircumferenceRangeForUnit(waistUnit);
+    setWaist((prev) => clamp(prev + delta, min, max));
   };
 
   const handleWaistTouchStart = (e) => {
@@ -428,7 +465,8 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
     const x = e.touches[0].clientX;
     const delta = waistTouchLastX.current - x;
     if (Math.abs(delta) >= 8) {
-      setWaist((prev) => clamp(prev + Math.sign(delta), 20, 60));
+      const { min, max } = getCircumferenceRangeForUnit(waistUnit);
+      setWaist((prev) => clamp(prev + Math.sign(delta), min, max));
       waistTouchLastX.current = x;
     }
   };
@@ -476,7 +514,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
 
   const handleFeetChange = (e) => {
     const raw = e.target.value.replace(/[^0-9]/g, '').slice(0, 1);
-    const nextFeet = raw === '' ? 0 : clamp(Number(raw), 3, 7);
+    const nextFeet = raw === '' ? 0 : clamp(Number(raw), 3, 6);
     setHeightFeet(nextFeet);
     const totalInches = clamp(nextFeet * 12 + heightInches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES);
     setHeight(Math.round(totalInches * 2.54));
@@ -484,7 +522,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
 
   const handleFeetStep = (delta) => {
     setHeightFeet((prev) => {
-      const nextFeet = clamp(prev + delta, 3, 7);
+      const nextFeet = clamp(prev + delta, 3, 6);
       const totalInches = clamp(nextFeet * 12 + heightInches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES);
       setHeight(Math.round(totalInches * 2.54));
       return nextFeet;
@@ -664,7 +702,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
         </div>
         {usesFeetInchesHeightUnit ? (
           <div className="anthropometry-page__height-dual-faded-row" aria-hidden="true">
-            <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{Math.min(7, heightFeet + 1)}</span>
+            <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{Math.min(6, heightFeet + 1)}</span>
             <span className="anthropometry-page__faded anthropometry-page__height-dual-faded-cell">{heightInches === 11 ? 0 : heightInches + 1}</span>
           </div>
         ) : (
@@ -738,7 +776,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
           onContinue?.({
             height,
             weight: Number.isFinite(parsedWeight) ? parsedWeight : null,
-            waist: roundToWholeNumber(waist, 32),
+            waist: roundToWholeNumber(waist, DEFAULT_CIRCUMFERENCE_INCHES),
             heightUnit,
             weightUnit,
             waistUnit,
@@ -821,9 +859,9 @@ const FollowupUnitDropdown = ({ value, options, onChange }) => {
 };
 
 const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], initialValues = {} }) => {
-  const [hipSize, setHipSize] = useState(roundToWholeNumber(initialValues?.hipSize, 33));
+  const [hipSize, setHipSize] = useState(roundToWholeNumber(initialValues?.hipSize, DEFAULT_CIRCUMFERENCE_INCHES));
   const [bodyFat, setBodyFat] = useState(initialValues?.bodyFat ?? 20);
-  const [hipUnit, setHipUnit] = useState(initialValues?.hipUnit || '-');
+  const [hipUnit, setHipUnit] = useState(initialValues?.hipUnit || 'in');
   const [showHipInfoPopup, setShowHipInfoPopup] = useState(false);
   const hipTouchLastX = useRef(null);
 
@@ -837,13 +875,13 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
   );
 
   useEffect(() => {
-    setHipSize(roundToWholeNumber(initialValues?.hipSize, 33));
+    setHipSize(roundToWholeNumber(initialValues?.hipSize, DEFAULT_CIRCUMFERENCE_INCHES));
     setBodyFat(initialValues?.bodyFat ?? 20);
     setHipUnit(
       resolvePreferredUnitOption(
         hipUnitOptions,
-        resolveUnitLabelFromQuestion(hipQuestionConfig, initialValues?.hipUnit || ''),
-        '-'
+        resolveUnitLabelFromQuestion(hipQuestionConfig, initialValues?.hipUnit || 'in'),
+        'in'
       )
     );
   }, [initialValues, hipUnitOptions, hipQuestionConfig]);
@@ -854,13 +892,22 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
     }
   }, [hipUnit, hipUnitOptions]);
 
+  useEffect(() => {
+    const { min, max, defaultValue } = getCircumferenceRangeForUnit(hipUnit);
+    setHipSize((prev) => {
+      const safePrev = Number.isFinite(prev) ? prev : defaultValue;
+      return clamp(safePrev, min, max);
+    });
+  }, [hipUnit]);
+
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
   const handleHipWheel = (e) => {
     e.preventDefault();
     const raw = e.deltaX !== 0 ? e.deltaX : e.deltaY;
     const delta = raw > 0 ? 1 : -1;
-    setHipSize((prev) => clamp(prev + delta, 20, 60));
+    const { min, max } = getCircumferenceRangeForUnit(hipUnit);
+    setHipSize((prev) => clamp(prev + delta, min, max));
   };
 
   const handleHipTouchStart = (e) => {
@@ -871,7 +918,8 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
     const x = e.touches[0].clientX;
     const delta = hipTouchLastX.current - x;
     if (Math.abs(delta) >= 8) {
-      setHipSize((prev) => clamp(prev + Math.sign(delta), 20, 60));
+      const { min, max } = getCircumferenceRangeForUnit(hipUnit);
+      setHipSize((prev) => clamp(prev + Math.sign(delta), min, max));
       hipTouchLastX.current = x;
     }
   };
@@ -960,7 +1008,7 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
         className="anthropometry-followup-page__done"
         onClick={() => {
           onDone?.({
-            hipSize: roundToWholeNumber(hipSize, 33),
+            hipSize: roundToWholeNumber(hipSize, DEFAULT_CIRCUMFERENCE_INCHES),
             bodyFat,
             hipUnit,
           });
@@ -1590,10 +1638,10 @@ const buildAnthropometryInitialValuesFromResponses = (questions = [], responses 
     ? convertHeightToCm(heightAnswer.numericValue, heightUnit)
     : null;
 
-  if (normalizedHeightInCm != null) primary.height = roundToWholeNumber(normalizedHeightInCm, 152);
+  if (normalizedHeightInCm != null) primary.height = roundToWholeNumber(normalizedHeightInCm, DEFAULT_HEIGHT_CM);
   if (weightAnswer.numericValue != null) primary.weight = weightAnswer.numericValue;
-  if (waistAnswer.numericValue != null) primary.waist = roundToWholeNumber(waistAnswer.numericValue, 32);
-  if (hipAnswer.numericValue != null) followup.hipSize = roundToWholeNumber(hipAnswer.numericValue, 33);
+  if (waistAnswer.numericValue != null) primary.waist = roundToWholeNumber(waistAnswer.numericValue, DEFAULT_CIRCUMFERENCE_INCHES);
+  if (hipAnswer.numericValue != null) followup.hipSize = roundToWholeNumber(hipAnswer.numericValue, DEFAULT_CIRCUMFERENCE_INCHES);
   if (bodyFatAnswer.numericValue != null) followup.bodyFat = bodyFatAnswer.numericValue;
 
   if (heightUnit) primary.heightUnit = heightUnit;
@@ -2270,10 +2318,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
           </div>
 
           <div className="family-history-page__question-row">
-            <p className="family-history-page__question">
-              {activeCard.title}
-              <span className="question-required-mark" aria-hidden="true">*</span>
-            </p>
+            <p className="family-history-page__question">{activeCard.title}</p>
             {activeCard.infoLines?.length ? (
               <button
                 type="button"
@@ -2785,10 +2830,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
           </div>
 
           <div className="lifestyle-habits-page__question-row">
-            <p className="lifestyle-habits-page__question">
-              {activeCard.title}
-              <span className="question-required-mark" aria-hidden="true">*</span>
-            </p>
+            <p className="lifestyle-habits-page__question">{activeCard.title}</p>
             {activeCard.infoLines?.length ? (
               <button
                 type="button"
@@ -3384,10 +3426,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
           </div>
 
           <div className="nutrition-log-page__question-row">
-            <p className="nutrition-log-page__question">
-              {activeCard.title}
-              <span className="question-required-mark" aria-hidden="true">*</span>
-            </p>
+            <p className="nutrition-log-page__question">{activeCard.title}</p>
             {activeCard.infoLines?.length ? (
               <button
                 type="button"
