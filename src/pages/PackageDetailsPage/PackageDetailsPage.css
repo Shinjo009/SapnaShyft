@@ -399,6 +399,7 @@
 
 .package-highlight-card.is-front {
   cursor: grab;
+  touch-action: none;
 }
 
 .package-highlight-card--pink {
@@ -589,6 +590,13 @@
   background: rgba(255, 255, 255, 0.05);
   box-shadow: -4px -4px 10px 0 #90df9e inset;
   flex-shrink: 0;
+}
+
+.package-details-page__area-circle img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
 }
 
 .package-details-page__area-label {

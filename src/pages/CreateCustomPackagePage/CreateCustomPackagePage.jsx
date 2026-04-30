@@ -172,27 +172,9 @@ const SummaryArrowIcon = () => (
   </svg>
 );
 
-const PopupCloseIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-    <path d="M10.5 3.5L3.5 10.5M3.5 3.5L10.5 10.5" stroke="#8C9B99" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
 const CloseCircleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
     <path d="M10.5 3.5L3.5 10.5M3.5 3.5L10.5 10.5" stroke="#8C9B99" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const AiCenterIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-    <path d="M17.5506 18.5788L16.4431 22.4525C16.0281 23.9025 13.9731 23.9025 13.5581 22.4525L12.4519 18.5788C12.3818 18.3337 12.2505 18.1106 12.0703 17.9303C11.8901 17.7501 11.6669 17.6188 11.4219 17.5488L7.54813 16.4425C6.09813 16.0275 6.09813 13.9725 7.54813 13.5575L11.4219 12.4513C11.6669 12.3812 11.8901 12.2499 12.0703 12.0697C12.2505 11.8895 12.3818 11.6663 12.4519 11.4213L13.5581 7.54751C13.9731 6.09751 16.0281 6.09751 16.4431 7.54751L17.5494 11.4213C17.6194 11.6663 17.7507 11.8895 17.931 12.0697C18.1112 12.2499 18.3343 12.3812 18.5794 12.4513L22.4531 13.5575C23.9031 13.9725 23.9031 16.0275 22.4531 16.4425L18.5794 17.5488C18.3343 17.6188 18.1112 17.7501 17.931 17.9303C17.7507 18.1106 17.6194 18.3337 17.5494 18.5788M24.4631 24.645L23.9931 26.53C23.9306 26.7825 23.5719 26.7825 23.5081 26.53L23.0369 24.645C23.0258 24.6013 23.0032 24.5613 22.9712 24.5294C22.9393 24.4975 22.8994 24.4748 22.8556 24.4638L20.9706 23.9925C20.7181 23.93 20.7181 23.5713 20.9706 23.5075L22.8556 23.0363C22.8994 23.0252 22.9393 23.0025 22.9712 22.9706C23.0032 22.9387 23.0258 22.8988 23.0369 22.855L23.5081 20.97C23.5706 20.7175 23.9294 20.7175 23.9931 20.97L24.4644 22.855C24.4754 22.8988 24.4981 22.9387 24.53 22.9706C24.5619 23.0025 24.6019 23.0252 24.6456 23.0363L26.5306 23.5075C26.7831 23.57 26.7831 23.9288 26.5306 23.9925L24.6456 24.4638C24.6019 24.4748 24.5619 24.4975 24.53 24.5294C24.4981 24.5613 24.4742 24.6013 24.4631 24.645ZM6.96313 7.14501L6.49312 9.03001C6.43062 9.28251 6.07063 9.28251 6.00813 9.03001L5.53687 7.14501C5.52584 7.10126 5.50316 7.0613 5.47125 7.02939C5.43934 6.99748 5.39938 6.9748 5.35562 6.96376L3.47063 6.49251C3.21812 6.43001 3.21812 6.07001 3.47063 6.00751L5.35562 5.53626C5.39938 5.52523 5.43934 5.50255 5.47125 5.47064C5.50316 5.43873 5.52584 5.39877 5.53687 5.35501L6.00813 3.47001C6.07063 3.21751 6.43062 3.21751 6.49312 3.47001L6.96438 5.35501C6.97541 5.39877 6.99809 5.43873 7.03 5.47064C7.06191 5.50255 7.10187 5.52523 7.14563 5.53626L9.03063 6.00751C9.28313 6.07001 9.28313 6.43001 9.03063 6.49251L7.14563 6.96376C7.10187 6.9748 7.06191 6.99748 7.03 7.02939C6.99809 7.0613 6.97416 7.10126 6.96313 7.14501Z" stroke="url(#ai-gradient-ccp)" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
-    <defs>
-      <linearGradient id="ai-gradient-ccp" x1="15.0006" y1="3.28064" x2="15.0006" y2="26.7194" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#435FF6" />
-        <stop offset="1" stopColor="#14AFAF" />
-      </linearGradient>
-    </defs>
   </svg>
 );
 
@@ -234,7 +216,6 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [isViewAllOpen, setIsViewAllOpen] = useState(false);
-  const [isAiPopupOpen, setIsAiPopupOpen] = useState(false);
   const [categoryData, setCategoryData] = useState([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [categoriesError, setCategoriesError] = useState('');
@@ -290,25 +271,52 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
         const normalizedRows = (Array.isArray(rows) ? rows : [])
           .map((row, index) => normalizeGroupRow(row, index));
 
+        // Preload all group tests up-front so card expand is instant.
+        const rowsWithTests = await Promise.all(
+          normalizedRows.map(async (row) => {
+            if (!row.groupId) {
+              return row;
+            }
+
+            try {
+              const testRows = await listDiagnosticTestGroupTests(row.groupId, {
+                accessToken: getAccessToken(),
+              });
+              const normalizedTests = normalizeTests(testRows);
+
+              return {
+                ...row,
+                tests: normalizedTests.length > 0 ? normalizedTests : row.tests,
+                testsLoaded: true,
+              };
+            } catch {
+              return {
+                ...row,
+                testsLoaded: true,
+              };
+            }
+          })
+        );
+
         if (!isActive) {
           return;
         }
 
-        setCategoryData(normalizedRows);
+        setCategoryData(rowsWithTests);
 
         setExpandedIds((prev) => {
           const next = new Set(
-            Array.from(prev).filter((id) => normalizedRows.some((row) => row.id === id))
+            Array.from(prev).filter((id) => rowsWithTests.some((row) => row.id === id))
           );
           return next;
         });
 
         setSelectedIds((prev) => {
           const next = new Set(
-            Array.from(prev).filter((id) => normalizedRows.some((row) => row.id === id))
+            Array.from(prev).filter((id) => rowsWithTests.some((row) => row.id === id))
           );
-          if (next.size === 0 && normalizedRows[0]?.id) {
-            next.add(normalizedRows[0].id);
+          if (next.size === 0 && rowsWithTests[0]?.id) {
+            next.add(rowsWithTests[0].id);
           }
           return next;
         });
@@ -366,7 +374,7 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
     }
 
     const categoriesToFetch = categoryData.filter(
-      (category) => uniqueIds.includes(category.id) && category.groupId && !testLoadingById[category.id]
+      (category) => uniqueIds.includes(category.id) && category.groupId && !category.testsLoaded && !testLoadingById[category.id]
     );
 
     if (categoriesToFetch.length === 0) {
@@ -464,16 +472,8 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
     });
   };
 
-  const handleExploreSuggestedTests = () => {
-    // AI suggestions currently point users to liver-related tests, which are under General health.
-    setActiveChipKey('general_health');
-    setSearchQuery('Liver');
-    setIsSearchOpen(true);
-    setIsAiPopupOpen(false);
-  };
-
   return (
-    <div className={`create-custom-page ${isSearchOpen ? 'create-custom-page--search-open' : ''} ${isAiPopupOpen ? 'create-custom-page--ai-open' : ''} ${isViewAllOpen ? 'create-custom-page--view-all-open' : ''}`}>
+    <div className={`create-custom-page ${isSearchOpen ? 'create-custom-page--search-open' : ''} ${isViewAllOpen ? 'create-custom-page--view-all-open' : ''}`}>
       <div className="create-custom-page__fixed-top">
         <header className="create-custom-page__header">
           <div className="create-custom-page__header-left">
@@ -645,51 +645,6 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
           event.stopPropagation();
         }}
       >
-        {!isViewAllOpen ? (
-          <button
-            className="create-custom-page__ai-fab"
-            type="button"
-            aria-label="AI assistant"
-            onClick={() => setIsAiPopupOpen(true)}
-          >
-            <AiCenterIcon />
-          </button>
-        ) : null}
-
-        {isAiPopupOpen && !isViewAllOpen ? (
-          <section className="create-custom-page__ai-popup" aria-label="AI Suggested Tests">
-            <div className="create-custom-page__ai-popup-header">
-              <div className="create-custom-page__ai-popup-left">
-                <span className="create-custom-page__ai-popup-iconbox" aria-hidden="true">
-                  <AiCenterIcon />
-                </span>
-                <h3 className="create-custom-page__ai-popup-title">AI Suggested Tests</h3>
-              </div>
-
-              <button
-                type="button"
-                className="create-custom-page__ai-popup-close"
-                aria-label="Close AI suggestions"
-                onClick={() => setIsAiPopupOpen(false)}
-              >
-                <PopupCloseIcon />
-              </button>
-            </div>
-
-            <div className="create-custom-page__ai-popup-points">
-              {[1, 2].map((item) => (
-                <p className="create-custom-page__ai-popup-point" key={item}>
-                  <span className="create-custom-page__ai-popup-dot" aria-hidden="true" />
-                  <span className="create-custom-page__ai-popup-label">Liver Test</span>
-                  <span className="create-custom-page__ai-popup-copy"> - Your Liver markers were at high risk in previous Bio-AI Report</span>
-                </p>
-              ))}
-            </div>
-
-            <button type="button" className="create-custom-page__ai-popup-btn" onClick={handleExploreSuggestedTests}>Explore Tests</button>
-          </section>
-        ) : null}
-
         {isViewAllOpen ? (
           <div className="create-custom-page__selected-list" aria-label="Selected tests">
             {selectedCategories.map((item) => (
@@ -753,7 +708,6 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
             onClick={() => {
               const isOpening = !isViewAllOpen;
               if (isOpening) {
-                setIsAiPopupOpen(false);
                 void fetchTestsForCategoryIds(Array.from(selectedIds));
               }
               setIsViewAllOpen((prev) => !prev);

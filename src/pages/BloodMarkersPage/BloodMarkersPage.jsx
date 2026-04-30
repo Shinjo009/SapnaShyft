@@ -1119,6 +1119,10 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
   const touchStartXRef = useRef(null);
   const touchStartYRef = useRef(null);
   const isHorizontalSwipeRef = useRef(false);
+  const pointerStartXRef = useRef(null);
+  const pointerStartYRef = useRef(null);
+  const pointerIsHorizontalSwipeRef = useRef(false);
+  const activePointerIdRef = useRef(null);
   const latestDragXRef = useRef(0);
   const pendingDragXRef = useRef(0);
   const dragFrameRef = useRef(null);
@@ -1268,6 +1272,121 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
     resetDragOffset();
   };
 
+  const handlePointerDown = (event) => {
+    if (isAnimating) {
+      return;
+    }
+
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+
+    pointerStartXRef.current = event.clientX;
+    pointerStartYRef.current = event.clientY;
+    pointerIsHorizontalSwipeRef.current = false;
+    activePointerIdRef.current = event.pointerId;
+    setIsDragging(false);
+    resetDragOffset();
+
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const handlePointerMove = (event) => {
+    if (
+      pointerStartXRef.current == null
+      || pointerStartYRef.current == null
+      || activePointerIdRef.current !== event.pointerId
+      || isAnimating
+    ) {
+      return;
+    }
+
+    const deltaX = event.clientX - pointerStartXRef.current;
+    const deltaY = event.clientY - pointerStartYRef.current;
+
+    if (!pointerIsHorizontalSwipeRef.current) {
+      const hasEnoughMovement = Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6;
+      if (!hasEnoughMovement) {
+        return;
+      }
+
+      pointerIsHorizontalSwipeRef.current = Math.abs(deltaX) > Math.abs(deltaY);
+      if (!pointerIsHorizontalSwipeRef.current) {
+        return;
+      }
+
+      setIsDragging(true);
+    }
+
+    event.preventDefault();
+
+    const stackWidth = stackRef.current?.clientWidth || 260;
+    const softLimit = Math.max(120, stackWidth * 0.55);
+    const absDelta = Math.abs(deltaX);
+    const direction = deltaX < 0 ? -1 : 1;
+    const dragValue = absDelta <= softLimit
+      ? deltaX
+      : direction * (softLimit + (absDelta - softLimit) * 0.18);
+
+    applyDragOffset(dragValue);
+  };
+
+  const finishPointerDrag = (event) => {
+    if (pointerStartXRef.current == null || activePointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    if (!pointerIsHorizontalSwipeRef.current) {
+      pointerStartXRef.current = null;
+      pointerStartYRef.current = null;
+      pointerIsHorizontalSwipeRef.current = false;
+      activePointerIdRef.current = null;
+      setIsDragging(false);
+      resetDragOffset();
+      return;
+    }
+
+    const stackWidth = stackRef.current?.clientWidth || 260;
+    const swipeThreshold = Math.max(30, stackWidth * 0.14);
+    const deltaX = event.clientX - pointerStartXRef.current;
+    if (Math.abs(deltaX) > swipeThreshold) {
+      if (deltaX < 0) {
+        goNext();
+      } else {
+        goPrev();
+      }
+    } else {
+      setIsDragging(false);
+      resetDragOffset();
+    }
+
+    pointerStartXRef.current = null;
+    pointerStartYRef.current = null;
+    pointerIsHorizontalSwipeRef.current = false;
+    activePointerIdRef.current = null;
+
+    if (event.currentTarget?.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const handlePointerCancel = (event) => {
+    if (activePointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    pointerStartXRef.current = null;
+    pointerStartYRef.current = null;
+    pointerIsHorizontalSwipeRef.current = false;
+    activePointerIdRef.current = null;
+    setIsDragging(false);
+    resetDragOffset();
+
+    if (event.currentTarget?.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
   const handleStackTransitionEnd = (event) => {
     if (!stackSwapAwaitingSettleRef.current) return;
     if (!event.target.classList.contains('blood-markers-page__stack-card--front')) return;
@@ -1396,6 +1515,11 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={finishPointerDrag}
+        onPointerCancel={handlePointerCancel}
+        onLostPointerCapture={handlePointerCancel}
         onTransitionEnd={handleStackTransitionEnd}
         data-dragging={isDragging ? 'true' : 'false'}
         data-resetting={isResetting ? 'true' : 'false'}

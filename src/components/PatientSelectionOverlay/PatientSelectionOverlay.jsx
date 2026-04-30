@@ -1407,7 +1407,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
               })}
             </div>
 
-            <button type="button" className="patient-select-overlay__add-btn" onClick={() => setView('add')}>+ Add new patient</button>
+            <button type="button" className="patient-select-overlay__add-btn" onClick={() => setView('add')}>+ Add new member</button>
 
             <div className="patient-select-overlay__footer">
               <div className="patient-select-overlay__footer-left">
@@ -1772,7 +1772,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
           </>
         ) : view === 'details' ? (
           <>
-            <h3 className="patient-select-overlay__title">Patient Details</h3>
+            <h3 className="patient-select-overlay__title">Member Details</h3>
 
             <div className="patient-confirm">
               <div className="patient-confirm__patients">
@@ -1946,7 +1946,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                 <strong>{confirmedBookingId || '—'}</strong>
               </div>
 
-              <h4 className="patient-final__section-title">Patient Details</h4>
+              <h4 className="patient-final__section-title">Member Details</h4>
               <div className="patient-final__patients-box">
                 {selectedPatients.map((patient, index) => (
                   <React.Fragment key={patient.id}>

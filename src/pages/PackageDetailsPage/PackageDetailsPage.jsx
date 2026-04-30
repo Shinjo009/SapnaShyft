@@ -1,6 +1,28 @@
 import React, { useEffect, useMemo, useRef, useState, Suspense, lazy } from 'react';
 import './PackageDetailsPage.css';
 import { getDiagnosticPackageDetail, getDiagnosticPackageTests } from '../../services/diagnosticPackagesService';
+import BioAgeHacIcon from '../../images/BioAge_HAC.svg';
+import AllergiesHacIcon from '../../images/Allergies_HAC.svg';
+import HeartHacIcon from '../../images/Heart_HAC.svg';
+import HormonesHacIcon from '../../images/Hormones_HAC.svg';
+import ThyroidHacIcon from '../../images/thyroid_HAC.svg';
+import LiverHacIcon from '../../images/Liver_HAC.svg';
+import DiabetesHacIcon from '../../images/Diabetes_HAC.svg';
+import BoneHealthHacIcon from '../../images/BoneHealth_HAC.svg';
+import IronHacIcon from '../../images/Iron_HAC.svg';
+import VitaminsHacIcon from '../../images/Vitamins_HAC.svg';
+import InflammationHacIcon from '../../images/Inflammation_HAC.svg';
+import ProstateHacIcon from '../../images/Prostate_HAC.svg';
+import SleepHacIcon from '../../images/Sleep_HAC.svg';
+import StressHacIcon from '../../images/Stress_HAC.svg';
+import OvarianHacIcon from '../../images/Ovarian_HAC.svg';
+import PancreaticHacIcon from '../../images/Pancreatic_HAC.svg';
+import BreastHacIcon from '../../images/Breast_HAC.svg';
+import MenstrualHealthHacIcon from '../../images/MenstrualHealth_HAC.svg';
+import RecoveryHacIcon from '../../images/Recovery_HAC.svg';
+import GuthealthHacIcon from '../../images/Guthealth_HAC.svg';
+import HairHealthHacIcon from '../../images/HairHealth_HAC.svg';
+import EnergyHacIcon from '../../images/Energy_HAC.svg';
 
 // PatientSelectionOverlay is only mounted when user opens the booking sheet — defer its ~14 KiB chunk.
 const PatientSelectionOverlay = lazy(() => import('../../components/PatientSelectionOverlay'));
@@ -107,43 +129,76 @@ const SwipeSideIcon = () => (
   </svg>
 );
 
-const BioAgeIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M22 12H19.52C18.6218 11.9981 17.8325 12.5952 17.59 13.46L15.24 21.82C15.2089 21.9267 15.1111 22 15 22C14.8889 22 14.7911 21.9267 14.76 21.82L9.24 2.18C9.20889 2.07333 9.11111 2 9 2C8.88889 2 8.79111 2.07333 8.76 2.18L6.41 10.54C6.16849 11.4013 5.38448 11.9974 4.49 12H2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
+const normalizeLookupKey = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
-const MetabolismIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M12 3C12.6667 5.66667 14 7.83333 16 9.5C18 11.1667 19 13 19 15C19 18.8634 15.8634 22 12 22C8.13659 22 5 18.8634 5 15C5 13.9181 5.35089 12.8655 6 12C6 13.3798 7.12021 14.5 8.5 14.5C9.87979 14.5 11 13.3798 11 12C11 10 9.5 9 9.5 7C9.5 5.66667 10.3333 4.33333 12 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
+const HEALTH_AREA_ICON_BY_KEY = {
+  'bio age': BioAgeHacIcon,
+  allergy: AllergiesHacIcon,
+  heart: HeartHacIcon,
+  hormones: HormonesHacIcon,
+  thyroid: ThyroidHacIcon,
+  liver: LiverHacIcon,
+  diabetes: DiabetesHacIcon,
+  'bone health': BoneHealthHacIcon,
+  iron: IronHacIcon,
+  vitamins: VitaminsHacIcon,
+  inflammation: InflammationHacIcon,
+  prostate: ProstateHacIcon,
+  sleep: SleepHacIcon,
+  'mental health': StressHacIcon,
+  pcos: OvarianHacIcon,
+  fertility: OvarianHacIcon,
+  'anti psa': ProstateHacIcon,
+  pancreas: PancreaticHacIcon,
+  breast: BreastHacIcon,
+  ovaries: OvarianHacIcon,
+  cervix: MenstrualHealthHacIcon,
+  'gen z': BioAgeHacIcon,
+  'c suite': BioAgeHacIcon,
+  'anti age': BioAgeHacIcon,
+  melatonin: SleepHacIcon,
+  cortisol: StressHacIcon,
+  sugar: DiabetesHacIcon,
+  stress: StressHacIcon,
+  'brain health': RecoveryHacIcon,
+  gut: GuthealthHacIcon,
+  'reproductive health': MenstrualHealthHacIcon,
+  'dht blockers': HairHealthHacIcon,
+  minerals: IronHacIcon,
+  energy: EnergyHacIcon,
+};
 
-const HormonesIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="24" viewBox="0 0 22 24" fill="none" aria-hidden="true">
-    <path d="M21.498 2.24562e-05H17.593C17.4987 -0.000898863 17.4064 0.0265487 17.3279 0.0787996C17.2494 0.131051 17.1885 0.20569 17.153 0.293022C17.1151 0.38065 17.1041 0.4776 17.1216 0.571477C17.139 0.665353 17.1841 0.75189 17.251 0.820022L18.159 1.72802C18.259 1.82402 18.259 1.98302 18.159 2.07902L16.138 4.13902C16.0942 4.17157 16.0411 4.18915 15.9865 4.18915C15.9319 4.18915 15.8788 4.17157 15.835 4.13902C14.5664 3.33292 13.0583 2.98986 11.5659 3.1679C10.0734 3.34593 8.68835 4.03413 7.645 5.11602C3.645 4.46802 0.014 7.54702 0 11.598C0.00197299 13.0005 0.456132 14.365 1.29506 15.4889C2.13399 16.6128 3.31297 17.4363 4.657 17.837C4.761 17.867 4.832 17.963 4.832 18.071V18.842C4.832 18.9067 4.80629 18.9688 4.76053 19.0146C4.71478 19.0603 4.65271 19.086 4.588 19.086H4.158C3.9856 19.0596 3.80952 19.0707 3.64182 19.1186C3.47413 19.1666 3.31878 19.2502 3.18642 19.3638C3.05407 19.4774 2.94784 19.6183 2.87501 19.7768C2.80218 19.9353 2.76447 20.1076 2.76447 20.282C2.76447 20.4564 2.80218 20.6288 2.87501 20.7873C2.94784 20.9458 3.05407 21.0866 3.18642 21.2002C3.31878 21.3138 3.47413 21.3975 3.64182 21.4454C3.80952 21.4933 3.9856 21.5045 4.158 21.478H4.638C4.772 21.478 4.881 21.588 4.881 21.722V22.201C4.86742 22.3677 4.88851 22.5353 4.94296 22.6934C4.9974 22.8514 5.08401 22.9965 5.19732 23.1194C5.31064 23.2424 5.44819 23.3405 5.60132 23.4076C5.75444 23.4747 5.91982 23.5093 6.087 23.5093C6.25418 23.5093 6.41956 23.4747 6.57268 23.4076C6.72581 23.3405 6.86336 23.2424 6.97668 23.1194C7.08999 22.9965 7.1766 22.8514 7.23104 22.6934C7.28549 22.5353 7.30658 22.3677 7.293 22.201V21.722C7.29184 21.665 7.31071 21.6093 7.34634 21.5647C7.38197 21.5202 7.43209 21.4895 7.488 21.478H7.976C8.27774 21.4519 8.55872 21.3136 8.76344 21.0904C8.96816 20.8672 9.08174 20.5754 9.08174 20.2725C9.08174 19.9697 8.96816 19.6778 8.76344 19.4546C8.55872 19.2314 8.27774 19.0931 7.976 19.067H7.488C7.42408 19.0646 7.36344 19.0381 7.3182 18.9928C7.27297 18.9476 7.24647 18.8869 7.244 18.823V18.266C7.24598 18.2078 7.26875 18.1521 7.30818 18.1092C7.34762 18.0663 7.40112 18.0389 7.459 18.032C8.857 17.8216 10.1505 17.1679 11.149 16.167C15.143 16.765 18.747 13.703 18.803 9.66502C18.818 8.42477 18.4795 7.20589 17.827 6.15102C17.7936 6.10948 17.7755 6.0578 17.7755 6.00452C17.7755 5.95125 17.7936 5.89957 17.827 5.85802L19.887 3.79802C19.9094 3.77358 19.9365 3.75403 19.9668 3.7406C19.9971 3.72718 20.0299 3.72017 20.063 3.72002C20.129 3.72302 20.192 3.75002 20.238 3.79802L21.136 4.69602C21.2042 4.76305 21.2906 4.80856 21.3845 4.8269C21.4783 4.84523 21.5755 4.83558 21.664 4.79915C21.7524 4.76271 21.8281 4.7011 21.8818 4.62196C21.9355 4.54282 21.9648 4.44965 21.966 4.35402V0.450022C21.9583 0.330212 21.9059 0.217645 21.8193 0.134527C21.7327 0.0514089 21.618 0.00377533 21.498 0.00102246M12.711 13.757C13.0077 12.914 13.1287 12.0192 13.0666 11.1277C13.0045 10.2362 12.7606 9.36677 12.35 8.57302C12.2773 8.43013 12.177 8.30308 12.0549 8.19921C11.9328 8.09535 11.7913 8.01675 11.6386 7.96795C11.4859 7.91916 11.325 7.90114 11.1653 7.91495C11.0056 7.92875 10.8502 7.9741 10.7081 8.04838C10.5661 8.12265 10.4402 8.22437 10.3377 8.34764C10.2352 8.47092 10.1582 8.6133 10.1111 8.76654C10.064 8.91978 10.0478 9.08084 10.0634 9.24039C10.079 9.39993 10.1261 9.5548 10.202 9.69602C10.522 10.296 10.682 10.968 10.671 11.648C10.667 14.812 7.24 16.786 4.501 15.201C1.762 13.616 1.767 9.66102 4.509 8.08102C5.03275 7.7795 5.61668 7.59749 6.219 7.54802C5.96005 8.22514 5.81803 8.94133 5.799 9.66602C5.79792 10.952 6.1783 12.2093 6.892 13.279C7.07768 13.5258 7.35072 13.6923 7.65518 13.7443C7.95964 13.7964 8.27246 13.73 8.52955 13.5588C8.78665 13.3876 8.96854 13.1246 9.03798 12.8236C9.10741 12.5227 9.05912 12.2065 8.903 11.94C7.149 9.30702 8.903 5.76202 12.06 5.55902C15.217 5.35602 17.41 8.64702 16.008 11.483C15.6945 12.1169 15.2227 12.6591 14.6383 13.0573C14.0539 13.4555 13.3766 13.6962 12.672 13.756L12.711 13.757Z" fill="white"/>
-  </svg>
-);
+const DEFAULT_HEALTH_AREA_LABELS = ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Liver'];
 
-const HeartIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M2 9.49979C2.00004 7.22173 3.40444 5.17948 5.53161 4.36419C7.65877 3.5489 10.0684 4.12933 11.591 5.82379C11.6969 5.93701 11.845 6.00127 12 6.00127C12.155 6.00127 12.3031 5.93701 12.409 5.82379C13.9271 4.11799 16.3426 3.53003 18.4749 4.34727C20.6071 5.16452 22.0109 7.2163 22 9.49979C22 11.7898 20.5 13.4998 19 14.9998L13.508 20.3128C13.1311 20.7457 12.5863 20.9958 12.0123 20.9994C11.4383 21.0031 10.8904 20.7599 10.508 20.3318L5 14.9998C3.5 13.4998 2 11.7998 2 9.49979" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
+const PACKAGE_HEALTH_AREA_LABELS_BY_NAME = {
+  basic: ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins'],
+  core: ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins', 'Inflammation'],
+  'elite men': ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins', 'Prostate', 'Sleep', 'Inflammation'],
+  'peak men': ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins', 'Prostate', 'Sleep', 'Mental Health', 'Inflammation'],
+  'elite women': ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'PCOS', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins', 'Fertility', 'Sleep', 'Inflammation'],
+  'peak women': ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'PCOS', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins', 'Fertility', 'Sleep', 'Mental Health', 'Inflammation'],
+  'cancer men': ['Liver', 'Diabetes', 'Prostate', 'Anti-PSA', 'Pancreas'],
+  'cancer women': ['Breast', 'Diabetes', 'Hormones', 'Ovaries', 'Cervix'],
+  'progressive tests': ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron'],
+  'gen z': ['Bio Age', 'Hormones', 'Diabetes', 'Allergy', 'Vitamins', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
+  '40 adults': ['Bio Age', 'Hormones', 'Diabetes', 'Heart', 'Inflammation', 'Liver', 'Bone Health', 'Iron'],
+  'c suite': ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins', 'Sleep', 'Mental Health', 'Inflammation', 'Fertility', 'Prostate', 'Anti-Age'],
+  sleep: ['Melatonin', 'Cortisol', 'Sugar', 'Stress', 'Inflammation', 'Brain Health', 'Gut', 'Thyroid', 'Hormones'],
+  'menstrual health': ['Hormones', 'Stress', 'Thyroid', 'Vitamins', 'Reproductive Health', 'Iron'],
+  'men women hair': ['Vitamins', 'Iron', 'Thyroid', 'Hormones', 'Stress', 'DHT Blockers', 'Minerals', 'Inflammation', 'Energy', 'Liver'],
+  fatigue: ['Vitamins', 'Iron', 'Thyroid', 'Hormones', 'Stress', 'Inflammation', 'Liver'],
+};
 
-const LiverIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M14.0005 2V8C14.0003 8.33548 14.0846 8.66561 14.2455 8.96L19.7555 19.04C20.0945 19.6597 20.0816 20.4124 19.7213 21.02C19.361 21.6276 18.7069 22.0002 18.0005 22H6.00046C5.29404 22.0002 4.63993 21.6276 4.27965 21.02C3.91938 20.4124 3.90638 19.6597 4.24546 19.04L9.75546 8.96C9.91635 8.66561 10.0006 8.33548 10.0005 8V2M6.45346 15H17.5475M8.50046 2H15.5005" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
+const getHealthAreaIconSrc = (label) => {
+  const key = normalizeLookupKey(label);
+  return HEALTH_AREA_ICON_BY_KEY[key] || HeartHacIcon;
+};
 
-const HEALTH_AREAS = [
-  { id: 'bio-age', label: 'Bio Age', Icon: BioAgeIcon },
-  { id: 'metabolism', label: 'Metabolism', Icon: MetabolismIcon },
-  { id: 'hormones', label: 'Hormones', Icon: HormonesIcon },
-  { id: 'heart', label: 'Heart', Icon: HeartIcon },
-  { id: 'liver', label: 'Liver', Icon: LiverIcon },
-];
+const getPackageHealthAreaLabels = (packageName) => {
+  const normalizedName = normalizeLookupKey(packageName);
+  const labels = PACKAGE_HEALTH_AREA_LABELS_BY_NAME[normalizedName];
+  return Array.isArray(labels) && labels.length > 0 ? labels : DEFAULT_HEALTH_AREA_LABELS;
+};
 
 const BIOMARKER_BENEFITS = [
   {
@@ -316,6 +371,10 @@ const PARAMETER_GROUPS = [
 ];
 
 const MISSING_VALUE = '-';
+const FALLBACK_BOOKINGS_COUNTS = [
+  265, 684, 389, 367, 107, 336, 738, 610, 545, 689,
+  426, 352, 731, 222, 913, 920, 742, 982, 561, 631,
+];
 
 const toGenderLabel = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
@@ -446,6 +505,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartX = useRef(0);
+  const dragXRef = useRef(0);
   const didMoveRef = useRef(false);
   const swipeCount = useRef(0);
   const resetTimerRef = useRef(null);
@@ -593,6 +653,14 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
     return MISSING_VALUE;
   }, [customPackageTitle, isCustomReview, packageCard, packageDetail]);
 
+  const healthAreas = useMemo(() => {
+    return getPackageHealthAreaLabels(packageTitle).map((label) => ({
+      id: normalizeLookupKey(label).replace(/\s+/g, '-'),
+      label,
+      iconSrc: getHealthAreaIconSrc(label),
+    }));
+  }, [packageTitle]);
+
   const primaryBadgeLabel = useMemo(() => {
     if (isCustomReview) {
       return 'Most Popular';
@@ -623,12 +691,22 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
     }
 
     const count = Number(packageDetail?.bookings_count);
-    if (!Number.isFinite(count) || count < 0) {
-      return MISSING_VALUE;
+    if (!Number.isFinite(count) || count <= 0) {
+      const packageNumericId = Number(
+        packageDetail?.diagnostic_package_id
+        || packageCard?.apiData?.diagnostic_package_id
+        || packageCard?.id
+        || packageId
+        || 1
+      );
+      const fallbackIndex = Number.isFinite(packageNumericId) && packageNumericId > 0
+        ? (Math.floor(packageNumericId) - 1) % FALLBACK_BOOKINGS_COUNTS.length
+        : 0;
+      return `${FALLBACK_BOOKINGS_COUNTS[fallbackIndex]} booked`;
     }
 
     return `${count} booked`;
-  }, [isCustomReview, packageDetail]);
+  }, [isCustomReview, packageCard, packageDetail, packageId]);
 
   const detailCards = useMemo(() => {
     const testsCount = Number(packageDetail?.no_of_tests);
@@ -759,8 +837,16 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
   };
 
   const handlePointerDown = (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (typeof event.currentTarget?.setPointerCapture === 'function') {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
     setIsDragging(true);
     dragStartX.current = event.clientX;
+    dragXRef.current = 0;
+    setDragX(0);
     didMoveRef.current = false;
   };
 
@@ -773,21 +859,41 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
     if (Math.abs(delta) > 8) {
       didMoveRef.current = true;
     }
+    dragXRef.current = delta;
     setDragX(delta);
   };
 
-  const handlePointerUp = () => {
+  const finishDrag = (event) => {
+    if (typeof event?.currentTarget?.releasePointerCapture === 'function') {
+      try {
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+      } catch {
+        // no-op: safe guard for browsers that throw on release edge-cases
+      }
+    }
+
     if (!isDragging) {
       return;
     }
 
-    if (dragX <= -70) {
+    if (dragXRef.current <= -70) {
       doSwipeLeft();
       return;
     }
 
     setIsDragging(false);
+    dragXRef.current = 0;
     setDragX(0);
+  };
+
+  const handlePointerUp = (event) => {
+    finishDrag(event);
+  };
+
+  const handlePointerCancel = (event) => {
+    finishDrag(event);
   };
 
   const handleTabClick = (tabKey) => {
@@ -962,7 +1068,9 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
                 onPointerDown={isFront ? handlePointerDown : undefined}
                 onPointerMove={isFront ? handlePointerMove : undefined}
                 onPointerUp={isFront ? handlePointerUp : undefined}
-                onPointerCancel={isFront ? handlePointerUp : undefined}
+                onPointerCancel={isFront ? handlePointerCancel : undefined}
+                onLostPointerCapture={isFront ? handlePointerCancel : undefined}
+                onDragStart={(event) => event.preventDefault()}
                 onClick={() => handleHighlightCardClick(card.id)}
               >
                 <div className="package-highlight-card__icon-box">{card.icon}</div>
@@ -995,10 +1103,10 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
         <section className="package-details-page__areas-section" aria-label="Health areas covered">
           <h3 className="package-details-page__areas-title">Health Areas Covered</h3>
           <div className="package-details-page__areas-row">
-            {HEALTH_AREAS.map(({ id, label, Icon }) => (
+            {healthAreas.map(({ id, label, iconSrc }) => (
               <div key={id} className="package-details-page__area-item">
                 <div className="package-details-page__area-circle">
-                  <Icon />
+                  <img src={iconSrc} alt="" aria-hidden="true" />
                 </div>
                 <span className="package-details-page__area-label">{label}</span>
               </div>

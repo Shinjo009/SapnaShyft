@@ -3818,13 +3818,9 @@ const HealthAssessmentPage = ({
     };
   });
 
-  const canOpenAllSteps = (() => {
-    try {
-      return localStorage.getItem('ss_b2b_questionnaire_submitted') === '1';
-    } catch {
-      return false;
-    }
-  })();
+  const canOpenAllSteps = Array.isArray(steps)
+    && steps.length > 0
+    && steps.every((step) => String(step?.status || '').trim().toLowerCase() === 'complete');
   const effectiveProgress = canOpenAllSteps ? resolvedSteps.length : progress;
   const activeIndex = effectiveProgress < resolvedSteps.length ? effectiveProgress : -1;
   const focusedIndex = expandedStep != null ? expandedStep : activeIndex;

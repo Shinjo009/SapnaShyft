@@ -13,8 +13,8 @@
 }
 
 .splash-screen-2__logo-wrap img {
-  width: 96px !important;
-  height: 96px !important;
+  width: 48px !important;
+  height: 48px !important;
   max-width: none;
   object-fit: contain;
 }

@@ -16,14 +16,6 @@ const authorizedPut = async (path, body) => {
   return parsedBody?.data ?? parsedBody;
 };
 
-const authorizedPost = async (path, body) => {
-  const parsedBody = await authorizedRequest(path, {
-    method: 'POST',
-    payload: body || {},
-  });
-  return parsedBody?.data ?? parsedBody;
-};
-
 const toTimestamp = (value) => {
   if (!value) {
     return 0;
@@ -467,14 +459,6 @@ export const submitQuestionnaireResponses = (assessmentInstanceId, categoryId, r
 
   return authorizedPut(`/questionnaire/${assessmentInstanceId}/category/${categoryId}/responses`, {
     responses: normalizedResponses,
-  });
-};
-
-export const submitAssessment = (assessmentInstanceId, sourceAssessmentInstanceIds = []) => {
-  return authorizedPost(`/assessments/${assessmentInstanceId}/submit`, {
-    source_assessment_instance_ids: Array.isArray(sourceAssessmentInstanceIds)
-      ? sourceAssessmentInstanceIds
-      : [],
   });
 };
 

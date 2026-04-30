@@ -7,7 +7,7 @@ import { getSuperClubSportsByIds } from './pages/SuperClubPage/superClubSportIma
 import { sendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
 import { createUser, getMyProfiles, invalidateMyProfilesCache } from './services/usersService';
 import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
-import { loadQuestionnaireContext, submitQuestionnaireResponses, submitAssessment } from './services/questionnaireService';
+import { loadQuestionnaireContext, submitQuestionnaireResponses } from './services/questionnaireService';
 import {
   fetchLatestAssessmentReport,
   clearReportRequestCache,
@@ -74,8 +74,6 @@ const SWIPE_BACK_BLOCKED_PAGES = new Set([
 const EDGE_SWIPE_TRIGGER_PX = 70;
 const EDGE_SWIPE_VERTICAL_TOLERANCE_PX = 80;
 const EDGE_SWIPE_START_ZONE_PX = 28;
-const IOS_STANDALONE_GET_STARTED_RELOAD_KEY = 'ss_ios_standalone_get_started_reload_v1';
-
 const normalizeRedirectTarget = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
   if (!normalized) {
@@ -142,16 +140,6 @@ const deriveEmployerOrganizerName = (profile) => {
   return String(raw || '').trim();
 };
 
-const normalizeAssessmentStatus = (status) => String(status || '').trim().toLowerCase();
-
-const isActiveIncompleteAssessment = (assessment) => {
-  const status = normalizeAssessmentStatus(assessment?.status);
-  const normalizedCompletedAt = assessment?.completed_at || assessment?.completedAt || null;
-  const isCompleteFlag = Boolean(assessment?.is_completed ?? assessment?.isComplete ?? false);
-  const activeStatuses = new Set(['active', 'in_progress', 'in-progress', 'assigned', 'pending']);
-  return activeStatuses.has(status) && !normalizedCompletedAt && !isCompleteFlag;
-};
-
 function App() {
   const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
   const [isBootstrappingSession, setIsBootstrappingSession] = useState(true);
@@ -163,8 +151,8 @@ function App() {
   const [questionnaireProgress, setQuestionnaireProgress] = useState(0);
   const [expandedQuestionnaireStep, setExpandedQuestionnaireStep] = useState(null);
   const [questionnaireSteps, setQuestionnaireSteps] = useState([]);
-  const [questionnaireCurrentAssessment, setQuestionnaireCurrentAssessment] = useState(null);
-  const [questionnaireAssessments, setQuestionnaireAssessments] = useState([]);
+  const [, setQuestionnaireCurrentAssessment] = useState(null);
+  const [, setQuestionnaireAssessments] = useState([]);
   const [questionnaireQuestionsByCategoryId, setQuestionnaireQuestionsByCategoryId] = useState({});
   const [questionnaireDraftResponsesByRoute, setQuestionnaireDraftResponsesByRoute] = useState({});
   const [questionnaireSuccessMessage, setQuestionnaireSuccessMessage] = useState(null);
@@ -182,7 +170,7 @@ function App() {
   const [preloadedHomeData, setPreloadedHomeData] = useState(null);
   const [forceHomeApiRefresh, setForceHomeApiRefresh] = useState(false);
   const [superClubLikedSportIds, setSuperClubLikedSportIds] = useState(() => getSuperClubLikedSportIds());
-  const [isB2bQuestionnaireFlow, setIsB2bQuestionnaireFlow] = useState(false);
+  const [, setIsB2bQuestionnaireFlow] = useState(false);
   const [healthAssessmentBackPage, setHealthAssessmentBackPage] = useState('home');
   // const [superClubOnboardingDone, setSuperClubOnboardingDone] = useState(() =>
   //   isSuperClubOnboardingComplete(),
@@ -400,36 +388,6 @@ function App() {
       acc[routeId] = responses;
       return acc;
     }, {});
-  };
-
-  const getAssessmentSourceIdsForTarget = (targetAssessmentInstanceId) => {
-    const targetId = Number(targetAssessmentInstanceId || 0);
-    if (targetId <= 0 || !Array.isArray(questionnaireAssessments)) {
-      return targetId > 0 ? [targetId] : [];
-    }
-
-    const targetAssessment = questionnaireAssessments.find((assessment) => {
-      return Number(assessment?.assessment_instance_id || assessment?.assessment_id || assessment?.id || 0) === targetId;
-    });
-
-    const engagementId = Number(targetAssessment?.engagement_id || 0);
-    const sourceIds = questionnaireAssessments
-      .filter((assessment) => {
-        const assessmentId = Number(assessment?.assessment_instance_id || assessment?.assessment_id || assessment?.id || 0);
-        if (assessmentId <= 0) {
-          return false;
-        }
-
-        // Submit with only currently active/incomplete instances in the same engagement.
-        // This avoids sending stale historical IDs when multiple assessments exist.
-        const sameEngagement = Number(assessment?.engagement_id || 0) === engagementId;
-        return sameEngagement && isActiveIncompleteAssessment(assessment);
-      })
-      .map((assessment) => Number(assessment?.assessment_instance_id || assessment?.assessment_id || assessment?.id || 0))
-      .filter((id) => id > 0);
-
-    const uniqueSortedIds = Array.from(new Set(sourceIds)).sort((a, b) => a - b);
-    return uniqueSortedIds.length > 0 ? uniqueSortedIds : [targetId];
   };
 
   const handleStepComplete = async (routeId, responses = []) => {
@@ -779,35 +737,13 @@ function App() {
     handleDismissInstall();
   };
 
-  const handleHealthInsightsGetStarted = () => {
-    try {
-      const userAgent = window.navigator.userAgent || '';
-      const isIosDevice = /iPhone|iPad|iPod/i.test(userAgent)
-        || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
-      const isStandalone = (typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches)
-        || window.navigator.standalone === true;
-
-      if (isIosDevice && isStandalone) {
-        const alreadyReloaded = sessionStorage.getItem(IOS_STANDALONE_GET_STARTED_RELOAD_KEY) === '1';
-        if (!alreadyReloaded) {
-          sessionStorage.setItem(IOS_STANDALONE_GET_STARTED_RELOAD_KEY, '1');
-          window.location.reload();
-          return;
-        }
-      }
-    } catch {
-      // If storage/browser checks fail, continue normal navigation.
-    }
-
+  const handleHealthInsightsGetStarted = async () => {
+    await preloadHomeScreenData();
     setCurrentPage('home');
   };
 
   const handleQuestionnaireSuccessOk = () => {
     try {
-      if (isB2bQuestionnaireFlow) {
-        localStorage.setItem('ss_b2b_questionnaire_submitted', '1');
-        sessionStorage.setItem('ss_b2b_post_submit_redirect', '1');
-      }
       sessionStorage.removeItem('ss_b2b_opened_questionnaire');
     } catch {
       // ignore storage issues and continue navigation
@@ -819,8 +755,6 @@ function App() {
   };
 
   const preloadHomeScreenData = async () => {
-    setPreloadedHomeData(null);
-
     try {
       const { response } = await fetchLatestAssessmentReport(
         (assessmentId) => `/reports/${assessmentId}/overview`
@@ -838,12 +772,10 @@ function App() {
         });
         return true;
       } else {
-        setPreloadedHomeData(null);
         return false;
       }
     } catch (err) {
       console.error('Failed to preload home screen data:', err);
-      setPreloadedHomeData(null);
       return false;
     }
   };
@@ -1481,33 +1413,14 @@ function App() {
           onStepComplete={handleStepComplete}
           onStepDraftSave={handleStepDraftSave}
           onAssessmentSubmit={async () => {
-            const targetAssessmentInstanceId = Number(
-              questionnaireCurrentAssessment?.assessment_instance_id
-              || questionnaireCurrentAssessment?.assessment_id
-              || questionnaireCurrentAssessment?.id
-              || 0
-            );
-
-            const sourceIds = getAssessmentSourceIdsForTarget(targetAssessmentInstanceId);
-
             try {
-              if (targetAssessmentInstanceId > 0 && sourceIds.length > 0) {
-                try {
-                  await submitAssessment(targetAssessmentInstanceId, sourceIds);
-                  try {
-                    if (isB2bQuestionnaireFlow) {
-                      localStorage.setItem('ss_b2b_questionnaire_submitted', '1');
-                    }
-                    sessionStorage.removeItem('ss_b2b_opened_questionnaire');
-                  } catch {
-                    // ignore
-                  }
-                  clearReportRequestCache();
-                  clearStoredLatestAssessmentId();
-                } catch (error) {
-                  console.error('Assessment submit failed:', error);
-                }
+              try {
+                sessionStorage.removeItem('ss_b2b_opened_questionnaire');
+              } catch {
+                // ignore
               }
+              clearReportRequestCache();
+              clearStoredLatestAssessmentId();
             } finally {
               setQuestionnaireSuccessMessage('Submitted successfully!');
             }

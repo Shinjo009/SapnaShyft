@@ -18,6 +18,15 @@
   overscroll-behavior-x: none;
 }
 
+@media (min-width: 481px) {
+  .app-root {
+    left: 50%;
+    right: auto;
+    width: 480px;
+    transform: translateX(-50%);
+  }
+}
+
 /* Disable text selection/callout globally in the app UI. */
 .app-root,
 .app-root * {
@@ -55,6 +64,15 @@
   z-index: 0;
 }
 
+@media (min-width: 481px) {
+  .app-background {
+    left: 50%;
+    right: auto;
+    width: 480px;
+    transform: translateX(-50%);
+  }
+}
+
 .app-scroll {
   position: relative;
   z-index: 1;
@@ -65,9 +83,24 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   overscroll-behavior-x: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
   margin: 0;
   padding: 0 0 var(--app-safe-area-bottom, env(safe-area-inset-bottom, 0px)) 0;
   box-sizing: border-box;
+}
+
+@media (min-width: 481px) {
+  .app-scroll {
+    /* Keep bottom content clear of fixed desktop navbar. */
+    padding-bottom: calc(72px + var(--app-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+}
+
+.app-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 /* Expand tap/click target for back-arrow buttons without changing visible size. */

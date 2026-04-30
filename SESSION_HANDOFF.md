@@ -56,7 +56,7 @@ The work was implemented iteratively with repeated user validation feedback and 
   - select package,
   - add address,
   - schedule collection,
-  - patient details,
+  - Member Details,
   - payment breakdown,
   - booking confirmed.
 - Address and appointment edit actions route correctly back to relevant steps.

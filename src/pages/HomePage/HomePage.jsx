@@ -8,6 +8,7 @@ import RiskAnalysisSection from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
+import { getAssessmentStatus, listMyAssessments } from '../../services/questionnaireService';
 
 const AvatarGlyph = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42" fill="none" aria-hidden="true">
@@ -265,6 +266,53 @@ const normalizeUpcomingSlotPayload = (root) => {
   };
 };
 
+const extractAssessmentsFromListPayload = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+  if (Array.isArray(payload.items)) {
+    return payload.items;
+  }
+  if (Array.isArray(payload.results)) {
+    return payload.results;
+  }
+  if (Array.isArray(payload.rows)) {
+    return payload.rows;
+  }
+  if (Array.isArray(payload.data?.items)) {
+    return payload.data.items;
+  }
+  if (Array.isArray(payload.data?.results)) {
+    return payload.data.results;
+  }
+  return [];
+};
+
+const extractCategoriesFromAssessmentStatus = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+  if (Array.isArray(payload.categories)) {
+    return payload.categories;
+  }
+  if (Array.isArray(payload.category_statuses)) {
+    return payload.category_statuses;
+  }
+  if (Array.isArray(payload.assessment_categories)) {
+    return payload.assessment_categories;
+  }
+  if (Array.isArray(payload.data?.categories)) {
+    return payload.data.categories;
+  }
+  return [];
+};
+
 const formatEngagementDateLabel = (raw) => {
   const ymd = String(raw || '').slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
@@ -280,6 +328,19 @@ const formatEngagementDateLabel = (raw) => {
     year: 'numeric',
   }).format(d);
   return `${formatted} (Day 1)`;
+};
+
+const hasRenderableOverviewData = (data) => {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+
+  const metabolicAge = Number(data?.metabolicAgeValue);
+  const hasMetabolic = Number.isFinite(metabolicAge);
+  const hasPositiveWins = Boolean(data?.positiveWinsData && typeof data.positiveWinsData === 'object');
+  const hasRiskAnalysis = Array.isArray(data?.riskAnalysisData) && data.riskAnalysisData.length > 0;
+
+  return hasMetabolic || hasPositiveWins || hasRiskAnalysis;
 };
 
 const HomePage = ({
@@ -304,11 +365,13 @@ const HomePage = ({
   const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
   const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
   const [isNoDataHome, setIsNoDataHome] = useState(false);
-  const [isOverviewResolved, setIsOverviewResolved] = useState(true);
+  const [isOverviewResolved, setIsOverviewResolved] = useState(false);
   const [noDataStage, setNoDataStage] = useState('welcome');
   const [checklistScrollProgress, setChecklistScrollProgress] = useState(0);
   const [upcomingSlotNormalized, setUpcomingSlotNormalized] = useState(null);
   const [upcomingSlotStatus, setUpcomingSlotStatus] = useState('idle');
+  const [isQuestionnaireCompleted, setIsQuestionnaireCompleted] = useState(false);
+  const [hasStableOverviewData, setHasStableOverviewData] = useState(() => hasRenderableOverviewData(preloadedData));
 
   const slotNorm = upcomingSlotNormalized || EMPTY_UPCOMING_SLOT;
   const campFlowActive = Boolean(slotNorm.hasScheduledSlot)
@@ -333,7 +396,7 @@ const HomePage = ({
       return;
     }
     try {
-      if (localStorage.getItem('ss_b2b_questionnaire_submitted') === '1') {
+      if (isQuestionnaireCompleted) {
         setNoDataStage('analyzing');
         return;
       }
@@ -349,27 +412,64 @@ const HomePage = ({
     isNoDataHome,
     upcomingSlotStatus,
     campFlowActive,
+    isQuestionnaireCompleted,
     forceRefreshFromProfile,
   ]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
+    let cancelled = false;
+
     if (!isNoDataHome || upcomingSlotStatus !== 'ready' || !campFlowActive) {
-      return;
+      setIsQuestionnaireCompleted(false);
+      return undefined;
     }
-    let shouldForceAnalyzing = false;
-    try {
-      shouldForceAnalyzing = sessionStorage.getItem('ss_b2b_post_submit_redirect') === '1';
-      if (shouldForceAnalyzing) {
-        sessionStorage.removeItem('ss_b2b_post_submit_redirect');
+
+    (async () => {
+      try {
+        const assessmentsPayload = await listMyAssessments(1, 50);
+        const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
+        const latestAssessment = [...assessments]
+          .map((item) => ({
+            ...item,
+            assessmentInstanceId: Number(item?.assessment_instance_id || item?.assessment_id || item?.id || 0),
+            assignedAtTs: new Date(item?.assigned_at || item?.assignedAt || 0).getTime() || 0,
+          }))
+          .filter((item) => item.assessmentInstanceId > 0)
+          .sort((a, b) => {
+            if (b.assignedAtTs !== a.assignedAtTs) {
+              return b.assignedAtTs - a.assignedAtTs;
+            }
+            return b.assessmentInstanceId - a.assessmentInstanceId;
+          })[0];
+
+        const assessmentInstanceId = Number(latestAssessment?.assessmentInstanceId || 0);
+        if (assessmentInstanceId <= 0) {
+          if (!cancelled) {
+            setIsQuestionnaireCompleted(false);
+          }
+          return;
+        }
+
+        const statusPayload = await getAssessmentStatus(assessmentInstanceId);
+        const categories = extractCategoriesFromAssessmentStatus(statusPayload);
+        const allComplete = Array.isArray(categories)
+          && categories.length > 0
+          && categories.every((category) => String(category?.status || category?.category_status || '').trim().toLowerCase() === 'complete');
+
+        if (!cancelled) {
+          setIsQuestionnaireCompleted(allComplete);
+        }
+      } catch {
+        if (!cancelled) {
+          setIsQuestionnaireCompleted(false);
+        }
       }
-    } catch {
-      shouldForceAnalyzing = false;
-    }
-    if (!shouldForceAnalyzing) {
-      return;
-    }
-    setNoDataStage('analyzing');
-  }, [isNoDataHome, upcomingSlotStatus, campFlowActive]);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isNoDataHome, upcomingSlotStatus, campFlowActive, forceRefreshFromProfile]);
 
   const metabolicAgeDetail = useMemo(() => {
     const chronologicalAge = Number(userAge);
@@ -429,60 +529,81 @@ const HomePage = ({
   useEffect(() => {
     let isActive = true;
 
+    const parseOverviewResponse = (response) => {
+      const overview = resolveOverviewPayload(response);
+      if (!overview || typeof overview !== 'object') {
+        return null;
+      }
+
+      const hasOverviewFields = Object.prototype.hasOwnProperty.call(overview, 'metabolic_age')
+        || Object.prototype.hasOwnProperty.call(overview, 'positive_wins')
+        || Object.prototype.hasOwnProperty.call(overview, 'risk_analysis');
+
+      if (!hasOverviewFields) {
+        return null;
+      }
+
+      const metabolicAge = Number(overview?.metabolic_age);
+      const metabolicAgeDisplay = Number.isFinite(metabolicAge) ? String(Math.round(metabolicAge)) : '-';
+      return {
+        metabolicAgeValue: metabolicAgeDisplay,
+        positiveWinsData: overview?.positive_wins && typeof overview.positive_wins === 'object' ? overview.positive_wins : null,
+        riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
+      };
+    };
+
+    const fetchOverviewData = async (ttlMs) => {
+      const { response } = await fetchLatestAssessmentReport(
+        (assessmentId) => `/reports/${assessmentId}/overview`,
+        ttlMs,
+      );
+      return parseOverviewResponse(response);
+    };
+
     const loadOverviewData = async () => {
       try {
-        const { response } = await fetchLatestAssessmentReport(
-          (assessmentId) => `/reports/${assessmentId}/overview`,
-          forceRefreshFromProfile ? 0 : 45000,
-        );
-        const overview = resolveOverviewPayload(response);
-
-        if (!overview || typeof overview !== 'object') {
-          if (isActive) {
-            setMetabolicAgeValue('-');
-            setPositiveWinsData(null);
-            setRiskAnalysisData([]);
-            setIsNoDataHome(true);
-            setNoDataStage('welcome');
-            setIsOverviewResolved(true);
-          }
-          return;
+        let parsed = null;
+        try {
+          parsed = await fetchOverviewData(forceRefreshFromProfile ? 0 : 45000);
+        } catch {
+          parsed = null;
         }
 
-        const hasOverviewFields = Object.prototype.hasOwnProperty.call(overview, 'metabolic_age')
-          || Object.prototype.hasOwnProperty.call(overview, 'positive_wins')
-          || Object.prototype.hasOwnProperty.call(overview, 'risk_analysis');
-
-        if (!hasOverviewFields) {
-          if (isActive) {
-            setMetabolicAgeValue('-');
-            setPositiveWinsData(null);
-            setRiskAnalysisData([]);
-            setIsNoDataHome(true);
-            setNoDataStage('welcome');
-            setIsOverviewResolved(true);
+        // Prevent transient API/cache misses from flashing no-data UI.
+        if (!parsed) {
+          try {
+            parsed = await fetchOverviewData(0);
+          } catch {
+            parsed = null;
           }
-          return;
         }
-
-        const metabolicAge = Number(overview?.metabolic_age);
-        const metabolicAgeDisplay = Number.isFinite(metabolicAge) ? String(Math.round(metabolicAge)) : '-';
 
         if (isActive) {
-          setMetabolicAgeValue(metabolicAgeDisplay);
-          setPositiveWinsData(overview?.positive_wins && typeof overview.positive_wins === 'object' ? overview.positive_wins : null);
-          setRiskAnalysisData(Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : []);
-          setIsNoDataHome(false);
-          setNoDataStage('welcome');
+          if (parsed) {
+            setMetabolicAgeValue(parsed.metabolicAgeValue);
+            setPositiveWinsData(parsed.positiveWinsData);
+            setRiskAnalysisData(parsed.riskAnalysisData);
+            setIsNoDataHome(false);
+            setHasStableOverviewData(true);
+            setNoDataStage('welcome');
+          } else if (!hasStableOverviewData) {
+            setMetabolicAgeValue('-');
+            setPositiveWinsData(null);
+            setRiskAnalysisData([]);
+            setIsNoDataHome(true);
+            setNoDataStage('welcome');
+          }
           setIsOverviewResolved(true);
         }
       } catch {
         if (isActive) {
-          setMetabolicAgeValue('-');
-          setPositiveWinsData(null);
-          setRiskAnalysisData([]);
-          setIsNoDataHome(true);
-          setNoDataStage('welcome');
+          if (!hasStableOverviewData) {
+            setMetabolicAgeValue('-');
+            setPositiveWinsData(null);
+            setRiskAnalysisData([]);
+            setIsNoDataHome(true);
+            setNoDataStage('welcome');
+          }
           setIsOverviewResolved(true);
         }
       }
@@ -493,7 +614,7 @@ const HomePage = ({
     return () => {
       isActive = false;
     };
-  }, [forceRefreshFromProfile]);
+  }, [forceRefreshFromProfile, hasStableOverviewData]);
 
   useEffect(() => {
     let cancelled = false;
@@ -534,6 +655,10 @@ const HomePage = ({
       cancelled = true;
     };
   }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
+
+  if (!isOverviewResolved) {
+    return <div className="home-page home-page--slot-loading" aria-busy="true" aria-label="Loading home" />;
+  }
 
   const handleMenuClick = () => {
     console.log('Menu clicked');
@@ -626,7 +751,9 @@ const HomePage = ({
   };
 
   if (isNoDataHome) {
-    if (upcomingSlotStatus === 'loading') {
+    // Always wait for upcoming-slot resolution before choosing a no-data sub-screen.
+    // This removes transient flashes (e.g. generic welcome) before final state is known.
+    if (upcomingSlotStatus !== 'ready') {
       return <div className="home-page home-page--slot-loading" aria-busy="true" aria-label="Loading schedule" />;
     }
 

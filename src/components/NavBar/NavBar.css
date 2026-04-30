@@ -119,44 +119,18 @@
   }
 }
 
-/* Tablet: 481px - 768px - Full Width with padding */
-@media (min-width: 481px) and (max-width: 768px) {
+/* Desktop-framed app: keep navbar aligned to centered 480px viewport */
+@media (min-width: 481px) {
   .navbar {
-    left: 0;
-    right: 0;
-    width: 100%;
-  }
-  
-  .navbar__container {
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-  }
-}
-
-/* Small Desktop: 769px - 1024px - Centered with max-width */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .navbar {
-    left: 0;
-    right: 0;
-    width: 100%;
+    left: 50%;
+    right: auto;
+    width: 480px;
+    transform: translateX(-50%) translateZ(0);
   }
 
   .navbar__container {
     width: 100%;
-  }
-}
-
-/* Large Desktop: 1025px+ - Centered with max-width */
-@media (min-width: 1025px) {
-  .navbar {
-    left: 0;
-    right: 0;
-    width: 100%;
-  }
-
-  .navbar__container {
-    width: 100%;
+    max-width: 100%;
   }
 }
 
