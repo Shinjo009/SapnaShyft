@@ -495,7 +495,7 @@ const HomePage = ({
     };
   }, [metabolicAgeValue, userAge, metabolicAgeDetail]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     let isActive = true;
 
     const parseOverviewResponse = (response) => {
@@ -521,28 +521,25 @@ const HomePage = ({
       };
     };
 
-    const fetchOverviewAndBloodMarkersParallel = async (ttlMs) => {
-      const [overviewSettled, bloodSettled] = await Promise.allSettled([
-        fetchLatestAssessmentReport(
+    const startBloodMarkersFetch = (ttlMs) => (
+      fetchLatestAssessmentReport(
+        (assessmentId) => `/reports/${assessmentId}/blood-parameters`,
+        ttlMs,
+      )
+        .then(({ response }) => buildHomeBloodMarkersFromBloodParametersResponse(response))
+        .catch(() => [])
+    );
+
+    const fetchOverviewParsed = async (ttlMs) => {
+      try {
+        const { response } = await fetchLatestAssessmentReport(
           (assessmentId) => `/reports/${assessmentId}/overview`,
           ttlMs,
-        ),
-        fetchLatestAssessmentReport(
-          (assessmentId) => `/reports/${assessmentId}/blood-parameters`,
-          ttlMs,
-        ),
-      ]);
-
-      let parsed = null;
-      if (overviewSettled.status === 'fulfilled') {
-        parsed = parseOverviewResponse(overviewSettled.value.response);
+        );
+        return parseOverviewResponse(response);
+      } catch {
+        return null;
       }
-
-      const bloodMarkers = bloodSettled.status === 'fulfilled'
-        ? buildHomeBloodMarkersFromBloodParametersResponse(bloodSettled.value.response)
-        : [];
-
-      return { parsed, bloodMarkers };
     };
 
     const loadOverviewData = async () => {
@@ -551,7 +548,11 @@ const HomePage = ({
       if (paintFromCache) {
         setIsOverviewResolved(true);
         try {
-          const { parsed, bloodMarkers } = await fetchOverviewAndBloodMarkersParallel(45000);
+          const bloodPromise = startBloodMarkersFetch(45000);
+          let parsed = await fetchOverviewParsed(45000);
+          if (!parsed) {
+            parsed = await fetchOverviewParsed(0);
+          }
           if (!isActive) {
             return;
           }
@@ -562,10 +563,14 @@ const HomePage = ({
           setMetabolicAgeValue(parsed.metabolicAgeValue);
           setPositiveWinsData(parsed.positiveWinsData);
           setRiskAnalysisData(parsed.riskAnalysisData);
-          setHomeBloodMarkersForSection(bloodMarkers);
           setIsNoDataHome(false);
           setHasStableOverviewData(true);
           setNoDataStage('welcome');
+          void bloodPromise.then((markers) => {
+            if (isActive) {
+              setHomeBloodMarkersForSection(markers);
+            }
+          });
         } catch {
           /* keep showing preloaded / last-good overview */
         }
@@ -573,25 +578,21 @@ const HomePage = ({
       }
 
       try {
-        let { parsed, bloodMarkers } = await fetchOverviewAndBloodMarkersParallel(
-          forceRefreshFromProfile ? 0 : 45000,
-        );
+        const primaryTtl = forceRefreshFromProfile ? 0 : 45000;
+        const bloodPromise = startBloodMarkersFetch(primaryTtl);
 
+        let parsed = await fetchOverviewParsed(primaryTtl);
         if (!parsed) {
-          try {
-            ({ parsed, bloodMarkers } = await fetchOverviewAndBloodMarkersParallel(0));
-          } catch {
-            parsed = null;
-            bloodMarkers = [];
-          }
+          parsed = await fetchOverviewParsed(0);
         }
 
+        let committedB2c = false;
         if (isActive) {
           if (parsed) {
+            committedB2c = true;
             setMetabolicAgeValue(parsed.metabolicAgeValue);
             setPositiveWinsData(parsed.positiveWinsData);
             setRiskAnalysisData(parsed.riskAnalysisData);
-            setHomeBloodMarkersForSection(bloodMarkers);
             setIsNoDataHome(false);
             setHasStableOverviewData(true);
             setNoDataStage('welcome');
@@ -605,6 +606,12 @@ const HomePage = ({
           }
           setIsOverviewResolved(true);
         }
+
+        void bloodPromise.then((markers) => {
+          if (isActive && committedB2c) {
+            setHomeBloodMarkersForSection(markers);
+          }
+        });
       } catch {
         if (isActive) {
           if (!hasStableOverviewData) {

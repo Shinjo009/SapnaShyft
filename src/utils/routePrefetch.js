@@ -63,9 +63,10 @@ export const prefetchRouteChunk = (id) => {
   }
 };
 
-/** Bottom-nav destinations (plus doctors as “super-sync”). */
+/** Bottom-nav destinations (plus doctors as “super-sync”). Home first — most common landing after auth. */
 export const prefetchNavbarRoutes = () => {
-  NAVBAR_ROUTE_IDS.forEach(prefetchRouteChunk);
+  prefetchRouteChunk('home');
+  NAVBAR_ROUTE_IDS.filter((id) => id !== 'home').forEach(prefetchRouteChunk);
 };
 
 /** All other lazy screens after nav targets are warm (second idle slice). */
@@ -148,8 +149,17 @@ export const prefetchLikelyNextRoutes = (currentPage) => {
     return;
   }
 
+  if (ids.includes('home')) {
+    prefetchRouteChunk('home');
+  }
+
   const run = () => {
-    ids.forEach(prefetchRouteChunk);
+    ids.forEach((id) => {
+      if (id === 'home') {
+        return;
+      }
+      prefetchRouteChunk(id);
+    });
   };
 
   if (typeof window === 'undefined') {

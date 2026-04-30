@@ -15,6 +15,7 @@ import {
 } from './services/questionnaireService';
 import {
   fetchLatestAssessmentReport,
+  getLatestAssessmentIdsCached,
   clearReportRequestCache,
   clearStoredLatestAssessmentId,
 } from './services/reportService';
@@ -28,6 +29,7 @@ import { trackAppScreen } from './analytics/googleAnalytics';
 import AppTooltipTour from './components/AppTooltipTour/AppTooltipTour';
 import {
   prefetchNavbarRoutes,
+  prefetchRouteChunk,
   prefetchSecondaryAppRouteChunks,
   prefetchLikelyNextRoutes,
 } from './utils/routePrefetch';
@@ -549,6 +551,9 @@ function App() {
         return;
       }
 
+      prefetchRouteChunk('home');
+      void getLatestAssessmentIdsCached(45000).catch(() => {});
+
       try {
         const profileResponse = await getMyProfile({ forceRefresh: true });
         const profile = profileResponse?.data && typeof profileResponse.data === 'object'
@@ -625,6 +630,14 @@ function App() {
         if (postLoginRedirectPageRef.current) {
           const targetPage = postLoginRedirectPageRef.current;
           postLoginRedirectPageRef.current = '';
+          if (targetPage === 'home') {
+            prefetchRouteChunk('home');
+            try {
+              await preloadHomeScreenData();
+            } catch {
+              /* HomePage will recover via its own fetch */
+            }
+          }
           setCurrentPage(targetPage);
           setIsBootstrappingSession(false);
           return;
@@ -792,6 +805,7 @@ function App() {
   };
 
   const preloadHomeScreenData = async () => {
+    prefetchRouteChunk('home');
     try {
       const { response } = await fetchLatestAssessmentReport(
         (assessmentId) => `/reports/${assessmentId}/overview`
@@ -837,6 +851,9 @@ function App() {
     }
 
     saveAuthTokens(tokens);
+
+    prefetchRouteChunk('home');
+    void getLatestAssessmentIdsCached(45000).catch(() => {});
 
     try {
       const profileResponse = await getMyProfile();
@@ -913,6 +930,14 @@ function App() {
       if (postLoginRedirectPageRef.current) {
         const targetPage = postLoginRedirectPageRef.current;
         postLoginRedirectPageRef.current = '';
+        if (targetPage === 'home') {
+          prefetchRouteChunk('home');
+          try {
+            await preloadHomeScreenData();
+          } catch {
+            /* HomePage will recover via its own fetch */
+          }
+        }
         setCurrentPage(targetPage);
         return;
       }
@@ -943,6 +968,8 @@ function App() {
         invalidateMyProfilesCache();
         clearReportRequestCache();
         clearStoredLatestAssessmentId();
+        prefetchRouteChunk('home');
+        void getLatestAssessmentIdsCached(45000).catch(() => {});
       }
 
       const profileResponse = await getMyProfile({ forceRefresh: true });
@@ -963,6 +990,14 @@ function App() {
     if (postLoginRedirectPageRef.current) {
       const targetPage = postLoginRedirectPageRef.current;
       postLoginRedirectPageRef.current = '';
+      if (targetPage === 'home') {
+        prefetchRouteChunk('home');
+        try {
+          await preloadHomeScreenData();
+        } catch {
+          /* HomePage will recover via its own fetch */
+        }
+      }
       setCurrentPage(targetPage);
       return;
     }
