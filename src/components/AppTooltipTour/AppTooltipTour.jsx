@@ -156,7 +156,7 @@ const getSideVector = (side) => {
   return { x: -1, y: 0 };
 };
 
-const getTourSeenStorageKey = (scopeKey) => `appTooltipTourSeen:${scopeKey || 'global'}`;
+const getTourSeenStorageKey = (scopeKey) => `appTooltipTourSeen:${scopeKey || 'pre-auth'}`;
 
 const readTourSeen = (scopeKey) => {
   if (typeof window === 'undefined') {
@@ -182,12 +182,17 @@ const writeTourSeen = (scopeKey) => {
   }
 };
 
-const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
+const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'pre-auth' }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [dismissed, setDismissed] = useState(() => readTourSeen(scopeKey));
   const [targetRect, setTargetRect] = useState(null);
   const [bubbleSize, setBubbleSize] = useState({ width: 192, height: 132 });
   const bubbleRef = useRef(null);
+
+  const completeTour = useCallback(() => {
+    writeTourSeen(scopeKey);
+    setDismissed(true);
+  }, [scopeKey]);
 
   const setTargetRectIfNeeded = useCallback((nextRect) => {
     if (!nextRect) {
@@ -210,18 +215,6 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
   }, []);
 
   const currentStep = TOUR_STEPS[currentStepIndex] || null;
-
-  useEffect(() => {
-    setCurrentStepIndex(0);
-    setDismissed(readTourSeen(scopeKey));
-    setTargetRect(null);
-  }, [scopeKey]);
-
-  useEffect(() => {
-    if (dismissed) {
-      writeTourSeen(scopeKey);
-    }
-  }, [dismissed, scopeKey]);
 
   const isVisibleOnPage = useMemo(() => {
     if (!enabled || dismissed || !currentStep) {
@@ -482,7 +475,7 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
           <button
             type="button"
             className="app-tooltip-tour__action-btn app-tooltip-tour__action-btn--skip"
-            onClick={() => setDismissed(true)}
+            onClick={completeTour}
           >
             Skip
           </button>
@@ -493,7 +486,7 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'global' }) => {
               if (hasNext) {
                 setCurrentStepIndex((prev) => prev + 1);
               } else {
-                setDismissed(true);
+                completeTour();
               }
             }}
           >

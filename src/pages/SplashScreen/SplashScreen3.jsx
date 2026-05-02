@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import RotatingCube from '../../components/RotatingCube/RotatingCube';
-import supershyftWhiteLogo from '../../images/Cube/SuperShyft - white logo.svg';
+import supershyftWhiteLogo from '../../images/SuperShyft - white logo.svg';
 import './SplashScreen3.css';
 
 const CUBE_FACE_CSS = 320;
@@ -14,7 +14,7 @@ function computeCubeScale(anchorWidthPx, anchorHeightPx) {
   return Math.max(SCALE_MIN, Math.min(SCALE_MAX, raw));
 }
 
-const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
+const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup, showInstallBannerLogo = false }) => {
   const cubeAnchorRef = useRef(null);
   const [cubeScale, setCubeScale] = useState(0.38);
 
@@ -40,8 +40,12 @@ const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
       className="splash-screen-2 max-w-md mx-auto h-full min-h-full pt-[86px] pb-6 flex flex-col overflow-hidden"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
     >
-      <div className="splash-screen-2__logo-wrap" aria-label="SuperShyft logo">
-        <img src={supershyftWhiteLogo} alt="SuperShyft" />
+      <div className="splash-screen-2__logo-wrap" aria-hidden={!showInstallBannerLogo}>
+        {showInstallBannerLogo ? (
+          <img src={supershyftWhiteLogo} alt="SuperShyft" />
+        ) : (
+          <span className="splash-screen-2__logo-spacer" aria-hidden />
+        )}
       </div>
 
       <div className="splash-screen-2__hero">

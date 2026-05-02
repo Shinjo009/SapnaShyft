@@ -19,6 +19,14 @@
   object-fit: contain;
 }
 
+/* Keeps cube/footer vertical position stable when the install banner hides the logo */
+.splash-screen-2__logo-spacer {
+  display: block;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
 .splash-screen-2__logo-wrap {
   display: flex;
   justify-content: center;

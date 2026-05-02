@@ -1083,8 +1083,12 @@ function App() {
     setCurrentPage('packages');
   };
 
-  const tooltipTourScopeKey = String(selectedAccountId || currentUserId || 'global');
-  const isTooltipEligibleHome = Boolean(preloadedHomeData);
+  const tooltipTourAccountId = selectedAccountId ?? currentUserId;
+  const tooltipTourScopeKey =
+    tooltipTourAccountId != null && Number.isFinite(Number(tooltipTourAccountId))
+      ? String(Number(tooltipTourAccountId))
+      : 'pre-auth';
+  const isTooltipEligibleHome = Boolean(preloadedHomeData && tooltipTourAccountId != null);
   const canDirectInstallPwa = Boolean(deferredPrompt) && !isIosInstallFlow;
 
   if (isBootstrappingSession) {
@@ -1093,6 +1097,7 @@ function App() {
         onComplete={() => {}}
         onLogin={() => {}}
         onSignup={() => {}}
+        showInstallBannerLogo={false}
       />
     );
   }
@@ -1163,7 +1168,12 @@ function App() {
             </div>
         </div>
       )}
-      <AppTooltipTour currentPage={currentPage} enabled={isTooltipEligibleHome} scopeKey={tooltipTourScopeKey} />
+      <AppTooltipTour
+        key={tooltipTourScopeKey}
+        currentPage={currentPage}
+        enabled={isTooltipEligibleHome}
+        scopeKey={tooltipTourScopeKey}
+      />
       <div className="app-scroll" ref={appScrollRef}>
       <Suspense fallback={null}>
       {currentPage === 'login' && (
@@ -1741,6 +1751,7 @@ function App() {
           }}
           onLogin={() => setCurrentPage('login')}
           onSignup={() => setCurrentPage('signup')}
+          showInstallBannerLogo={showInstallPrompt}
         />
       )}
       </Suspense>
