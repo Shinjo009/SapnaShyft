@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import RotatingCube from '../../components/RotatingCube/RotatingCube';
+import poweredBySupershyft from '../../images/Powered by Supershyt.svg';
 import './SplashScreen2.css';
 
 const CUBE_FACE_CSS = 320;
@@ -121,9 +122,12 @@ const SplashScreen2 = ({ onComplete: _onComplete, onLogin, onSignup }) => {
         </div>
 
         <div className="flex flex-col items-center gap-1 pb-1">
-          <span className="font-lato text-[10px] font-light leading-none tracking-[0.04px] text-[#CCC] opacity-80 text-center">
-            Powered by Supershyft
-          </span>
+          <img
+            src={poweredBySupershyft}
+            alt="Powered by SuperShyft"
+            className="block h-[30px] w-auto max-w-[min(280px,88vw)] object-contain object-center"
+            decoding="async"
+          />
         </div>
       </div>
     </div>
