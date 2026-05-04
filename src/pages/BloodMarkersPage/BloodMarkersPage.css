@@ -824,6 +824,13 @@
   margin-top: 0;
 }
 
+.blood-markers-page__optimal-param-chunk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
 .blood-markers-page__optimal-param-item {
   color: #9A9A9A;
   font-family: "DM Sans", sans-serif;

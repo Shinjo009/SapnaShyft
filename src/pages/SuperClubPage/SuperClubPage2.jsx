@@ -10,7 +10,6 @@ export default function SuperClubPage2({
   userName = 'there',
   likedSports = [],
   onMenuClick,
-  onSearchClick,
   onNavigateHome,
   onNavigateToDoctors,
   onNavigateToPackages,
@@ -87,7 +86,7 @@ export default function SuperClubPage2({
       <div className="super-club-page__glow super-club-page__glow--br" aria-hidden="true" />
 
       <div className="super-club-page__header-wrap">
-        <Header name={userName} onMenuClick={onMenuClick} onSearchClick={onSearchClick} />
+        <Header name={userName} onMenuClick={onMenuClick} />
       </div>
 
       <main className="super-club-page__main">

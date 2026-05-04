@@ -456,6 +456,125 @@ export const getCategoryQuestionnaire = (assessmentInstanceId, categoryId) => {
   return authorizedGet(`/questionnaire/${assessmentInstanceId}/category/${categoryId}`);
 };
 
+const FH_FAMILY_DRAFT_CACHE_TTL_MS = 90_000;
+let fhFamilyDraftCache = { expiresAt: 0, value: null };
+let fhFamilyDraftInFlight = null;
+
+/** Synchronous read; `null` means cache miss or expired (caller should await network). */
+export const peekFamilyHistoryQuestionnaireDraftCache = () => {
+  if (Date.now() < fhFamilyDraftCache.expiresAt) {
+    return fhFamilyDraftCache.value;
+  }
+  return null;
+};
+
+/** Call after a successful family-history save so home can resolve without waiting on the network. */
+export const markFamilyHistoryQuestionnaireDraftKnown = (hasDraft) => {
+  fhFamilyDraftCache = {
+    expiresAt: Date.now() + FH_FAMILY_DRAFT_CACHE_TTL_MS,
+    value: Boolean(hasDraft),
+  };
+};
+
+export const invalidateFamilyHistoryQuestionnaireDraftCache = () => {
+  fhFamilyDraftCache = { expiresAt: 0, value: null };
+  fhFamilyDraftInFlight = null;
+};
+
+async function fetchHasFamilyHistoryQuestionnaireDraftUncached() {
+  const assessmentsPayload = await listMyAssessments(1, 50);
+  const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
+  const latestAssessment = [...assessments]
+    .map((item) => ({
+      ...item,
+      assessmentInstanceId: getAssessmentInstanceId(item),
+      assignedAtTs: toTimestamp(item?.assigned_at || item?.assignedAt),
+    }))
+    .filter((item) => item.assessmentInstanceId > 0)
+    .sort((a, b) => {
+      if (b.assignedAtTs !== a.assignedAtTs) {
+        return b.assignedAtTs - a.assignedAtTs;
+      }
+      return b.assessmentInstanceId - a.assessmentInstanceId;
+    })[0];
+
+  const assessmentInstanceId = Number(latestAssessment?.assessmentInstanceId || 0);
+  if (assessmentInstanceId <= 0) {
+    return false;
+  }
+
+  const statusPayload = await getAssessmentStatus(assessmentInstanceId);
+  const rawCategories = extractCategoriesFromAssessmentStatus(statusPayload);
+  const familyCategory = rawCategories
+    .map((category) => ({
+      ...category,
+      category_id: Number(category?.category_id || category?.id || 0),
+      category_key: category?.category_key || category?.key || '',
+      display_name: category?.display_name || category?.name || category?.category_name || '',
+      assessment_instance_id: Number(
+        category?.assessment_instance_id || category?.assessment_id || assessmentInstanceId,
+      ),
+    }))
+    .find((category) => Number(category?.category_id || 0) > 0 && mapCategoryToRouteId(category) === 'family-history');
+
+  if (!familyCategory) {
+    return false;
+  }
+
+  const categoryAssessmentInstanceId = Number(
+    familyCategory.assessment_instance_id || assessmentInstanceId,
+  );
+  const categoryId = Number(familyCategory.category_id || 0);
+  if (categoryAssessmentInstanceId <= 0 || categoryId <= 0) {
+    return false;
+  }
+
+  const questionnairePayload = await getCategoryQuestionnaire(
+    categoryAssessmentInstanceId,
+    categoryId,
+  );
+  const questions = extractQuestionsFromCategoryPayload(questionnairePayload);
+  const responses = extractResponsesFromCategoryPayload(questionnairePayload, questions);
+  return responses.length > 0;
+}
+
+/**
+ * True when the latest (by assignment time) assessment has at least one saved
+ * family-history questionnaire response (draft or otherwise). Used for B2B home
+ * “questionnaire submitted” UX — does not use per-category completion status.
+ * Results are cached briefly and in-flight calls are deduped to speed repeat navigation (e.g. home).
+ * @param {{ forceRefresh?: boolean }} [options]
+ */
+export const hasFamilyHistoryQuestionnaireDraft = async (options = {}) => {
+  const { forceRefresh = false } = options;
+
+  if (!forceRefresh && Date.now() < fhFamilyDraftCache.expiresAt) {
+    return fhFamilyDraftCache.value;
+  }
+
+  if (!forceRefresh && fhFamilyDraftInFlight) {
+    return fhFamilyDraftInFlight;
+  }
+
+  const promise = fetchHasFamilyHistoryQuestionnaireDraftUncached()
+    .then((result) => {
+      fhFamilyDraftCache = {
+        expiresAt: Date.now() + FH_FAMILY_DRAFT_CACHE_TTL_MS,
+        value: result,
+      };
+      return result;
+    })
+    .finally(() => {
+      fhFamilyDraftInFlight = null;
+    });
+
+  if (!forceRefresh) {
+    fhFamilyDraftInFlight = promise;
+  }
+
+  return promise;
+};
+
 export const submitQuestionnaireResponses = (assessmentInstanceId, categoryId, responses = []) => {
   const normalizedResponses = Array.isArray(responses)
     ? responses.map(normalizeCategoryResponseItem).filter(Boolean)

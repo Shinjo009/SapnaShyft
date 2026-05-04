@@ -320,6 +320,8 @@
   max-width: 400px;
   padding: 0 12px;
   box-sizing: border-box;
+  /* Avoid parent pan-y delaying / competing with horizontal swipe on touch devices */
+  touch-action: none;
 }
 
 .super-club-v1__vote {
@@ -352,6 +354,21 @@
 .super-club-v1__vote:focus-visible {
   outline: 2px solid rgba(59, 130, 246, 0.7);
   outline-offset: 3px;
+}
+
+/* Desktop: keep pass/heart above adjacent transformed card for reliable clicks + larger invisible tap target */
+@media (min-width: 481px) {
+  .super-club-v1__vote {
+    position: relative;
+    z-index: 2;
+  }
+
+  .super-club-v1__vote::before {
+    content: '';
+    position: absolute;
+    inset: -12px;
+    border-radius: 50%;
+  }
 }
 
 .super-club-v1__card-outer {

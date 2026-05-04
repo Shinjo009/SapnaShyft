@@ -265,6 +265,10 @@ const buildBloodMarkersFromGroups = (groups) => {
   return rows;
 };
 
+export const buildHomeBloodMarkersFromBloodParametersResponse = (response) => (
+  buildBloodMarkersFromGroups(extractArray(response))
+);
+
 const setStackDraggingAttr = (stackEl, isDragging) => {
   if (!stackEl) return;
   if (isDragging) {
@@ -320,7 +324,14 @@ const GaugeDial = React.memo(function GaugeDial({ score, scoreDisplay }) {
   );
 });
 
-const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseSelect, onSeeMore, onBloodMarkersSeeMore }) => {
+const RiskAnalysisSection = ({
+  cards = defaultCards,
+  apiRiskAnalysis,
+  onDiseaseSelect,
+  onSeeMore,
+  onBloodMarkersSeeMore,
+  prefetchedHomeBloodMarkers,
+}) => {
   const stackCards = useMemo(() => {
     const raw = apiRiskAnalysis !== undefined
       ? toRiskAnalysisCardsFromApi(apiRiskAnalysis)
@@ -674,12 +685,23 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
   };
 
   useEffect(() => {
+    if (prefetchedHomeBloodMarkers === undefined) {
+      return;
+    }
+    setApiBloodMarkers(Array.isArray(prefetchedHomeBloodMarkers) ? prefetchedHomeBloodMarkers : []);
+  }, [prefetchedHomeBloodMarkers]);
+
+  useEffect(() => {
+    if (prefetchedHomeBloodMarkers !== undefined) {
+      return undefined;
+    }
+
     let isActive = true;
 
     const loadHomepageBloodMarkers = async () => {
       try {
         const { response } = await fetchLatestAssessmentReport(
-          (assessmentId) => `/reports/${assessmentId}/blood-parameters`
+          (assessmentId) => `/reports/${assessmentId}/blood-parameters`,
         );
         const groups = extractArray(response);
 
@@ -694,12 +716,12 @@ const RiskAnalysisSection = ({ cards = defaultCards, apiRiskAnalysis, onDiseaseS
       }
     };
 
-    loadHomepageBloodMarkers();
+    void loadHomepageBloodMarkers();
 
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [prefetchedHomeBloodMarkers]);
 
   return (
     <section className="risk-analysis-wins">

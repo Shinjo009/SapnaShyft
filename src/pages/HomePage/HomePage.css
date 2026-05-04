@@ -36,6 +36,12 @@
   cursor: pointer;
 }
 
+.home-page-no-data__topbar-spacer {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
 .home-page-no-data__top-section {
   display: flex;
   flex-direction: column;
@@ -334,9 +340,28 @@
   z-index: 0;
 }
 
-.home-page-scheduled__clock-wrap svg {
+.home-page-scheduled__clock-wrap svg,
+.home-page-scheduled__clock-wrap .home-page-scheduled__hero-clock {
   position: relative;
   z-index: 1;
+}
+
+.home-page-scheduled__clock-wrap--camp-hero {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-page-scheduled__clock-wrap--camp-hero .home-page-scheduled__hero-clock {
+  width: 96px;
+  height: 96px;
+}
+
+.home-page-scheduled__hero-clock {
+  width: 22px;
+  height: 48px;
+  object-fit: contain;
+  display: block;
 }
 
 .home-page-scheduled__hero-copy {

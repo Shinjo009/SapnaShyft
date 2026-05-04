@@ -25,7 +25,6 @@ function shuffleSports(list) {
 export default function SuperClubPage({
   userName = 'there',
   onMenuClick,
-  onSearchClick,
   onNavigateHome,
   onNavigateToDoctors,
   onNavigateToPackages,
@@ -39,7 +38,15 @@ export default function SuperClubPage({
 
   const likedIdsRef = useRef([]);
   const offsetRef = useRef(0);
+  /** True while flying animation runs — ref matches state for window-level pointer handlers. */
+  const flyingRef = useRef(false);
+  const teardownWindowDragRef = useRef(() => {});
   const dragRef = useRef({ pointerId: null, startX: 0, startOff: 0 });
+  const deckRef = useRef(deck);
+  const indexRef = useRef(index);
+  const onOnboardingCompleteRef = useRef(onOnboardingComplete);
+  const swipeCommitLockRef = useRef(false);
+  const finishSwipeTimeoutRef = useRef(null);
 
   useEffect(() => {
     clearSuperClubOnboardingStorage();
@@ -53,16 +60,53 @@ export default function SuperClubPage({
     offsetRef.current = offsetX;
   }, [offsetX]);
 
+  useEffect(() => {
+    flyingRef.current = flying != null;
+  }, [flying]);
+
+  useEffect(() => {
+    deckRef.current = deck;
+  }, [deck]);
+
+  useEffect(() => {
+    indexRef.current = index;
+  }, [index]);
+
+  useEffect(() => {
+    onOnboardingCompleteRef.current = onOnboardingComplete;
+  }, [onOnboardingComplete]);
+
+  useEffect(
+    () => () => {
+      teardownWindowDragRef.current();
+      teardownWindowDragRef.current = () => {};
+      if (finishSwipeTimeoutRef.current != null) {
+        clearTimeout(finishSwipeTimeoutRef.current);
+        finishSwipeTimeoutRef.current = null;
+      }
+    },
+    [],
+  );
+
   const sport = deck[index];
 
-  const finishSwipeAnimation = useCallback(
-    (isLike) => {
-      setOffsetX(0);
-      setFlying(isLike ? 'right' : 'left');
-      window.setTimeout(() => {
+  const finishSwipeAnimation = useCallback((isLike) => {
+    if (swipeCommitLockRef.current) return;
+    swipeCommitLockRef.current = true;
+
+    const swipeAtIndex = indexRef.current;
+
+    setOffsetX(0);
+    setFlying(isLike ? 'right' : 'left');
+
+    finishSwipeTimeoutRef.current = window.setTimeout(() => {
+      finishSwipeTimeoutRef.current = null;
+      try {
         setFlying(null);
-        const current = deck[index];
-        const isLast = index >= deck.length - 1;
+        const d = deckRef.current;
+        const current = d[swipeAtIndex];
+        const lastIdx = d.length > 0 ? d.length - 1 : 0;
+        const isLast = d.length === 0 || swipeAtIndex >= lastIdx;
 
         let nextLiked = likedIdsRef.current;
         if (isLike && current && !nextLiked.includes(current.id)) {
@@ -72,17 +116,19 @@ export default function SuperClubPage({
         }
 
         if (isLast) {
-          if (onOnboardingComplete) {
+          const complete = onOnboardingCompleteRef.current;
+          if (complete) {
             saveSuperClubOnboardingResult(nextLiked);
-            onOnboardingComplete(nextLiked);
+            complete(nextLiked);
           }
           return;
         }
-        setIndex((i) => i + 1);
-      }, 280);
-    },
-    [deck, index, onOnboardingComplete],
-  );
+        setIndex(swipeAtIndex + 1);
+      } finally {
+        swipeCommitLockRef.current = false;
+      }
+    }, 280);
+  }, []);
 
   const triggerPass = useCallback(() => {
     finishSwipeAnimation(false);
@@ -91,6 +137,27 @@ export default function SuperClubPage({
   const triggerLike = useCallback(() => {
     finishSwipeAnimation(true);
   }, [finishSwipeAnimation]);
+
+  /** Clear vote interactions from bubbling; keeps desktop clicks reliable beside card drag handlers. */
+  const onVoteClickPass = useCallback(
+    (e) => {
+      e.stopPropagation();
+      triggerPass();
+    },
+    [triggerPass],
+  );
+
+  const onVoteClickLike = useCallback(
+    (e) => {
+      e.stopPropagation();
+      triggerLike();
+    },
+    [triggerLike],
+  );
+
+  const onVotePointerDown = useCallback((e) => {
+    e.stopPropagation();
+  }, []);
 
   const handleNav = (itemId) => {
     if (itemId === 'home' && onNavigateHome) {
@@ -110,41 +177,77 @@ export default function SuperClubPage({
     }
   };
 
+  /**
+   * Element capture alone is unreliable on some desktop browsers when the card transform updates
+   * every move. Track drag with capturing listeners on `window` until pointer up/cancel.
+   */
   const onCardPointerDown = (e) => {
-    if (flying) return;
+    if (flyingRef.current) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+    const pointerId = e.pointerId;
+    const cardEl = e.currentTarget;
+
+    teardownWindowDragRef.current();
+    teardownWindowDragRef.current = () => {};
+
     dragRef.current = {
-      pointerId: e.pointerId,
+      pointerId,
       startX: e.clientX,
       startOff: offsetRef.current,
     };
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
 
-  const onCardPointerMove = (e) => {
-    if (flying) return;
-    if (dragRef.current.pointerId !== e.pointerId) return;
-    const dx = e.clientX - dragRef.current.startX;
-    setOffsetX(dragRef.current.startOff + dx);
-  };
+    const onMove = (ev) => {
+      if (ev.pointerId !== pointerId) return;
+      if (flyingRef.current) return;
+      if (dragRef.current.pointerId !== pointerId) return;
+      const dx = ev.clientX - dragRef.current.startX;
+      setOffsetX(dragRef.current.startOff + dx);
+    };
 
-  const onCardPointerUp = (e) => {
-    if (flying) return;
-    if (dragRef.current.pointerId !== e.pointerId) return;
+    const teardown = () => {
+      window.removeEventListener('pointermove', onMove, true);
+      window.removeEventListener('pointerup', onUpOrCancel, true);
+      window.removeEventListener('pointercancel', onUpOrCancel, true);
+    };
+
+    const onUpOrCancel = (ev) => {
+      if (ev.pointerId !== pointerId) return;
+      teardown();
+      teardownWindowDragRef.current = () => {};
+
+      if (flyingRef.current) return;
+      if (dragRef.current.pointerId !== pointerId) return;
+
+      try {
+        cardEl.releasePointerCapture(pointerId);
+      } catch {
+        /* ignore */
+      }
+
+      const { startX, startOff } = dragRef.current;
+      dragRef.current = { pointerId: null, startX: 0, startOff: 0 };
+
+      const ox = startOff + (ev.clientX - startX);
+      if (ox > 72) {
+        triggerLike();
+      } else if (ox < -72) {
+        triggerPass();
+      } else {
+        setOffsetX(0);
+      }
+    };
+
+    teardownWindowDragRef.current = teardown;
+
+    window.addEventListener('pointermove', onMove, true);
+    window.addEventListener('pointerup', onUpOrCancel, true);
+    window.addEventListener('pointercancel', onUpOrCancel, true);
+
     try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
+      cardEl.setPointerCapture(pointerId);
     } catch {
-      /* ignore */
-    }
-    const { startX, startOff } = dragRef.current;
-    dragRef.current.pointerId = null;
-    const ox = startOff + (e.clientX - startX);
-
-    if (ox > 72) {
-      triggerLike();
-    } else if (ox < -72) {
-      triggerPass();
-    } else {
-      setOffsetX(0);
+      /* still OK — window listeners handle desktop */
     }
   };
 
@@ -164,7 +267,7 @@ export default function SuperClubPage({
       <div className="super-club-v1__glow super-club-v1__glow--bl" aria-hidden="true" />
 
       <div className="super-club-v1__header-wrap">
-        <Header name={userName} onMenuClick={onMenuClick} onSearchClick={onSearchClick} />
+        <Header name={userName} onMenuClick={onMenuClick} />
       </div>
 
       <main className="super-club-v1__main">
@@ -182,7 +285,8 @@ export default function SuperClubPage({
               type="button"
               className="super-club-v1__vote"
               aria-label="Not for me"
-              onClick={triggerPass}
+              onPointerDown={onVotePointerDown}
+              onClick={onVoteClickPass}
               disabled={flying}
             >
               <img src={negativeImg} alt="" width={40} height={40} draggable={false} />
@@ -195,9 +299,13 @@ export default function SuperClubPage({
                 className={`super-club-v1__card${flying ? ' super-club-v1__card--flying' : ''}`}
                 style={{ transform: cardTransform, opacity: flying ? 0.85 : 1 }}
                 onPointerDown={onCardPointerDown}
-                onPointerMove={onCardPointerMove}
-                onPointerUp={onCardPointerUp}
-                onPointerCancel={onCardPointerUp}
+                onLostPointerCapture={() => {
+                  if (dragRef.current.pointerId == null || flyingRef.current) return;
+                  teardownWindowDragRef.current();
+                  teardownWindowDragRef.current = () => {};
+                  dragRef.current = { pointerId: null, startX: 0, startOff: 0 };
+                  setOffsetX(0);
+                }}
               >
                 {sport ? (
                   <div
@@ -230,7 +338,8 @@ export default function SuperClubPage({
               type="button"
               className="super-club-v1__vote"
               aria-label="I like this"
-              onClick={triggerLike}
+              onPointerDown={onVotePointerDown}
+              onClick={onVoteClickLike}
               disabled={flying}
             >
               <img src={positiveImg} alt="" width={40} height={40} draggable={false} />

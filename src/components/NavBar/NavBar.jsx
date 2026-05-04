@@ -7,6 +7,12 @@ import superClubIcon from '../../images/SuperClub.svg';
 import packagesIcon from '../../images/Packages.svg';
 import { prefetchRouteChunk } from '../../utils/routePrefetch';
 
+/** Set to `false` when Packages should be tappable again. */
+const PACKAGES_NAV_TEMPORARILY_LOCKED = true;
+
+/** Set to `false` when Super Club should be tappable again. */
+const SUPER_CLUB_NAV_TEMPORARILY_LOCKED = true;
+
 /** Set to `false` when Super Care should be tappable again. */
 const SUPER_CARE_NAV_TEMPORARILY_LOCKED = true;
 
@@ -45,6 +51,8 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
   const navItems = useMemo(
     () => [
       { id: 'home', label: 'Home', icon: homeIcon, iconSize: 19 },
+      { id: 'packages', label: 'Packages', icon: packagesIcon, iconSize: 19, locked: PACKAGES_NAV_TEMPORARILY_LOCKED },
+      { id: 'super-club', label: 'Super Club', icon: superClubIcon, iconSize: 23, locked: SUPER_CLUB_NAV_TEMPORARILY_LOCKED },
       {
         id: 'super-sync',
         label: 'Super Care',
@@ -52,8 +60,6 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
         iconSize: 23,
         locked: SUPER_CARE_NAV_TEMPORARILY_LOCKED,
       },
-      { id: 'super-club', label: 'Super Club', icon: superClubIcon, iconSize: 23 },
-      { id: 'packages', label: 'Packages', icon: packagesIcon, iconSize: 19 },
     ],
     []
   );

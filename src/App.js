@@ -1,5 +1,5 @@
 import './App.css';
-import { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy, useCallback } from 'react';
 import SplashScreen from './pages/SplashScreen';
 import LoginPage from './pages/LoginPage';
 import { getSuperClubLikedSportIds } from './pages/SuperClubPage/superClubStorage';
@@ -7,9 +7,15 @@ import { getSuperClubSportsByIds } from './pages/SuperClubPage/superClubSportIma
 import { sendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
 import { createUser, getMyProfiles, invalidateMyProfilesCache } from './services/usersService';
 import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
-import { loadQuestionnaireContext, submitQuestionnaireResponses } from './services/questionnaireService';
+import {
+  loadQuestionnaireContext,
+  submitQuestionnaireResponses,
+  markFamilyHistoryQuestionnaireDraftKnown,
+  invalidateFamilyHistoryQuestionnaireDraftCache,
+} from './services/questionnaireService';
 import {
   fetchLatestAssessmentReport,
+  getLatestAssessmentIdsCached,
   clearReportRequestCache,
   clearStoredLatestAssessmentId,
   peekMyAssessmentsRowsCached,
@@ -22,7 +28,12 @@ import {
 } from './utils/authStorage';
 import { trackAppScreen } from './analytics/googleAnalytics';
 import AppTooltipTour from './components/AppTooltipTour/AppTooltipTour';
-import { prefetchNavbarRoutes } from './utils/routePrefetch';
+import {
+  prefetchNavbarRoutes,
+  prefetchRouteChunk,
+  prefetchSecondaryAppRouteChunks,
+  prefetchLikelyNextRoutes,
+} from './utils/routePrefetch';
 import {
   createEmptyPreloadedHome,
   hasRenderableOverviewData,
@@ -176,6 +187,10 @@ function App() {
   const [preloadedHomeData, setPreloadedHomeData] = useState(null);
   const [forceHomeApiRefresh, setForceHomeApiRefresh] = useState(false);
   const [superClubLikedSportIds, setSuperClubLikedSportIds] = useState(() => getSuperClubLikedSportIds());
+  const handleSuperClubOnboardingComplete = useCallback((likedIds) => {
+    setSuperClubLikedSportIds(Array.isArray(likedIds) ? likedIds : []);
+    setCurrentPage('super-club-2');
+  }, []);
   const [, setIsB2bQuestionnaireFlow] = useState(false);
   const [healthAssessmentBackPage, setHealthAssessmentBackPage] = useState('home');
   // const [superClubOnboardingDone, setSuperClubOnboardingDone] = useState(() =>
@@ -434,6 +449,9 @@ function App() {
     // or if a later batch step fails silently.
     if (normalizedResponses.length > 0) {
       await persistRoute(routeId);
+      if (routeId === 'family-history') {
+        markFamilyHistoryQuestionnaireDraftKnown(true);
+      }
     }
 
     if (routeId === 'vitals') {
@@ -467,12 +485,16 @@ function App() {
 
     try {
       await submitQuestionnaireResponses(assessmentInstanceId, categoryId, normalizedResponses);
+      if (routeId === 'family-history') {
+        markFamilyHistoryQuestionnaireDraftKnown(true);
+      }
     } catch (error) {
       console.error(`Failed to autosave questionnaire responses for ${routeId}:`, error);
     }
   };
 
   const initializeQuestionnaire = async () => {
+    invalidateFamilyHistoryQuestionnaireDraftCache();
     try {
       const context = await loadQuestionnaireContext();
       const categories = context?.categories || [];
@@ -534,6 +556,9 @@ function App() {
         setIsBootstrappingSession(false);
         return;
       }
+
+      prefetchRouteChunk('home');
+      void getLatestAssessmentIdsCached(45000).catch(() => {});
 
       try {
         const profileResponse = await getMyProfile({ forceRefresh: true });
@@ -611,6 +636,14 @@ function App() {
         if (postLoginRedirectPageRef.current) {
           const targetPage = postLoginRedirectPageRef.current;
           postLoginRedirectPageRef.current = '';
+          if (targetPage === 'home') {
+            prefetchRouteChunk('home');
+            try {
+              await preloadHomeScreenData();
+            } catch {
+              /* HomePage will recover via its own fetch */
+            }
+          }
           setCurrentPage(targetPage);
           setIsBootstrappingSession(false);
           return;
@@ -627,25 +660,42 @@ function App() {
     trySessionRestore();
   }, []);
 
-  // Warm up the four NavBar destination chunks at idle so the first tap after
-  // app load doesn't pay the code-split fetch cost. React.lazy() shares the
-  // module cache with these manual import() calls, so navigation becomes
-  // effectively instant.
+  // Warm code-split chunks at idle: NavBar targets first, then the rest of the
+  // app so most navigations resolve cached modules (no chunk flash). This does
+  // not pre-mount screens (would duplicate effects/APIs).
   useEffect(() => {
     const requestIdle = window.requestIdleCallback
       || ((cb) => window.setTimeout(cb, 300));
     const cancelIdle = window.cancelIdleCallback || window.clearTimeout;
 
-    const handle = requestIdle(() => {
+    let outerHandle = null;
+    let innerHandle = null;
+
+    outerHandle = requestIdle(() => {
       prefetchNavbarRoutes();
+      innerHandle = requestIdle(() => {
+        prefetchSecondaryAppRouteChunks();
+      });
     });
 
     return () => {
-      if (handle != null) {
-        cancelIdle(handle);
+      if (outerHandle != null) {
+        cancelIdle(outerHandle);
+      }
+      if (innerHandle != null) {
+        cancelIdle(innerHandle);
       }
     };
   }, []);
+
+  // After each navigation, warm chunks for common exits from this screen (idle-scheduled).
+  useEffect(() => {
+    if (isBootstrappingSession) {
+      return undefined;
+    }
+    prefetchLikelyNextRoutes(currentPage);
+    return undefined;
+  }, [currentPage, isBootstrappingSession]);
 
   useEffect(() => {
     const userAgent = window.navigator.userAgent || '';
@@ -761,6 +811,7 @@ function App() {
   };
 
   const preloadHomeScreenData = async () => {
+    prefetchRouteChunk('home');
     void peekMyAssessmentsRowsCached(0).catch(() => {});
     try {
       const { response } = await fetchLatestAssessmentReport(
@@ -810,6 +861,9 @@ function App() {
     }
 
     saveAuthTokens(tokens);
+
+    prefetchRouteChunk('home');
+    void getLatestAssessmentIdsCached(45000).catch(() => {});
 
     try {
       const profileResponse = await getMyProfile();
@@ -886,6 +940,14 @@ function App() {
       if (postLoginRedirectPageRef.current) {
         const targetPage = postLoginRedirectPageRef.current;
         postLoginRedirectPageRef.current = '';
+        if (targetPage === 'home') {
+          prefetchRouteChunk('home');
+          try {
+            await preloadHomeScreenData();
+          } catch {
+            /* HomePage will recover via its own fetch */
+          }
+        }
         setCurrentPage(targetPage);
         return;
       }
@@ -916,6 +978,8 @@ function App() {
         invalidateMyProfilesCache();
         clearReportRequestCache();
         clearStoredLatestAssessmentId();
+        prefetchRouteChunk('home');
+        void getLatestAssessmentIdsCached(45000).catch(() => {});
       }
 
       const profileResponse = await getMyProfile({ forceRefresh: true });
@@ -936,6 +1000,14 @@ function App() {
     if (postLoginRedirectPageRef.current) {
       const targetPage = postLoginRedirectPageRef.current;
       postLoginRedirectPageRef.current = '';
+      if (targetPage === 'home') {
+        prefetchRouteChunk('home');
+        try {
+          await preloadHomeScreenData();
+        } catch {
+          /* HomePage will recover via its own fetch */
+        }
+      }
       setCurrentPage(targetPage);
       return;
     }
@@ -1021,8 +1093,13 @@ function App() {
     setCurrentPage('packages');
   };
 
-  const tooltipTourScopeKey = String(selectedAccountId || currentUserId || 'global');
-  const isTooltipEligibleHome = hasRenderableOverviewData(preloadedHomeData);
+  const tooltipTourAccountId = selectedAccountId ?? currentUserId;
+  const tooltipTourScopeKey =
+    tooltipTourAccountId != null && Number.isFinite(Number(tooltipTourAccountId))
+      ? String(Number(tooltipTourAccountId))
+      : 'pre-auth';
+  const isTooltipEligibleHome = Boolean(tooltipTourAccountId != null)
+    && hasRenderableOverviewData(preloadedHomeData);
   const canDirectInstallPwa = Boolean(deferredPrompt) && !isIosInstallFlow;
 
   if (isBootstrappingSession) {
@@ -1031,6 +1108,7 @@ function App() {
         onComplete={() => {}}
         onLogin={() => {}}
         onSignup={() => {}}
+        showInstallBannerLogo={false}
       />
     );
   }
@@ -1101,7 +1179,12 @@ function App() {
             </div>
         </div>
       )}
-      <AppTooltipTour currentPage={currentPage} enabled={isTooltipEligibleHome} scopeKey={tooltipTourScopeKey} />
+      <AppTooltipTour
+        key={tooltipTourScopeKey}
+        currentPage={currentPage}
+        enabled={isTooltipEligibleHome}
+        scopeKey={tooltipTourScopeKey}
+      />
       <div className="app-scroll" ref={appScrollRef}>
       <Suspense fallback={null}>
       {currentPage === 'login' && (
@@ -1204,11 +1287,6 @@ function App() {
           onMenuClick={() => {
             setCurrentPage('profile');
           }}
-          onSearchClick={() => {
-            setHealthAssessmentBackPage('super-club');
-            setCurrentPage('health-assessment');
-            initializeQuestionnaire();
-          }}
           onNavigateHome={() => {
             setCurrentPage('home');
           }}
@@ -1230,11 +1308,6 @@ function App() {
           onMenuClick={() => {
             setCurrentPage('profile');
           }}
-          onSearchClick={() => {
-            setHealthAssessmentBackPage('super-club-swipe');
-            setCurrentPage('health-assessment');
-            initializeQuestionnaire();
-          }}
           onNavigateHome={() => {
             setCurrentPage('home');
           }}
@@ -1244,10 +1317,7 @@ function App() {
           onNavigateToPackages={() => {
             setCurrentPage('packages');
           }}
-          onOnboardingComplete={(likedIds) => {
-            setSuperClubLikedSportIds(Array.isArray(likedIds) ? likedIds : []);
-            setCurrentPage('super-club-2');
-          }}
+          onOnboardingComplete={handleSuperClubOnboardingComplete}
         />
       )}
 
@@ -1257,11 +1327,6 @@ function App() {
           likedSports={getSuperClubSportsByIds(superClubLikedSportIds)}
           onMenuClick={() => {
             setCurrentPage('profile');
-          }}
-          onSearchClick={() => {
-            setHealthAssessmentBackPage('super-club-2');
-            setCurrentPage('health-assessment');
-            initializeQuestionnaire();
           }}
           onNavigateHome={() => {
             setCurrentPage('home');
@@ -1697,6 +1762,7 @@ function App() {
           }}
           onLogin={() => setCurrentPage('login')}
           onSignup={() => setCurrentPage('signup')}
+          showInstallBannerLogo={showInstallPrompt}
         />
       )}
       </Suspense>

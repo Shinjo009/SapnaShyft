@@ -1,1 +1,1 @@
-export { default } from './RiskAnalysisSection';
+export { default, buildHomeBloodMarkersFromBloodParametersResponse } from './RiskAnalysisSection';
