@@ -103,12 +103,12 @@
   filter: brightness(1) blur(0);
 }
 
-/* Same -11.5° as SVG `rotate(-11.5 cx cy)` around scene center (196,196) — zwrap is centered so origin matches. */
+/* Level cube on screen; graph layer (if re-enabled) uses its own SVG rotate(-11.5). */
 .splash-v3-cube-zwrap {
   width: 320px;
   height: 320px;
   flex-shrink: 0;
-  transform: rotate(-11.5deg);
+  transform: none;
   transform-style: preserve-3d;
   transform-origin: center center;
 }

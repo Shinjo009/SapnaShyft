@@ -1,5 +1,7 @@
 // export { default } from './SplashScreen2';
-export { default } from './SplashScreen3';
+import SplashScreen3 from './SplashScreen3';
+
+export default SplashScreen3;
 
 /*
  * ---------------------------------------------------------------------------

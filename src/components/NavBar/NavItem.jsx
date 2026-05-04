@@ -3,7 +3,7 @@ import './NavItem.css';
 
 /**
  * NavItem Component - Individual navigation item
- * 
+ *
  * Props:
  * - id: Unique identifier for the nav item
  * - label: Text label displayed below icon
@@ -11,7 +11,7 @@ import './NavItem.css';
  * - isActive: Boolean indicating if this item is currently active
  * - onClick: Callback when item is clicked
  */
-const NavItem = ({
+export default function NavItem({
   id,
   label,
   icon,
@@ -21,12 +21,13 @@ const NavItem = ({
   locked = false,
   useFloatingActiveOrb = false,
   hideActiveIconInItem = false,
-}) => {
+}) {
   const iconStyle = {
     '--nav-icon-size': `${iconSize}px`,
-    filter: isActive && !useFloatingActiveOrb
-      ? 'brightness(0) saturate(100%) invert(18%) sepia(18%) saturate(1454%) hue-rotate(145deg) brightness(96%) contrast(93%)'
-      : 'none',
+    filter:
+      isActive && !useFloatingActiveOrb
+        ? 'brightness(0) saturate(100%) invert(18%) sepia(18%) saturate(1454%) hue-rotate(145deg) brightness(96%) contrast(93%)'
+        : 'none',
   };
 
   return (
@@ -49,12 +50,7 @@ const NavItem = ({
       <div className="nav-item__icon-wrapper">
         <div className={`nav-item__circle ${isActive ? 'is-active' : ''}`} />
         <div className="nav-item__icon-slot">
-          <img
-            src={icon}
-            alt=""
-            className="nav-item__icon"
-            style={iconStyle}
-          />
+          <img src={icon} alt="" className="nav-item__icon" style={iconStyle} />
           {locked ? (
             <span className="nav-item__lock-badge" aria-hidden="true">
               <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 12 12" fill="none">
@@ -71,9 +67,9 @@ const NavItem = ({
           ) : null}
         </div>
       </div>
-      <span className="nav-item__label" aria-hidden={isActive}>{label}</span>
+      <span className="nav-item__label" aria-hidden={isActive}>
+        {label}
+      </span>
     </button>
   );
-};
-
-export default NavItem;
+}
