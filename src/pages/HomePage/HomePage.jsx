@@ -11,12 +11,13 @@ import NavBar from '../../components/NavBar';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
 import {
-  hasFamilyHistoryQuestionnaireDraft,
-  peekFamilyHistoryQuestionnaireDraftCache,
-  invalidateFamilyHistoryQuestionnaireDraftCache,
+  hasNutritionLogQuestionnaireDraft,
+  peekNutritionLogQuestionnaireDraftCache,
+  invalidateNutritionLogQuestionnaireDraftCache,
 } from '../../services/questionnaireService';
 import { hasRenderableOverviewData, HOME_PRELOAD_COMPLETE_KEY } from '../../utils/homeOverviewPreload';
-import clockHsSrc from '../../images/clock_HS.svg';
+import clockCircleSrc from '../../images/clock_circle.svg';
+import clockHandsSrc from '../../images/clock_hands.svg';
 
 const AvatarGlyph = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42" fill="none" aria-hidden="true">
@@ -318,7 +319,7 @@ const HomePage = ({
   const [upcomingSlotNormalized, setUpcomingSlotNormalized] = useState(null);
   const [upcomingSlotStatus, setUpcomingSlotStatus] = useState('idle');
   const [isQuestionnaireCompleted, setIsQuestionnaireCompleted] = useState(false);
-  /** When camp B2B no-data UI needs family-history draft check; false until that request finishes (avoids camp → analyzing flicker). */
+  /** When camp B2B no-data UI needs nutrition-log draft check; false until that request finishes (avoids camp → analyzing flicker). */
   const [isB2bCampNoDataGateResolved, setIsB2bCampNoDataGateResolved] = useState(true);
   const [hasStableOverviewData, setHasStableOverviewData] = useState(() => hasRenderableOverviewData(preloadedData));
   /** null = overview pipeline has not returned blood markers yet; array = rows for RiskAnalysisSection (avoids a second request + idle delay). */
@@ -387,10 +388,10 @@ const HomePage = ({
     }
 
     if (forceRefreshFromProfile) {
-      invalidateFamilyHistoryQuestionnaireDraftCache();
+      invalidateNutritionLogQuestionnaireDraftCache();
     }
 
-    const cached = peekFamilyHistoryQuestionnaireDraftCache();
+    const cached = peekNutritionLogQuestionnaireDraftCache();
     if (cached !== null) {
       if (!cancelled) {
         setIsQuestionnaireCompleted(cached);
@@ -403,9 +404,9 @@ const HomePage = ({
 
     (async () => {
       try {
-        const hasFamilyDraft = await hasFamilyHistoryQuestionnaireDraft();
+        const hasNutritionDraft = await hasNutritionLogQuestionnaireDraft();
         if (!cancelled) {
-          setIsQuestionnaireCompleted(hasFamilyDraft);
+          setIsQuestionnaireCompleted(hasNutritionDraft);
         }
       } catch {
         if (!cancelled) {
@@ -423,12 +424,12 @@ const HomePage = ({
     };
   }, [isNoDataHome, upcomingSlotStatus, campFlowActive, forceRefreshFromProfile]);
 
-  // Warm family-history draft check in parallel with the upcoming-slot request so the camp gate often hits cache.
+  // Warm nutrition-log draft check in parallel with the upcoming-slot request so the camp gate often hits cache.
   useEffect(() => {
     if (!isOverviewResolved || !isNoDataHome) {
       return undefined;
     }
-    void hasFamilyHistoryQuestionnaireDraft().catch(() => {});
+    void hasNutritionLogQuestionnaireDraft().catch(() => {});
     return undefined;
   }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
 
@@ -774,7 +775,7 @@ const HomePage = ({
       );
     }
 
-    // Camp flow: wait for family-history draft check before picking analyzing vs scheduled (avoids UI jumping).
+    // Camp flow: wait for nutrition-log draft check before picking analyzing vs scheduled (avoids UI jumping).
     if (campFlowActive && !isB2bCampNoDataGateResolved) {
       return (
         <div className="home-page home-page--slot-loading" aria-busy="true" aria-label="Loading health assessment status">
@@ -961,17 +962,32 @@ const HomePage = ({
                 className="home-page-scheduled__clock-wrap home-page-scheduled__clock-wrap--camp-hero"
                 aria-hidden="true"
               >
-                <img
-                  src={clockHsSrc}
-                  alt=""
-                  className="home-page-scheduled__hero-clock"
-                  decoding="async"
-                />
+                <span className="home-page-scheduled__clock-glow" />
+                <div className="home-page-scheduled__clock-stack">
+                  <img
+                    src={clockCircleSrc}
+                    alt=""
+                    className="home-page-scheduled__clock-circle"
+                    width={105}
+                    height={105}
+                    decoding="async"
+                  />
+                  <img
+                    src={clockHandsSrc}
+                    alt=""
+                    className="home-page-scheduled__clock-hands"
+                    width={34}
+                    height={46}
+                    decoding="async"
+                  />
+                </div>
               </div>
               <div className="home-page-scheduled__hero-copy">
                 <h2>{campHeroTitle}</h2>
                 {organizerDisplayName ? (
-                  <p className="home-page-b2b__organizer">Organized for {organizerDisplayName}</p>
+                  <div className="home-page-b2b__organizer-pill">
+                    <p className="home-page-b2b__organizer">Organized for {organizerDisplayName}</p>
+                  </div>
                 ) : null}
               </div>
             </div>

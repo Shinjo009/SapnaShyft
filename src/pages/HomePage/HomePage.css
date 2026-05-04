@@ -332,7 +332,7 @@
 
 .home-page-scheduled__clock-glow {
   position: absolute;
-  inset: -10px;
+  inset: 0px;
   border-radius: 999px;
   border: 5px solid #90df9e;
   filter: blur(10px);
@@ -341,7 +341,7 @@
 }
 
 .home-page-scheduled__clock-wrap svg,
-.home-page-scheduled__clock-wrap .home-page-scheduled__hero-clock {
+.home-page-scheduled__clock-wrap .home-page-scheduled__clock-stack {
   position: relative;
   z-index: 1;
 }
@@ -352,16 +352,33 @@
   box-shadow: none;
 }
 
-.home-page-scheduled__clock-wrap--camp-hero .home-page-scheduled__hero-clock {
-  width: 96px;
-  height: 96px;
+.home-page-scheduled__clock-stack {
+  position: relative;
+  width: 105px;
+  height: 105px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.home-page-scheduled__hero-clock {
-  width: 22px;
-  height: 48px;
-  object-fit: contain;
+.home-page-scheduled__clock-circle {
+  width: 105px;
+  height: 105px;
   display: block;
+  object-fit: contain;
+}
+
+/* Pivot in clock_hands.svg is (23, 34); bbox center is (17, 23) → shift (-6px, -11px) after centering. */
+.home-page-scheduled__clock-hands {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(calc(-50% - 6px), calc(-50% - 11px));
+  width: 34px;
+  height: 46px;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .home-page-scheduled__hero-copy {
@@ -919,12 +936,24 @@
   font-size: 14px;
 }
 
+.home-page-b2b__organizer-pill {
+  display: flex;
+  padding: 6px 18px;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(144, 223, 158, 0.1);
+  margin-top: 4px;
+  box-sizing: border-box;
+}
+
 .home-page--b2b-camp .home-page-scheduled__hero-copy p.home-page-b2b__organizer {
-  margin: 4px 0 0;
+  margin: 0;
   color: rgba(255, 255, 255, 0.75);
   font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   font-weight: 500;
+  text-align: center;
 }
 
 .home-page--slot-loading {

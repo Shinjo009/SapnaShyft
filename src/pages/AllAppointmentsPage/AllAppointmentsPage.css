@@ -191,6 +191,38 @@
   gap: 16px;
 }
 
+.all-appointments-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px 32px;
+  box-sizing: border-box;
+  gap: 8px;
+}
+
+.all-appointments-page__empty-title,
+.all-appointments-page__empty-sub {
+  margin: 0;
+  font-family: Inter, "DM Sans", sans-serif;
+  font-style: normal;
+  line-height: 1.45;
+  max-width: 280px;
+}
+
+.all-appointments-page__empty-title {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.all-appointments-page__empty-sub {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 14px;
+  font-weight: 400;
+}
+
 .all-appointments-page__card {
   position: relative;
   display: flex;

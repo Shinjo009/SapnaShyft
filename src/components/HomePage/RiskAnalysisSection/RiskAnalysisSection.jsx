@@ -685,14 +685,14 @@ const RiskAnalysisSection = ({
   };
 
   useEffect(() => {
-    if (prefetchedHomeBloodMarkers === undefined) {
+    if (prefetchedHomeBloodMarkers == null) {
       return;
     }
     setApiBloodMarkers(Array.isArray(prefetchedHomeBloodMarkers) ? prefetchedHomeBloodMarkers : []);
   }, [prefetchedHomeBloodMarkers]);
 
   useEffect(() => {
-    if (prefetchedHomeBloodMarkers !== undefined) {
+    if (prefetchedHomeBloodMarkers != null) {
       return undefined;
     }
 

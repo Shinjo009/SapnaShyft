@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { hasFamilyHistoryQuestionnaireDraft } from '../../services/questionnaireService';
+import { hasNutritionLogQuestionnaireDraft } from '../../services/questionnaireService';
 import ques1Icon from '../../images/ques-1.svg';
 import ques2Icon from '../../images/ques-2.svg';
 import ques3Icon from '../../images/ques-3.svg';
@@ -316,11 +316,17 @@ const prioritizeHeightUnitOptions = (options = []) => {
   return prioritized;
 };
 
+const parseInitialAnthropometryWeight = (raw) => {
+  if (raw == null || raw === '') {
+    return null;
+  }
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+};
+
 const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initialValues = {} }) => {
   const [height, setHeight] = useState(roundToWholeNumber(initialValues?.height, DEFAULT_HEIGHT_CM));
-  const [weight, setWeight] = useState(
-    initialValues?.weight != null && initialValues?.weight !== '' ? String(initialValues.weight) : '0'
-  );
+  const [weight, setWeight] = useState(() => parseInitialAnthropometryWeight(initialValues?.weight));
   const [waist, setWaist] = useState(roundToWholeNumber(initialValues?.waist, DEFAULT_CIRCUMFERENCE_INCHES));
   const [heightUnit, setHeightUnit] = useState(initialValues?.heightUnit || '-');
   const [weightUnit, setWeightUnit] = useState(initialValues?.weightUnit || '-');
@@ -366,7 +372,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
 
   useEffect(() => {
     setHeight(roundToWholeNumber(initialValues?.height, DEFAULT_HEIGHT_CM));
-    setWeight(initialValues?.weight != null && initialValues?.weight !== '' ? String(initialValues.weight) : '0');
+    setWeight(parseInitialAnthropometryWeight(initialValues?.weight));
     setWaist(roundToWholeNumber(initialValues?.waist, DEFAULT_CIRCUMFERENCE_INCHES));
     setHeightUnit(
       resolvePreferredUnitOption(
@@ -474,17 +480,30 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
 
   const handleWaistTouchEnd = () => { waistTouchLastX.current = null; };
 
-  const handleWeightChange = (e) => {
-    // Only allow digits while typing — no clamping mid-input.
-    const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 3);
-    setWeight(val);
+  const handleWeightInput = (e) => {
+    const raw = String(e.target.value || '').trim();
+    if (raw === '') {
+      setWeight(null);
+      return;
+    }
+    const digits = raw.replace(/[^0-9]/g, '').slice(0, 3);
+    if (digits === '') {
+      setWeight(null);
+      return;
+    }
+    const next = Number.parseInt(digits, 10);
+    if (Number.isNaN(next)) {
+      setWeight(null);
+      return;
+    }
+    setWeight(clamp(next, 0, 250));
   };
 
   const handleWeightBlur = () => {
-    if (weight === '') return;
-    const num = parseInt(weight, 10);
-    if (isNaN(num)) { setWeight(''); return; }
-    setWeight(String(clamp(num, 0, 250)));
+    if (weight == null) {
+      return;
+    }
+    setWeight((prev) => (prev == null ? null : clamp(prev, 0, 250)));
   };
 
   useEffect(() => {
@@ -605,8 +624,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
     heightInchesTouchLastY.current = null;
   };
 
-  const parsedWeight = Number.parseInt(weight, 10);
-  const weightForIndicator = Number.isNaN(parsedWeight) ? 0 : clamp(parsedWeight, 0, 100);
+  const weightForIndicator = weight == null ? 0 : clamp(weight, 0, 100);
   const indicatorProgress = weightForIndicator / 100;
   const indicatorAngle = -90 + (indicatorProgress * 180);
 
@@ -716,17 +734,24 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
         <AnthropometryUnitDropdown value={weightUnit} options={weightUnitOptions} onChange={setWeightUnit} />
         <img src={AnthInd} alt="" aria-hidden="true" className="anthropometry-page__dial" />
         <div className="anthropometry-page__selected-box anthropometry-page__selected-box--weight">
-          <input
-            type="text"
-            inputMode="numeric"
-            className="anthropometry-page__weight-dial-input"
-            value={weight}
-            onChange={handleWeightChange}
-            onBlur={handleWeightBlur}
-            maxLength={3}
-            placeholder="00"
-            aria-label="Body weight"
-          />
+          <div className="anthropometry-page__weight-dial-stack">
+            <span
+              className={`anthropometry-page__weight-dial-display${weight == null ? ' anthropometry-page__weight-dial-display--empty' : ''}`}
+              aria-hidden="true"
+            >
+              {weight == null ? '00' : String(weight)}
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              className="anthropometry-page__weight-dial-input"
+              value={weight ?? ''}
+              onChange={handleWeightInput}
+              onBlur={handleWeightBlur}
+              maxLength={3}
+              aria-label="Body weight"
+            />
+          </div>
         </div>
         <div className="anthropometry-page__indicator">
           <AnthropometryDialIndicator angle={indicatorAngle} />
@@ -773,10 +798,9 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
         type="button"
         className="anthropometry-page__continue"
         onClick={() => {
-          const parsedWeight = Number(weight);
           onContinue?.({
             height,
-            weight: Number.isFinite(parsedWeight) ? parsedWeight : null,
+            weight: weight != null && Number.isFinite(weight) ? weight : null,
             waist: roundToWholeNumber(waist, DEFAULT_CIRCUMFERENCE_INCHES),
             heightUnit,
             weightUnit,
@@ -1343,14 +1367,22 @@ const isEmptyAnswer = (answer) => {
   return false;
 };
 
+const getOptionDisplayText = (option) => String(
+  option?.display_name ?? option?.label ?? '',
+).trim();
+
+const getOptionStoredValue = (option) => String(
+  option?.option_value ?? option?.value ?? '',
+).trim();
+
 const mapOptionLabelToValue = (question, label) => {
   const normalizedLabel = String(label || '').trim();
   if (!normalizedLabel) return '';
 
   const matchedOption = Array.isArray(question?.options)
     ? question.options.find((option) => {
-        const displayName = String(option?.display_name || '').trim();
-        const optionValue = String(option?.option_value || '').trim();
+        const displayName = getOptionDisplayText(option);
+        const optionValue = getOptionStoredValue(option);
         return displayName === normalizedLabel || optionValue === normalizedLabel;
       })
     : null;
@@ -1359,7 +1391,12 @@ const mapOptionLabelToValue = (question, label) => {
     return normalizedLabel;
   }
 
-  return matchedOption.option_value || matchedOption.display_name || normalizedLabel;
+  const stored = getOptionStoredValue(matchedOption);
+  if (stored) {
+    return stored;
+  }
+
+  return getOptionDisplayText(matchedOption) || normalizedLabel;
 };
 
 const mapOptionValueToLabel = (question, value) => {
@@ -1368,8 +1405,8 @@ const mapOptionValueToLabel = (question, value) => {
 
   const matchedOption = Array.isArray(question?.options)
     ? question.options.find((option) => {
-        const displayName = String(option?.display_name || '').trim();
-        const optionValue = String(option?.option_value || '').trim();
+        const displayName = getOptionDisplayText(option);
+        const optionValue = getOptionStoredValue(option);
         return displayName === normalizedValue || optionValue === normalizedValue;
       })
     : null;
@@ -1378,7 +1415,7 @@ const mapOptionValueToLabel = (question, value) => {
     return normalizedValue;
   }
 
-  return matchedOption.display_name || matchedOption.option_value || normalizedValue;
+  return getOptionDisplayText(matchedOption) || getOptionStoredValue(matchedOption) || normalizedValue;
 };
 
 const normalizeResponseItems = (responses = []) => {
@@ -1656,6 +1693,18 @@ const buildAnthropometryInitialValuesFromResponses = (questions = [], responses 
   };
 };
 
+/** BP readings ≤ 0 are treated as unset (placeholder / legacy bad saves) so inputs stay empty and “00” is visual only. */
+const normalizeStoredVitalReading = (raw) => {
+  if (raw == null || raw === '') {
+    return null;
+  }
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) {
+    return null;
+  }
+  return n;
+};
+
 const buildVitalsInitialValuesFromResponses = (questions = [], responses = []) => {
   const normalizedResponses = normalizeResponseItems(responses);
   if (!Array.isArray(questions) || questions.length === 0 || normalizedResponses.length === 0) {
@@ -1671,7 +1720,8 @@ const buildVitalsInitialValuesFromResponses = (questions = [], responses = []) =
       return null;
     }
 
-    return toNumericAnswer(getResponseAnswerForQuestion(question, normalizedResponses));
+    const parsed = toNumericAnswer(getResponseAnswerForQuestion(question, normalizedResponses));
+    return normalizeStoredVitalReading(parsed);
   };
 
   return {
@@ -1683,14 +1733,26 @@ const buildVitalsInitialValuesFromResponses = (questions = [], responses = []) =
 const normalizeAnswerForQuestion = (question, rawAnswer) => {
   const questionType = normalizeQuestionType(question?.question_type);
 
-  if (questionType === 'multiple_choice' || questionType === 'multi_choice') {
+  if (
+    questionType === 'multiple_choice'
+    || questionType === 'multi_choice'
+    || questionType === 'checkbox'
+    || questionType === 'multi_select'
+  ) {
     const values = (Array.isArray(rawAnswer) ? rawAnswer : [rawAnswer])
       .map((value) => mapOptionLabelToValue(question, value))
       .filter((value) => !isEmptyAnswer(value));
     return values;
   }
 
-  if (questionType === 'single_choice' || questionType === 'choice') {
+  if (
+    questionType === 'single_choice'
+    || questionType === 'choice'
+    || questionType === 'radio'
+    || questionType === 'single_select'
+    || questionType === 'select_one'
+    || questionType === 'dropdown'
+  ) {
     const selected = Array.isArray(rawAnswer) ? rawAnswer[0] : rawAnswer;
     return mapOptionLabelToValue(question, selected);
   }
@@ -1729,6 +1791,16 @@ const normalizeAnswerForQuestion = (question, rawAnswer) => {
     return Number.isFinite(numberValue) ? numberValue : null;
   }
 
+  if (Array.isArray(question?.options) && question.options.length > 0) {
+    if (!Array.isArray(rawAnswer) || rawAnswer.length <= 1) {
+      const picked = Array.isArray(rawAnswer) ? rawAnswer[0] : rawAnswer;
+      const mapped = mapOptionLabelToValue(question, picked);
+      if (!isEmptyAnswer(mapped) && String(mapped).trim() !== '') {
+        return mapped;
+      }
+    }
+  }
+
   if (Array.isArray(rawAnswer)) {
     return rawAnswer[0] ?? null;
   }
@@ -1747,6 +1819,25 @@ const buildResponseItem = (question, rawAnswer) => {
     question_id: questionId,
     answer,
   };
+};
+
+/** Resolves UI selection keys when API `question_key` uses underscores and static cards use hyphens (e.g. fall-sick vs fall_sick). */
+const getSelectionsValueForKey = (selections, key) => {
+  if (!selections || typeof selections !== 'object' || !key) {
+    return undefined;
+  }
+  if (Object.prototype.hasOwnProperty.call(selections, key)) {
+    return selections[key];
+  }
+  const underscored = String(key).replace(/-/g, '_');
+  if (underscored !== key && Object.prototype.hasOwnProperty.call(selections, underscored)) {
+    return selections[underscored];
+  }
+  const hyphened = String(key).replace(/_/g, '-');
+  if (hyphened !== key && Object.prototype.hasOwnProperty.call(selections, hyphened)) {
+    return selections[hyphened];
+  }
+  return undefined;
 };
 
 /** API ``scale`` questions require ``{ value, unit }`` with ``unit`` as questionnaire option_value (e.g. Metsights codes). */
@@ -1794,7 +1885,7 @@ const buildResponsesFromSelections = (questions = [], selections = {}) => {
     .map((question) => {
       const questionId = question?.question_id || question?.id;
       const key = question?.question_key || `question-${questionId}`;
-      return buildResponseItem(question, selections[key]);
+      return buildResponseItem(question, getSelectionsValueForKey(selections, key));
     })
     .filter(Boolean);
 
@@ -1807,7 +1898,7 @@ const buildResponsesFromSelections = (questions = [], selections = {}) => {
       return;
     }
 
-    const selectedValues = selections[key];
+    const selectedValues = getSelectionsValueForKey(selections, key);
     const normalizedSelection = Array.isArray(selectedValues) ? selectedValues : [selectedValues];
     const hasOtherSelected = normalizedSelection.some((value) => isOtherOptionLabel(value));
     if (!hasOtherSelected) {
@@ -1815,9 +1906,10 @@ const buildResponsesFromSelections = (questions = [], selections = {}) => {
     }
 
     const otherTextKey = getOtherTextSelectionKey(key);
-    const otherTextAnswer = Array.isArray(selections[otherTextKey])
-      ? selections[otherTextKey][0]
-      : selections[otherTextKey];
+    const otherTextRaw = getSelectionsValueForKey(selections, otherTextKey);
+    const otherTextAnswer = Array.isArray(otherTextRaw)
+      ? otherTextRaw[0]
+      : otherTextRaw;
     if (isEmptyAnswer(otherTextAnswer)) {
       return;
     }
@@ -1834,6 +1926,167 @@ const buildResponsesFromSelections = (questions = [], selections = {}) => {
   });
 
   return [...primaryResponses, ...extraResponses];
+};
+
+const findQuestionForNutritionCardSelection = (questions, selectionKey, cardsData) => {
+  if (!Array.isArray(questions) || questions.length === 0 || !selectionKey) {
+    return null;
+  }
+  const sel = String(selectionKey).trim();
+
+  const direct = questions.find((q) => {
+    const qk = String(q?.question_key || '').trim();
+    if (!qk) {
+      return false;
+    }
+    return qk === sel
+      || qk.replace(/_/g, '-') === sel.replace(/_/g, '-')
+      || qk.replace(/-/g, '_') === sel.replace(/-/g, '_');
+  });
+  if (direct) {
+    return direct;
+  }
+
+  const card =
+    (Array.isArray(cardsData) ? cardsData.find((c) => c.key === sel) : null)
+    || nutritionCards.find((c) => c.key === sel);
+  const titleFromCard = String(card?.title || '').trim();
+  if (titleFromCard) {
+    const looseTitle = normalizeLookupText(titleFromCard);
+    const byTitle = questions.find((q) => {
+      const qt = normalizeLookupText(q?.question_text || '');
+      return qt && (qt === looseTitle || qt.includes(looseTitle) || looseTitle.includes(qt));
+    });
+    if (byTitle) {
+      return byTitle;
+    }
+  }
+
+  const looseSel = normalizeLookupText(sel);
+  return questions.find((q) => {
+    const qk = normalizeLookupText(q?.question_key || '');
+    return qk && (qk === looseSel || qk.includes(looseSel) || looseSel.includes(qk));
+  }) || null;
+};
+
+/**
+ * Nutrition questionnaire API expects `{ question_id, answer }` where `answer` is a string
+ * or string[] (e.g. option_value / value, or option index as string when those are blank).
+ */
+const isNutritionMultiSelectQuestionType = (question) => {
+  const questionType = normalizeQuestionType(question?.question_type);
+  return (
+    questionType === 'multiple_choice'
+    || questionType === 'multi_choice'
+    || questionType === 'checkbox'
+    || questionType === 'multi_select'
+  );
+};
+
+const coerceNutritionLogAnswerForApi = (question, answer) => {
+  const opts = Array.isArray(question?.options) ? question.options : [];
+  const isMulti = isNutritionMultiSelectQuestionType(question)
+    || (Array.isArray(answer) && answer.length > 1);
+
+  const toApiString = (piece) => {
+    if (piece == null) {
+      return null;
+    }
+    if (typeof piece === 'boolean') {
+      return piece ? 'true' : 'false';
+    }
+    if (typeof piece === 'number' && Number.isFinite(piece)) {
+      return String(piece);
+    }
+    if (typeof piece === 'object' && !Array.isArray(piece)) {
+      return null;
+    }
+    const s = String(piece).trim();
+    if (s === '') {
+      return null;
+    }
+    if (opts.length > 0) {
+      const idx = opts.findIndex((opt) => {
+        const stored = getOptionStoredValue(opt);
+        const display = getOptionDisplayText(opt);
+        return (stored !== '' && stored === s) || display === s;
+      });
+      if (idx >= 0) {
+        const stored = getOptionStoredValue(opts[idx]);
+        return stored !== '' ? stored : String(idx);
+      }
+    }
+    return s;
+  };
+
+  if (answer == null || (typeof answer === 'string' && answer.trim() === '')) {
+    return null;
+  }
+
+  if (isMulti) {
+    const arr = (Array.isArray(answer) ? answer : [answer])
+      .map(toApiString)
+      .filter((x) => x != null && x !== '');
+    return arr.length ? arr : null;
+  }
+
+  if (Array.isArray(answer)) {
+    return toApiString(answer[0]);
+  }
+
+  return toApiString(answer);
+};
+
+/** Merges `buildResponsesFromSelections` with answers keyed by static card keys that do not match API `question_key`. */
+const buildNutritionLogResponsesForSave = (questions = [], selections = {}, cardsData = []) => {
+  const base = buildResponsesFromSelections(questions, selections);
+  const byQuestionId = new Map(base.map((r) => [Number(r.question_id), r]));
+
+  if (selections && typeof selections === 'object' && Array.isArray(cardsData)) {
+    Object.keys(selections).forEach((key) => {
+      if (!key || key.endsWith(OTHER_TEXT_SELECTION_KEY_SUFFIX)) {
+        return;
+      }
+      const raw = getSelectionsValueForKey(selections, key);
+      const hasValue = Array.isArray(raw) ? raw.length > 0 : !isEmptyAnswer(raw);
+      if (!hasValue) {
+        return;
+      }
+
+      const question = findQuestionForNutritionCardSelection(questions, key, cardsData);
+      if (!question) {
+        return;
+      }
+      const qid = Number(question.question_id || question.id || 0);
+      if (qid <= 0 || byQuestionId.has(qid)) {
+        return;
+      }
+
+      const item = buildResponseItem(question, raw);
+      if (item) {
+        byQuestionId.set(qid, item);
+      }
+    });
+  }
+
+  const questionById = new Map(
+    (Array.isArray(questions) ? questions : []).map((q) => [Number(q?.question_id || q?.id || 0), q]),
+  );
+
+  return Array.from(byQuestionId.values())
+    .map((item) => {
+      const q = questionById.get(Number(item.question_id));
+      const answer = coerceNutritionLogAnswerForApi(q, item.answer);
+      if (answer == null || (Array.isArray(answer) && answer.length === 0)) {
+        return null;
+      }
+      return {
+        question_id: Number(item.question_id),
+        answer,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.question_id - b.question_id);
 };
 
 const buildSelectionStateFromCards = (cardsData = [], initialSelections = {}) => {
@@ -2029,6 +2282,10 @@ const buildVitalsResponses = (questions = [], values = {}) => {
   return fieldMap
     .map(({ aliases, value }) => {
       if (value == null || value === '') {
+        return null;
+      }
+      const n = Number(value);
+      if (!Number.isFinite(n) || n <= 0) {
         return null;
       }
 
@@ -3208,6 +3465,113 @@ const nutritionFullWidthByQuestionKey = {
   ]),
 };
 
+const isNutritionDietTypeCard = (card) => {
+  if (!card || typeof card !== 'object') {
+    return false;
+  }
+  const k = String(card.key || '').toLowerCase().replace(/-/g, '_');
+  if (['diet_type', 'diet_type_primary', 'primary_diet', 'diet'].includes(k)) {
+    return true;
+  }
+  const t = String(card.title || '').toLowerCase();
+  return t.includes('type of diet') || (t.includes('diet') && t.includes('primarily'));
+};
+
+const isNutritionDailyFoodGroupsCard = (card) => {
+  if (!card || typeof card !== 'object') {
+    return false;
+  }
+  const k = String(card.key || '').toLowerCase().replace(/-/g, '_');
+  if (k === 'daily_food_groups' || k === 'daily_food_groups_consumed' || k.includes('food_group')) {
+    return true;
+  }
+  const t = String(card.title || '').toLowerCase();
+  return t.includes('food groups') && (t.includes('every day') || t.includes('daily'));
+};
+
+/** Jain / Veg / Vegetarian: hide eggs and meat/fish. Eggetarian: hide chicken/fish only (eggs allowed). */
+const mapNutritionDietChoiceToFoodGroupFilterMode = (choice) => {
+  const d = String(choice || '').trim().toLowerCase();
+  if (d === 'jain' || d === 'veg' || d === 'vegetarian') {
+    return 'strict_veg';
+  }
+  if (d === 'eggetarian' || d === 'eggitarian') {
+    return 'eggetarian';
+  }
+  return null;
+};
+
+const nutritionFoodGroupOptionHiddenByDiet = (optionLabel, mode) => {
+  if (!mode) {
+    return false;
+  }
+  const t = String(optionLabel || '').trim().toLowerCase();
+  const isEggs = t === 'eggs' || /^eggs?\b/.test(t);
+  const isMeatOrFish = t.includes('chicken') || t.includes('fish');
+  if (mode === 'strict_veg') {
+    return isEggs || isMeatOrFish;
+  }
+  if (mode === 'eggetarian') {
+    return isMeatOrFish;
+  }
+  return false;
+};
+
+const getNutritionDietFoodGroupFilterMode = (selections, cardsData) => {
+  if (!selections || typeof selections !== 'object' || !Array.isArray(cardsData)) {
+    return null;
+  }
+  const dietCard = cardsData.find(isNutritionDietTypeCard);
+  const dietKey = dietCard?.key;
+  if (!dietKey) {
+    return null;
+  }
+  const choice = (selections[dietKey] || [])[0];
+  return mapNutritionDietChoiceToFoodGroupFilterMode(choice);
+};
+
+const filterNutritionFoodGroupOptionsForDiet = (options, selections, cardsData) => {
+  if (!Array.isArray(options)) {
+    return [];
+  }
+  const mode = getNutritionDietFoodGroupFilterMode(selections, cardsData);
+  if (!mode) {
+    return options;
+  }
+  return options.filter((opt) => !nutritionFoodGroupOptionHiddenByDiet(opt?.label, mode));
+};
+
+/** Drops daily food-group picks that conflict with the selected diet (same rules as option filtering). */
+const pruneNutritionFoodGroupSelectionsForPayload = (prev, cardsData) => {
+  if (!prev || typeof prev !== 'object' || !Array.isArray(cardsData)) {
+    return prev;
+  }
+  const dietKey = cardsData.find(isNutritionDietTypeCard)?.key;
+  const fgKey = cardsData.find(isNutritionDailyFoodGroupsCard)?.key;
+  if (!dietKey || !fgKey) {
+    return prev;
+  }
+  const mode = mapNutritionDietChoiceToFoodGroupFilterMode((prev[dietKey] || [])[0]);
+  if (!mode) {
+    return prev;
+  }
+  const cur = prev[fgKey];
+  if (!Array.isArray(cur) || cur.length === 0) {
+    return prev;
+  }
+  const next = cur.filter((label) => !nutritionFoodGroupOptionHiddenByDiet(label, mode));
+  if (next.length === cur.length) {
+    return prev;
+  }
+  const nextState = { ...prev, [fgKey]: next };
+  const fgOtherKey = getOtherTextSelectionKey(fgKey);
+  const hasOtherInNext = next.some((item) => isOtherOptionLabel(item));
+  if (!hasOtherInNext && Object.prototype.hasOwnProperty.call(nextState, fgOtherKey)) {
+    delete nextState[fgOtherKey];
+  }
+  return nextState;
+};
+
 const toNutritionApiCards = (questions = []) => {
   return questions
     .filter((question) => !isLikelyOtherTextQuestion(question))
@@ -3251,11 +3615,25 @@ const toNutritionApiCards = (questions = []) => {
     });
 };
 
+const NUTRITION_LOG_EMPTY_CARD = {
+  key: 'empty',
+  title: 'No questions available for this category yet.',
+  helper: '',
+  options: [],
+  defaultSelected: [],
+  multi: false,
+};
+
+const NUTRITION_EMPTY_SELECTIONS = [];
+
 const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {} }) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const cardsData = useMemo(() => {
-    return Array.isArray(questions) ? toNutritionApiCards(questions) : nutritionCards;
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return nutritionCards;
+    }
+    return toNutritionApiCards(questions);
   }, [questions]);
 
   const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
@@ -3271,19 +3649,52 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
     setSelections(buildSelectionStateFromCards(cardsData, initialSelections));
   }, [cardsData, initialSelections]);
 
+  const dietTypeCardKey = useMemo(() => cardsData.find(isNutritionDietTypeCard)?.key, [cardsData]);
+  const dailyFoodGroupsCardKey = useMemo(() => cardsData.find(isNutritionDailyFoodGroupsCard)?.key, [cardsData]);
+
   const totalCards = Math.max(cardsData.length, 1);
-  const activeCard = cardsData[cardIndex] || {
-    key: 'empty',
-    title: 'No questions available for this category yet.',
-    helper: '',
-    options: [],
-    defaultSelected: [],
-    multi: false,
-  };
-  const activeSelections = selections[activeCard.key] || [];
+  const activeCard = useMemo(
+    () => cardsData[cardIndex] || NUTRITION_LOG_EMPTY_CARD,
+    [cardsData, cardIndex],
+  );
+  const activeCardVisibleOptions = useMemo(() => {
+    const opts = activeCard.options || [];
+    if (isNutritionDailyFoodGroupsCard(activeCard)) {
+      return filterNutritionFoodGroupOptionsForDiet(opts, selections, cardsData);
+    }
+    return opts;
+  }, [activeCard, selections, cardsData]);
+
+  const dietChoiceForFoodGroupFilter = dietTypeCardKey ? (selections[dietTypeCardKey]?.[0] ?? '') : '';
+  const dailyFoodGroupSelections = useMemo(() => {
+    if (!dailyFoodGroupsCardKey) {
+      return NUTRITION_EMPTY_SELECTIONS;
+    }
+    const v = selections[dailyFoodGroupsCardKey];
+    return Array.isArray(v) ? v : NUTRITION_EMPTY_SELECTIONS;
+  }, [dailyFoodGroupsCardKey, selections]);
+
+  useEffect(() => {
+    setSelections((prev) => pruneNutritionFoodGroupSelectionsForPayload(prev, cardsData));
+  }, [dietChoiceForFoodGroupFilter, dailyFoodGroupSelections, cardsData]);
+
+  const activeSelections = useMemo(() => {
+    const v = selections[activeCard.key];
+    return Array.isArray(v) ? v : NUTRITION_EMPTY_SELECTIONS;
+  }, [selections, activeCard.key]);
+  const activeSelectionsAnswerable = useMemo(() => {
+    if (!isNutritionDailyFoodGroupsCard(activeCard)) {
+      return activeSelections;
+    }
+    const mode = getNutritionDietFoodGroupFilterMode(selections, cardsData);
+    if (!mode) {
+      return activeSelections;
+    }
+    return activeSelections.filter((label) => !nutritionFoodGroupOptionHiddenByDiet(label, mode));
+  }, [activeCard, activeSelections, selections, cardsData]);
   const hasOtherOption = !activeCard.isTextInput
-    && Array.isArray(activeCard.options)
-    && activeCard.options.some((option) => isOtherOptionLabel(getOptionLabel(option)));
+    && Array.isArray(activeCardVisibleOptions)
+    && activeCardVisibleOptions.some((option) => isOtherOptionLabel(getOptionLabel(option)));
   const hasOtherSelected = hasOtherOption && activeSelections.some((option) => isOtherOptionLabel(option));
   const otherTextSelectionKey = getOtherTextSelectionKey(activeCard.key);
   const otherTextInputValue = (Array.isArray(selections[otherTextSelectionKey]) ? selections[otherTextSelectionKey][0] : '') || '';
@@ -3297,7 +3708,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
     stackSpace,
     activeCard.title,
     activeCard.helper,
-    activeCard.options?.length || 0,
+    activeCardVisibleOptions?.length || 0,
   ]);
 
   const chipClass = (option) => {
@@ -3328,12 +3739,12 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
   };
 
   const attemptGoNext = () => {
-    if (!hasCardAnswer(activeCard, activeSelections)) {
+    if (!hasCardAnswer(activeCard, activeSelectionsAnswerable)) {
       triggerCardShake();
       return;
     }
 
-    onDraftSave?.(selectionsRef.current);
+    onDraftSave?.(pruneNutritionFoodGroupSelectionsForPayload(selectionsRef.current, cardsData));
 
     goNext();
   };
@@ -3484,7 +3895,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
             </div>
           ) : (
             <div className={`nutrition-log-page__chips ${activeCard.multi ? 'nutrition-log-page__chips--multi' : ''}`}>
-              {activeCard.options.map((option) => {
+              {activeCardVisibleOptions.map((option) => {
                 const selected = activeSelections.includes(option.label);
                 return (
                   <button
@@ -3529,13 +3940,14 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
           type="button"
           className="nutrition-log-page__done"
           onClick={() => {
-            if (!hasCardAnswer(activeCard, activeSelections)) {
+            if (!hasCardAnswer(activeCard, activeSelectionsAnswerable)) {
               triggerCardShake();
               return;
             }
 
-            onDraftSave?.(selectionsRef.current);
-            onDone?.(selectionsRef.current);
+            const payload = pruneNutritionFoodGroupSelectionsForPayload(selectionsRef.current, cardsData);
+            onDraftSave?.(payload);
+            onDone?.(payload);
           }}
         >
           Done
@@ -3568,19 +3980,20 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
 };
 
 const formatVitalsTwoDigits = (value) => String(value).padStart(2, '0');
+/** Placeholder / skip-submit values: shown as “00” until the user enters a reading. */
 const VITALS_DEFAULTS = {
-  systolic: 120,
-  diastolic: 80,
+  systolic: 0,
+  diastolic: 0,
 };
 
-const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [], initialValues = {} }) => {
-  const [systolic, setSystolic] = useState(initialValues?.systolic ?? null);
-  const [diastolic, setDiastolic] = useState(initialValues?.diastolic ?? null);
+const EmbeddedVitalsPage = ({ onBack, onDone, questions = [], initialValues = {} }) => {
+  const [systolic, setSystolic] = useState(() => normalizeStoredVitalReading(initialValues?.systolic));
+  const [diastolic, setDiastolic] = useState(() => normalizeStoredVitalReading(initialValues?.diastolic));
   const [showSubmitPopup, setShowSubmitPopup] = useState(false);
 
   useEffect(() => {
-    setSystolic(initialValues?.systolic ?? null);
-    setDiastolic(initialValues?.diastolic ?? null);
+    setSystolic(normalizeStoredVitalReading(initialValues?.systolic));
+    setDiastolic(normalizeStoredVitalReading(initialValues?.diastolic));
   }, [initialValues]);
 
   const handleNumberInput = (setter) => (e) => {
@@ -3618,7 +4031,7 @@ const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [], initialVal
       </div>
 
       <p className="vitals-page__subtitle">
-        A healthy blood pressure range is typically around 120 mmHg systolic and 80 mmHg diastolic.
+        Enter your systolic and diastolic blood pressure in mmHg.
       </p>
 
       <p className="vitals-page__label vitals-page__label--first">{systolicLabel}</p>
@@ -3659,7 +4072,9 @@ const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [], initialVal
         <span className="vitals-page__unit">mmHg</span>
       </div>
 
-      <button type="button" className="vitals-page__skip" onClick={onSkip}>Skip</button>
+      <button type="button" className="vitals-page__skip" onClick={() => setShowSubmitPopup(true)}>
+        Skip
+      </button>
       <button
         type="button"
         className="vitals-page__done"
@@ -3696,8 +4111,8 @@ const EmbeddedVitalsPage = ({ onBack, onDone, onSkip, questions = [], initialVal
                 onClick={() => {
                   setShowSubmitPopup(false);
                   onDone?.({
-                    systolic: systolic ?? VITALS_DEFAULTS.systolic,
-                    diastolic: diastolic ?? VITALS_DEFAULTS.diastolic,
+                    systolic: systolic != null ? systolic : null,
+                    diastolic: diastolic != null ? diastolic : null,
                   });
                 }}
               >
@@ -3763,7 +4178,6 @@ const HealthAssessmentPage = ({
   onStepComplete,
   onStepDraftSave,
   onAssessmentSubmit,
-  onNavigateHome,
 }) => {
   const [activeSubPage, setActiveSubPage] = useState(null);
   const [showFollowup, setShowFollowup] = useState(false);
@@ -3818,8 +4232,8 @@ const HealthAssessmentPage = ({
     setLifestyleHabitsSelections(lifestyleInitialSelections);
     setNutritionLogSelections(nutritionInitialSelections);
     setVitalsValues({
-      systolic: vitalsInitialValues?.systolic ?? null,
-      diastolic: vitalsInitialValues?.diastolic ?? null,
+      systolic: normalizeStoredVitalReading(vitalsInitialValues?.systolic),
+      diastolic: normalizeStoredVitalReading(vitalsInitialValues?.diastolic),
     });
   }, [
     activeSubPage,
@@ -3849,29 +4263,29 @@ const HealthAssessmentPage = ({
     && steps.length > 0
     && steps.every((step) => String(step?.status || '').trim().toLowerCase() === 'complete');
 
-  const optimisticFamilyHistoryDraft = useMemo(() => {
-    const responses = initialResponsesByRoute['family-history'];
+  const optimisticNutritionLogDraft = useMemo(() => {
+    const responses = initialResponsesByRoute['nutrition-log'];
     return Array.isArray(responses) && responses.length > 0;
   }, [initialResponsesByRoute]);
 
-  const [familyHistorySubmittedResolved, setFamilyHistorySubmittedResolved] = useState(false);
-  const [hasFamilyHistorySubmittedDraft, setHasFamilyHistorySubmittedDraft] = useState(false);
+  const [nutritionLogDraftCheckResolved, setNutritionLogDraftCheckResolved] = useState(false);
+  const [hasNutritionLogSubmittedDraft, setHasNutritionLogSubmittedDraft] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const drafted = await hasFamilyHistoryQuestionnaireDraft();
+        const drafted = await hasNutritionLogQuestionnaireDraft();
         if (!cancelled) {
-          setHasFamilyHistorySubmittedDraft(drafted);
+          setHasNutritionLogSubmittedDraft(drafted);
         }
       } catch {
         if (!cancelled) {
-          setHasFamilyHistorySubmittedDraft(false);
+          setHasNutritionLogSubmittedDraft(false);
         }
       } finally {
         if (!cancelled) {
-          setFamilyHistorySubmittedResolved(true);
+          setNutritionLogDraftCheckResolved(true);
         }
       }
     })();
@@ -3880,11 +4294,11 @@ const HealthAssessmentPage = ({
     };
   }, []);
 
-  const familyHistorySubmittedUnlock = familyHistorySubmittedResolved
-    ? hasFamilyHistorySubmittedDraft
-    : optimisticFamilyHistoryDraft;
+  const nutritionLogSubmittedUnlock = nutritionLogDraftCheckResolved
+    ? hasNutritionLogSubmittedDraft
+    : optimisticNutritionLogDraft;
 
-  const canOpenAllSteps = allCategoriesCompleteFromApi || familyHistorySubmittedUnlock;
+  const canOpenAllSteps = allCategoriesCompleteFromApi || nutritionLogSubmittedUnlock;
   const effectiveProgress = canOpenAllSteps ? resolvedSteps.length : progress;
   const activeIndex = effectiveProgress < resolvedSteps.length ? effectiveProgress : -1;
   const focusedIndex = expandedStep != null ? expandedStep : activeIndex;
@@ -3895,7 +4309,55 @@ const HealthAssessmentPage = ({
   const activeConnectorHalfHeight = showPill ? '44px' : 'var(--node-radius)';
   const hideMiddleDotAtActivePill = showPill && focusedIndex >= 1 && focusedIndex <= 3;
 
+  const stepRouteStatusByRouteId = useMemo(() => {
+    const map = Object.create(null);
+    (Array.isArray(steps) ? steps : []).forEach((s) => {
+      const id = String(s?.routeId || '').trim();
+      if (!id) {
+        return;
+      }
+      map[id] = String(s?.status || '').trim().toLowerCase();
+    });
+    return map;
+  }, [steps]);
+
+  const stepHasResumableWork = (routeId) => {
+    const rid = String(routeId || '');
+    const batch = initialResponsesByRoute[rid];
+    if (Array.isArray(batch) && batch.length > 0) {
+      return true;
+    }
+    const st = stepRouteStatusByRouteId[rid];
+    return st === 'complete' || st === 'in_progress';
+  };
+
+  /** Linear completed steps, full-assessment edit mode, or any section with autosaved / in-progress / complete status on the server. */
+  const canNavigateToTimelineStep = (index) => {
+    if (canOpenAllSteps) {
+      return true;
+    }
+    if (index < effectiveProgress) {
+      return true;
+    }
+    const routeId = resolvedSteps[index]?.id;
+    if (!routeId) {
+      return false;
+    }
+    return stepHasResumableWork(routeId);
+  };
+
   const isCompleted = (index) => index < effectiveProgress;
+  /** Match traversable steps: linear done, full edit mode, or any saved / in-progress / complete section so the ring reads as “done enough to open”. */
+  const stepShowsCompletedRing = (index) => {
+    if (canOpenAllSteps) {
+      return true;
+    }
+    const routeId = resolvedSteps[index]?.id;
+    if (!routeId) {
+      return isCompleted(index);
+    }
+    return isCompleted(index) || stepHasResumableWork(routeId);
+  };
   useEffect(() => {
     if (activeIndex === -1 || activeSubPage) {
       return;
@@ -4015,19 +4477,17 @@ const HealthAssessmentPage = ({
         onBack={() => setActiveSubPage(null)}
         onDraftSave={(selections) => {
           const safeSelections = selections || {};
-          const responses = buildResponsesFromSelections(
-            questionsByRouteId['nutrition-log'] || [],
-            safeSelections
-          );
+          const qs = questionsByRouteId['nutrition-log'] || [];
+          const cardsForSave = qs.length > 0 ? toNutritionApiCards(qs) : nutritionCards;
+          const responses = buildNutritionLogResponsesForSave(qs, safeSelections, cardsForSave);
 
           onStepDraftSave?.('nutrition-log', responses);
         }}
         onDone={(selections) => {
           setNutritionLogSelections(selections || {});
-          const responses = buildResponsesFromSelections(
-            questionsByRouteId['nutrition-log'] || [],
-            selections || {}
-          );
+          const qs = questionsByRouteId['nutrition-log'] || [];
+          const cardsForSave = qs.length > 0 ? toNutritionApiCards(qs) : nutritionCards;
+          const responses = buildNutritionLogResponsesForSave(qs, selections || {}, cardsForSave);
 
           setActiveSubPage(null);
           onStepComplete?.('nutrition-log', responses);
@@ -4037,29 +4497,29 @@ const HealthAssessmentPage = ({
   }
 
   if (activeSubPage === 'vitals') {
+    const finishVitalsAndAssessment = async (values) => {
+      const sanitizedVitals = {
+        systolic: normalizeStoredVitalReading(values?.systolic),
+        diastolic: normalizeStoredVitalReading(values?.diastolic),
+      };
+      setVitalsValues(sanitizedVitals);
+      const responses = buildVitalsResponses(questionsByRouteId['vitals'] || [], sanitizedVitals);
+
+      setActiveSubPage(null);
+      try {
+        await onStepComplete?.('vitals', responses);
+        await onAssessmentSubmit?.();
+      } catch (error) {
+        console.error('Failed to submit assessment:', error);
+      }
+    };
+
     return (
       <EmbeddedVitalsPage
         questions={questionsByRouteId['vitals'] || []}
         initialValues={vitalsValues}
         onBack={() => setActiveSubPage(null)}
-        onDone={async (values) => {
-          setVitalsValues(values || {});
-          const responses = buildVitalsResponses(questionsByRouteId['vitals'] || [], values || {});
-
-          setActiveSubPage(null);
-          try {
-            await onStepComplete?.('vitals', responses);
-            await onAssessmentSubmit?.();
-            // Success overlay is shown in App; user taps OK there to go home — do not call onNavigateHome here.
-          } catch (error) {
-            console.error('Failed to submit assessment:', error);
-          }
-        }}
-        onSkip={() => {
-          setActiveSubPage(null);
-          onStepComplete?.('vitals');
-          onNavigateHome?.();
-        }}
+        onDone={finishVitalsAndAssessment}
       />
     );
   }
@@ -4155,7 +4615,7 @@ const HealthAssessmentPage = ({
         {isCompleted(3) && !(hideMiddleDotAtActivePill && focusedIndex === 3) && <div className="health-assessment-page__branch-glow branch--left-3" />}
 
         {resolvedSteps.map((step, index) => {
-          const completed = isCompleted(index);
+          const completed = stepShowsCompletedRing(index);
           const active = index === activeIndex || index === focusedIndex;
           const isPillVisibleForStep = showPill && focusedIndex === index;
           if (active) {
@@ -4212,7 +4672,7 @@ const HealthAssessmentPage = ({
             </>
           );
 
-          if (completed || canOpenAllSteps) {
+          if (canNavigateToTimelineStep(index)) {
             return (
               <button
                 key={step.id}

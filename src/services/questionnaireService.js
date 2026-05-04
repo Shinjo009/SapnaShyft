@@ -575,6 +575,120 @@ export const hasFamilyHistoryQuestionnaireDraft = async (options = {}) => {
   return promise;
 };
 
+const NUTRITION_DRAFT_CACHE_TTL_MS = 90_000;
+let nutritionDraftCache = { expiresAt: 0, value: null };
+let nutritionDraftInFlight = null;
+
+export const peekNutritionLogQuestionnaireDraftCache = () => {
+  if (Date.now() < nutritionDraftCache.expiresAt) {
+    return nutritionDraftCache.value;
+  }
+  return null;
+};
+
+export const markNutritionLogQuestionnaireDraftKnown = (hasDraft) => {
+  nutritionDraftCache = {
+    expiresAt: Date.now() + NUTRITION_DRAFT_CACHE_TTL_MS,
+    value: Boolean(hasDraft),
+  };
+};
+
+export const invalidateNutritionLogQuestionnaireDraftCache = () => {
+  nutritionDraftCache = { expiresAt: 0, value: null };
+  nutritionDraftInFlight = null;
+};
+
+async function fetchHasNutritionLogQuestionnaireDraftUncached() {
+  const assessmentsPayload = await listMyAssessments(1, 50);
+  const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
+  const latestAssessment = [...assessments]
+    .map((item) => ({
+      ...item,
+      assessmentInstanceId: getAssessmentInstanceId(item),
+      assignedAtTs: toTimestamp(item?.assigned_at || item?.assignedAt),
+    }))
+    .filter((item) => item.assessmentInstanceId > 0)
+    .sort((a, b) => {
+      if (b.assignedAtTs !== a.assignedAtTs) {
+        return b.assignedAtTs - a.assignedAtTs;
+      }
+      return b.assessmentInstanceId - a.assessmentInstanceId;
+    })[0];
+
+  const assessmentInstanceId = Number(latestAssessment?.assessmentInstanceId || 0);
+  if (assessmentInstanceId <= 0) {
+    return false;
+  }
+
+  const statusPayload = await getAssessmentStatus(assessmentInstanceId);
+  const rawCategories = extractCategoriesFromAssessmentStatus(statusPayload);
+  const nutritionCategory = rawCategories
+    .map((category) => ({
+      ...category,
+      category_id: Number(category?.category_id || category?.id || 0),
+      category_key: category?.category_key || category?.key || '',
+      display_name: category?.display_name || category?.name || category?.category_name || '',
+      assessment_instance_id: Number(
+        category?.assessment_instance_id || category?.assessment_id || assessmentInstanceId,
+      ),
+    }))
+    .find((category) => Number(category?.category_id || 0) > 0 && mapCategoryToRouteId(category) === 'nutrition-log');
+
+  if (!nutritionCategory) {
+    return false;
+  }
+
+  const categoryAssessmentInstanceId = Number(
+    nutritionCategory.assessment_instance_id || assessmentInstanceId,
+  );
+  const categoryId = Number(nutritionCategory.category_id || 0);
+  if (categoryAssessmentInstanceId <= 0 || categoryId <= 0) {
+    return false;
+  }
+
+  const questionnairePayload = await getCategoryQuestionnaire(
+    categoryAssessmentInstanceId,
+    categoryId,
+  );
+  const questions = extractQuestionsFromCategoryPayload(questionnairePayload);
+  const responses = extractResponsesFromCategoryPayload(questionnairePayload, questions);
+  return responses.length > 0;
+}
+
+/**
+ * True when the latest assessment has at least one saved nutrition-log response.
+ * Used for B2B home “questionnaire progress” UX (same pattern as family-history draft check).
+ */
+export const hasNutritionLogQuestionnaireDraft = async (options = {}) => {
+  const { forceRefresh = false } = options;
+
+  if (!forceRefresh && Date.now() < nutritionDraftCache.expiresAt) {
+    return nutritionDraftCache.value;
+  }
+
+  if (!forceRefresh && nutritionDraftInFlight) {
+    return nutritionDraftInFlight;
+  }
+
+  const promise = fetchHasNutritionLogQuestionnaireDraftUncached()
+    .then((result) => {
+      nutritionDraftCache = {
+        expiresAt: Date.now() + NUTRITION_DRAFT_CACHE_TTL_MS,
+        value: result,
+      };
+      return result;
+    })
+    .finally(() => {
+      nutritionDraftInFlight = null;
+    });
+
+  if (!forceRefresh) {
+    nutritionDraftInFlight = promise;
+  }
+
+  return promise;
+};
+
 export const submitQuestionnaireResponses = (assessmentInstanceId, categoryId, responses = []) => {
   const normalizedResponses = Array.isArray(responses)
     ? responses.map(normalizeCategoryResponseItem).filter(Boolean)

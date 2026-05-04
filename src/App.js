@@ -12,6 +12,9 @@ import {
   submitQuestionnaireResponses,
   markFamilyHistoryQuestionnaireDraftKnown,
   invalidateFamilyHistoryQuestionnaireDraftCache,
+  markNutritionLogQuestionnaireDraftKnown,
+  invalidateNutritionLogQuestionnaireDraftCache,
+  hasNutritionLogQuestionnaireDraft,
 } from './services/questionnaireService';
 import {
   fetchLatestAssessmentReport,
@@ -452,10 +455,25 @@ function App() {
       if (routeId === 'family-history') {
         markFamilyHistoryQuestionnaireDraftKnown(true);
       }
+      if (routeId === 'nutrition-log') {
+        markNutritionLogQuestionnaireDraftKnown(true);
+      }
     }
 
     if (routeId === 'vitals') {
       const submissionOrder = ['anthropometry', 'family-history', 'lifestyle-habits', 'nutrition-log', 'vitals'];
+
+      const submitPayloadPreview = submissionOrder.map((route) => {
+        const targetCategory = getCategoryByRoute(route);
+        const routeResponses = Array.isArray(nextDraftResponses[route]) ? nextDraftResponses[route] : [];
+        return {
+          route,
+          assessmentInstanceId: Number(targetCategory?.assessment_instance_id || 0),
+          categoryId: Number(targetCategory?.category_id || 0),
+          body: { responses: routeResponses },
+        };
+      });
+      console.log('[Health Assessment] Submit — questionnaire PUT payload(s)', submitPayloadPreview);
 
       for (const route of submissionOrder) {
         await persistRoute(route);
@@ -488,6 +506,9 @@ function App() {
       if (routeId === 'family-history') {
         markFamilyHistoryQuestionnaireDraftKnown(true);
       }
+      if (routeId === 'nutrition-log') {
+        markNutritionLogQuestionnaireDraftKnown(true);
+      }
     } catch (error) {
       console.error(`Failed to autosave questionnaire responses for ${routeId}:`, error);
     }
@@ -495,6 +516,7 @@ function App() {
 
   const initializeQuestionnaire = async () => {
     invalidateFamilyHistoryQuestionnaireDraftCache();
+    invalidateNutritionLogQuestionnaireDraftCache();
     try {
       const context = await loadQuestionnaireContext();
       const categories = context?.categories || [];
@@ -841,6 +863,17 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    if (currentPage !== 'home') {
+      return undefined;
+    }
+    if (preloadedHomeData != null) {
+      return undefined;
+    }
+    void preloadHomeScreenData();
+    return undefined;
+  }, [currentPage, preloadedHomeData]);
+
   const handleSendOtp = async (phone) => {
     await sendOtp(phone);
     setPhoneNumber(phone);
@@ -1104,12 +1137,14 @@ function App() {
 
   if (isBootstrappingSession) {
     return (
-      <SplashScreen
-        onComplete={() => {}}
-        onLogin={() => {}}
-        onSignup={() => {}}
-        showInstallBannerLogo={false}
-      />
+      <div className="app-root">
+        <SplashScreen
+          onComplete={() => {}}
+          onLogin={() => {}}
+          onSignup={() => {}}
+          showInstallBannerLogo={false}
+        />
+      </div>
     );
   }
 
@@ -1496,9 +1531,20 @@ function App() {
               }
               clearReportRequestCache();
               clearStoredLatestAssessmentId();
-            } finally {
-              setQuestionnaireSuccessMessage('Submitted successfully!');
+              invalidateNutritionLogQuestionnaireDraftCache();
+            } catch {
+              // still show completion feedback
             }
+            let successTitle = 'Submitted successfully!';
+            try {
+              const nutritionSaved = await hasNutritionLogQuestionnaireDraft({ forceRefresh: true });
+              if (nutritionSaved) {
+                successTitle = 'Questionnaire completed!';
+              }
+            } catch {
+              // keep default title
+            }
+            setQuestionnaireSuccessMessage(successTitle);
           }}
           onNavigateHome={() => {
             setQuestionnaireSuccessMessage(null);

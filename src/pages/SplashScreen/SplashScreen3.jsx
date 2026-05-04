@@ -9,17 +9,6 @@ const PAD = 36;
 const EDGE = 320;
 const SCENE_PX = PAD * 2 + EDGE;
 
-const PT = {
-  prev: { x: PAD, y: PAD },
-  nut: { x: PAD + EDGE, y: PAD },
-  bio: { x: PAD + EDGE, y: PAD + EDGE },
-  long: { x: PAD, y: PAD + EDGE },
-  start: { x: PAD + 100, y: PAD + 100 },
-};
-const VB = { minX: 0, minY: 0, w: SCENE_PX, h: SCENE_PX };
-const ROTATE_CX = PAD + EDGE / 2;
-const ROTATE_CY = PAD + EDGE / 2;
-
 /** Graph / line intro disabled — cube visible on load; 1s hold then spin. */
 const PHASE_SPIN_MS = 1000;
 
@@ -65,7 +54,7 @@ const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup, showInstall
 
   return (
     <div
-      className={`splash-screen-2 max-w-md mx-auto h-full min-h-full pt-[86px] pb-6 flex flex-col overflow-x-hidden overflow-y-visible ${phaseClass}`}
+      className={`splash-screen-2 max-w-md mx-auto h-full min-h-full pt-[86px] pb-6 flex flex-col overflow-x-hidden overflow-y-hidden ${phaseClass}`}
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
     >
       <div className="splash-screen-2__logo-wrap" aria-hidden={!showInstallBannerLogo}>
@@ -93,91 +82,7 @@ const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup, showInstall
                 </div>
               </div>
 
-              {/* Connecting line + node graph animation (commented — cube only)
-              <svg
-                className="splash-v3-composite-svg"
-                viewBox={`${VB.minX} ${VB.minY} ${VB.w} ${VB.h}`}
-                width={SCENE_PX}
-                height={SCENE_PX}
-                aria-hidden="true"
-              >
-                <defs>
-                  <linearGradient
-                    id="splashV3GradBioLong"
-                    gradientUnits="userSpaceOnUse"
-                    x1={PT.bio.x}
-                    y1={PT.bio.y}
-                    x2={PT.long.x}
-                    y2={PT.long.y}
-                  >
-                    <stop offset="0%" stopColor="#03FCFC" />
-                    <stop offset="100%" stopColor="#FFFFFF" />
-                  </linearGradient>
-                  <linearGradient
-                    id="splashV3GradLongPrev"
-                    gradientUnits="userSpaceOnUse"
-                    x1={PT.long.x}
-                    y1={PT.long.y}
-                    x2={PT.prev.x}
-                    y2={PT.prev.y}
-                  >
-                    <stop offset="0%" stopColor="#FFFFFF" />
-                    <stop offset="100%" stopColor="#03FCFC" />
-                  </linearGradient>
-                </defs>
-
-                <g className="splash-v3-tilt" transform={`rotate(-11.5 ${ROTATE_CX} ${ROTATE_CY})`}>
-                  <line className="splash-v3-seg splash-v3-seg--pn" x1={PT.prev.x} y1={PT.prev.y} x2={PT.nut.x} y2={PT.nut.y} pathLength={1} />
-                  <line className="splash-v3-seg splash-v3-seg--nb" x1={PT.nut.x} y1={PT.nut.y} x2={PT.bio.x} y2={PT.bio.y} pathLength={1} />
-                  <line
-                    className="splash-v3-seg splash-v3-seg--bl"
-                    x1={PT.bio.x}
-                    y1={PT.bio.y}
-                    x2={PT.long.x}
-                    y2={PT.long.y}
-                    pathLength={1}
-                    stroke="url(#splashV3GradBioLong)"
-                  />
-                  <line
-                    className="splash-v3-seg splash-v3-seg--lp"
-                    x1={PT.long.x}
-                    y1={PT.long.y}
-                    x2={PT.prev.x}
-                    y2={PT.prev.y}
-                    pathLength={1}
-                    stroke="url(#splashV3GradLongPrev)"
-                  />
-
-                  <g className="splash-v3-node-g splash-v3-node-g--bio">
-                    <circle className="splash-v3-svg-dot" cx={0} cy={0} r="9" />
-                    <text className="splash-v3-svg-text splash-v3-svg-text--below" x={-8} y={36} textAnchor="end">
-                      Bio-AI
-                    </text>
-                  </g>
-
-                  <g className="splash-v3-node-g splash-v3-node-g--nut">
-                    <circle className="splash-v3-svg-dot" cx={0} cy={0} r="9" />
-                    <text className="splash-v3-svg-text splash-v3-svg-text--below" x={-8} y={36} textAnchor="end">
-                      Nutrition
-                    </text>
-                  </g>
-
-                  <g className="splash-v3-node-g splash-v3-node-g--prev">
-                    <circle className="splash-v3-svg-dot" cx={0} cy={0} r="9" />
-                    <text className="splash-v3-svg-text splash-v3-svg-text--above" x={-6} y={-18} textAnchor="end">
-                      Prevention
-                    </text>
-                  </g>
-
-                  <g className="splash-v3-node-g splash-v3-node-g--long">
-                    <circle className="splash-v3-svg-dot" cx={0} cy={0} r="9" />
-                    <text className="splash-v3-svg-text splash-v3-svg-text--above" x={-10} y={-18} textAnchor="end">
-                      Longevity
-                    </text>
-                  </g>
-                </g>
-              </svg>
-              */}
+              {/* Connecting line + node graph SVG was here; reintroduce with PAD/EDGE/SCENE_PX when enabling. */}
             </div>
           </div>
         </div>

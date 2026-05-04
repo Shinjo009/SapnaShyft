@@ -15,7 +15,16 @@ const TABS = [
   { key: TAB_KEYS.CANCELLED, label: 'Cancelled' },
 ];
 
-const APPOINTMENTS_BY_TAB = {
+/** Set to `true` to preview the appointment card layout with sample rows (not shown in production). */
+const USE_DESIGN_SAMPLE_APPOINTMENTS_DATA = false;
+
+const EMPTY_APPOINTMENTS_BY_TAB = {
+  [TAB_KEYS.UPCOMING]: [],
+  [TAB_KEYS.COMPLETED]: [],
+  [TAB_KEYS.CANCELLED]: [],
+};
+
+const DESIGN_SAMPLE_APPOINTMENTS_BY_TAB = {
   [TAB_KEYS.UPCOMING]: [
     {
       id: 'u-1',
@@ -94,6 +103,10 @@ const APPOINTMENTS_BY_TAB = {
     },
   ],
 };
+
+const APPOINTMENTS_BY_TAB = USE_DESIGN_SAMPLE_APPOINTMENTS_DATA
+  ? DESIGN_SAMPLE_APPOINTMENTS_BY_TAB
+  : EMPTY_APPOINTMENTS_BY_TAB;
 
 const FilterArrowIcon = () => (
   <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -347,6 +360,12 @@ const AllAppointmentsPage = ({ onBack }) => {
       </div>
 
       <div className="all-appointments-page__cards">
+        {visibleAppointments.length === 0 ? (
+          <div className="all-appointments-page__empty" role="status">
+            <p className="all-appointments-page__empty-title">No appointments yet.</p>
+            <p className="all-appointments-page__empty-sub">They will appear here when booked</p>
+          </div>
+        ) : null}
         {visibleAppointments.map((appointment) => {
           const canShowInfo = activeTab === TAB_KEYS.UPCOMING && appointment.showInfo;
           const isInfoOpen = canShowInfo && infoOpenAppointmentId === appointment.id;
