@@ -9,6 +9,7 @@ import NavBar from '../../components/NavBar';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
 import { getAssessmentStatus, listMyAssessments } from '../../services/questionnaireService';
+import { hasRenderableOverviewData, HOME_PRELOAD_COMPLETE_KEY } from '../../utils/homeOverviewPreload';
 
 const AvatarGlyph = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42" fill="none" aria-hidden="true">
@@ -330,19 +331,6 @@ const formatEngagementDateLabel = (raw) => {
   return `${formatted} (Day 1)`;
 };
 
-const hasRenderableOverviewData = (data) => {
-  if (!data || typeof data !== 'object') {
-    return false;
-  }
-
-  const metabolicAge = Number(data?.metabolicAgeValue);
-  const hasMetabolic = Number.isFinite(metabolicAge);
-  const hasPositiveWins = Boolean(data?.positiveWinsData && typeof data.positiveWinsData === 'object');
-  const hasRiskAnalysis = Array.isArray(data?.riskAnalysisData) && data.riskAnalysisData.length > 0;
-
-  return hasMetabolic || hasPositiveWins || hasRiskAnalysis;
-};
-
 const HomePage = ({
   userName = 'User',
   userAge = null,
@@ -361,11 +349,17 @@ const HomePage = ({
   onNavigateToDoctors,
   onNavigateToSuperClub,
 }) => {
+  const homePreloadComplete = Boolean(preloadedData?.[HOME_PRELOAD_COMPLETE_KEY]);
+
   const [metabolicAgeValue, setMetabolicAgeValue] = useState(preloadedData?.metabolicAgeValue || '-');
   const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
   const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
-  const [isNoDataHome, setIsNoDataHome] = useState(false);
-  const [isOverviewResolved, setIsOverviewResolved] = useState(false);
+  const [isNoDataHome, setIsNoDataHome] = useState(
+    () => homePreloadComplete && !hasRenderableOverviewData(preloadedData),
+  );
+  const [isOverviewResolved, setIsOverviewResolved] = useState(
+    () => homePreloadComplete || hasRenderableOverviewData(preloadedData),
+  );
   const [noDataStage, setNoDataStage] = useState('welcome');
   const [checklistScrollProgress, setChecklistScrollProgress] = useState(0);
   const [upcomingSlotNormalized, setUpcomingSlotNormalized] = useState(null);
@@ -529,6 +523,12 @@ const HomePage = ({
   useEffect(() => {
     let isActive = true;
 
+    if (homePreloadComplete && !forceRefreshFromProfile) {
+      return () => {
+        isActive = false;
+      };
+    }
+
     const parseOverviewResponse = (response) => {
       const overview = resolveOverviewPayload(response);
       if (!overview || typeof overview !== 'object') {
@@ -614,7 +614,7 @@ const HomePage = ({
     return () => {
       isActive = false;
     };
-  }, [forceRefreshFromProfile, hasStableOverviewData]);
+  }, [forceRefreshFromProfile, hasStableOverviewData, homePreloadComplete]);
 
   useEffect(() => {
     let cancelled = false;

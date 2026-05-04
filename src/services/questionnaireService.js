@@ -1,4 +1,5 @@
 import { authorizedRequest } from './apiClient';
+import { authorizedGetCached } from './reportService';
 
 const authorizedGet = async (path, query) => {
   const parsedBody = await authorizedRequest(path, {
@@ -442,7 +443,10 @@ const extractAssessmentsFromListPayload = (payload) => {
   return [];
 };
 
-export const listMyAssessments = (page = 1, limit = 20) => authorizedGet('/assessments/me', { page, limit });
+export const listMyAssessments = async (page = 1, limit = 50) => {
+  const raw = await authorizedGetCached('/assessments/me', 45000, { page, limit });
+  return raw?.data ?? raw;
+};
 
 export const getAssessmentStatus = (assessmentInstanceId) => {
   return authorizedGet(`/assessments/${assessmentInstanceId}/status`);

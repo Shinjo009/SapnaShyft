@@ -106,12 +106,29 @@ const getSortedAssessmentIds = (assessments) => {
   return Array.from(new Set(sorted.map((row) => extractAssessmentIdFromRow(row)).filter(Boolean)));
 };
 
-const requestWithAuth = async (path) => {
-  return authorizedRequest(path, { method: 'GET' });
+const buildQueryString = (query) => {
+  if (!query || typeof query !== 'object') {
+    return '';
+  }
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+    params.append(key, String(value));
+  });
+  const encoded = params.toString();
+  return encoded ? `?${encoded}` : '';
 };
 
-export const authorizedGetCached = async (path, ttlMs = 45000) => {
-  const key = String(path);
+const requestWithAuth = async (path, query) => {
+  return authorizedRequest(path, { method: 'GET', ...(query && Object.keys(query).length ? { query } : {}) });
+};
+
+const cacheKeyForGet = (path, query) => `${String(path)}${buildQueryString(query)}`;
+
+export const authorizedGetCached = async (path, ttlMs = 45000, query) => {
+  const key = cacheKeyForGet(path, query);
   const now = Date.now();
   const cached = cacheStore.get(key);
 
@@ -124,7 +141,7 @@ export const authorizedGetCached = async (path, ttlMs = 45000) => {
     return inFlight;
   }
 
-  const requestPromise = requestWithAuth(path)
+  const requestPromise = requestWithAuth(path, query)
     .then((value) => {
       cacheStore.set(key, {
         value,
@@ -140,8 +157,19 @@ export const authorizedGetCached = async (path, ttlMs = 45000) => {
   return requestPromise;
 };
 
+const DEFAULT_ASSESSMENTS_ME_QUERY = Object.freeze({ page: 1, limit: 50 });
+
+const fetchMyAssessmentsPageCached = async (ttlMs = 45000, query = DEFAULT_ASSESSMENTS_ME_QUERY) => {
+  return authorizedGetCached('/assessments/me', ttlMs, query);
+};
+
+/** Cached GET /assessments/me rows (default page 1, limit 50). Warms the same cache as `getLatestAssessmentIdsCached`. */
+export const peekMyAssessmentsRowsCached = async (ttlMs = 45000) => {
+  return extractArray(await fetchMyAssessmentsPageCached(ttlMs, DEFAULT_ASSESSMENTS_ME_QUERY));
+};
+
 export const getLatestAssessmentIdsCached = async (ttlMs = 45000) => {
-  const response = await authorizedGetCached('/assessments/me', ttlMs);
+  const response = await fetchMyAssessmentsPageCached(ttlMs, DEFAULT_ASSESSMENTS_ME_QUERY);
   const ids = getSortedAssessmentIds(extractArray(response));
   if (ids.length > 0) {
     writeStoredLatestAssessmentId(ids[0]);
@@ -154,6 +182,12 @@ export const fetchLatestAssessmentReport = async (buildPath, ttlMs = 45000) => {
   const tried = new Set();
   const likelyAssessmentId = readStoredLatestAssessmentId();
 
+  // If we try a stored assessment id first, warm `/assessments/me` in parallel so a stale id
+  // does not pay sequential latency before falling back to the sorted list.
+  const assessmentsListPromise = likelyAssessmentId
+    ? getLatestAssessmentIdsCached(ttlMs).catch(() => [])
+    : null;
+
   if (likelyAssessmentId) {
     try {
       const response = await authorizedGetCached(buildPath(likelyAssessmentId), ttlMs);
@@ -164,7 +198,9 @@ export const fetchLatestAssessmentReport = async (buildPath, ttlMs = 45000) => {
     }
   }
 
-  const assessmentIds = await getLatestAssessmentIdsCached(ttlMs);
+  const assessmentIds = assessmentsListPromise != null
+    ? await assessmentsListPromise
+    : await getLatestAssessmentIdsCached(ttlMs);
   let lastError = null;
 
   for (const assessmentId of assessmentIds) {

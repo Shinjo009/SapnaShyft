@@ -12,6 +12,7 @@ import {
   fetchLatestAssessmentReport,
   clearReportRequestCache,
   clearStoredLatestAssessmentId,
+  peekMyAssessmentsRowsCached,
 } from './services/reportService';
 import {
   saveAuthTokens,
@@ -22,6 +23,11 @@ import {
 import { trackAppScreen } from './analytics/googleAnalytics';
 import AppTooltipTour from './components/AppTooltipTour/AppTooltipTour';
 import { prefetchNavbarRoutes } from './utils/routePrefetch';
+import {
+  createEmptyPreloadedHome,
+  hasRenderableOverviewData,
+  HOME_PRELOAD_COMPLETE_KEY,
+} from './utils/homeOverviewPreload';
 
 // Same asset as Profile logout modal (`/public/BG-1.png`).
 const questionnaireSuccessModalBg = `${process.env.PUBLIC_URL || ''}/BG-1.png`;
@@ -755,6 +761,7 @@ function App() {
   };
 
   const preloadHomeScreenData = async () => {
+    void peekMyAssessmentsRowsCached(0).catch(() => {});
     try {
       const { response } = await fetchLatestAssessmentReport(
         (assessmentId) => `/reports/${assessmentId}/overview`
@@ -764,18 +771,21 @@ function App() {
       if (overview && typeof overview === 'object') {
         const metabolicAge = Number(overview?.metabolic_age);
         const metabolicAgeDisplay = Number.isFinite(metabolicAge) ? String(Math.round(metabolicAge)) : '-';
-        
+
         setPreloadedHomeData({
+          [HOME_PRELOAD_COMPLETE_KEY]: true,
           metabolicAgeValue: metabolicAgeDisplay,
           positiveWinsData: overview?.positive_wins && typeof overview.positive_wins === 'object' ? overview.positive_wins : null,
           riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
         });
         return true;
-      } else {
-        return false;
       }
+
+      setPreloadedHomeData(createEmptyPreloadedHome());
+      return false;
     } catch (err) {
       console.error('Failed to preload home screen data:', err);
+      setPreloadedHomeData(createEmptyPreloadedHome());
       return false;
     }
   };
@@ -1012,7 +1022,7 @@ function App() {
   };
 
   const tooltipTourScopeKey = String(selectedAccountId || currentUserId || 'global');
-  const isTooltipEligibleHome = Boolean(preloadedHomeData);
+  const isTooltipEligibleHome = hasRenderableOverviewData(preloadedHomeData);
   const canDirectInstallPwa = Boolean(deferredPrompt) && !isIosInstallFlow;
 
   if (isBootstrappingSession) {
