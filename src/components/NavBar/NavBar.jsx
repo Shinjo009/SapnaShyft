@@ -7,12 +7,9 @@ import superClubIcon from '../../images/SuperClub.svg';
 import packagesIcon from '../../images/Packages.svg';
 import { prefetchRouteChunk } from '../../utils/routePrefetch';
 
-let lastNavActiveItem = 'home';
-let lastNavCenter = 53.999;
-
 const ORB_HALF = 20;
 /** One motion curve for orb, notch, and floating icon (ms). */
-const NAV_MOVE_DURATION_MS = 480;
+const NAV_MOVE_DURATION_MS = 360;
 /** easeInOutCubic — smooth acceleration and deceleration */
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
@@ -96,18 +93,6 @@ function applyDomNavVisuals(pathEl, orbEl, liftEl, centerX, navWidth, { liftY = 
  * - onNavigate: Callback when navigation item is clicked
  */
 const NavBar = ({ defaultActive = 'home', onNavigate }) => {
-  const [activeItem, setActiveItem] = useState(lastNavActiveItem || defaultActive);
-  const [navbarWidth, setNavbarWidth] = useState(null);
-  const [floatingIconItemId, setFloatingIconItemId] = useState(lastNavActiveItem || defaultActive);
-  const navRef = useRef(null);
-  const notchPathRef = useRef(null);
-  const orbRef = useRef(null);
-  const liftRef = useRef(null);
-  const notchAnimationRef = useRef(null);
-  const animatedCenterRef = useRef(lastNavCenter);
-  const activeItemRef = useRef(activeItem);
-  activeItemRef.current = activeItem;
-
   const navItems = useMemo(
     () => [
       { id: 'home', label: 'Home', icon: homeIcon, iconSize: 19 },
@@ -122,17 +107,31 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
     ],
     []
   );
-  const floatingNavItem = navItems.find((item) => item.id === floatingIconItemId) || navItems[0];
 
-  useEffect(() => {
-    setActiveItem(defaultActive);
-    setFloatingIconItemId(defaultActive);
-    lastNavActiveItem = defaultActive;
-  }, [defaultActive]);
+  const [activeItem, setActiveItem] = useState(defaultActive);
+  const [navbarWidth, setNavbarWidth] = useState(null);
+  const navRef = useRef(null);
+  const notchPathRef = useRef(null);
+  const orbRef = useRef(null);
+  const liftRef = useRef(null);
+  const notchAnimationRef = useRef(null);
+  /** Must match this mount’s tab — never reuse a previous page’s orb X (causes huge cross-screen rAF + jank). */
+  const animatedCenterRef = useRef(getCenterForItem(defaultActive, 360, navItems));
+  const activeItemRef = useRef(activeItem);
+  activeItemRef.current = activeItem;
 
+  const floatingNavItem = navItems.find((item) => item.id === activeItem) || navItems[0];
+
+  const prevDefaultActiveRef = useRef(null);
   useLayoutEffect(() => {
-    setFloatingIconItemId(activeItem);
-  }, [activeItem]);
+    if (prevDefaultActiveRef.current === defaultActive) {
+      return;
+    }
+    prevDefaultActiveRef.current = defaultActive;
+    const w = navbarWidth || 360;
+    setActiveItem(defaultActive);
+    animatedCenterRef.current = getCenterForItem(defaultActive, w, navItems);
+  }, [defaultActive, navbarWidth, navItems]);
 
   useEffect(() => {
     return () => {
@@ -182,7 +181,6 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
     }
     const c = getCenterForItem(activeItemRef.current, w, navItems);
     animatedCenterRef.current = c;
-    lastNavCenter = c;
     applyDomNavVisuals(pathEl, orbEl, liftEl, c, w, { liftY: 0, liftOpacity: 1 });
     navRef.current.classList.add('navbar--active-icon-in-float');
   }, [navbarWidth, navItems]);
@@ -204,7 +202,6 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
       }
 
       setActiveItem(id);
-      lastNavActiveItem = id;
 
       if (onNavigate) {
         onNavigate(id);
@@ -242,7 +239,6 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
 
     const finish = () => {
       animatedCenterRef.current = target;
-      lastNavCenter = target;
       applyDomNavVisuals(pathEl, orbEl, liftEl, target, navWidth, { liftY: 0, liftOpacity: 1 });
       navEl.classList.add('navbar--active-icon-in-float');
       navEl.classList.remove('navbar--transitioning');
@@ -272,7 +268,6 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
       const eased = easeInOutCubic(t);
       const x = from + delta * eased;
       animatedCenterRef.current = x;
-      lastNavCenter = x;
 
       const liftEase = 1 - (1 - t) ** 2;
       const liftY = LIFT_START_Y * (1 - liftEase);
