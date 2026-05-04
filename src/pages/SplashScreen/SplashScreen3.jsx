@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import RotatingCube from '../../components/RotatingCube/RotatingCube';
-import supershyftWhiteLogo from '../../images/SuperShyft - white logo.svg';
+import supershyftLogo from '../../images/SuperShyft - Logo [Final]-03 1.png';
 import poweredBySupershyft from '../../images/Powered by Supershyt.svg';
 import './SplashScreen3.css';
 
@@ -20,10 +20,8 @@ const VB = { minX: 0, minY: 0, w: SCENE_PX, h: SCENE_PX };
 const ROTATE_CX = PAD + EDGE / 2;
 const ROTATE_CY = PAD + EDGE / 2;
 
-/** After last edge draw (~4.1s) + buffer — cube fades in, static, aligned with graph. */
-const PHASE_CUBE_MS = 4500;
-/** 1s hold with formation + static cube, then spin. */
-const PHASE_SPIN_MS = PHASE_CUBE_MS + 1000;
+/** Graph / line intro disabled — cube visible on load; 1s hold then spin. */
+const PHASE_SPIN_MS = 1000;
 
 const GRAPH_SCALE_MIN = 0.34;
 const GRAPH_SCALE_MAX = 0.58;
@@ -36,8 +34,8 @@ function computeGraphScale(anchorMinPx) {
 const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup, showInstallBannerLogo = false }) => {
   const cubeAnchorRef = useRef(null);
   const [graphScale, setGraphScale] = useState(0.46);
-  /** 0 = graph intro only (cube hidden); 1 = hold + static cube; 2 = spin + graph fade */
-  const [introPhase, setIntroPhase] = useState(0);
+  /** 1 = static cube; 2 = spin (graph/line layer commented out). */
+  const [introPhase, setIntroPhase] = useState(1);
 
   useEffect(() => {
     const el = cubeAnchorRef.current;
@@ -58,20 +56,12 @@ const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup, showInstall
   }, []);
 
   useEffect(() => {
-    const tCube = window.setTimeout(() => setIntroPhase(1), PHASE_CUBE_MS);
     const tSpin = window.setTimeout(() => setIntroPhase(2), PHASE_SPIN_MS);
-    return () => {
-      window.clearTimeout(tCube);
-      window.clearTimeout(tSpin);
-    };
+    return () => window.clearTimeout(tSpin);
   }, []);
 
   const phaseClass =
-    introPhase === 0
-      ? 'splash-screen-2--splash-v3-phase-0'
-      : introPhase === 1
-        ? 'splash-screen-2--splash-v3-phase-1'
-        : 'splash-screen-2--splash-v3-phase-2';
+    introPhase === 1 ? 'splash-screen-2--splash-v3-phase-1' : 'splash-screen-2--splash-v3-phase-2';
 
   return (
     <div
@@ -80,7 +70,7 @@ const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup, showInstall
     >
       <div className="splash-screen-2__logo-wrap" aria-hidden={!showInstallBannerLogo}>
         {showInstallBannerLogo ? (
-          <img src={supershyftWhiteLogo} alt="SuperShyft" />
+          <img src={supershyftLogo} alt="SuperShyft" />
         ) : (
           <span className="splash-screen-2__logo-spacer" aria-hidden />
         )}
@@ -103,6 +93,7 @@ const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup, showInstall
                 </div>
               </div>
 
+              {/* Connecting line + node graph animation (commented — cube only)
               <svg
                 className="splash-v3-composite-svg"
                 viewBox={`${VB.minX} ${VB.minY} ${VB.w} ${VB.h}`}
@@ -186,6 +177,7 @@ const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup, showInstall
                   </g>
                 </g>
               </svg>
+              */}
             </div>
           </div>
         </div>

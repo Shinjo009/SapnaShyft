@@ -13,16 +13,18 @@
 }
 
 .splash-screen-2__logo-wrap img {
-  width: 48px !important;
-  height: 48px !important;
-  max-width: none;
+  height: 80px;
+  width: auto;
+  max-width: min(320px, 90vw);
+  max-height: 80px;
   object-fit: contain;
+  display: block;
 }
 
 .splash-screen-2__logo-spacer {
   display: block;
-  width: 48px;
-  height: 48px;
+  width: 80px;
+  height: 80px;
   flex-shrink: 0;
 }
 
