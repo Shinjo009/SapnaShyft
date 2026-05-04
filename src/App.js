@@ -15,6 +15,7 @@ import {
   markNutritionLogQuestionnaireDraftKnown,
   invalidateNutritionLogQuestionnaireDraftCache,
   hasNutritionLogQuestionnaireDraft,
+  hasFamilyHistoryQuestionnaireDraft,
 } from './services/questionnaireService';
 import {
   fetchLatestAssessmentReport,
@@ -828,6 +829,8 @@ function App() {
     }
     setIsB2bQuestionnaireFlow(false);
     setQuestionnaireSuccessMessage(null);
+    invalidateNutritionLogQuestionnaireDraftCache();
+    invalidateFamilyHistoryQuestionnaireDraftCache();
     setCurrentPage('home');
     setForceHomeApiRefresh(true);
   };
@@ -1532,13 +1535,17 @@ function App() {
               clearReportRequestCache();
               clearStoredLatestAssessmentId();
               invalidateNutritionLogQuestionnaireDraftCache();
+              invalidateFamilyHistoryQuestionnaireDraftCache();
             } catch {
               // still show completion feedback
             }
             let successTitle = 'Submitted successfully!';
             try {
-              const nutritionSaved = await hasNutritionLogQuestionnaireDraft({ forceRefresh: true });
-              if (nutritionSaved) {
+              const [nutritionSaved, familySaved] = await Promise.all([
+                hasNutritionLogQuestionnaireDraft({ forceRefresh: true }),
+                hasFamilyHistoryQuestionnaireDraft({ forceRefresh: true }),
+              ]);
+              if (nutritionSaved || familySaved) {
                 successTitle = 'Questionnaire completed!';
               }
             } catch {
@@ -1548,10 +1555,19 @@ function App() {
           }}
           onNavigateHome={() => {
             setQuestionnaireSuccessMessage(null);
+            invalidateNutritionLogQuestionnaireDraftCache();
+            invalidateFamilyHistoryQuestionnaireDraftCache();
+            setForceHomeApiRefresh(true);
             setCurrentPage('home');
           }}
           onBack={() => {
-            setCurrentPage(healthAssessmentBackPage || 'home');
+            const next = healthAssessmentBackPage || 'home';
+            if (next === 'home') {
+              invalidateNutritionLogQuestionnaireDraftCache();
+              invalidateFamilyHistoryQuestionnaireDraftCache();
+              setForceHomeApiRefresh(true);
+            }
+            setCurrentPage(next);
           }}
         />
       )}

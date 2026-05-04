@@ -12,8 +12,11 @@ import { fetchLatestAssessmentReport } from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
 import {
   hasNutritionLogQuestionnaireDraft,
+  hasFamilyHistoryQuestionnaireDraft,
   peekNutritionLogQuestionnaireDraftCache,
+  peekFamilyHistoryQuestionnaireDraftCache,
   invalidateNutritionLogQuestionnaireDraftCache,
+  invalidateFamilyHistoryQuestionnaireDraftCache,
 } from '../../services/questionnaireService';
 import { hasRenderableOverviewData, HOME_PRELOAD_COMPLETE_KEY } from '../../utils/homeOverviewPreload';
 import clockCircleSrc from '../../images/clock_circle.svg';
@@ -389,12 +392,16 @@ const HomePage = ({
 
     if (forceRefreshFromProfile) {
       invalidateNutritionLogQuestionnaireDraftCache();
+      invalidateFamilyHistoryQuestionnaireDraftCache();
     }
 
-    const cached = peekNutritionLogQuestionnaireDraftCache();
-    if (cached !== null) {
+    // After questionnaire submit, parent sets `forceRefreshFromProfile` — do not use stale
+    // peek caches; re-fetch so the camp home can switch to “questionnaire submitted”.
+    const nutritionCached = forceRefreshFromProfile ? null : peekNutritionLogQuestionnaireDraftCache();
+    const familyCached = forceRefreshFromProfile ? null : peekFamilyHistoryQuestionnaireDraftCache();
+    if (nutritionCached !== null && familyCached !== null) {
       if (!cancelled) {
-        setIsQuestionnaireCompleted(cached);
+        setIsQuestionnaireCompleted(Boolean(nutritionCached || familyCached));
         setIsB2bCampNoDataGateResolved(true);
       }
       return undefined;
@@ -404,9 +411,13 @@ const HomePage = ({
 
     (async () => {
       try {
-        const hasNutritionDraft = await hasNutritionLogQuestionnaireDraft();
+        const fr = Boolean(forceRefreshFromProfile);
+        const [hasNutritionDraft, hasFamilyDraft] = await Promise.all([
+          hasNutritionLogQuestionnaireDraft({ forceRefresh: fr }),
+          hasFamilyHistoryQuestionnaireDraft({ forceRefresh: fr }),
+        ]);
         if (!cancelled) {
-          setIsQuestionnaireCompleted(hasNutritionDraft);
+          setIsQuestionnaireCompleted(Boolean(hasNutritionDraft || hasFamilyDraft));
         }
       } catch {
         if (!cancelled) {
@@ -430,6 +441,7 @@ const HomePage = ({
       return undefined;
     }
     void hasNutritionLogQuestionnaireDraft().catch(() => {});
+    void hasFamilyHistoryQuestionnaireDraft().catch(() => {});
     return undefined;
   }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
 

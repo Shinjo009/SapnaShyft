@@ -96,14 +96,13 @@ const NavBar = ({ defaultActive = 'home', onNavigate }) => {
   const navItems = useMemo(
     () => [
       { id: 'home', label: 'Home', icon: homeIcon, iconSize: 19 },
-      { id: 'packages', label: 'Packages', icon: packagesIcon, iconSize: 19, locked: true },
-      { id: 'super-club', label: 'Super Club', icon: superClubIcon, iconSize: 23, locked: true },
+      { id: 'packages', label: 'Packages', icon: packagesIcon, iconSize: 19 },
+      { id: 'super-club', label: 'Super Club', icon: superClubIcon, iconSize: 23 },
       {
         id: 'super-sync',
         label: 'Super Care',
         icon: superCareIcon,
         iconSize: 23,
-        locked: true,
       },
     ],
     []

@@ -411,6 +411,32 @@ const pickLatestIncompleteActiveAssessment = (assessments) => {
   return sortedRepresentatives[0] || null;
 };
 
+/**
+ * When all rows are complete, `pickLatestIncompleteActiveAssessment` is null but drafts/responses
+ * still live on the latest assignment — use that row for category draft checks (matches in-app questionnaire).
+ */
+const pickLatestAssessmentRowByAssignment = (assessments) => {
+  const rows = Array.isArray(assessments) ? assessments : [];
+  const sorted = [...rows]
+    .map((item) => ({
+      ...item,
+      assessmentInstanceId: getAssessmentInstanceId(item),
+      assignedAtTs: toTimestamp(item?.assigned_at || item?.assignedAt),
+    }))
+    .filter((item) => item.assessmentInstanceId > 0)
+    .sort((a, b) => {
+      if (b.assignedAtTs !== a.assignedAtTs) {
+        return b.assignedAtTs - a.assignedAtTs;
+      }
+      return b.assessmentInstanceId - a.assessmentInstanceId;
+    });
+  return sorted[0] || null;
+};
+
+const pickAssessmentRowForCategoryDraftCheck = (assessments) => (
+  pickLatestIncompleteActiveAssessment(assessments) || pickLatestAssessmentRowByAssignment(assessments)
+);
+
 const extractAssessmentsFromListPayload = (payload) => {
   if (Array.isArray(payload)) {
     return payload;
@@ -484,21 +510,9 @@ export const invalidateFamilyHistoryQuestionnaireDraftCache = () => {
 async function fetchHasFamilyHistoryQuestionnaireDraftUncached() {
   const assessmentsPayload = await listMyAssessments(1, 50);
   const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
-  const latestAssessment = [...assessments]
-    .map((item) => ({
-      ...item,
-      assessmentInstanceId: getAssessmentInstanceId(item),
-      assignedAtTs: toTimestamp(item?.assigned_at || item?.assignedAt),
-    }))
-    .filter((item) => item.assessmentInstanceId > 0)
-    .sort((a, b) => {
-      if (b.assignedAtTs !== a.assignedAtTs) {
-        return b.assignedAtTs - a.assignedAtTs;
-      }
-      return b.assessmentInstanceId - a.assessmentInstanceId;
-    })[0];
+  const latestAssessment = pickAssessmentRowForCategoryDraftCheck(assessments);
 
-  const assessmentInstanceId = Number(latestAssessment?.assessmentInstanceId || 0);
+  const assessmentInstanceId = getAssessmentInstanceId(latestAssessment || {});
   if (assessmentInstanceId <= 0) {
     return false;
   }
@@ -601,21 +615,9 @@ export const invalidateNutritionLogQuestionnaireDraftCache = () => {
 async function fetchHasNutritionLogQuestionnaireDraftUncached() {
   const assessmentsPayload = await listMyAssessments(1, 50);
   const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
-  const latestAssessment = [...assessments]
-    .map((item) => ({
-      ...item,
-      assessmentInstanceId: getAssessmentInstanceId(item),
-      assignedAtTs: toTimestamp(item?.assigned_at || item?.assignedAt),
-    }))
-    .filter((item) => item.assessmentInstanceId > 0)
-    .sort((a, b) => {
-      if (b.assignedAtTs !== a.assignedAtTs) {
-        return b.assignedAtTs - a.assignedAtTs;
-      }
-      return b.assessmentInstanceId - a.assessmentInstanceId;
-    })[0];
+  const latestAssessment = pickAssessmentRowForCategoryDraftCheck(assessments);
 
-  const assessmentInstanceId = Number(latestAssessment?.assessmentInstanceId || 0);
+  const assessmentInstanceId = getAssessmentInstanceId(latestAssessment || {});
   if (assessmentInstanceId <= 0) {
     return false;
   }

@@ -827,7 +827,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
     if (selectedCount === 1) {
       return '1 patient selected';
     }
-    return `${selectedCount} patients selected`;
+    return `${selectedCount} members selected`;
   }, [selectedCount]);
 
   const customPackagePrice = useMemo(() => {
@@ -1440,7 +1440,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
               <button type="button" className="patient-add__back" aria-label="Back to select patients" onClick={() => setView('select')}>
                 <BackIcon />
               </button>
-              <h3 className="patient-select-overlay__title">Add a new patient</h3>
+              <h3 className="patient-select-overlay__title">Add a new member</h3>
             </div>
 
             <div className="patient-add__body">
