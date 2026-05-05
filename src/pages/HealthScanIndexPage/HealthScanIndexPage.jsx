@@ -2,6 +2,7 @@ import React from 'react';
 import './HealthScanIndexPage.css';
 import HealthScanNavBar from '../../components/HealthScanNavBar';
 import CircularProgressCard from '../../components/HomePage/CircularProgressCard';
+import { fetchLatestHealthSpanIndex } from '../../services/reportService';
 import bgImage from '../../images/BG-2.png';
 import waistIcon from '../../images/Waist.svg';
 import bodyFatIcon from '../../images/fatguy.svg';
@@ -23,10 +24,32 @@ import familyHistoryIcon from '../../images/FamilyHistory.svg';
  */
 const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
   const [activeTab, setActiveTab] = React.useState(initialTab);
+  const [healthSpanDetails, setHealthSpanDetails] = React.useState(null);
 
   React.useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const result = await fetchLatestHealthSpanIndex({ includeDetails: true, ttlMs: 45000 });
+        if (!cancelled) {
+          setHealthSpanDetails(result || null);
+        }
+      } catch {
+        if (!cancelled) {
+          setHealthSpanDetails(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleTabChange = (index) => {
     setActiveTab(index);
@@ -34,6 +57,59 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
   };
 
   const tabTitles = ['Fitness score', 'Nutrition score', 'Lifestyle score'];
+  const scoreByTab = {
+    0: healthSpanDetails?.scores?.fitnessScore ?? null,
+    1: healthSpanDetails?.scores?.nutritionScore ?? null,
+    2: healthSpanDetails?.scores?.lifestyleScore ?? null,
+  };
+
+  const detailsRoot = healthSpanDetails?.response?.data && typeof healthSpanDetails.response.data === 'object'
+    ? healthSpanDetails.response.data
+    : (healthSpanDetails?.response && typeof healthSpanDetails.response === 'object' ? healthSpanDetails.response : {});
+  const fitness = detailsRoot?.fitness && typeof detailsRoot.fitness === 'object' ? detailsRoot.fitness : {};
+  const nutrition = detailsRoot?.nutrition && typeof detailsRoot.nutrition === 'object' ? detailsRoot.nutrition : {};
+  const lifestyle = detailsRoot?.lifestyle && typeof detailsRoot.lifestyle === 'object' ? detailsRoot.lifestyle : {};
+
+  const toText = (value, fallback = '-') => {
+    const text = String(value ?? '').trim();
+    return text || fallback;
+  };
+
+  const toNumberText = (value, unit = '') => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return '-';
+    const rounded = Number.isInteger(parsed) ? String(parsed) : String(parsed);
+    return unit ? `${rounded} ${unit}` : rounded;
+  };
+
+  const formatMacroRange = (macro) => {
+    if (!macro || typeof macro !== 'object') return '-';
+    const low = Number(macro.estimated_low);
+    const high = Number(macro.estimated_high);
+    if (!Number.isFinite(low) || !Number.isFinite(high)) return '-';
+    return `${low}-${high} %`;
+  };
+
+  const formatMacroIdeal = (macro) => {
+    if (!macro || typeof macro !== 'object') return '-';
+    const low = Number(macro.ideal_low);
+    const high = Number(macro.ideal_high);
+    if (!Number.isFinite(low) || !Number.isFinite(high)) return '-';
+    return `${low}-${high}`;
+  };
+
+  const waterIntakeText = (() => {
+    const litres = Number(nutrition?.water?.estimated_litres);
+    if (!Number.isFinite(litres)) return '-';
+    return `${litres} litres`;
+  })();
+
+  const waterIdealText = (() => {
+    const low = Number(nutrition?.water?.ideal_low_litres);
+    const high = Number(nutrition?.water?.ideal_high_litres);
+    if (!Number.isFinite(low) || !Number.isFinite(high)) return '-';
+    return `${low}-${high} litres`;
+  })();
 
   const formattedDate = React.useMemo(() => {
     const now = new Date();
@@ -72,7 +148,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
           <div className="health-scan-page__circle-container">
             <div className="health-scan-page__progress-card">
               <CircularProgressCard
-                percentage={activeTab === 0 ? 75 : activeTab === 1 ? 45 : 20}
+                percentage={scoreByTab[activeTab]}
                 label={tabTitles[activeTab]}
               />
             </div>
@@ -128,7 +204,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   <span>Blood pressure</span>
                 </div>
                 <div className="health-scan-page__metric-value health-scan-page__metric-value--within">
-                  <span>90/55 mm/Hg</span>
+                  <span>{toText(fitness?.blood_pressure)}</span>
                   <span className="health-scan-page__metric-icon" aria-hidden="true">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -147,7 +223,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   <span>Basal Metabolic Rate</span>
                 </div>
                 <div className="health-scan-page__metric-value health-scan-page__metric-value--below">
-                  <span>1350 kcal</span>
+                  <span>{toNumberText(fitness?.basal_metabolic_rate?.value, fitness?.basal_metabolic_rate?.unit)}</span>
                   <span className="health-scan-page__metric-icon" aria-hidden="true">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
@@ -156,7 +232,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                 </div>
                 <span className="health-scan-page__metric-range-container">
                   <span className="health-scan-page__metric-range-label">Ideal range</span>
-                  <span className="health-scan-page__metric-range-value">1300-1700</span>
+                  <span className="health-scan-page__metric-range-value">{toText(fitness?.basal_metabolic_rate?.healthy_range)}</span>
                 </span>
               </div>
 
@@ -167,7 +243,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <span>Waist</span>
                   </div>
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--above">
-                    <span>36 in</span>
+                    <span>{toNumberText(fitness?.waist)}</span>
                     <span className="health-scan-page__metric-icon" aria-hidden="true">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
@@ -176,7 +252,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   </div>
                   <span className="health-scan-page__metric-range-container">
                     <span className="health-scan-page__metric-range-label">Ideal range</span>
-                    <span className="health-scan-page__metric-range-value">15-30</span>
+                    <span className="health-scan-page__metric-range-value">-</span>
                   </span>
                 </div>
 
@@ -186,7 +262,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <span>Body fat</span>
                   </div>
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--above">
-                    <span>36 %</span>
+                    <span>{toNumberText(fitness?.estimated_body_fat?.value, fitness?.estimated_body_fat?.unit)}</span>
                     <span className="health-scan-page__metric-icon" aria-hidden="true">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
@@ -195,7 +271,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   </div>
                   <span className="health-scan-page__metric-range-container">
                     <span className="health-scan-page__metric-range-label">Ideal range</span>
-                    <span className="health-scan-page__metric-range-value">15-20</span>
+                    <span className="health-scan-page__metric-range-value">{toText(fitness?.estimated_body_fat?.healthy_range)}</span>
                   </span>
                 </div>
               </div>
@@ -253,7 +329,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <span>Carbs</span>
                   </div>
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--above">
-                    <span>51-53 %</span>
+                    <span>{formatMacroRange(nutrition?.carbs)}</span>
                     <span className="health-scan-page__metric-icon" aria-hidden="true">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
@@ -262,7 +338,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   </div>
                   <span className="health-scan-page__metric-range-container">
                     <span className="health-scan-page__metric-range-label">Ideal range</span>
-                    <span className="health-scan-page__metric-range-value">30-40</span>
+                    <span className="health-scan-page__metric-range-value">{formatMacroIdeal(nutrition?.carbs)}</span>
                   </span>
                 </div>
 
@@ -272,7 +348,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <span>Fats</span>
                   </div>
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--high">
-                    <span>21-31 %</span>
+                    <span>{formatMacroRange(nutrition?.fats)}</span>
                     <span className="health-scan-page__metric-icon" aria-hidden="true">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
@@ -281,7 +357,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   </div>
                   <span className="health-scan-page__metric-range-container">
                     <span className="health-scan-page__metric-range-label">Ideal range</span>
-                    <span className="health-scan-page__metric-range-value">10-20</span>
+                    <span className="health-scan-page__metric-range-value">{formatMacroIdeal(nutrition?.fats)}</span>
                   </span>
                 </div>
               </div>
@@ -293,7 +369,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <span>Proteins</span>
                   </div>
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--below">
-                    <span>17-21 %</span>
+                    <span>{formatMacroRange(nutrition?.protein)}</span>
                     <span className="health-scan-page__metric-icon" aria-hidden="true">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M7.33459 10.782V2.66732H8.66792V10.782L12.2439 7.20598L13.1866 8.14865L8.00125 13.334L2.81592 8.14865L3.75858 7.20598L7.33459 10.782Z" fill="currentColor" />
@@ -302,7 +378,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   </div>
                   <span className="health-scan-page__metric-range-container">
                     <span className="health-scan-page__metric-range-label">Ideal range</span>
-                    <span className="health-scan-page__metric-range-value">20-40</span>
+                    <span className="health-scan-page__metric-range-value">{formatMacroIdeal(nutrition?.protein)}</span>
                   </span>
                 </div>
 
@@ -312,7 +388,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <span>Fibre</span>
                   </div>
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--within">
-                    <span>5-10 %</span>
+                    <span>{formatMacroRange(nutrition?.fibre)}</span>
                     <span className="health-scan-page__metric-icon" aria-hidden="true">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -321,7 +397,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   </div>
                   <span className="health-scan-page__metric-range-container">
                     <span className="health-scan-page__metric-range-label">Ideal range</span>
-                    <span className="health-scan-page__metric-range-value">5-15</span>
+                    <span className="health-scan-page__metric-range-value">{formatMacroIdeal(nutrition?.fibre)}</span>
                   </span>
                 </div>
               </div>
@@ -332,7 +408,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   <span>Water Intake</span>
                 </div>
                 <div className="health-scan-page__metric-value health-scan-page__metric-value--within">
-                  <span>8-10 glasses / 2 litres</span>
+                  <span>{waterIntakeText}</span>
                   <span className="health-scan-page__metric-icon" aria-hidden="true">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -341,7 +417,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                 </div>
                 <span className="health-scan-page__metric-range-container">
                   <span className="health-scan-page__metric-range-label">Ideal range</span>
-                  <span className="health-scan-page__metric-range-value">2-3 litres</span>
+                  <span className="health-scan-page__metric-range-value">{waterIdealText}</span>
                 </span>
               </div>
             </div>
@@ -397,9 +473,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   <span>Physical Activity</span>
                 </div>
                 <div className="health-scan-page__metric-value health-scan-page__metric-value--mixed">
-                  <span className="health-scan-page__metric-value-neutral">Exercises</span>
-                  <span className="health-scan-page__metric-value-highlight-warning">2-3 times</span>
-                  <span className="health-scan-page__metric-value-neutral">a week</span>
+                  <span className="health-scan-page__metric-value-neutral">{toText(lifestyle?.physical_activity)}</span>
                 </div>
               </div>
 
@@ -410,8 +484,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <span>Smoke</span>
                   </div>
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--mixed">
-                    <span className="health-scan-page__metric-value-highlight-critical">3-5</span>
-                    <span className="health-scan-page__metric-value-neutral">cigarettes/day</span>
+                    <span className="health-scan-page__metric-value-neutral">{toText(lifestyle?.smoke)}</span>
                   </div>
                 </div>
 
@@ -421,7 +494,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <span>Alcohol</span>
                   </div>
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--within">
-                    <span>No</span>
+                    <span>{toText(lifestyle?.alcohol)}</span>
                   </div>
                 </div>
               </div>
@@ -433,12 +506,11 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <span>Sleep</span>
                   </div>
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--mixed">
-                    <span className="health-scan-page__metric-value-highlight-positive">5-7 hours</span>
-                    <span className="health-scan-page__metric-value-neutral">/ day</span>
+                    <span className="health-scan-page__metric-value-neutral">{toText(lifestyle?.sleep)}</span>
                   </div>
                   <span className="health-scan-page__metric-range-container health-scan-page__metric-range-container--sleep">
                     <span className="health-scan-page__metric-range-label">Ideal</span>
-                    <span className="health-scan-page__metric-range-value">6-8 hours / day</span>
+                    <span className="health-scan-page__metric-range-value">-</span>
                   </span>
                 </div>
 
@@ -448,8 +520,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <span>Family History</span>
                   </div>
                   <div className="health-scan-page__family-history">
-                    <span>Diabetic</span>
-                    <span>Thyroid</span>
+                    <span>{toText(lifestyle?.family_history)}</span>
                   </div>
                 </div>
               </div>

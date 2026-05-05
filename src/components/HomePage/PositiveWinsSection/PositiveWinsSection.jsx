@@ -160,15 +160,6 @@ const buildPositiveWinsCardsFromApi = (positiveWins) => {
   return cards;
 };
 
-const setStackDraggingAttr = (stackEl, isDragging) => {
-  if (!stackEl) return;
-  if (isDragging) {
-    stackEl.setAttribute('data-dragging', 'true');
-  } else {
-    stackEl.removeAttribute('data-dragging');
-  }
-};
-
 const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
   const stackCards = useMemo(() => {
     const raw = (apiPositiveWins !== undefined
@@ -182,10 +173,14 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
     }));
   }, [apiPositiveWins, cards]);
   const cardCount = stackCards.length;
-  const [activeIndex, setActiveIndex] = useState(Math.max(cardCount - 1, 0));
+  const [activeIndex, setActiveIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => (
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 481px)').matches : false
+  ));
   const stackRef = useRef(null);
   const touchStartXRef = useRef(null);
   const touchStartYRef = useRef(null);
@@ -229,24 +224,40 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
   };
 
   useEffect(() => {
-    const stackEl = stackRef.current;
     return () => {
       if (dragFrameRef.current !== null) {
         cancelAnimationFrame(dragFrameRef.current);
       }
       stackSwapAwaitingSettleRef.current = false;
-      setStackDraggingAttr(stackEl, false);
     };
   }, []);
 
   useEffect(() => {
-    setActiveIndex((prev) => Math.min(prev, Math.max(cardCount - 1, 0)));
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const media = window.matchMedia('(min-width: 481px)');
+    const handleChange = (event) => setIsDesktop(event.matches);
+    setIsDesktop(media.matches);
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', handleChange);
+      return () => media.removeEventListener('change', handleChange);
+    }
+
+    media.addListener(handleChange);
+    return () => media.removeListener(handleChange);
+  }, []);
+
+  useEffect(() => {
+    setActiveIndex(0);
   }, [cardCount]);
 
   const startAnimation = (direction) => {
     if (cardCount <= 1) return;
     stackSwapAwaitingSettleRef.current = true;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
     setSwipeDirection(direction);
     setIsAnimating(true);
@@ -270,7 +281,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
     touchStartXRef.current = event.touches[0].clientX;
     touchStartYRef.current = event.touches[0].clientY;
     isHorizontalSwipeRef.current = false;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
   };
 
@@ -293,7 +304,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
         return;
       }
 
-      setStackDraggingAttr(stackRef.current, true);
+      setIsDragging(true);
     }
 
     event.preventDefault();
@@ -319,7 +330,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
     if (!isHorizontalSwipeRef.current) {
       touchStartXRef.current = null;
       touchStartYRef.current = null;
-      setStackDraggingAttr(stackRef.current, false);
+      setIsDragging(false);
       resetDragOffset();
       return;
     }
@@ -334,20 +345,21 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
         goPrev();
       }
     } else {
-      setStackDraggingAttr(stackRef.current, false);
+      setIsDragging(false);
       resetDragOffset();
     }
 
     touchStartXRef.current = null;
     touchStartYRef.current = null;
     isHorizontalSwipeRef.current = false;
+    setIsDragging(false);
   };
 
   const handleTouchCancel = () => {
     touchStartXRef.current = null;
     touchStartYRef.current = null;
     isHorizontalSwipeRef.current = false;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
   };
 
@@ -364,7 +376,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
     pointerStartYRef.current = event.clientY;
     pointerIsHorizontalSwipeRef.current = false;
     activePointerIdRef.current = event.pointerId;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
 
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -394,7 +406,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
         return;
       }
 
-      setStackDraggingAttr(stackRef.current, true);
+      setIsDragging(true);
     }
 
     event.preventDefault();
@@ -420,7 +432,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
       pointerStartYRef.current = null;
       pointerIsHorizontalSwipeRef.current = false;
       activePointerIdRef.current = null;
-      setStackDraggingAttr(stackRef.current, false);
+      setIsDragging(false);
       resetDragOffset();
       return;
     }
@@ -435,7 +447,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
         goPrev();
       }
     } else {
-      setStackDraggingAttr(stackRef.current, false);
+      setIsDragging(false);
       resetDragOffset();
     }
 
@@ -443,6 +455,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
     pointerStartYRef.current = null;
     pointerIsHorizontalSwipeRef.current = false;
     activePointerIdRef.current = null;
+    setIsDragging(false);
 
     if (event.currentTarget?.hasPointerCapture?.(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -458,7 +471,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
     pointerStartYRef.current = null;
     pointerIsHorizontalSwipeRef.current = false;
     activePointerIdRef.current = null;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
 
     if (event.currentTarget?.hasPointerCapture?.(event.pointerId)) {
@@ -469,7 +482,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
   const handleStackTransitionEnd = (event) => {
     if (!stackSwapAwaitingSettleRef.current) return;
     if (!event.target.classList.contains('positive-wins__stack-card--front')) return;
-    if (event.propertyName !== 'left' && event.propertyName !== 'transform') return;
+    if (event.propertyName !== 'left') return;
 
     stackSwapAwaitingSettleRef.current = false;
 
@@ -515,6 +528,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
         onPointerCancel={handlePointerCancel}
         onLostPointerCapture={handlePointerCancel}
         onTransitionEnd={handleStackTransitionEnd}
+        data-dragging={isDragging ? 'true' : 'false'}
         data-resetting={isResetting ? 'true' : 'false'}
         data-card-count={cardCount}
       >
@@ -573,9 +587,31 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
 
       {cardCount > 1 ? (
         <div className="positive-wins__swipe-hint" aria-hidden="true">
-          <span className="positive-wins__swipe-arrow positive-wins__swipe-arrow--left"><SwipeArrow /></span>
+          <button
+            type="button"
+            className="positive-wins__swipe-arrow-btn"
+            onClick={() => {
+              if (isDesktop) {
+                goPrev();
+              }
+            }}
+            aria-label="Show previous positive wins card"
+          >
+            <span className="positive-wins__swipe-arrow positive-wins__swipe-arrow--left"><SwipeArrow /></span>
+          </button>
           <span className="positive-wins__swipe-text">Swipe to explore</span>
-          <span className="positive-wins__swipe-arrow"><SwipeArrow /></span>
+          <button
+            type="button"
+            className="positive-wins__swipe-arrow-btn"
+            onClick={() => {
+              if (isDesktop) {
+                goNext();
+              }
+            }}
+            aria-label="Show next positive wins card"
+          >
+            <span className="positive-wins__swipe-arrow"><SwipeArrow /></span>
+          </button>
         </div>
       ) : null}
     </section>

@@ -134,7 +134,6 @@
   content: '';
   position: absolute;
   inset: 0;
-  z-index: 0;
   background: linear-gradient(145deg, rgba(233, 93, 92, 0.08) 0%, rgba(0, 0, 0, 0) 62%);
   pointer-events: none;
 }
@@ -143,7 +142,6 @@
   content: '';
   position: absolute;
   inset: 0;
-  z-index: 2;
   background: linear-gradient(160deg, rgba(8, 5, 5, 0.35) 0%, rgba(8, 5, 5, 0.72) 100%);
   opacity: 0;
   pointer-events: none;
@@ -285,11 +283,9 @@
   opacity: var(--risk-analysis-wins-back-one-fade);
 }
 
-/* Body content stays below the dimming ::after (z-index: 2). */
 .risk-analysis-wins__stack-card .risk-analysis-wins__card-top-row,
 .risk-analysis-wins__stack-card .risk-analysis-wins__card-content {
   position: relative;
-  z-index: 1;
   opacity: 1;
 }
 

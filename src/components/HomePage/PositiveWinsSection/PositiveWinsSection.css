@@ -74,7 +74,6 @@
   height: calc(var(--positive-wins-card-height) + var(--positive-wins-stack-tail));
   overflow: visible;
   touch-action: pan-y;
-  isolation: isolate;
 }
 
 .positive-wins__stack-card {
@@ -105,8 +104,6 @@
 .positive-wins__stack[data-dragging='true'] .positive-wins__stack-card {
   transition-property: transform;
   transition-duration: 0ms;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
 }
 
 .positive-wins__stack[data-resetting='true'] .positive-wins__stack-card {
@@ -473,6 +470,21 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.positive-wins__swipe-arrow-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 481px) {
+  .positive-wins__swipe-arrow-btn {
+    cursor: pointer;
+  }
 }
 
 .positive-wins__swipe-arrow--left {

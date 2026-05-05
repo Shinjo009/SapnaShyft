@@ -55,48 +55,48 @@ const DISEASES_DATA = [
 
 const ACTION_COPY_BY_DISEASE_AND_RISK = {
   metabolic: {
-    low: 'No metabolic syndrome detected, your current lifestyle habits are working well. Keep up physical activity, balanced nutrition, sleep, and stress management.',
-    high: 'To improve all metabolic markers, cut refined carbs and processed foods, exercise regularly, manage weight, sleep better, and reduce stress, results visible in 8 - 12 weeks.',
+    low: 'No metabolic syndrome detected, keep up physical activity, balanced nutrition, quality sleep, and stress management.',
+    high: 'Cut refined carbs and processed foods, exercise regularly, manage weight, sleep better, and reduce stress, results visible in 8–12 weeks.',
   },
   'metabolic syndrome': {
-    low: 'No metabolic syndrome detected, your current lifestyle habits are working well. Keep up physical activity, balanced nutrition, sleep, and stress management.',
-    high: 'To improve all metabolic markers, cut refined carbs and processed foods, exercise regularly, manage weight, sleep better, and reduce stress, results visible in 8 - 12 weeks.',
+    low: 'No metabolic syndrome detected, keep up physical activity, balanced nutrition, quality sleep, and stress management.',
+    high: 'Cut refined carbs and processed foods, exercise regularly, manage weight, sleep better, and reduce stress, results visible in 8–12 weeks.',
   },
   'type 2 diabetes': {
-    low: 'No significant type 2 diabetes risk detected, keep maintaining regular physical activity, a low-sugar balanced diet, healthy weight, and consistent sleep.',
-    high: 'Cut refined carbs and sugars, exercise daily, manage weight, sleep better, and reduce stress, consult a doctor for a full plan including possible medication.',
+    low: 'No significant diabetes risk detected, maintain regular physical activity, a low-sugar diet, healthy weight, and consistent sleep.',
+    high: 'Cut refined carbs and sugars, exercise daily, manage weight, sleep better, reduce stress, and consult a doctor for a full plan.',
   },
   hypertension: {
-    low: 'Healthy blood pressure detected - keep up regular exercise, a low-sodium diet, healthy weight, limited alcohol, and effective stress management.',
-    high: 'Cut salt and processed foods, exercise aerobically, manage weight, limit alcohol, quit smoking, and improve sleep - consult a doctor for a full plan including possible medication.',
+    low: 'Healthy blood pressure detected, keep up regular exercise, a low-sodium diet, healthy weight, limited alcohol, and stress management.',
+    high: 'Cut salt and processed foods, exercise aerobically, manage weight, limit alcohol, quit smoking, improve sleep, and consult a doctor.',
   },
   obesity: {
-    low: 'Healthy weight maintained - keep up balanced eating, strength training, and regular physical activity while monitoring weight and waist circumference periodically',
-    high: 'Create a sustainable calorie deficit with whole foods, exercise, improve sleep, manage stress, and consult a doctor or nutritionist, even 5–10% weight loss noticeably improves metabolic health within weeks.',
+    low: 'Healthy weight maintained, keep up balanced eating, strength training, and regular physical activity while monitoring weight periodically.',
+    high: 'Create a sustainable calorie deficit with whole foods and exercise, improve sleep, manage stress, and consult a doctor or nutritionist.',
   },
   'pcos/pcod': {
-    low: 'No significant PCOS/PCOD risk detected, keep up a balanced whole foods diet, regular physical activity, healthy weight, and effective stress management.',
-    high: 'Cut refined carbs and sugars, exercise regularly, manage weight and stress, and consult a doctor for hormonal evaluation - treatment may include targeted medication or hormonal therapy alongside lifestyle changes.',
+    low: 'No significant PCOS/PCOD risk detected, maintain a balanced diet, regular physical activity, healthy weight, and stress management.',
+    high: 'Cut refined carbs and sugars, exercise regularly, manage weight and stress, and consult a doctor for hormonal evaluation and treatment.',
   },
   nafld: {
-    low: 'Healthy liver with no fat accumulation detected, maintain a whole foods diet low in refined carbs and fructose, regular physical activity, healthy weight, and limited alcohol intake.',
-    high: 'Cut refined carbs, sugars, fructose, and processed foods, exercise regularly, manage weight, and consult a doctor, even 5 - 10% weight loss significantly reduces liver fat within weeks.',
+    low: 'Healthy liver detected, maintain a whole foods diet low in refined carbs and fructose, stay active, and limit alcohol intake.',
+    high: 'Cut refined carbs, sugars, fructose, and processed foods, exercise regularly, manage weight, and consult a doctor.',
   },
   'cardiac health': {
-    low: 'Good cardiac health detected - keep up regular aerobic exercise, a heart-healthy diet rich in omega-3s, fiber, and antioxidants, healthy weight, limited alcohol, and effective stress management.',
-    high: 'Cut saturated fat, sodium, and refined carbs, exercise aerobically, quit smoking, limit alcohol, manage stress, control blood sugar and blood pressure, and consult a doctor for a full cardiovascular risk assessment and personalized plan.',
+    low: 'Good cardiac health detected, keep up aerobic exercise, a heart-healthy diet, healthy weight, limited alcohol, and stress management.',
+    high: 'Cut saturated fat, sodium, and refined carbs, exercise aerobically, quit smoking, limit alcohol, manage stress, and consult a doctor.',
   },
   'thyroid health': {
-    low: 'Good thyroid health detected - maintain adequate iodine, selenium, and zinc intake, manage stress, prioritize quality sleep, and minimize exposure to environmental toxins.',
-    high: 'Consult a doctor for a full thyroid evaluation (TSH, T3, T4, antibodies) and address stress, nutritional deficiencies, and poor sleep alongside any prescribed medical or hormonal therapy.',
+    low: 'Good thyroid health detected, maintain adequate iodine, selenium, and zinc intake, manage stress, and prioritize quality sleep.',
+    high: 'Consult a doctor for a full thyroid evaluation and address stress, nutritional deficiencies, and poor sleep alongside any prescribed therapy.',
   },
   dyslipidemia: {
-    low: 'Well-controlled lipid levels detected, keep up a heart-healthy diet rich in fiber, healthy fats, and antioxidants, regular physical activity, healthy weight, and limited alcohol intake.',
-    high: 'Cut saturated fats, refined carbs, sugar, and processed foods, exercise regularly, quit smoking, limit alcohol, and consult a doctor for a full lipid evaluation and possible cholesterol-lowering medication.',
+    low: 'Well-controlled lipid levels detected, keep up a heart-healthy diet, regular physical activity, healthy weight, and limited alcohol intake.',
+    high: 'Cut saturated fats, refined carbs, sugar, and processed foods, exercise regularly, quit smoking, and consult a doctor for a lipid evaluation.',
   },
   'oxidative stress': {
-    low: 'Well-balanced oxidative state detected - maintain a diet rich in colorful fruits and vegetables, regular moderate exercise, adequate sleep, stress management, and limited exposure to environmental toxins.',
-    high: 'Increase antioxidant-rich foods (berries, nuts, seeds, green tea), cut processed foods and sugar, quit smoking, limit alcohol, exercise moderately, improve sleep, and consult a doctor if oxidative stress markers remain elevated alongside other chronic disease risk factors.',
+    low: 'Well-balanced oxidative state detected, maintain a colorful whole foods diet, moderate exercise, quality sleep, and stress management.',
+    high: 'Increase antioxidant-rich foods, cut processed foods and sugar, quit smoking, limit alcohol, exercise moderately, and improve sleep.',
   },
 };
 
@@ -317,15 +317,6 @@ export const buildHomeBloodMarkersFromBloodParametersResponse = (response) => (
   buildBloodMarkersFromGroups(extractArray(response))
 );
 
-const setStackDraggingAttr = (stackEl, isDragging) => {
-  if (!stackEl) return;
-  if (isDragging) {
-    stackEl.setAttribute('data-dragging', 'true');
-  } else {
-    stackEl.removeAttribute('data-dragging');
-  }
-};
-
 const orderByHierarchy = (markers) => {
   const source = Array.isArray(markers) ? markers : [];
   const high = source.filter((item) => item.riskKey === 'high');
@@ -405,9 +396,10 @@ const RiskAnalysisSection = ({
     return orderByHierarchy(normalized).slice(0, 3);
   }, [apiBloodMarkers]);
   const cardCount = stackCards.length;
-  const [activeIndex, setActiveIndex] = useState(Math.max(cardCount - 1, 0));
+  const [activeIndex, setActiveIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() => (
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 481px)').matches : false
@@ -454,13 +446,11 @@ const RiskAnalysisSection = ({
   };
 
   useEffect(() => {
-    const stackEl = stackRef.current;
     return () => {
       if (dragFrameRef.current !== null) {
         cancelAnimationFrame(dragFrameRef.current);
       }
       stackSwapAwaitingSettleRef.current = false;
-      setStackDraggingAttr(stackEl, false);
     };
   }, []);
 
@@ -483,13 +473,13 @@ const RiskAnalysisSection = ({
   }, []);
 
   useEffect(() => {
-    setActiveIndex((prev) => Math.min(prev, Math.max(cardCount - 1, 0)));
+    setActiveIndex(0);
   }, [cardCount]);
 
   const startAnimation = (direction) => {
     if (cardCount <= 1) return;
     stackSwapAwaitingSettleRef.current = true;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
     setSwipeDirection(direction);
     setIsAnimating(true);
@@ -514,7 +504,7 @@ const RiskAnalysisSection = ({
     touchStartYRef.current = event.touches[0].clientY;
     isHorizontalSwipeRef.current = false;
     didMoveRef.current = false;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
   };
 
@@ -537,7 +527,7 @@ const RiskAnalysisSection = ({
         return;
       }
 
-      setStackDraggingAttr(stackRef.current, true);
+      setIsDragging(true);
     }
 
     didMoveRef.current = true;
@@ -564,7 +554,7 @@ const RiskAnalysisSection = ({
     if (!isHorizontalSwipeRef.current) {
       touchStartXRef.current = null;
       touchStartYRef.current = null;
-      setStackDraggingAttr(stackRef.current, false);
+      setIsDragging(false);
       resetDragOffset();
       didMoveRef.current = false;
       return;
@@ -580,7 +570,7 @@ const RiskAnalysisSection = ({
         goPrev();
       }
     } else {
-      setStackDraggingAttr(stackRef.current, false);
+      setIsDragging(false);
       resetDragOffset();
     }
 
@@ -588,13 +578,14 @@ const RiskAnalysisSection = ({
     touchStartYRef.current = null;
     isHorizontalSwipeRef.current = false;
     didMoveRef.current = false;
+    setIsDragging(false);
   };
 
   const handleTouchCancel = () => {
     touchStartXRef.current = null;
     touchStartYRef.current = null;
     isHorizontalSwipeRef.current = false;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
     didMoveRef.current = false;
   };
@@ -613,7 +604,7 @@ const RiskAnalysisSection = ({
     pointerIsHorizontalSwipeRef.current = false;
     activePointerIdRef.current = event.pointerId;
     didMoveRef.current = false;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
 
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -643,7 +634,7 @@ const RiskAnalysisSection = ({
         return;
       }
 
-      setStackDraggingAttr(stackRef.current, true);
+      setIsDragging(true);
     }
 
     didMoveRef.current = true;
@@ -670,7 +661,7 @@ const RiskAnalysisSection = ({
       pointerStartYRef.current = null;
       pointerIsHorizontalSwipeRef.current = false;
       activePointerIdRef.current = null;
-      setStackDraggingAttr(stackRef.current, false);
+      setIsDragging(false);
       resetDragOffset();
       didMoveRef.current = false;
       return;
@@ -687,7 +678,7 @@ const RiskAnalysisSection = ({
         goPrev();
       }
     } else {
-      setStackDraggingAttr(stackRef.current, false);
+      setIsDragging(false);
       resetDragOffset();
     }
 
@@ -696,6 +687,7 @@ const RiskAnalysisSection = ({
     pointerIsHorizontalSwipeRef.current = false;
     activePointerIdRef.current = null;
     didMoveRef.current = false;
+    setIsDragging(false);
 
     if (event.currentTarget?.hasPointerCapture?.(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -711,7 +703,7 @@ const RiskAnalysisSection = ({
     pointerStartYRef.current = null;
     pointerIsHorizontalSwipeRef.current = false;
     activePointerIdRef.current = null;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
     didMoveRef.current = false;
 
@@ -723,7 +715,7 @@ const RiskAnalysisSection = ({
   const handleStackTransitionEnd = (event) => {
     if (!stackSwapAwaitingSettleRef.current) return;
     if (!event.target.classList.contains('risk-analysis-wins__stack-card--front')) return;
-    if (event.propertyName !== 'left' && event.propertyName !== 'transform') return;
+    if (event.propertyName !== 'left') return;
 
     stackSwapAwaitingSettleRef.current = false;
 
@@ -830,6 +822,7 @@ const RiskAnalysisSection = ({
         onPointerCancel={handlePointerCancel}
         onLostPointerCapture={handlePointerCancel}
         onTransitionEnd={handleStackTransitionEnd}
+        data-dragging={isDragging ? 'true' : 'false'}
         data-resetting={isResetting ? 'true' : 'false'}
         data-card-count={cardCount}
       >

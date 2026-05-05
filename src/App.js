@@ -19,6 +19,7 @@ import {
 } from './services/questionnaireService';
 import {
   fetchLatestAssessmentReport,
+  fetchLatestHealthSpanIndex,
   getLatestAssessmentIdsCached,
   clearReportRequestCache,
   clearStoredLatestAssessmentId,
@@ -862,6 +863,9 @@ function App() {
   const preloadHomeScreenData = async () => {
     prefetchRouteChunk('home');
     void peekMyAssessmentsRowsCached(0).catch(() => {});
+    const healthSpanPromise = fetchLatestHealthSpanIndex({ includeDetails: false, ttlMs: 45000 })
+      .then((result) => result?.scores || null)
+      .catch(() => null);
     try {
       const { response } = await fetchLatestAssessmentReport(
         (assessmentId) => `/reports/${assessmentId}/overview`
@@ -877,15 +881,22 @@ function App() {
           metabolicAgeValue: metabolicAgeDisplay,
           positiveWinsData: resolvePositiveWinsPayload(overview),
           riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
+          healthSpanScores: await healthSpanPromise,
         });
         return true;
       }
 
-      setPreloadedHomeData(createEmptyPreloadedHome());
+      setPreloadedHomeData({
+        ...createEmptyPreloadedHome(),
+        healthSpanScores: await healthSpanPromise,
+      });
       return false;
     } catch (err) {
       console.error('Failed to preload home screen data:', err);
-      setPreloadedHomeData(createEmptyPreloadedHome());
+      setPreloadedHomeData({
+        ...createEmptyPreloadedHome(),
+        healthSpanScores: await healthSpanPromise,
+      });
       return false;
     }
   };

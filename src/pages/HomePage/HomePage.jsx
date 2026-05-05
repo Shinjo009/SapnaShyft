@@ -8,7 +8,7 @@ import RiskAnalysisSection, {
   buildHomeBloodMarkersFromBloodParametersResponse,
 } from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
-import { fetchLatestAssessmentReport } from '../../services/reportService';
+import { fetchLatestAssessmentReport, fetchLatestHealthSpanIndex } from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
 import {
   hasNutritionLogQuestionnaireDraft,
@@ -335,6 +335,7 @@ const HomePage = ({
   const [metabolicAgeValue, setMetabolicAgeValue] = useState(preloadedData?.metabolicAgeValue || '-');
   const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
   const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
+  const [healthSpanScores, setHealthSpanScores] = useState(preloadedData?.healthSpanScores || null);
   const [isNoDataHome, setIsNoDataHome] = useState(
     () => homePreloadComplete && !hasRenderableOverviewData(preloadedData),
   );
@@ -468,6 +469,28 @@ const HomePage = ({
     void hasFamilyHistoryQuestionnaireDraft().catch(() => {});
     return undefined;
   }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const ttlMs = forceRefreshFromProfile ? 0 : 45000;
+        const result = await fetchLatestHealthSpanIndex({ includeDetails: false, ttlMs });
+        if (!cancelled) {
+          setHealthSpanScores(result?.scores || null);
+        }
+      } catch {
+        if (!cancelled && !preloadedData?.healthSpanScores) {
+          setHealthSpanScores(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [forceRefreshFromProfile, preloadedData?.healthSpanScores]);
 
   const metabolicAgeDetail = useMemo(() => {
     const chronologicalAge = Number(userAge);
@@ -1125,9 +1148,9 @@ const HomePage = ({
       {/* Health Parameters Section */}
       <HealthParametersSection 
         data={[
-          { percentage: 20, label: 'Fitness score' },
-          { percentage: 45, label: 'Nutrition score' },
-          { percentage: 75, label: 'Lifestyle score' }
+          { percentage: healthSpanScores?.fitnessScore ?? null, label: 'Fitness score' },
+          { percentage: healthSpanScores?.nutritionScore ?? null, label: 'Nutrition score' },
+          { percentage: healthSpanScores?.lifestyleScore ?? null, label: 'Lifestyle score' }
         ]}
         onSeeMore={handleHealthScanSeeMore}
         onCardClick={handleHealthScanCircleClick}
