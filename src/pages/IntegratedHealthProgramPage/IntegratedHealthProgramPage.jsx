@@ -369,8 +369,6 @@ const IntegratedHealthProgramPage = ({ onBack }) => {
   const cardsRowRef = useRef(null);
 
   const currentProfiles = activeTab === 'doctor' ? DOCTOR_PROFILES : NUTRITIONIST_PROFILES;
-  const activeExpandedId = expandedByTab[activeTab];
-
   const expandedProfile = useMemo(() => {
     const targetId = expandedByTab[activeTab];
     if (!targetId) {

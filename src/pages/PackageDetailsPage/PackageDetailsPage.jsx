@@ -802,18 +802,6 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
     }));
   }, [packageTitle]);
 
-  const primaryBadgeLabel = useMemo(() => {
-    if (isCustomReview) {
-      return 'Most Popular';
-    }
-
-    if (packageDetail?.is_most_popular) {
-      return 'Most Popular';
-    }
-
-    return tagLabels[0] || MISSING_VALUE;
-  }, [isCustomReview, packageDetail, tagLabels]);
-
   const genderLabel = useMemo(() => {
     if (isCustomReview) {
       return 'For men & women';
