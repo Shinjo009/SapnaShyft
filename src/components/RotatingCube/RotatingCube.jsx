@@ -6,11 +6,24 @@ import preventionIcon from '../../images/Cube/prevention.svg';
 import doctorsIcon from '../../images/Cube/doctors.svg';
 import sportsIcon from '../../images/Cube/sports.svg';
 
+const CUBE_FACES = [
+  { className: 'front', icon: bioAiIcon, label: 'Bio Ai', labelIcon: bioAiIcon },
+  { className: 'back', icon: longevityIcon, label: 'Longevity', labelIcon: longevityIcon },
+  { className: 'right', icon: nutritionIcon, label: 'Nutrition', labelIcon: nutritionIcon },
+  { className: 'left', icon: preventionIcon, label: 'Prevention', labelIcon: preventionIcon },
+  /** Holistic / Age Reversal: add `labelIcon` when assets are ready */
+  { className: 'top', icon: doctorsIcon, label: 'Holistic', labelIcon: null },
+  { className: 'bottom', icon: sportsIcon, label: 'Age Reversal', labelIcon: null },
+];
+
 /**
- * Same DOM as technology.html (lines 421–458).
- * Face icons sourced from src/images/Cube/bio-ai.svg … sports.svg.
+ * Same DOM / 3D layout as technology.html (lines 421–458).
+ * `variant="icons"` (default): SVGs from `src/images/Cube/*.svg`.
+ * `variant="labels"`: icon above Lato label per face (`labelIcon`; optional for Holistic / Age Reversal). Used by SplashScreen3.
  */
-export default function RotatingCube() {
+export default function RotatingCube({ variant = 'icons' }) {
+  const useLabels = variant === 'labels';
+
   return (
     <div className="parent-container">
       <div className="beam-outer" aria-hidden />
@@ -18,36 +31,31 @@ export default function RotatingCube() {
       <div className="beam-ring" aria-hidden />
 
       <div className="cube-container">
-        <div className="cube-face front">
-          <div className="icon-circle">
-            <img src={bioAiIcon} alt="" width={160} height={160} decoding="async" />
+        {CUBE_FACES.map(({ className, icon, label, labelIcon }) => (
+          <div key={className} className={`cube-face ${className}`}>
+            <div className="icon-circle">
+              {useLabels ? (
+                <div className="cube-face-label-stack">
+                  {labelIcon ? (
+                    <img
+                      src={labelIcon}
+                      alt=""
+                      className="cube-face-label-icon"
+                      width={56}
+                      height={56}
+                      decoding="async"
+                    />
+                  ) : (
+                    <span className="cube-face-label-icon-spacer" aria-hidden />
+                  )}
+                  <span className="cube-face-label">{label}</span>
+                </div>
+              ) : (
+                <img src={icon} alt="" width={160} height={160} decoding="async" />
+              )}
+            </div>
           </div>
-        </div>
-        <div className="cube-face back">
-          <div className="icon-circle">
-            <img src={longevityIcon} alt="" width={160} height={160} decoding="async" />
-          </div>
-        </div>
-        <div className="cube-face right">
-          <div className="icon-circle">
-            <img src={nutritionIcon} alt="" width={160} height={160} decoding="async" />
-          </div>
-        </div>
-        <div className="cube-face left">
-          <div className="icon-circle">
-            <img src={preventionIcon} alt="" width={160} height={160} decoding="async" />
-          </div>
-        </div>
-        <div className="cube-face top">
-          <div className="icon-circle">
-            <img src={doctorsIcon} alt="" width={160} height={160} decoding="async" />
-          </div>
-        </div>
-        <div className="cube-face bottom">
-          <div className="icon-circle">
-            <img src={sportsIcon} alt="" width={160} height={160} decoding="async" />
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );

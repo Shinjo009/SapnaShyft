@@ -1,7 +1,6 @@
 /*
- * SplashScreen3 — graph + cube share one padded scene (320px face + 36px pad = 392px);
- * SVG and cube front face use the same 320×320 box, centered; graph fade + cube spin start in phase 2 (JS timers).
- * Active splash (`SplashScreen.jsx`); SplashScreen4 module is stubbed.
+ * SplashScreen4 — stylesheet retained for reference; SplashScreen4.jsx is inactive (returns null).
+ * Active splash uses SplashScreen3.css via SplashScreen3.jsx (`SplashScreen.jsx`).
  */
 
 .splash-screen-2 {

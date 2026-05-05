@@ -78,7 +78,7 @@ const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup, showInstall
               <div className="splash-v3-cube-layer">
                 {/* Same 320×320 front face as graph square; offset (PAD,PAD) inside SCENE_PX via CSS. */}
                 <div className="splash-v3-cube-zwrap">
-                  <RotatingCube />
+                  <RotatingCube variant="labels" />
                 </div>
               </div>
 

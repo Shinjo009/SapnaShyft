@@ -134,7 +134,7 @@
 }
 
 /* Match ref: contained icon + light line glow (single cheap shadow on splash) */
-.splash-screen-2 .cube-face .icon-circle img {
+.splash-screen-2 .cube-face .icon-circle > img {
   position: relative;
   z-index: 1;
   width: 62% !important;
