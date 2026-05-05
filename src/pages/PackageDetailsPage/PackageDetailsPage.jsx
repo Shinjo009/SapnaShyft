@@ -408,26 +408,6 @@ const toGenderLabel = (value) => {
   return MISSING_VALUE;
 };
 
-const extractTagLabels = (tags) => {
-  if (!Array.isArray(tags)) {
-    return [];
-  }
-
-  return tags
-    .map((tag) => {
-      if (typeof tag === 'string' || typeof tag === 'number') {
-        return String(tag).trim();
-      }
-
-      if (tag && typeof tag === 'object') {
-        return String(tag.tag_name || tag.name || '').trim();
-      }
-
-      return '';
-    })
-    .filter(Boolean);
-};
-
 const extractReasonPoints = (reasons) => {
   if (!Array.isArray(reasons)) {
     return [];
@@ -773,8 +753,6 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
     const fromApi = toTestGroupCards(packageTests);
     return fromApi.length > 0 ? fromApi : PARAMETER_GROUPS;
   }, [isCustomReview, packageTests]);
-
-  const tagLabels = useMemo(() => extractTagLabels(packageDetail?.tags), [packageDetail]);
 
   const packageTitle = useMemo(() => {
     if (isCustomReview) {
