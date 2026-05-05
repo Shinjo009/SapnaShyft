@@ -53,20 +53,68 @@ const DISEASES_DATA = [
   { id: 10, name: 'Thyroid Health', icon: ThyroidHealthIcon, score: 20 },
 ];
 
-const TOP_LINE_BY_DISEASE = {
-  obesity: 'Excess body fat accumulation that increases long-term metabolic and cardiovascular risk.',
-  'metabolic syndrome': 'Cluster of high blood pressure, blood sugar, fat around waist and abnormal lipids that together raise heart risk.',
-  dyslipidemia: 'Unhealthy blood fat levels that increase artery clogging risk.',
-  'pcos/pcod': 'Hormonal imbalance in women causing irregular periods, acne and ovarian cysts.',
-  'oxidative stress': 'When harmful molecules damage cells faster than antioxidants can repair them.',
-  nafld: 'Fat build-up in liver not due to alcohol, linked to overweight.',
-  hypertension: 'Persistently high blood pressure that strains the heart and vessels.',
-  'thyroid health': 'Thyroid hormones control metabolism, energy and temperature.',
-  'type 2 diabetes': 'Body resists insulin causing high blood sugar over time.',
-  'cardiac health': 'Overall state of heart and blood vessels influenced by lifestyle and genes.',
+const ACTION_COPY_BY_DISEASE_AND_RISK = {
+  metabolic: {
+    low: 'No metabolic syndrome detected, your current lifestyle habits are working well. Keep up physical activity, balanced nutrition, sleep, and stress management.',
+    high: 'To improve all metabolic markers, cut refined carbs and processed foods, exercise regularly, manage weight, sleep better, and reduce stress, results visible in 8 - 12 weeks.',
+  },
+  'metabolic syndrome': {
+    low: 'No metabolic syndrome detected, your current lifestyle habits are working well. Keep up physical activity, balanced nutrition, sleep, and stress management.',
+    high: 'To improve all metabolic markers, cut refined carbs and processed foods, exercise regularly, manage weight, sleep better, and reduce stress, results visible in 8 - 12 weeks.',
+  },
+  'type 2 diabetes': {
+    low: 'No significant type 2 diabetes risk detected, keep maintaining regular physical activity, a low-sugar balanced diet, healthy weight, and consistent sleep.',
+    high: 'Cut refined carbs and sugars, exercise daily, manage weight, sleep better, and reduce stress, consult a doctor for a full plan including possible medication.',
+  },
+  hypertension: {
+    low: 'Healthy blood pressure detected - keep up regular exercise, a low-sodium diet, healthy weight, limited alcohol, and effective stress management.',
+    high: 'Cut salt and processed foods, exercise aerobically, manage weight, limit alcohol, quit smoking, and improve sleep - consult a doctor for a full plan including possible medication.',
+  },
+  obesity: {
+    low: 'Healthy weight maintained - keep up balanced eating, strength training, and regular physical activity while monitoring weight and waist circumference periodically',
+    high: 'Create a sustainable calorie deficit with whole foods, exercise, improve sleep, manage stress, and consult a doctor or nutritionist, even 5–10% weight loss noticeably improves metabolic health within weeks.',
+  },
+  'pcos/pcod': {
+    low: 'No significant PCOS/PCOD risk detected, keep up a balanced whole foods diet, regular physical activity, healthy weight, and effective stress management.',
+    high: 'Cut refined carbs and sugars, exercise regularly, manage weight and stress, and consult a doctor for hormonal evaluation - treatment may include targeted medication or hormonal therapy alongside lifestyle changes.',
+  },
+  nafld: {
+    low: 'Healthy liver with no fat accumulation detected, maintain a whole foods diet low in refined carbs and fructose, regular physical activity, healthy weight, and limited alcohol intake.',
+    high: 'Cut refined carbs, sugars, fructose, and processed foods, exercise regularly, manage weight, and consult a doctor, even 5 - 10% weight loss significantly reduces liver fat within weeks.',
+  },
+  'cardiac health': {
+    low: 'Good cardiac health detected - keep up regular aerobic exercise, a heart-healthy diet rich in omega-3s, fiber, and antioxidants, healthy weight, limited alcohol, and effective stress management.',
+    high: 'Cut saturated fat, sodium, and refined carbs, exercise aerobically, quit smoking, limit alcohol, manage stress, control blood sugar and blood pressure, and consult a doctor for a full cardiovascular risk assessment and personalized plan.',
+  },
+  'thyroid health': {
+    low: 'Good thyroid health detected - maintain adequate iodine, selenium, and zinc intake, manage stress, prioritize quality sleep, and minimize exposure to environmental toxins.',
+    high: 'Consult a doctor for a full thyroid evaluation (TSH, T3, T4, antibodies) and address stress, nutritional deficiencies, and poor sleep alongside any prescribed medical or hormonal therapy.',
+  },
+  dyslipidemia: {
+    low: 'Well-controlled lipid levels detected, keep up a heart-healthy diet rich in fiber, healthy fats, and antioxidants, regular physical activity, healthy weight, and limited alcohol intake.',
+    high: 'Cut saturated fats, refined carbs, sugar, and processed foods, exercise regularly, quit smoking, limit alcohol, and consult a doctor for a full lipid evaluation and possible cholesterol-lowering medication.',
+  },
+  'oxidative stress': {
+    low: 'Well-balanced oxidative state detected - maintain a diet rich in colorful fruits and vegetables, regular moderate exercise, adequate sleep, stress management, and limited exposure to environmental toxins.',
+    high: 'Increase antioxidant-rich foods (berries, nuts, seeds, green tea), cut processed foods and sugar, quit smoking, limit alcohol, exercise moderately, improve sleep, and consult a doctor if oxidative stress markers remain elevated alongside other chronic disease risk factors.',
+  },
 };
 
 const normalizeDiseaseKey = (name = '') => name.replace(/\s+/g, ' ').trim().toLowerCase();
+const getRiskBand = (item, scoreValue) => {
+  const directRisk = String(item?.risk || item?.risk_level || item?.risk_type || '').trim().toLowerCase();
+  if (directRisk.includes('high')) return 'high';
+  if (directRisk.includes('low') || directRisk.includes('optimal') || directRisk.includes('normal')) return 'low';
+  const numericScore = Number(scoreValue);
+  return Number.isFinite(numericScore) && numericScore >= 50 ? 'high' : 'low';
+};
+
+const toActionCopy = (diseaseName, riskBand) => {
+  const diseaseKey = normalizeDiseaseKey(diseaseName);
+  const actionMap = ACTION_COPY_BY_DISEASE_AND_RISK[diseaseKey];
+  if (!actionMap) return '-';
+  return riskBand === 'high' ? actionMap.high : actionMap.low;
+};
 
 const toClampedPercentile = (value) => {
   const numeric = Number(value);
@@ -84,7 +132,7 @@ const defaultCards = DISEASES_DATA
   .map((disease) => ({
     ...disease,
     code: normalizeDiseaseKey(disease.name).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''),
-    action: TOP_LINE_BY_DISEASE[normalizeDiseaseKey(disease.name)] || TOP_LINE_BY_DISEASE['oxidative stress'],
+    action: toActionCopy(disease.name, getRiskBand(disease, disease.score)),
     healthRankLabel: '-',
   }));
 
@@ -118,7 +166,7 @@ const toRiskAnalysisCardsFromApi = (riskAnalysis) => {
     // Disease detail screen computes health rank from disease_percentile.
     const percentile = toClampedPercentile(item?.disease_percentile ?? item?.healthy_percentile);
     const hasHealthRank = percentile !== null;
-    const keyFromName = normalizeDiseaseKey(name);
+    const riskBand = getRiskBand(item, score);
 
     return {
       id: `api-risk-${index}-${code || 'row'}`,
@@ -127,7 +175,7 @@ const toRiskAnalysisCardsFromApi = (riskAnalysis) => {
       icon: DISEASE_ICON_BY_CODE[code] || MetabolicIcon,
       score,
       scoreDisplay: hasScore ? String(score) : '-',
-      action: TOP_LINE_BY_DISEASE[keyFromName] || '-',
+      action: toActionCopy(name, riskBand),
       healthRankLabel: hasHealthRank ? `${percentile}th` : '-',
       isPlaceholder: false,
     };
@@ -361,6 +409,9 @@ const RiskAnalysisSection = ({
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => (
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 481px)').matches : false
+  ));
   const stackRef = useRef(null);
   const touchStartXRef = useRef(null);
   const touchStartYRef = useRef(null);
@@ -411,6 +462,24 @@ const RiskAnalysisSection = ({
       stackSwapAwaitingSettleRef.current = false;
       setStackDraggingAttr(stackEl, false);
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const media = window.matchMedia('(min-width: 481px)');
+    const handleChange = (event) => setIsDesktop(event.matches);
+    setIsDesktop(media.matches);
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', handleChange);
+      return () => media.removeEventListener('change', handleChange);
+    }
+
+    media.addListener(handleChange);
+    return () => media.removeListener(handleChange);
   }, []);
 
   useEffect(() => {
@@ -824,9 +893,31 @@ const RiskAnalysisSection = ({
       </div>
 
       <div className="risk-analysis-wins__swipe-hint" aria-hidden="true">
-        <span className="risk-analysis-wins__swipe-arrow risk-analysis-wins__swipe-arrow--left"><SwipeArrow /></span>
+        <button
+          type="button"
+          className="risk-analysis-wins__swipe-arrow-btn"
+          onClick={() => {
+            if (isDesktop) {
+              goPrev();
+            }
+          }}
+          aria-label="Show previous risk card"
+        >
+          <span className="risk-analysis-wins__swipe-arrow risk-analysis-wins__swipe-arrow--left"><SwipeArrow /></span>
+        </button>
         <span className="risk-analysis-wins__swipe-text">Swipe to explore</span>
-        <span className="risk-analysis-wins__swipe-arrow"><SwipeArrow /></span>
+        <button
+          type="button"
+          className="risk-analysis-wins__swipe-arrow-btn"
+          onClick={() => {
+            if (isDesktop) {
+              goNext();
+            }
+          }}
+          aria-label="Show next risk card"
+        >
+          <span className="risk-analysis-wins__swipe-arrow"><SwipeArrow /></span>
+        </button>
       </div>
 
       <section className="risk-analysis-wins__blood-markers" aria-label="Blood Markers">

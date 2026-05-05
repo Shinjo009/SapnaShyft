@@ -475,19 +475,17 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
           </div>
         </header>
 
-        {isSearchOpen ? (
-          <div className="create-custom-page__search-row">
-            <SearchIcon stroke="rgba(255, 255, 255, 0.72)" />
-            <input
-              type="text"
-              className="create-custom-page__search-input"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search"
-              aria-label="Search tests"
-            />
-          </div>
-        ) : null}
+        <div className={`create-custom-page__search-row create-custom-page__search-row--animated ${isSearchOpen ? 'is-open' : ''}`} aria-hidden={!isSearchOpen}>
+          <SearchIcon stroke="rgba(255, 255, 255, 0.72)" />
+          <input
+            type="text"
+            className="create-custom-page__search-input"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search"
+            aria-label="Search tests"
+          />
+        </div>
 
         <div className="create-custom-page__pills" role="tablist" aria-label="Category filters">
           {filterChips.map((chip) => {

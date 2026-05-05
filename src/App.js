@@ -152,6 +152,30 @@ const resolveOverviewPayload = (payload) => {
   return payload;
 };
 
+const resolvePositiveWinsPayload = (overview) => {
+  if (!overview || typeof overview !== 'object') {
+    return null;
+  }
+
+  if (overview.positive_wins && typeof overview.positive_wins === 'object') {
+    return overview.positive_wins;
+  }
+
+  const hasTopLevelPositiveWinsFields = Object.prototype.hasOwnProperty.call(overview, 'healthy_habits')
+    || Object.prototype.hasOwnProperty.call(overview, 'healthy_profiles')
+    || Object.prototype.hasOwnProperty.call(overview, 'low_risk');
+
+  if (!hasTopLevelPositiveWinsFields) {
+    return null;
+  }
+
+  return {
+    healthy_habits: Array.isArray(overview.healthy_habits) ? overview.healthy_habits : [],
+    healthy_profiles: Array.isArray(overview.healthy_profiles) ? overview.healthy_profiles : [],
+    low_risk: Array.isArray(overview.low_risk) ? overview.low_risk : [],
+  };
+};
+
 const deriveEmployerOrganizerName = (profile) => {
   const raw = profile?.referred_by
     || profile?.organization_name
@@ -851,7 +875,7 @@ function App() {
         setPreloadedHomeData({
           [HOME_PRELOAD_COMPLETE_KEY]: true,
           metabolicAgeValue: metabolicAgeDisplay,
-          positiveWinsData: overview?.positive_wins && typeof overview.positive_wins === 'object' ? overview.positive_wins : null,
+          positiveWinsData: resolvePositiveWinsPayload(overview),
           riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
         });
         return true;

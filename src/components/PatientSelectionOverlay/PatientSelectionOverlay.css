@@ -53,6 +53,27 @@
   overflow: visible;
 }
 
+.patient-select-overlay__sheet.is-package-details {
+  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  padding: 0;
+  border-radius: 0;
+  border-top: none;
+  background: #06141b;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.patient-select-overlay__sheet.is-package-details::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.patient-select-overlay__sheet.is-package-details {
+  scrollbar-width: none;
+}
+
 .patient-select-overlay__sheet.is-payment {
   min-height: 4vh;
 }
@@ -654,6 +675,18 @@
   outline: none;
 }
 
+.patient-add__select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 4px;
+  cursor: pointer;
+}
+
+.patient-add__select option {
+  color: #111;
+}
+
 .patient-add__dropdown-btn {
   border: none;
   background: none;
@@ -1039,9 +1072,10 @@
 }
 
 .patient-package__open-icon {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .patient-package__bottom-bar {

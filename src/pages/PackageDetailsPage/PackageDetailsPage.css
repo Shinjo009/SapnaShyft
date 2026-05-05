@@ -143,7 +143,7 @@
 .package-details-page__overview-box {
   
   display: flex;
-  padding: 20px 5px;
+  padding: 2px 5px;
   flex-direction: column;
   align-items: flex-start;
   gap: 16px;
@@ -895,7 +895,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(10px);
   overscroll-behavior: contain;
 }
@@ -924,7 +924,7 @@
   border-radius: 24px 24px 0 0;
   border: none;
   border-top: 1px solid rgba(153, 153, 153, 0.5);
-  background: rgba(0, 0, 0, 0.5);
+  background: #06141b;
   backdrop-filter: blur(45px);
 }
 

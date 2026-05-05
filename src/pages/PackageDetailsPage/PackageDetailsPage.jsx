@@ -134,15 +134,27 @@ const normalizeLookupKey = (value) => String(value || '').toLowerCase().replace(
 const HEALTH_AREA_ICON_BY_KEY = {
   'bio age': BioAgeHacIcon,
   allergy: AllergiesHacIcon,
+  allergies: AllergiesHacIcon,
   heart: HeartHacIcon,
   hormones: HormonesHacIcon,
   thyroid: ThyroidHacIcon,
   liver: LiverHacIcon,
   diabetes: DiabetesHacIcon,
+  kidney: LiverHacIcon,
+  metabolism: EnergyHacIcon,
+  haematology: IronHacIcon,
   'bone health': BoneHealthHacIcon,
   iron: IronHacIcon,
   vitamins: VitaminsHacIcon,
+  immunity: InflammationHacIcon,
+  muscle: RecoveryHacIcon,
+  recovery: RecoveryHacIcon,
+  nutrition: VitaminsHacIcon,
   inflammation: InflammationHacIcon,
+  cancer: ProstateHacIcon,
+  colorectal: GuthealthHacIcon,
+  pancreatic: PancreaticHacIcon,
+  'alpha feto': ProstateHacIcon,
   prostate: ProstateHacIcon,
   sleep: SleepHacIcon,
   'mental health': StressHacIcon,
@@ -171,22 +183,24 @@ const HEALTH_AREA_ICON_BY_KEY = {
 const DEFAULT_HEALTH_AREA_LABELS = ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Liver'];
 
 const PACKAGE_HEALTH_AREA_LABELS_BY_NAME = {
-  basic: ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins'],
-  core: ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins', 'Inflammation'],
-  'elite men': ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins', 'Prostate', 'Sleep', 'Inflammation'],
-  'peak men': ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins', 'Prostate', 'Sleep', 'Mental Health', 'Inflammation'],
-  'elite women': ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'PCOS', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins', 'Fertility', 'Sleep', 'Inflammation'],
-  'peak women': ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'PCOS', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins', 'Fertility', 'Sleep', 'Mental Health', 'Inflammation'],
-  'cancer men': ['Liver', 'Diabetes', 'Prostate', 'Anti-PSA', 'Pancreas'],
-  'cancer women': ['Breast', 'Diabetes', 'Hormones', 'Ovaries', 'Cervix'],
-  'progressive tests': ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Thyroid', 'Liver', 'Diabetes', 'Bone Health', 'Iron'],
-  'gen z': ['Bio Age', 'Hormones', 'Diabetes', 'Allergy', 'Vitamins', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
-  '40 adults': ['Bio Age', 'Hormones', 'Diabetes', 'Heart', 'Inflammation', 'Liver', 'Bone Health', 'Iron'],
-  'c suite': ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Liver', 'Diabetes', 'Bone Health', 'Iron', 'Vitamins', 'Sleep', 'Mental Health', 'Inflammation', 'Fertility', 'Prostate', 'Anti-Age'],
-  sleep: ['Melatonin', 'Cortisol', 'Sugar', 'Stress', 'Inflammation', 'Brain Health', 'Gut', 'Thyroid', 'Hormones'],
-  'menstrual health': ['Hormones', 'Stress', 'Thyroid', 'Vitamins', 'Reproductive Health', 'Iron'],
-  'men women hair': ['Vitamins', 'Iron', 'Thyroid', 'Hormones', 'Stress', 'DHT Blockers', 'Minerals', 'Inflammation', 'Energy', 'Liver'],
-  fatigue: ['Vitamins', 'Iron', 'Thyroid', 'Hormones', 'Stress', 'Inflammation', 'Liver'],
+  'peak men': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Muscle', 'Hormones', 'Inflammation'],
+  'elite women': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Hormones', 'Inflammation'],
+  'peak women': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Hormones', 'Muscle', 'Inflammation'],
+  'cancer men': ['Cancer', 'Colorectal', 'Pancreatic', 'Alpha Feto', 'Prostate'],
+  'cancer women': ['Cancer', 'Colorectal', 'Pancreatic', 'Ovarian', 'Breast'],
+  'gen z': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Metabolism', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
+  'gen z package': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Metabolism', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
+  'gen-z': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Metabolism', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
+  'exec male adults': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Inflammation', 'Heart', 'Bone Health', 'Liver', 'Thyroid', 'Metabolism', 'Prostate'],
+  'exec female adults': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Inflammation', 'Heart', 'Bone Health', 'Liver', 'Thyroid', 'Metabolism'],
+  'c suite': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Liver', 'Cancer', 'Iron', 'Immunity', 'Sleep', 'Hormones', 'Inflammation', 'Bone Health', 'Allergies', 'Thyroid'],
+  sleep: ['Metabolism', 'Immunity', 'Sleep', 'Recovery', 'Inflammation', 'Bone Health', 'Stress', 'Thyroid', 'Hormones'],
+  'menstrual health': ['Metabolism', 'Stress', 'Thyroid', 'Hormones', 'Menstrual Health', 'Heart'],
+  'men women hair': ['Metabolism', 'Stress', 'Thyroid', 'Hormones', 'Heart', 'Hair Health', 'Nutrition', 'Inflammation', 'Kidney', 'Liver'],
+  fatigue: ['Metabolism', 'Energy', 'Thyroid', 'Hormones', 'Heart', 'Nutrition', 'Liver'],
+  basic: ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Inflammation'],
+  core: ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Inflammation'],
+  'elite men': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Inflammation'],
 };
 
 const getHealthAreaIconSrc = (label) => {
@@ -432,6 +446,133 @@ const extractAboutParagraphs = (aboutText) => {
     .filter(Boolean);
 };
 
+const SAMPLE_LABELS_BY_KEY = {
+  blood: 'Blood',
+  urine: 'Urine',
+  both: 'Blood & Urine',
+};
+
+const SAMPLE_ITEM_IDS_BY_KEY = {
+  blood: ['blood'],
+  urine: ['urine'],
+  both: ['blood', 'urine'],
+};
+
+const toSampleTextTokens = (value) => {
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => toSampleTextTokens(item));
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.values(value).flatMap((item) => toSampleTextTokens(item));
+  }
+
+  const numericValue = Number(value);
+  if (Number.isFinite(numericValue)) {
+    // Handles common enum shapes from APIs.
+    if (numericValue === 1) return ['blood'];
+    if (numericValue === 2) return ['urine'];
+    if (numericValue === 3) return ['blood', 'urine'];
+  }
+
+  return [String(value || '').trim().toLowerCase()];
+};
+
+const pickSampleKeyFromCandidates = (candidateValues) => {
+  const normalized = candidateValues
+    .flatMap((value) => toSampleTextTokens(value))
+    .join(' ');
+
+  const hasBlood = /\bblood\b/.test(normalized);
+  const hasUrine = /\burine\b/.test(normalized);
+
+  if (hasBlood && hasUrine) {
+    return 'both';
+  }
+  if (hasBlood) {
+    return 'blood';
+  }
+  if (hasUrine) {
+    return 'urine';
+  }
+
+  return '';
+};
+
+const resolveSamplesRequiredKey = (source, packageTests) => {
+  const samplesArrayCandidates = Array.isArray(source?.samples)
+    ? source.samples.flatMap((sample) => [
+      sample?.sample_type,
+      sample?.type,
+      sample?.name,
+      sample?.sample,
+    ])
+    : [];
+  const fromSamplesArray = pickSampleKeyFromCandidates(samplesArrayCandidates);
+  if (fromSamplesArray) {
+    return fromSamplesArray;
+  }
+
+  const sourceCandidates = [
+    source?.samples_required,
+    source?.sample_required,
+    source?.sample_type,
+    source?.sample_types,
+    source?.specimen_type,
+    source?.specimen_types,
+    source?.sample,
+  ];
+  const sourceResolved = pickSampleKeyFromCandidates(sourceCandidates);
+  if (sourceResolved) {
+    return sourceResolved;
+  }
+
+  const testsRootCandidates = [
+    packageTests?.samples_required,
+    packageTests?.sample_required,
+    packageTests?.sample_type,
+    packageTests?.sample_types,
+    packageTests?.specimen_type,
+    packageTests?.specimen_types,
+    packageTests?.sample,
+  ];
+  const testsRootResolved = pickSampleKeyFromCandidates(testsRootCandidates);
+  if (testsRootResolved) {
+    return testsRootResolved;
+  }
+
+  const groupAndTestCandidates = Array.isArray(packageTests?.groups)
+    ? packageTests.groups.flatMap((group) => {
+      const groupFields = [
+        group?.samples_required,
+        group?.sample_required,
+        group?.sample_type,
+        group?.sample_types,
+        group?.specimen_type,
+        group?.specimen_types,
+        group?.sample,
+      ];
+      const tests = Array.isArray(group?.tests) ? group.tests : [];
+      const testFields = tests.flatMap((test) => [
+        test?.samples_required,
+        test?.sample_required,
+        test?.sample_type,
+        test?.sample_types,
+        test?.specimen_type,
+        test?.specimen_types,
+        test?.sample,
+      ]);
+      return [...groupFields, ...testFields];
+    })
+    : [];
+  const groupOrTestResolved = pickSampleKeyFromCandidates(groupAndTestCandidates);
+  if (groupOrTestResolved) {
+    return groupOrTestResolved;
+  }
+
+  return 'both';
+};
+
 const formatCurrency = (value) => {
   const parsedValue = Number(value);
 
@@ -496,7 +637,7 @@ const toDiscountLabel = (discountPercent, price, originalPrice) => {
   return MISSING_VALUE;
 };
 
-const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User', packageId = null, packageCard = null, onCustomBookingConfirmed }) => {
+const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User', packageId = null, packageCard = null, onCustomBookingConfirmed, hideBookBar = false }) => {
   const isCustomReview = variant === 'custom-review';
   const trimmedProfileName = String(profileName || '').trim() || 'User';
   const customPackageTitle = `${trimmedProfileName}'s Custom Package`;
@@ -711,6 +852,10 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
   const detailCards = useMemo(() => {
     const testsCount = Number(packageDetail?.no_of_tests);
     const testsText = Number.isFinite(testsCount) && testsCount > 0 ? `${testsCount} Parameters` : MISSING_VALUE;
+    const samplesRequiredKey = resolveSamplesRequiredKey(
+      packageDetail || packageCard?.apiData || packageCard || {},
+      packageTests,
+    );
 
     return DETAIL_CARDS.map((card) => {
       if (card.id === 'tests' && !isCustomReview) {
@@ -727,9 +872,34 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
         };
       }
 
+      if (card.id === 'samples') {
+        return {
+          ...card,
+          big: SAMPLE_LABELS_BY_KEY[samplesRequiredKey] || SAMPLE_LABELS_BY_KEY.both,
+        };
+      }
+
       return card;
     });
-  }, [isCustomReview, packageDetail]);
+  }, [isCustomReview, packageCard, packageDetail, packageTests]);
+
+  const sampleItemsToShow = useMemo(() => {
+    const samplesRequiredKey = resolveSamplesRequiredKey(
+      packageDetail || packageCard?.apiData || packageCard || {},
+      packageTests,
+    );
+    const allowedSampleIds = new Set(SAMPLE_ITEM_IDS_BY_KEY[samplesRequiredKey] || SAMPLE_ITEM_IDS_BY_KEY.both);
+    return SAMPLE_ITEMS.filter((item) => allowedSampleIds.has(item.id));
+  }, [packageCard, packageDetail, packageTests]);
+
+  const preparationGroupsToShow = useMemo(() => {
+    const samplesRequiredKey = resolveSamplesRequiredKey(
+      packageDetail || packageCard?.apiData || packageCard || {},
+      packageTests,
+    );
+    const allowedSampleIds = new Set(SAMPLE_ITEM_IDS_BY_KEY[samplesRequiredKey] || SAMPLE_ITEM_IDS_BY_KEY.both);
+    return PREPARATION_GROUPS.filter((group) => allowedSampleIds.has(group.id));
+  }, [packageCard, packageDetail, packageTests]);
 
   const aboutParagraphs = useMemo(() => {
     if (isCustomReview) {
@@ -739,16 +909,6 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
     const parsed = extractAboutParagraphs(packageDetail?.about_text);
     return parsed.length > 0 ? parsed : [MISSING_VALUE];
   }, [isCustomReview, packageDetail]);
-
-  const aboutPreview = useMemo(() => {
-    const firstParagraph = aboutParagraphs[0] || MISSING_VALUE;
-
-    if (firstParagraph.length <= 140) {
-      return firstParagraph;
-    }
-
-    return `${firstParagraph.slice(0, 140).trimEnd()}...`;
-  }, [aboutParagraphs]);
 
   const whyPackagePoints = useMemo(() => {
     if (isCustomReview) {
@@ -1011,23 +1171,6 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
 
       <div className="package-details-page__content">
         <section className="package-details-page__overview-box">
-          <div className="package-details-page__badge-row">
-            <div className="package-details-page__badge package-details-page__badge--popular">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                <g clipPath="url(#clip0_2583_4686)">
-                  <path d="M5.76341 1.14745C5.8081 1.05714 5.90015 1 6.00091 1C6.10167 1 6.19371 1.05714 6.23841 1.14745L7.39341 3.48695C7.54766 3.79969 7.84586 4.01656 8.19091 4.06695L10.7739 4.44495C10.8737 4.45941 10.9567 4.52931 10.9879 4.62525C11.0191 4.72119 10.9931 4.82652 10.9209 4.89695L9.05291 6.71595C8.8026 6.95951 8.68833 7.31073 8.74741 7.65495L9.18841 10.2249C9.20604 10.3248 9.16519 10.4259 9.08318 10.4854C9.00117 10.545 8.89237 10.5526 8.80291 10.5049L6.49391 9.29095C6.18511 9.12861 5.8162 9.12861 5.50741 9.29095L3.19891 10.5049C3.10948 10.5523 3.00089 10.5446 2.91906 10.4851C2.83722 10.4255 2.79642 10.3246 2.81391 10.2249L3.25441 7.65545C3.31366 7.31107 3.19937 6.95961 2.94891 6.71595L1.08091 4.89745C1.00806 4.82709 0.981688 4.72137 1.01295 4.62504C1.04421 4.52871 1.12763 4.45863 1.22791 4.44445L3.81041 4.06695C4.15583 4.01687 4.45447 3.79995 4.60891 3.48695L5.76341 1.14745" stroke="white" strokeLinecap="round" strokeLinejoin="round"/>
-                </g>
-                <defs>
-                  <clipPath id="clip0_2583_4686">
-                    <rect width="12" height="12" fill="white"/>
-                  </clipPath>
-                </defs>
-              </svg>
-              <span>{primaryBadgeLabel}</span>
-            </div>
-
-          </div>
-
           <h2 className="package-details-page__pack-title">{packageTitle}</h2>
 
           <div className={`package-details-page__meta-row${isCustomReview ? ' package-details-page__meta-row--compact' : ''}`}>
@@ -1087,18 +1230,6 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
           <span>SWIPE TO EXPLORE</span>
           <SwipeSideIcon />
         </div>
-
-        <section className="package-details-page__about-section" aria-label="About package">
-          <div className="package-details-page__about-head">
-            <button type="button" className="package-details-page__about-title package-details-page__about-title--button" onClick={() => setActiveOverlay('about')}>
-              About this package
-            </button>
-            <button type="button" className="package-details-page__see-more" onClick={() => setActiveOverlay('about')}>See more</button>
-          </div>
-          <p className="package-details-page__about-text">
-            {aboutPreview}
-          </p>
-        </section>
 
         <section className="package-details-page__areas-section" aria-label="Health areas covered">
           <h3 className="package-details-page__areas-title">Health Areas Covered</h3>
@@ -1203,7 +1334,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
         </section>
       </div>
 
-      {activeOverlay !== 'patients' ? (
+      {activeOverlay !== 'patients' && !hideBookBar ? (
         <div className="package-details-page__book-bar" aria-label="Package booking bar">
           <div className="package-details-page__book-bar-inner">
             <div className="package-details-page__price-col">
@@ -1266,7 +1397,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
 
             {activeOverlay === 'samples' ? (
               <div className="package-details-page__samples-list">
-                {SAMPLE_ITEMS.map((item) => (
+                {sampleItemsToShow.map((item) => (
                   <div key={item.id} className="package-details-page__sample-item">
                     <div className="package-details-page__sample-icon-box">{item.icon}</div>
                     <h4>{item.label}</h4>
@@ -1278,7 +1409,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
 
             {activeOverlay === 'prep' ? (
               <div className="package-details-page__prep-list">
-                {PREPARATION_GROUPS.map((group) => (
+                {preparationGroupsToShow.map((group) => (
                   <section
                     key={group.id}
                     className={`package-details-page__prep-card package-details-page__prep-card--${group.tone}`}

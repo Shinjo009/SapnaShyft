@@ -412,6 +412,10 @@
   flex-shrink: 0;
 }
 
+.positive-wins__aspect-list--centered {
+  align-items: center;
+}
+
 .positive-wins__aspect-item {
   display: flex;
   width: 148px;

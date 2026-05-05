@@ -1061,7 +1061,7 @@
 @media (min-width: 1025px) {
   .home-page {
     max-width: 1200px;
-    padding: 0 50px;
+    padding: 0 0px;
   }
 }
 

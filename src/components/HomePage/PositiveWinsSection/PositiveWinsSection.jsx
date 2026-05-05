@@ -106,8 +106,19 @@ const buildPositiveWinsCardsFromApi = (positiveWins) => {
         return { label: toLabel(item) };
       }
 
-      return { label: toLabel(item?.name || item?.label || item?.title || item?.value) };
-    });
+      return {
+        label: toLabel(
+          item?.habit_label
+          || item?.habit_name
+          || item?.name
+          || item?.label
+          || item?.title
+          || item?.value
+          || item?.habit_key
+        ),
+      };
+    })
+    .filter((item) => item.label !== '-');
 
   const healthyProfileRows = toArray(positiveWins?.healthy_profiles)
     .map((item) => {
@@ -118,29 +129,35 @@ const buildPositiveWinsCardsFromApi = (positiveWins) => {
       return { label: toLabel(item?.name || item?.label || item?.title || item?.value) };
     });
 
-  return [
-    {
+  const cards = [];
+
+  if (healthyHabitRows.length > 0) {
+    cards.push({
       id: 'pw-healthy-habits',
       title: 'Healthy\nHabits',
       Icon: HealthyHabitsIcon,
-      aspects: healthyHabitRows.length > 0 ? healthyHabitRows : [{ label: '-' }],
-      statusLabel: healthyHabitRows.length > 0 ? 'Optimal' : '-',
-    },
-    {
+      aspects: healthyHabitRows,
+      statusLabel: 'Optimal',
+    });
+  }
+
+  cards.push({
       id: 'pw-healthy-profiles',
       title: 'Healthy\nProfiles',
       Icon: HealthyProfilesIcon,
       aspects: healthyProfileRows.length > 0 ? healthyProfileRows : [{ label: '-' }],
       statusLabel: healthyProfileRows.length > 0 ? 'Optimal' : '-',
-    },
-    {
+    });
+
+  cards.push({
       id: 'pw-low-risk',
       title: 'Low Risk',
       Icon: LowRiskIcon,
       aspects: lowRiskRows.length > 0 ? lowRiskRows : [{ label: '-', percent: '-' }],
       statusLabel: lowRiskRows.length > 0 ? 'Optimal' : '-',
-    },
-  ];
+    });
+
+  return cards;
 };
 
 const setStackDraggingAttr = (stackEl, isDragging) => {
@@ -534,7 +551,13 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
                   </div>
                 </div>
 
-                <div className="positive-wins__aspect-list">
+                <div
+                  className={`positive-wins__aspect-list${
+                    card.id === 'pw-healthy-habits' && card.aspects.length < 3
+                      ? ' positive-wins__aspect-list--centered'
+                      : ''
+                  }`}
+                >
                   {card.aspects.map((aspect) => (
                     <div key={`${card.title}-${aspect.label}`} className="positive-wins__aspect-item">
                       <span className="positive-wins__aspect-label">{aspect.label}</span>
@@ -548,11 +571,13 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
         })}
       </div>
 
-      <div className="positive-wins__swipe-hint" aria-hidden="true">
-        <span className="positive-wins__swipe-arrow positive-wins__swipe-arrow--left"><SwipeArrow /></span>
-        <span className="positive-wins__swipe-text">Swipe to explore</span>
-        <span className="positive-wins__swipe-arrow"><SwipeArrow /></span>
-      </div>
+      {cardCount > 1 ? (
+        <div className="positive-wins__swipe-hint" aria-hidden="true">
+          <span className="positive-wins__swipe-arrow positive-wins__swipe-arrow--left"><SwipeArrow /></span>
+          <span className="positive-wins__swipe-text">Swipe to explore</span>
+          <span className="positive-wins__swipe-arrow"><SwipeArrow /></span>
+        </div>
+      ) : null}
     </section>
   );
 };

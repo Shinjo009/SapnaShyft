@@ -235,6 +235,30 @@ const resolveOverviewPayload = (payload) => {
   return payload;
 };
 
+const resolvePositiveWinsPayload = (overview) => {
+  if (!overview || typeof overview !== 'object') {
+    return null;
+  }
+
+  if (overview.positive_wins && typeof overview.positive_wins === 'object') {
+    return overview.positive_wins;
+  }
+
+  const hasTopLevelPositiveWinsFields = Object.prototype.hasOwnProperty.call(overview, 'healthy_habits')
+    || Object.prototype.hasOwnProperty.call(overview, 'healthy_profiles')
+    || Object.prototype.hasOwnProperty.call(overview, 'low_risk');
+
+  if (!hasTopLevelPositiveWinsFields) {
+    return null;
+  }
+
+  return {
+    healthy_habits: Array.isArray(overview.healthy_habits) ? overview.healthy_habits : [],
+    healthy_profiles: Array.isArray(overview.healthy_profiles) ? overview.healthy_profiles : [],
+    low_risk: Array.isArray(overview.low_risk) ? overview.low_risk : [],
+  };
+};
+
 const EMPTY_UPCOMING_SLOT = {
   hasScheduledSlot: false,
   isB2b: false,
@@ -517,7 +541,10 @@ const HomePage = ({
 
       const hasOverviewFields = Object.prototype.hasOwnProperty.call(overview, 'metabolic_age')
         || Object.prototype.hasOwnProperty.call(overview, 'positive_wins')
-        || Object.prototype.hasOwnProperty.call(overview, 'risk_analysis');
+        || Object.prototype.hasOwnProperty.call(overview, 'risk_analysis')
+        || Object.prototype.hasOwnProperty.call(overview, 'healthy_habits')
+        || Object.prototype.hasOwnProperty.call(overview, 'healthy_profiles')
+        || Object.prototype.hasOwnProperty.call(overview, 'low_risk');
 
       if (!hasOverviewFields) {
         return null;
@@ -527,7 +554,7 @@ const HomePage = ({
       const metabolicAgeDisplay = Number.isFinite(metabolicAge) ? String(Math.round(metabolicAge)) : '-';
       return {
         metabolicAgeValue: metabolicAgeDisplay,
-        positiveWinsData: overview?.positive_wins && typeof overview.positive_wins === 'object' ? overview.positive_wins : null,
+        positiveWinsData: resolvePositiveWinsPayload(overview),
         riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
       };
     };

@@ -77,13 +77,28 @@
 }
 
 .create-custom-page__search-row {
-  margin-top: 0px;
+  margin-top: 0;
   display: flex;
   padding: 8px 12px;
   align-items: center;
   gap: 6px;
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.1);
+}
+
+.create-custom-page__search-row--animated {
+  margin-bottom: 0;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: max-height 280ms ease, opacity 220ms ease, transform 280ms ease, margin-bottom 280ms ease;
+}
+
+.create-custom-page__search-row--animated.is-open {
+  max-height: 52px;
+  opacity: 1;
+  transform: translateY(0);
   margin-bottom: 10px;
 }
 
@@ -178,6 +193,11 @@
 
 .create-custom-page--search-open .create-custom-page__content {
   padding-top: 223px;
+  transition: padding-top 280ms ease;
+}
+
+.create-custom-page__content {
+  transition: padding-top 280ms ease;
 }
 
 .create-custom-page__cards {

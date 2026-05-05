@@ -208,6 +208,13 @@ const OpenIcon = () => (
   </svg>
 );
 
+const SearchIcon = ({ stroke = 'white' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M21 21L16.65 16.65" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const formatPrice = (value) => {
   if (!Number.isFinite(Number(value)) || Number(value) <= 0) {
     return MISSING_VALUE;
@@ -221,9 +228,12 @@ const normalizeBadgeToken = (value) => String(value || '').trim().toLowerCase();
 const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustomPackage, onNavigateToDoctors, onNavigateToSuperClub, customPackageCard }) => {
   const [activeFilterKey, setActiveFilterKey] = useState('all');
   const [filterChips, setFilterChips] = useState([ALL_FILTER]);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
   const [packageCardsFromApi, setPackageCardsFromApi] = useState([]);
   const [bookingPackage, setBookingPackage] = useState(null);
+  const normalizedQuery = searchQuery.trim().toLowerCase();
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -309,12 +319,47 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
       return packageValues.has(selectedKey) || (selectedLabel ? packageValues.has(selectedLabel) : false);
     });
 
+    const searchFilteredCards = filteredCards.filter((pkg) => {
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      const titleText = String(pkg?.title || '').toLowerCase();
+      const badgesText = Array.isArray(pkg?.badges) ? pkg.badges.join(' ').toLowerCase() : '';
+      const chipsText = Array.isArray(pkg?.chips) ? pkg.chips.join(' ').toLowerCase() : '';
+      const tagsText = Array.isArray(pkg?.apiData?.tags)
+        ? pkg.apiData.tags
+          .map((tag) => {
+            if (typeof tag === 'string' || typeof tag === 'number') {
+              return String(tag);
+            }
+            if (tag && typeof tag === 'object') {
+              return String(tag.tag_name || tag.name || tag.filter_chip || tag.chip_key || tag.display_name || '');
+            }
+            return '';
+          })
+          .join(' ')
+          .toLowerCase()
+        : '';
+
+      return titleText.includes(normalizedQuery)
+        || badgesText.includes(normalizedQuery)
+        || chipsText.includes(normalizedQuery)
+        || tagsText.includes(normalizedQuery);
+    });
+
     if (!customPackageCard) {
-      return filteredCards;
+      return searchFilteredCards;
     }
 
-    return [...filteredCards, { ...customPackageCard }];
-  }, [activeFilterKey, customPackageCard, filterChips, sourceCards]);
+    const shouldIncludeCustomCard = !normalizedQuery
+      || String(customPackageCard?.title || '').toLowerCase().includes(normalizedQuery)
+      || String(customPackageCard?.chips || '').toLowerCase().includes(normalizedQuery);
+
+    return shouldIncludeCustomCard
+      ? [...searchFilteredCards, { ...customPackageCard }]
+      : searchFilteredCards;
+  }, [activeFilterKey, customPackageCard, filterChips, normalizedQuery, sourceCards]);
 
   useEffect(() => {
     const availableKeys = new Set(
@@ -368,13 +413,35 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
   };
 
   return (
-    <div className="packages-page">
+    <div className={`packages-page ${isSearchOpen ? 'packages-page--search-open' : ''}`}>
       <div className="packages-page__fixed-top">
         <header className="packages-page__header">
           <h1 className="packages-page__title">Explore Packages</h1>
+          <div className="packages-page__header-actions">
+            <button
+              type="button"
+              className="packages-page__icon-btn"
+              onClick={() => setIsSearchOpen((prev) => !prev)}
+              aria-label="Search"
+            >
+              <SearchIcon />
+            </button>
+          </div>
         </header>
 
-        <section className="packages-page__search-row" aria-label="Package search and custom package">
+        <div className={`packages-page__search-row packages-page__search-row--animated ${isSearchOpen ? 'is-open' : ''}`} aria-hidden={!isSearchOpen}>
+          <SearchIcon stroke="rgba(255, 255, 255, 0.72)" />
+          <input
+            type="text"
+            className="packages-page__search-input"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search"
+            aria-label="Search packages"
+          />
+        </div>
+
+        <section className="packages-page__custom-row" aria-label="Package search and custom package">
           <button
             type="button"
             className="packages-page__custom-btn"

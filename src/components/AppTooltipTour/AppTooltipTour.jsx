@@ -385,18 +385,31 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'pre-auth' }) => {
     return null;
   }
 
+  const appRootRect = document.querySelector('.app-root')?.getBoundingClientRect();
+  const overlayOffsetX = appRootRect?.left ?? 0;
+  const overlayOffsetY = appRootRect?.top ?? 0;
+
   const viewport = {
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: appRootRect?.width ?? window.innerWidth,
+    height: appRootRect?.height ?? window.innerHeight,
   };
 
-  const bubble = getBubblePosition(targetRect, currentStep.placement, viewport);
+  const relativeTargetRect = {
+    left: targetRect.left - overlayOffsetX,
+    top: targetRect.top - overlayOffsetY,
+    width: targetRect.width,
+    height: targetRect.height,
+    right: targetRect.right - overlayOffsetX,
+    bottom: targetRect.bottom - overlayOffsetY,
+  };
+
+  const bubble = getBubblePosition(relativeTargetRect, currentStep.placement, viewport);
   const spotlightPadding = 18;
   const spotlightSoftness = 22;
-  const spotlightCenterX = clamp(targetRect.left + targetRect.width / 2, 0, viewport.width);
-  const spotlightCenterY = clamp(targetRect.top + targetRect.height / 2, 0, viewport.height);
-  const spotlightRx = Math.max(14, targetRect.width / 2 + spotlightPadding);
-  const spotlightRy = Math.max(14, targetRect.height / 2 + spotlightPadding);
+  const spotlightCenterX = clamp(relativeTargetRect.left + relativeTargetRect.width / 2, 0, viewport.width);
+  const spotlightCenterY = clamp(relativeTargetRect.top + relativeTargetRect.height / 2, 0, viewport.height);
+  const spotlightRx = Math.max(14, relativeTargetRect.width / 2 + spotlightPadding);
+  const spotlightRy = Math.max(14, relativeTargetRect.height / 2 + spotlightPadding);
   const bubbleRect = {
     left: bubble.left,
     top: bubble.top,
@@ -406,12 +419,12 @@ const AppTooltipTour = ({ currentPage, enabled, scopeKey = 'pre-auth' }) => {
     bottom: bubble.top + bubbleSize.height,
   };
 
-  const targetCenter = getRectCenter(targetRect);
+  const targetCenter = getRectCenter(relativeTargetRect);
   const bubbleCenter = getRectCenter(bubbleRect);
 
   // Hard-connect both ends to element borders.
   const arrowStart = getConnectionPointOnRect(bubbleRect, targetCenter, 0);
-  const arrowEnd = getConnectionPointOnRect(targetRect, bubbleCenter, Number(currentStep.targetOffset || 0));
+  const arrowEnd = getConnectionPointOnRect(relativeTargetRect, bubbleCenter, Number(currentStep.targetOffset || 0));
 
   const dx = arrowEnd.x - arrowStart.x;
   const dy = arrowEnd.y - arrowStart.y;

@@ -4,27 +4,27 @@ import './FAQPage.css';
 const faqItems = [
   {
     id: 'book-appointment',
-    question: 'How to book an appointment?',
+    question: 'How do I book an appointment?',
     answer:
-      'To book an appointment, open the Health Scan app and go to the home section. Select your preferred specialist or service, choose an available slot, and confirm your details to finish booking. You will receive a confirmation once the appointment is scheduled successfully.',
+      'Open the Supershyft app and go to the Home section. Choose your preferred service or specialist, select a suitable time slot, and confirm your details. Once booked, you will receive a confirmation.',
   },
   {
     id: 'reschedule',
     question: 'Can I reschedule my appointment?',
     answer:
-      'Yes. You can reschedule from your appointments section by selecting the existing booking and choosing a new available date and time.',
+      'Yes, you can reschedule your appointment from your Health Wallet, then go to the My Appointments section, select your existing booking, and choose a new available date and time.',
   },
   {
     id: 'cancel',
     question: 'How do I cancel an appointment?',
     answer:
-      'Open the appointment details page and select cancel. The final status and refund eligibility, if applicable, will be shown before confirmation.',
+      'Go to your appointment details Health Wallet, then go to My Appointments section, select your existing booking, and select Cancel. You will be able to review the final status and refund eligibility (if applicable) before confirming.',
   },
   {
     id: 'reports',
-    question: 'Where can I find my uploaded reports?',
+    question: 'How do I download my reports?',
     answer:
-      'Uploaded reports are available under Health Wallet in the Reports section of your profile.',
+      'You can download your reports directly from the Home screen. Use the floating button at the bottom right-hand side to access and download them instantly.',
   },
 ];
 

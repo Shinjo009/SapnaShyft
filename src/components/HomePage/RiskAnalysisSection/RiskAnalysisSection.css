@@ -601,6 +601,21 @@
   justify-content: center;
 }
 
+.risk-analysis-wins__swipe-arrow-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 481px) {
+  .risk-analysis-wins__swipe-arrow-btn {
+    cursor: pointer;
+  }
+}
+
 .risk-analysis-wins__swipe-arrow--left {
   transform: rotate(180deg);
 }
