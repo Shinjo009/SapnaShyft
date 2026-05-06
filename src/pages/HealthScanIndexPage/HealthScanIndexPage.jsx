@@ -218,6 +218,102 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     return `${low}-${high}`;
   };
 
+  const buildMetricStatus = ({ direction = 'within', severity = 'within' } = {}) => {
+    const classBySeverity = {
+      within: 'health-scan-page__metric-value--within',
+      yellow: 'health-scan-page__metric-value--below',
+      orange: 'health-scan-page__metric-value--high',
+      red: 'health-scan-page__metric-value--above',
+    };
+
+    return {
+      direction,
+      severity,
+      className: classBySeverity[severity] || classBySeverity.within,
+    };
+  };
+
+  const getMacroMetricStatus = (macro) => {
+    const estimatedLow = Number(macro?.estimated_low);
+    const estimatedHigh = Number(macro?.estimated_high);
+    const idealLow = Number(macro?.ideal_low);
+    const idealHigh = Number(macro?.ideal_high);
+
+    if (![estimatedLow, estimatedHigh, idealLow, idealHigh].every((value) => Number.isFinite(value))) {
+      return buildMetricStatus();
+    }
+
+    if (estimatedHigh < idealLow) {
+      const delta = idealLow - estimatedHigh;
+      if (delta >= 10) return buildMetricStatus({ direction: 'down', severity: 'red' });
+      if (delta >= 5) return buildMetricStatus({ direction: 'down', severity: 'orange' });
+      if (delta >= 2) return buildMetricStatus({ direction: 'down', severity: 'yellow' });
+      return buildMetricStatus();
+    }
+
+    if (estimatedLow > idealHigh) {
+      const delta = estimatedLow - idealHigh;
+      if (delta >= 10) return buildMetricStatus({ direction: 'up', severity: 'red' });
+      if (delta >= 5) return buildMetricStatus({ direction: 'up', severity: 'orange' });
+      if (delta >= 2) return buildMetricStatus({ direction: 'up', severity: 'yellow' });
+      return buildMetricStatus();
+    }
+
+    return buildMetricStatus();
+  };
+
+  const getWaterMetricStatus = (water) => {
+    const estimated = Number(water?.estimated_litres);
+    const idealLow = Number(water?.ideal_low_litres);
+    const idealHigh = Number(water?.ideal_high_litres);
+
+    if (![estimated, idealLow, idealHigh].every((value) => Number.isFinite(value))) {
+      return buildMetricStatus();
+    }
+
+    if (estimated < idealLow) {
+      const delta = idealLow - estimated;
+      if (delta >= 1.5) return buildMetricStatus({ direction: 'down', severity: 'red' });
+      if (delta >= 1) return buildMetricStatus({ direction: 'down', severity: 'orange' });
+      if (delta >= 0.5) return buildMetricStatus({ direction: 'down', severity: 'yellow' });
+      return buildMetricStatus();
+    }
+
+    if (estimated > idealHigh) {
+      const delta = estimated - idealHigh;
+      if (delta >= 1.5) return buildMetricStatus({ direction: 'up', severity: 'red' });
+      if (delta >= 1) return buildMetricStatus({ direction: 'up', severity: 'orange' });
+      if (delta >= 0.5) return buildMetricStatus({ direction: 'up', severity: 'yellow' });
+      return buildMetricStatus();
+    }
+
+    return buildMetricStatus();
+  };
+
+  const renderMetricStatusIcon = (status) => {
+    if (status.direction === 'up') {
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
+        </svg>
+      );
+    }
+
+    if (status.direction === 'down') {
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7.33459 10.782V2.66732H8.66792V10.782L12.2439 7.20598L13.1866 8.14865L8.00125 13.334L2.81592 8.14865L3.75858 7.20598L7.33459 10.782Z" fill="currentColor" />
+        </svg>
+      );
+    }
+
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  };
+
   const waterIntakeText = (() => {
     const litres = Number(nutrition?.water?.estimated_litres);
     if (!Number.isFinite(litres)) return '-';
@@ -230,6 +326,12 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     if (!Number.isFinite(low) || !Number.isFinite(high)) return '-';
     return `${low}-${high} litres`;
   })();
+
+  const carbsStatus = getMacroMetricStatus(nutrition?.carbs);
+  const fatsStatus = getMacroMetricStatus(nutrition?.fats);
+  const proteinStatus = getMacroMetricStatus(nutrition?.protein);
+  const fibreStatus = getMacroMetricStatus(nutrition?.fibre);
+  const waterStatus = getWaterMetricStatus(nutrition?.water);
 
   return (
     <div className="health-scan-page">
@@ -438,12 +540,10 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <img src={carbsIcon} alt="" aria-hidden="true" />
                     <span>Carbs</span>
                   </div>
-                  <div className="health-scan-page__metric-value health-scan-page__metric-value--above">
+                  <div className={`health-scan-page__metric-value ${carbsStatus.className}`}>
                     <span>{formatMacroRange(nutrition?.carbs)}</span>
                     <span className="health-scan-page__metric-icon" aria-hidden="true">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
-                      </svg>
+                      {renderMetricStatusIcon(carbsStatus)}
                     </span>
                   </div>
                   <span className="health-scan-page__metric-range-container">
@@ -457,12 +557,10 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <img src={fatsIcon} alt="" aria-hidden="true" />
                     <span>Fats</span>
                   </div>
-                  <div className="health-scan-page__metric-value health-scan-page__metric-value--high">
+                  <div className={`health-scan-page__metric-value ${fatsStatus.className}`}>
                     <span>{formatMacroRange(nutrition?.fats)}</span>
                     <span className="health-scan-page__metric-icon" aria-hidden="true">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
-                      </svg>
+                      {renderMetricStatusIcon(fatsStatus)}
                     </span>
                   </div>
                   <span className="health-scan-page__metric-range-container">
@@ -478,12 +576,10 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <img src={proteinsIcon} alt="" aria-hidden="true" />
                     <span>Proteins</span>
                   </div>
-                  <div className="health-scan-page__metric-value health-scan-page__metric-value--below">
+                  <div className={`health-scan-page__metric-value ${proteinStatus.className}`}>
                     <span>{formatMacroRange(nutrition?.protein)}</span>
                     <span className="health-scan-page__metric-icon" aria-hidden="true">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M7.33459 10.782V2.66732H8.66792V10.782L12.2439 7.20598L13.1866 8.14865L8.00125 13.334L2.81592 8.14865L3.75858 7.20598L7.33459 10.782Z" fill="currentColor" />
-                      </svg>
+                      {renderMetricStatusIcon(proteinStatus)}
                     </span>
                   </div>
                   <span className="health-scan-page__metric-range-container">
@@ -497,12 +593,10 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <img src={fibreIcon} alt="" aria-hidden="true" />
                     <span>Fibre</span>
                   </div>
-                  <div className="health-scan-page__metric-value health-scan-page__metric-value--within">
+                  <div className={`health-scan-page__metric-value ${fibreStatus.className}`}>
                     <span>{formatMacroRange(nutrition?.fibre)}</span>
                     <span className="health-scan-page__metric-icon" aria-hidden="true">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                      {renderMetricStatusIcon(fibreStatus)}
                     </span>
                   </div>
                   <span className="health-scan-page__metric-range-container">
@@ -517,12 +611,10 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   <img src={intakeIcon} alt="" aria-hidden="true" />
                   <span>Water Intake</span>
                 </div>
-                <div className="health-scan-page__metric-value health-scan-page__metric-value--within">
+                <div className={`health-scan-page__metric-value ${waterStatus.className}`}>
                   <span>{waterIntakeText}</span>
                   <span className="health-scan-page__metric-icon" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    {renderMetricStatusIcon(waterStatus)}
                   </span>
                 </div>
                 <span className="health-scan-page__metric-range-container">

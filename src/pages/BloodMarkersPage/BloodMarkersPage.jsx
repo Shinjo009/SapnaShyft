@@ -665,6 +665,7 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
   const [diagnosticDetail, setDiagnosticDetail] = useState(null);
   const [isDiagnosticLoading, setIsDiagnosticLoading] = useState(Boolean(marker?.diagnosticTestId));
   const [expandedPill, setExpandedPill] = useState(null);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -708,6 +709,10 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
       isActive = false;
     };
   }, [marker?.diagnosticTestId]);
+
+  useEffect(() => {
+    setIsDescriptionExpanded(false);
+  }, [marker?.marker, marker?.diagnosticTestId]);
 
   const baseDetail = BLOOD_MARKER_DETAIL_CONTENT[marker?.marker] || BLOOD_MARKER_DETAIL_CONTENT.ALBUMIN;
   const shouldWaitForDiagnosticData = Boolean(marker?.diagnosticTestId);
@@ -956,7 +961,15 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
       {shouldWaitForDiagnosticData && isDiagnosticLoading ? (
         <p className="blood-marker-detail__description">Loading marker details...</p>
       ) : (
-        <p className="blood-marker-detail__description">{detail.description}</p>
+        <button
+          type="button"
+          className={`blood-marker-detail__description-toggle${isDescriptionExpanded ? ' is-expanded' : ''}`}
+          onClick={() => setIsDescriptionExpanded((prev) => !prev)}
+          aria-expanded={isDescriptionExpanded}
+          aria-label={isDescriptionExpanded ? 'Collapse marker description' : 'Expand marker description'}
+        >
+          <span className="blood-marker-detail__description">{detail.description}</span>
+        </button>
       )}
 
       <section className="blood-marker-detail__scale-section" aria-label="Blood marker range scale">

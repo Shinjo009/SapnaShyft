@@ -40,7 +40,7 @@
   aspect-ratio: 1 / 1;
   border-radius: 50px;
   border: 0;
-  background: rgba(0, 0, 0, 0);
+  background: linear-gradient(180deg, rgba(30, 35, 35, 0.5) 0%, rgba(15, 20, 20, 0.7) 100%);
   box-shadow: 0 0 10px 0 rgba(144, 223, 158, 0.5);
   cursor: pointer;
   z-index: 960;
