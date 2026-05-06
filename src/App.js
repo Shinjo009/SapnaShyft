@@ -240,7 +240,7 @@ function App() {
   const hasInitializedBrowserHistoryRef = useRef(false);
   const skipBrowserHistoryPushRef = useRef(false);
 
-  const isSwipeBackAllowedPage = (page) => !SWIPE_BACK_BLOCKED_PAGES.has(page);
+  const isSwipeBackAllowedPage = useCallback((page) => !SWIPE_BACK_BLOCKED_PAGES.has(page), []);
 
   useEffect(() => {
     if (appScrollRef.current) {
@@ -287,7 +287,7 @@ function App() {
     previousPageRef.current = currentPage;
 
     setCanSwipeBack(isSwipeBackAllowedPage(currentPage) && pageHistoryRef.current.length > 0);
-  }, [currentPage]);
+  }, [currentPage, isSwipeBackAllowedPage]);
 
   useEffect(() => {
     if (currentPage !== 'home' || !forceHomeApiRefresh) {
@@ -303,7 +303,7 @@ function App() {
     };
   }, [currentPage, forceHomeApiRefresh]);
 
-  const goBackBySwipe = () => {
+  const goBackBySwipe = useCallback(() => {
     if (!isSwipeBackAllowedPage(currentPage)) {
       return false;
     }
@@ -320,7 +320,7 @@ function App() {
     }
 
     return false;
-  };
+  }, [currentPage, isSwipeBackAllowedPage]);
 
   const handleEdgeSwipeStart = (event) => {
     if (!canSwipeBack) {
@@ -408,7 +408,7 @@ function App() {
     return () => {
       window.removeEventListener('popstate', handleBrowserBack);
     };
-  }, [currentPage]);
+  }, [goBackBySwipe]);
 
   const getProgressFromCategories = (categories) => {
     let completedCount = 0;

@@ -1642,26 +1642,23 @@ const BloodMarkersPage = ({ onBack }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [apiSections, setApiSections] = useState([]);
-  const [latestAssessmentId, setLatestAssessmentId] = useState(null);
 
   useEffect(() => {
     let isActive = true;
 
     const loadBloodMarkers = async () => {
       try {
-        const { response, assessmentId } = await fetchLatestAssessmentReport(
+        const { response } = await fetchLatestAssessmentReport(
           (assessmentId) => `/reports/${assessmentId}/blood-parameters`
         );
         const groups = extractArray(response);
 
         if (isActive) {
-          setLatestAssessmentId(Number.isFinite(Number(assessmentId)) ? Number(assessmentId) : null);
           setApiSections(buildSectionsFromApi(groups));
         }
       } catch (error) {
         console.error('Failed to load blood marker report:', error);
         if (isActive) {
-          setLatestAssessmentId(null);
           setApiSections([]);
         }
       }
