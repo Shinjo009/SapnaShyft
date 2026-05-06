@@ -237,6 +237,8 @@ function App() {
     lastX: 0,
     lastY: 0,
   });
+  const hasInitializedBrowserHistoryRef = useRef(false);
+  const skipBrowserHistoryPushRef = useRef(false);
 
   const isSwipeBackAllowedPage = (page) => !SWIPE_BACK_BLOCKED_PAGES.has(page);
 
@@ -248,6 +250,28 @@ function App() {
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.history) {
+      return;
+    }
+
+    const state = { appPage: currentPage };
+
+    if (!hasInitializedBrowserHistoryRef.current) {
+      window.history.replaceState(state, '', window.location.href);
+      hasInitializedBrowserHistoryRef.current = true;
+      return;
+    }
+
+    if (skipBrowserHistoryPushRef.current) {
+      skipBrowserHistoryPushRef.current = false;
+      window.history.replaceState(state, '', window.location.href);
+      return;
+    }
+
+    window.history.pushState(state, '', window.location.href);
   }, [currentPage]);
 
   useEffect(() => {
@@ -366,6 +390,25 @@ function App() {
   const handleEdgeSwipeCancel = () => {
     edgeSwipeStateRef.current.tracking = false;
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleBrowserBack = () => {
+      const handledInApp = goBackBySwipe();
+
+      if (handledInApp) {
+        skipBrowserHistoryPushRef.current = true;
+      }
+    };
+
+    window.addEventListener('popstate', handleBrowserBack);
+    return () => {
+      window.removeEventListener('popstate', handleBrowserBack);
+    };
+  }, [currentPage]);
 
   const getProgressFromCategories = (categories) => {
     let completedCount = 0;
@@ -1150,7 +1193,7 @@ function App() {
       chips: selectedTests.length > 0 ? selectedTests.slice(0, 4) : ['General health', 'Progressive tests'],
       metrics: {
         parameters: String(Math.max(1, Number(payload.selectedParameters || 0))),
-        reportsIn: '24-48 hrs',
+        reportsIn: '48-72 hrs',
         fasting: '10-12 hrs',
       },
       pricing: {

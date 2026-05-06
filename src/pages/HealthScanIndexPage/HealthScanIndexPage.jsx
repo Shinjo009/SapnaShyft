@@ -82,6 +82,126 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     return unit ? `${rounded} ${unit}` : rounded;
   };
 
+  const toCompactNumberText = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return '';
+    if (Number.isInteger(parsed)) return String(parsed);
+    return String(parsed);
+  };
+
+  const formatBloodPressureText = (bloodPressureValue) => {
+    if (bloodPressureValue && typeof bloodPressureValue === 'object') {
+      const systolic = toCompactNumberText(
+        bloodPressureValue.systolic
+        ?? bloodPressureValue.systolic_bp
+        ?? bloodPressureValue.sys
+      );
+      const diastolic = toCompactNumberText(
+        bloodPressureValue.diastolic
+        ?? bloodPressureValue.diastolic_bp
+        ?? bloodPressureValue.dia
+      );
+      const unit = toText(bloodPressureValue.unit, '').trim() || 'mmHg';
+      if (systolic && diastolic) return `${systolic}/${diastolic} ${unit}`;
+    }
+
+    const raw = String(bloodPressureValue ?? '').trim();
+    if (!raw) return '-';
+
+    const slashParts = raw.split('/');
+    if (slashParts.length >= 2) {
+      const systolicRaw = slashParts[0].trim();
+      const rightSide = slashParts.slice(1).join('/').trim();
+      const rightTokens = rightSide.split(/\s+/);
+      const diastolicRaw = rightTokens[0] || '';
+      const unitRaw = rightTokens.slice(1).join(' ').trim();
+      const systolic = toCompactNumberText(systolicRaw) || systolicRaw;
+      const diastolic = toCompactNumberText(diastolicRaw) || diastolicRaw;
+      const unit = unitRaw || 'mmHg';
+      return `${systolic}/${diastolic} ${unit}`.trim();
+    }
+
+    const numbers = raw.match(/\d+(?:\.\d+)?/g) || [];
+    if (numbers.length >= 2) {
+      const systolic = toCompactNumberText(numbers[0]) || numbers[0];
+      const diastolic = toCompactNumberText(numbers[1]) || numbers[1];
+      return `${systolic}/${diastolic} mmHg`;
+    }
+
+    return raw;
+  };
+
+  const parseNumbersFromText = (value) => {
+    const text = String(value ?? '');
+    const matches = text.match(/\d+(?:\.\d+)?/g);
+    if (!matches) return [];
+    return matches
+      .map((token) => Number(token))
+      .filter((num) => Number.isFinite(num));
+  };
+
+  const getLifestyleValueToneClass = (kind, value) => {
+    const text = String(value ?? '').trim().toLowerCase();
+    if (!text) return 'health-scan-page__metric-value-tone--neutral';
+
+    if (kind === 'physical_activity') {
+      const numbers = parseNumbersFromText(text);
+      const minutes = numbers.length > 0 ? numbers[0] : null;
+      if (!Number.isFinite(minutes)) return 'health-scan-page__metric-value-tone--neutral';
+      if (minutes >= 60) return 'health-scan-page__metric-value-tone--positive';
+      if (minutes >= 45) return 'health-scan-page__metric-value-tone--warning';
+      return 'health-scan-page__metric-value-tone--critical';
+    }
+
+    if (kind === 'smoke' || kind === 'alcohol') {
+      if (/(do not|don't|never|no\s+smok|non[\s-]?smok|teetotal|no\s+alcohol)/.test(text)) {
+        return 'health-scan-page__metric-value-tone--positive';
+      }
+      if (/(occasion|social|rare|sometimes)/.test(text)) {
+        return 'health-scan-page__metric-value-tone--warning';
+      }
+      return 'health-scan-page__metric-value-tone--critical';
+    }
+
+    if (kind === 'sleep') {
+      const numbers = parseNumbersFromText(text);
+      const minHours = numbers.length > 0 ? numbers[0] : null;
+      if (!Number.isFinite(minHours)) return 'health-scan-page__metric-value-tone--neutral';
+      const deficit = 6 - minHours;
+      if (deficit <= 0) return 'health-scan-page__metric-value-tone--positive';
+      if (deficit <= 1) return 'health-scan-page__metric-value-tone--warning';
+      return 'health-scan-page__metric-value-tone--critical';
+    }
+
+    return 'health-scan-page__metric-value-tone--neutral';
+  };
+
+  const renderValueWithNumberHighlight = (kind, value) => {
+    const text = toText(value);
+    const toneClass = getLifestyleValueToneClass(kind, value);
+    const numberWithUnitMatch = text.match(
+      /\d+(?:\.\d+)?(?:\s*(?:-|to)\s*\d+(?:\.\d+)?)?\s*(?:hours?|hrs?|hr|minutes?|mins?|min)?/i
+    );
+
+    if (!numberWithUnitMatch || typeof numberWithUnitMatch.index !== 'number') {
+      return <span className="health-scan-page__metric-value-text health-scan-page__metric-value-text--plain">{text}</span>;
+    }
+
+    const start = numberWithUnitMatch.index;
+    const end = start + numberWithUnitMatch[0].length;
+    const before = text.slice(0, start);
+    const highlighted = text.slice(start, end);
+    const after = text.slice(end);
+
+    return (
+      <>
+        {before ? <span className="health-scan-page__metric-value-text health-scan-page__metric-value-text--plain">{before}</span> : null}
+        <span className={`health-scan-page__metric-value-text ${toneClass}`}>{highlighted}</span>
+        {after ? <span className="health-scan-page__metric-value-text health-scan-page__metric-value-text--plain">{after}</span> : null}
+      </>
+    );
+  };
+
   const formatMacroRange = (macro) => {
     if (!macro || typeof macro !== 'object') return '-';
     const low = Number(macro.estimated_low);
@@ -110,14 +230,6 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     if (!Number.isFinite(low) || !Number.isFinite(high)) return '-';
     return `${low}-${high} litres`;
   })();
-
-  const formattedDate = React.useMemo(() => {
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    return `${day}-${month}-${year}`;
-  }, []);
 
   return (
     <div className="health-scan-page">
@@ -164,28 +276,28 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--healthy" />
                   <span className="health-scan-page__legend-text">
-                    <span>Healthy</span>
+                    <span>Optimal Score</span>
                     <span className="health-scan-page__legend-range">(0-25)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--increased" />
                   <span className="health-scan-page__legend-text">
-                    <span>Increased Risk</span>
+                    <span>Stable Score</span>
                     <span className="health-scan-page__legend-range">(26-50)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--high" />
                   <span className="health-scan-page__legend-text">
-                    <span>High Risk</span>
+                    <span>Vulnerable Score</span>
                     <span className="health-scan-page__legend-range">(51-75)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--very-high" />
                   <span className="health-scan-page__legend-text">
-                    <span>Very High Risk</span>
+                    <span>Critical Score</span>
                     <span className="health-scan-page__legend-range">(76-100)</span>
                   </span>
                 </div>
@@ -195,7 +307,6 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
 
               <div className="health-scan-page__metrics-header">
                 <h2 className="health-scan-page__metrics-title">Fitness Metrics</h2>
-                <span className="health-scan-page__metrics-date">As on {formattedDate}</span>
               </div>
 
               <div className="health-scan-page__metric-card health-scan-page__metric-card--full">
@@ -204,7 +315,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   <span>Blood pressure</span>
                 </div>
                 <div className="health-scan-page__metric-value health-scan-page__metric-value--within">
-                  <span>{toText(fitness?.blood_pressure)}</span>
+                  <span>{formatBloodPressureText(fitness?.blood_pressure)}</span>
                   <span className="health-scan-page__metric-icon" aria-hidden="true">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -288,28 +399,28 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--healthy" />
                   <span className="health-scan-page__legend-text">
-                    <span>Healthy</span>
+                    <span>Optimal Score</span>
                     <span className="health-scan-page__legend-range">(0-25)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--increased" />
                   <span className="health-scan-page__legend-text">
-                    <span>Increased Risk</span>
+                    <span>Stable Score</span>
                     <span className="health-scan-page__legend-range">(26-50)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--high" />
                   <span className="health-scan-page__legend-text">
-                    <span>High Risk</span>
+                    <span>Vulnerable Score</span>
                     <span className="health-scan-page__legend-range">(51-75)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--very-high" />
                   <span className="health-scan-page__legend-text">
-                    <span>Very High Risk</span>
+                    <span>Critical Score</span>
                     <span className="health-scan-page__legend-range">(76-100)</span>
                   </span>
                 </div>
@@ -319,7 +430,6 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
 
               <div className="health-scan-page__metrics-header">
                 <h2 className="health-scan-page__metrics-title">Macro nutrients</h2>
-                <span className="health-scan-page__metrics-date">As on {formattedDate}</span>
               </div>
 
               <div className="health-scan-page__metrics-grid">
@@ -433,28 +543,28 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--healthy" />
                   <span className="health-scan-page__legend-text">
-                    <span>Healthy</span>
+                    <span>Optimal Score</span>
                     <span className="health-scan-page__legend-range">(0-25)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--increased" />
                   <span className="health-scan-page__legend-text">
-                    <span>Increased Risk</span>
+                    <span>Stable Score</span>
                     <span className="health-scan-page__legend-range">(26-50)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--high" />
                   <span className="health-scan-page__legend-text">
-                    <span>High Risk</span>
+                    <span>Vulnerable Score</span>
                     <span className="health-scan-page__legend-range">(51-75)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--very-high" />
                   <span className="health-scan-page__legend-text">
-                    <span>Very High Risk</span>
+                    <span>Critical Score</span>
                     <span className="health-scan-page__legend-range">(76-100)</span>
                   </span>
                 </div>
@@ -464,7 +574,6 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
 
               <div className="health-scan-page__metrics-header">
                 <h2 className="health-scan-page__metrics-title">Lifestyle Parameters</h2>
-                <span className="health-scan-page__metrics-date">As on {formattedDate}</span>
               </div>
 
               <div className="health-scan-page__metric-card health-scan-page__metric-card--full health-scan-page__metric-card--physical-activity health-scan-page__metric-card--lifestyle">
@@ -473,7 +582,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   <span>Physical Activity</span>
                 </div>
                 <div className="health-scan-page__metric-value health-scan-page__metric-value--mixed">
-                  <span className="health-scan-page__metric-value-neutral">{toText(lifestyle?.physical_activity)}</span>
+                  {renderValueWithNumberHighlight('physical_activity', lifestyle?.physical_activity)}
                 </div>
               </div>
 
@@ -484,7 +593,9 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <span>Smoke</span>
                   </div>
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--mixed">
-                    <span className="health-scan-page__metric-value-neutral">{toText(lifestyle?.smoke)}</span>
+                    <span className={`health-scan-page__metric-value-text ${getLifestyleValueToneClass('smoke', lifestyle?.smoke)}`}>
+                      {toText(lifestyle?.smoke)}
+                    </span>
                   </div>
                 </div>
 
@@ -494,7 +605,9 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <span>Alcohol</span>
                   </div>
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--within">
-                    <span>{toText(lifestyle?.alcohol)}</span>
+                    <span className={`health-scan-page__metric-value-text ${getLifestyleValueToneClass('alcohol', lifestyle?.alcohol)}`}>
+                      {toText(lifestyle?.alcohol)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -506,11 +619,11 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <span>Sleep</span>
                   </div>
                   <div className="health-scan-page__metric-value health-scan-page__metric-value--mixed">
-                    <span className="health-scan-page__metric-value-neutral">{toText(lifestyle?.sleep)}</span>
+                    {renderValueWithNumberHighlight('sleep', lifestyle?.sleep)}
                   </div>
                   <span className="health-scan-page__metric-range-container health-scan-page__metric-range-container--sleep">
                     <span className="health-scan-page__metric-range-label">Ideal</span>
-                    <span className="health-scan-page__metric-range-value">-</span>
+                    <span className="health-scan-page__metric-range-value">6-8 hours</span>
                   </span>
                 </div>
 

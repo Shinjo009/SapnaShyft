@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './BloodMarkersPage.css';
-import trendsImage from '../../images/trends.svg';
 import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
 import { getAccessToken } from '../../utils/authStorage';
-import { fetchLatestAssessmentReport, getLatestAssessmentIdsCached } from '../../services/reportService';
+import { fetchLatestAssessmentReport } from '../../services/reportService';
 import haematologyIcon from '../../images/Haemotology.svg';
 import liverIcon from '../../images/Liver.svg';
 import kidneyIcon from '../../images/Kidney.svg';
@@ -596,7 +595,6 @@ const BLOOD_MARKER_DETAIL_CONTENT = {
     unit: 'mg/dL',
     normalMin: 7,
     normalMax: 12,
-    trendSummary: '40 % Worse than last result',
   }
 };
 
@@ -1035,15 +1033,6 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
             <span>{riskText}</span>
           </div>
         </div>
-      </section>
-
-      <section className="blood-marker-detail__trends-section" aria-label="Trends">
-        <h3 className="blood-marker-detail__section-heading">Trends</h3>
-        <p className="blood-marker-detail__trend-text">We recommend testing every 16 weeks</p>
-        <div className="blood-marker-detail__trends-chart-shell">
-          <img src={trendsImage} alt="Trends chart" className="blood-marker-detail__trends-chart-image" />
-        </div>
-        <p className="blood-marker-detail__trend-summary">{detail.trendSummary}</p>
       </section>
 
       <section className="blood-marker-detail__info-section">
@@ -1654,7 +1643,6 @@ const BloodMarkersPage = ({ onBack }) => {
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [apiSections, setApiSections] = useState([]);
   const [latestAssessmentId, setLatestAssessmentId] = useState(null);
-  const [isDownloadingReport, setIsDownloadingReport] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -1698,69 +1686,6 @@ const BloodMarkersPage = ({ onBack }) => {
           || markerText.includes(normalizedQuery);
       })
     : sections;
-
-  const handleDownloadReport = async () => {
-    if (isDownloadingReport) {
-      return;
-    }
-
-    setIsDownloadingReport(true);
-
-    try {
-      let assessmentId = Number(latestAssessmentId);
-
-      if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
-        const assessmentIds = await getLatestAssessmentIdsCached();
-        assessmentId = Number(assessmentIds?.[0]);
-      }
-
-      if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
-        throw new Error('No report available yet.');
-      }
-
-      if (!BACKEND_ENABLED) {
-        throw new Error('Backend base URL is not configured.');
-      }
-
-      const accessToken = getAccessToken();
-      if (!accessToken) {
-        throw new Error('You are not logged in.');
-      }
-
-      const response = await fetch(`${BACKEND_BASE_URL}/reports/${assessmentId}/bio-ai/pdf`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      const body = await parseResponseBody(response);
-
-      if (!response.ok) {
-        throw new Error(body?.message || body?.detail || 'Failed to download report.');
-      }
-
-      const reportUrl = body?.data?.report_url || body?.report_url;
-      if (!reportUrl || typeof reportUrl !== 'string') {
-        throw new Error('Report URL is missing from API response.');
-      }
-
-      const link = document.createElement('a');
-      link.href = reportUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      setLatestAssessmentId(assessmentId);
-    } catch (error) {
-      console.error('Failed to download Bio-AI report PDF:', error);
-      window.alert(error?.message || 'Failed to download report. Please try again.');
-    } finally {
-      setIsDownloadingReport(false);
-    }
-  };
 
   if (selectedMarker) {
     return (
@@ -1840,15 +1765,6 @@ const BloodMarkersPage = ({ onBack }) => {
         ))}
       </div>
 
-      <button
-        type="button"
-        className="blood-markers-page__fixed-cta"
-        onClick={handleDownloadReport}
-        disabled={isDownloadingReport}
-        aria-busy={isDownloadingReport}
-      >
-        {isDownloadingReport ? 'Downloading report...' : 'Download the full report here'}
-      </button>
     </div>
   );
 };

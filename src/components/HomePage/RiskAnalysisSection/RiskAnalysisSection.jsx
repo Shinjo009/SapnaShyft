@@ -78,6 +78,14 @@ const ACTION_COPY_BY_DISEASE_AND_RISK = {
     low: 'No significant PCOS/PCOD risk detected, maintain a balanced diet, regular physical activity, healthy weight, and stress management.',
     high: 'Cut refined carbs and sugars, exercise regularly, manage weight and stress, and consult a doctor for hormonal evaluation and treatment.',
   },
+  pcos: {
+    low: 'No significant PCOS/PCOD risk detected, maintain a balanced diet, regular physical activity, healthy weight, and stress management.',
+    high: 'Cut refined carbs and sugars, exercise regularly, manage weight and stress, and consult a doctor for hormonal evaluation and treatment.',
+  },
+  pcod: {
+    low: 'No significant PCOS/PCOD risk detected, maintain a balanced diet, regular physical activity, healthy weight, and stress management.',
+    high: 'Cut refined carbs and sugars, exercise regularly, manage weight and stress, and consult a doctor for hormonal evaluation and treatment.',
+  },
   nafld: {
     low: 'Healthy liver detected, maintain a whole foods diet low in refined carbs and fructose, stay active, and limit alcohol intake.',
     high: 'Cut refined carbs, sugars, fructose, and processed foods, exercise regularly, manage weight, and consult a doctor.',
@@ -100,6 +108,12 @@ const ACTION_COPY_BY_DISEASE_AND_RISK = {
   },
 };
 
+const DISEASE_ACTION_ALIASES = {
+  'pcos / pcod': 'pcos/pcod',
+  'pcos-pcod': 'pcos/pcod',
+  'type ii diabetes': 'type 2 diabetes',
+};
+
 const normalizeDiseaseKey = (name = '') => name.replace(/\s+/g, ' ').trim().toLowerCase();
 const getRiskBand = (item, scoreValue) => {
   const directRisk = String(item?.risk || item?.risk_level || item?.risk_type || '').trim().toLowerCase();
@@ -111,7 +125,8 @@ const getRiskBand = (item, scoreValue) => {
 
 const toActionCopy = (diseaseName, riskBand) => {
   const diseaseKey = normalizeDiseaseKey(diseaseName);
-  const actionMap = ACTION_COPY_BY_DISEASE_AND_RISK[diseaseKey];
+  const canonicalDiseaseKey = DISEASE_ACTION_ALIASES[diseaseKey] || diseaseKey;
+  const actionMap = ACTION_COPY_BY_DISEASE_AND_RISK[canonicalDiseaseKey];
   if (!actionMap) return '-';
   return riskBand === 'high' ? actionMap.high : actionMap.low;
 };

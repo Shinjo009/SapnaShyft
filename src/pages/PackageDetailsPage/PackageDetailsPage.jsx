@@ -129,6 +129,84 @@ const SwipeSideIcon = () => (
   </svg>
 );
 
+const ComplimentaryTopPillIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M8.99238 2.44343C8.86732 2.30376 8.71421 2.19203 8.54305 2.11554C8.37189 2.03905 8.18652 1.99951 7.99905 1.99951C7.81157 1.99951 7.6262 2.03905 7.45504 2.11554C7.28388 2.19203 7.13077 2.30376 7.00571 2.44343L6.53905 2.96476C6.40567 3.11376 6.24049 3.23085 6.05574 3.30736C5.87098 3.38387 5.67138 3.41784 5.47171 3.40676L4.77171 3.36809C4.58448 3.35777 4.39718 3.38706 4.22204 3.45404C4.0469 3.52102 3.88785 3.6242 3.75529 3.75682C3.62273 3.88944 3.51963 4.04854 3.45273 4.22371C3.38583 4.39889 3.35664 4.5862 3.36705 4.77343L3.40571 5.47276C3.41669 5.67231 3.38267 5.87178 3.30616 6.05642C3.22965 6.24105 3.11262 6.40612 2.96371 6.53943L2.44238 7.00609C2.3026 7.13115 2.19078 7.2843 2.11422 7.45552C2.03766 7.62675 1.99809 7.8122 1.99809 7.99976C1.99809 8.18732 2.03766 8.37277 2.11422 8.54399C2.19078 8.71522 2.3026 8.86836 2.44238 8.99343L2.96371 9.46009C3.11271 9.59347 3.2298 9.75865 3.30631 9.9434C3.38282 10.1282 3.41679 10.3278 3.40571 10.5274L3.36705 11.2274C3.35673 11.4147 3.38601 11.602 3.45299 11.7771C3.51998 11.9522 3.62315 12.1113 3.75577 12.2438C3.8884 12.3764 4.04749 12.4795 4.22267 12.5464C4.39784 12.6133 4.58515 12.6425 4.77238 12.6321L5.47171 12.5934C5.67127 12.5824 5.87074 12.6165 6.05537 12.693C6.24001 12.7695 6.40508 12.8865 6.53838 13.0354L7.00505 13.5568C7.13011 13.6965 7.28325 13.8084 7.45448 13.8849C7.6257 13.9615 7.81115 14.001 7.99871 14.001C8.18627 14.001 8.37172 13.9615 8.54295 13.8849C8.71417 13.8084 8.86732 13.6965 8.99238 13.5568L9.45905 13.0354C9.59242 12.8864 9.7576 12.7693 9.94236 12.6928C10.1271 12.6163 10.3267 12.5823 10.5264 12.5934L11.2264 12.6321C11.4136 12.6424 11.6009 12.6131 11.7761 12.5461C11.9512 12.4792 12.1102 12.376 12.2428 12.2434C12.3754 12.1107 12.4785 11.9516 12.5454 11.7765C12.6123 11.6013 12.6415 11.414 12.631 11.2268L12.5924 10.5274C12.5814 10.3279 12.6154 10.1284 12.6919 9.94377C12.7684 9.75913 12.8855 9.59406 13.0344 9.46076L13.5557 8.99409C13.6955 8.86903 13.8073 8.71588 13.8839 8.54466C13.9604 8.37344 14 8.18799 14 8.00043C14 7.81287 13.9604 7.62742 13.8839 7.45619C13.8073 7.28497 13.6955 7.13182 13.5557 7.00676L13.0344 6.54009C12.8854 6.40672 12.7683 6.24154 12.6918 6.05678C12.6153 5.87202 12.5813 5.67242 12.5924 5.47276L12.631 4.77276C12.6413 4.58558 12.6119 4.39836 12.5449 4.22329C12.4779 4.04823 12.3747 3.88927 12.2421 3.75678C12.1094 3.62429 11.9504 3.52126 11.7753 3.4544C11.6001 3.38754 11.4129 3.35836 11.2257 3.36876L10.5264 3.40743C10.3268 3.4184 10.1274 3.38438 9.94272 3.30788C9.75809 3.23137 9.59302 3.11433 9.45971 2.96543L8.99238 2.44343Z" stroke="white" strokeWidth="1.33333"/>
+    <path d="M9.66406 6.3335H9.6574V6.34016H9.66406V6.3335ZM6.33073 9.66683H6.32406V9.6735H6.33073V9.66683Z" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
+    <path d="M6 6L10 10" stroke="white" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const ComplimentarySparkleIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <g clipPath="url(#clip0_4458_7590)">
+      <path d="M6.42538 1.64127C6.47694 1.36518 6.71793 1.16504 6.99879 1.16504C7.27965 1.16504 7.52064 1.36518 7.57221 1.64127L8.18529 4.88344C8.2744 5.35517 8.64339 5.72416 9.11513 5.81327L12.3573 6.42635C12.6334 6.47792 12.8335 6.71891 12.8335 6.99977C12.8335 7.28063 12.6334 7.52162 12.3573 7.57319L9.11513 8.18627C8.64339 8.27538 8.2744 8.64437 8.18529 9.1161L7.57221 12.3583C7.52064 12.6344 7.27965 12.8345 6.99879 12.8345C6.71793 12.8345 6.47694 12.6344 6.42538 12.3583L5.81229 9.1161C5.72318 8.64437 5.35419 8.27538 4.88246 8.18627L1.64029 7.57319C1.36421 7.52162 1.16406 7.28063 1.16406 6.99977C1.16406 6.71891 1.36421 6.47792 1.64029 6.42635L4.88246 5.81327C5.35419 5.72416 5.72318 5.35517 5.81229 4.88344L6.42538 1.64127M11.6655 1.16644V3.49977M12.8321 2.3331H10.4988" stroke="#90DF9E" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M1.16797 11.6667C1.16797 12.3106 1.69073 12.8333 2.33464 12.8333C2.97854 12.8333 3.5013 12.3106 3.5013 11.6667C3.5013 11.0228 2.97854 10.5 2.33464 10.5C1.69073 10.5 1.16797 11.0228 1.16797 11.6667H1.16797" stroke="#90DF9E" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round"/>
+    </g>
+    <defs>
+      <clipPath id="clip0_4458_7590">
+        <rect width="14" height="14" fill="white"/>
+      </clipPath>
+    </defs>
+  </svg>
+);
+
+const ComplimentaryCallIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <g clipPath="url(#clip0_4458_7818)">
+      <path d="M7.58464 1.1665C10.4822 1.1665 12.8346 3.51895 12.8346 6.4165M7.58464 3.49984C9.19439 3.49984 10.5013 4.80675 10.5013 6.4165M8.06997 9.6645C8.31813 9.77847 8.61214 9.70503 8.77755 9.48775L8.98464 9.2165C9.20497 8.92273 9.55075 8.74984 9.91797 8.74984H11.668C12.3119 8.74984 12.8346 9.2726 12.8346 9.9165V11.6665C12.8346 12.3104 12.3119 12.8332 11.668 12.8332C5.87286 12.8332 1.16797 8.12828 1.16797 2.33317C1.16797 1.68927 1.69073 1.1665 2.33464 1.1665H4.08464C4.72854 1.1665 5.2513 1.68927 5.2513 2.33317V4.08317C5.2513 4.45039 5.07841 4.79617 4.78464 5.0165L4.51164 5.22125C4.29083 5.38985 4.21956 5.69078 4.3413 5.9405C5.13853 7.55976 6.44972 8.8693 8.06997 9.6645" stroke="#90DF9E" strokeLinecap="round" strokeLinejoin="round"/>
+    </g>
+    <defs>
+      <clipPath id="clip0_4458_7818">
+        <rect width="14" height="14" fill="white"/>
+      </clipPath>
+    </defs>
+  </svg>
+);
+
+const ComplimentaryDietIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <g clipPath="url(#clip0_4458_7820)">
+      <path d="M7.01261 13.301C1.53861 13.301 -0.19039 11.599 0.80661 8.521H13.2186C14.2156 11.599 12.4866 13.301 7.01261 13.301Z" stroke="#90DF9E" strokeLinejoin="round"/>
+      <path d="M4.23047 4.27881C5.33547 5.70381 5.72647 7.13981 5.88347 8.49381" stroke="#90DF9E" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M1.36591 8.51484C0.765907 7.23984 0.955907 5.76884 1.78891 5.04184C1.65831 4.85986 1.54451 4.6664 1.44891 4.46384C0.750907 2.98184 1.15391 1.32384 2.34891 0.759841C3.54691 0.195841 5.08291 0.939841 5.78091 2.42184C5.87824 2.63051 5.95491 2.84051 6.01091 3.05184C7.00291 2.88884 8.10291 3.47784 8.74591 4.54484L8.93291 4.90784" stroke="#90DF9E" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M7.65916 8.38888H12.9112C12.9932 8.09288 13.0345 7.76355 13.0352 7.40088C13.0352 5.64088 12.0452 4.65088 10.2852 4.65088C8.52516 4.65088 7.53516 5.64088 7.53516 7.40088C7.53516 7.76355 7.57649 8.09288 7.65916 8.38888Z" stroke="#90DF9E" strokeLinecap="round" strokeLinejoin="round"/>
+    </g>
+    <defs>
+      <clipPath id="clip0_4458_7820">
+        <rect width="14" height="14" fill="white"/>
+      </clipPath>
+    </defs>
+  </svg>
+);
+
+const ComplimentaryReportIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <g clipPath="url(#clip0_4458_7826)">
+      <path d="M3.4987 12.8332C2.8548 12.8332 2.33203 12.3104 2.33203 11.6665V2.33317C2.33203 1.68927 2.8548 1.16651 3.4987 1.16651H8.16536C8.53833 1.1659 8.89612 1.31414 9.15937 1.57834L11.2524 3.67134C11.5173 3.93468 11.666 4.29297 11.6654 4.66651V11.6665C11.6654 12.3104 11.1426 12.8332 10.4987 12.8332H3.4987" stroke="#90DF9E" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M8.16797 1.1665V4.08317C8.16797 4.40512 8.42935 4.6665 8.7513 4.6665H11.668M4.66797 10.4998V9.9165M7.0013 10.4998V6.99984M9.33464 10.4998V8.74984" stroke="#90DF9E" strokeLinecap="round" strokeLinejoin="round"/>
+    </g>
+    <defs>
+      <clipPath id="clip0_4458_7826">
+        <rect width="14" height="14" fill="white"/>
+      </clipPath>
+    </defs>
+  </svg>
+);
+
+const ComplimentaryLifestyleIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <g clipPath="url(#clip0_4458_7830)">
+      <path d="M12.8346 6.99984H11.388C10.864 6.99872 10.4036 7.34702 10.2621 7.8515L8.8913 12.7282C8.87315 12.7904 8.81612 12.8332 8.7513 12.8332C8.68649 12.8332 8.62945 12.7904 8.6113 12.7282L5.3913 1.2715C5.37315 1.20928 5.31612 1.1665 5.2513 1.1665C5.18649 1.1665 5.12945 1.20928 5.1113 1.2715L3.74047 6.14817C3.59959 6.65057 3.14225 6.99834 2.62047 6.99984H1.16797" stroke="#90DF9E" strokeLinecap="round" strokeLinejoin="round"/>
+    </g>
+    <defs>
+      <clipPath id="clip0_4458_7830">
+        <rect width="14" height="14" fill="white"/>
+      </clipPath>
+    </defs>
+  </svg>
+);
+
 const normalizeLookupKey = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 const HEALTH_AREA_ICON_BY_KEY = {
@@ -183,23 +261,33 @@ const HEALTH_AREA_ICON_BY_KEY = {
 const DEFAULT_HEALTH_AREA_LABELS = ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Liver'];
 
 const PACKAGE_HEALTH_AREA_LABELS_BY_NAME = {
+  'peak performance men': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Muscle', 'Hormones', 'Inflammation'],
   'peak men': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Muscle', 'Hormones', 'Inflammation'],
+  'elite performance women': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Hormones', 'Inflammation'],
   'elite women': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Hormones', 'Inflammation'],
+  'peak performance women': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Hormones', 'Muscle', 'Inflammation'],
   'peak women': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Hormones', 'Muscle', 'Inflammation'],
+  'oncocare men': ['Cancer', 'Colorectal', 'Pancreatic', 'Alpha Feto', 'Prostate'],
   'cancer men': ['Cancer', 'Colorectal', 'Pancreatic', 'Alpha Feto', 'Prostate'],
+  'oncocare women': ['Cancer', 'Colorectal', 'Pancreatic', 'Ovarian', 'Breast'],
   'cancer women': ['Cancer', 'Colorectal', 'Pancreatic', 'Ovarian', 'Breast'],
+  'gen-z': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Metabolism', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
   'gen z': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Metabolism', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
   'gen z package': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Metabolism', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
-  'gen-z': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Metabolism', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
+  'executive male': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Inflammation', 'Heart', 'Bone Health', 'Liver', 'Thyroid', 'Metabolism', 'Prostate'],
   'exec male adults': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Inflammation', 'Heart', 'Bone Health', 'Liver', 'Thyroid', 'Metabolism', 'Prostate'],
+  'executive female': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Inflammation', 'Heart', 'Bone Health', 'Liver', 'Thyroid', 'Metabolism'],
   'exec female adults': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Inflammation', 'Heart', 'Bone Health', 'Liver', 'Thyroid', 'Metabolism'],
+  'c-suite': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Liver', 'Cancer', 'Iron', 'Immunity', 'Sleep', 'Hormones', 'Inflammation', 'Bone Health', 'Allergies', 'Thyroid'],
   'c suite': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Liver', 'Cancer', 'Iron', 'Immunity', 'Sleep', 'Hormones', 'Inflammation', 'Bone Health', 'Allergies', 'Thyroid'],
   sleep: ['Metabolism', 'Immunity', 'Sleep', 'Recovery', 'Inflammation', 'Bone Health', 'Stress', 'Thyroid', 'Hormones'],
   'menstrual health': ['Metabolism', 'Stress', 'Thyroid', 'Hormones', 'Menstrual Health', 'Heart'],
+  'men/women hair': ['Metabolism', 'Stress', 'Thyroid', 'Hormones', 'Heart', 'Hair Health', 'Nutrition', 'Inflammation', 'Kidney', 'Liver'],
   'men women hair': ['Metabolism', 'Stress', 'Thyroid', 'Hormones', 'Heart', 'Hair Health', 'Nutrition', 'Inflammation', 'Kidney', 'Liver'],
   fatigue: ['Metabolism', 'Energy', 'Thyroid', 'Hormones', 'Heart', 'Nutrition', 'Liver'],
   basic: ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Inflammation'],
   core: ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Inflammation'],
+  'elite performance men': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Inflammation'],
   'elite men': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Inflammation'],
 };
 
@@ -572,11 +660,7 @@ const toTestGroupCards = (payload) => {
       const testNames = tests
         .map((test) => String(test?.test_name || test?.display_name || test?.name || '').trim())
         .filter(Boolean)
-        .slice(0, 6);
-
-      while (testNames.length < 6) {
-        testNames.push('');
-      }
+        .slice(0, 30);
 
       const title = String(group?.group_name || group?.name || '').trim();
       if (!title) {
@@ -600,6 +684,33 @@ const toTestGroupCards = (payload) => {
     });
 
   return mapped.map(({ id, title, items }) => ({ id, title, items }));
+};
+
+const reorderItemsForPillPacking = (items) => {
+  const list = Array.isArray(items) ? items.filter(Boolean) : [];
+  if (list.length <= 2) {
+    return list;
+  }
+
+  // Mix long and short labels to reduce visible ragged gaps in wrapped rows.
+  const sorted = list.slice().sort((a, b) => String(b).length - String(a).length);
+  const packed = [];
+  let left = 0;
+  let right = sorted.length - 1;
+  let pickLongest = true;
+
+  while (left <= right) {
+    if (pickLongest) {
+      packed.push(sorted[left]);
+      left += 1;
+    } else {
+      packed.push(sorted[right]);
+      right -= 1;
+    }
+    pickLongest = !pickLongest;
+  }
+
+  return packed;
 };
 
 const toDiscountLabel = (discountPercent, price, originalPrice) => {
@@ -789,7 +900,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
   }, [isCustomReview, packageDetail]);
 
   const reportLabel = useMemo(() => {
-    return 'Reports in 24-48 hours';
+    return 'Reports in 48-72 hours';
   }, []);
 
   const bookingsLabel = useMemo(() => {
@@ -1136,6 +1247,11 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
       </div>
 
       <div className="package-details-page__content">
+        <div className="package-details-page__complimentary-top-pill">
+          <ComplimentaryTopPillIcon />
+          <span>Complimentary Nutritionist Consultation</span>
+        </div>
+
         <section className="package-details-page__overview-box">
           <h2 className="package-details-page__pack-title">{packageTitle}</h2>
 
@@ -1208,6 +1324,36 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
                 <span className="package-details-page__area-label">{label}</span>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="package-details-page__complimentary-section" aria-label="Complimentary Nutritionist">
+          <h3 className="package-details-page__complimentary-title">Complimentary Nutritionist</h3>
+
+          <div className="package-details-page__complimentary-worth-pill">
+            <ComplimentarySparkleIcon />
+            <span>WORTH ₹999 — INCLUDED FREE</span>
+          </div>
+
+          <p className="package-details-page__complimentary-subtitle">What&apos;s Included</p>
+
+          <div className="package-details-page__complimentary-list">
+            <div className="package-details-page__complimentary-item">
+              <ComplimentaryCallIcon />
+              <span>1-on-1 Consultation call</span>
+            </div>
+            <div className="package-details-page__complimentary-item">
+              <ComplimentaryDietIcon />
+              <span>Personalized diet plan</span>
+            </div>
+            <div className="package-details-page__complimentary-item">
+              <ComplimentaryReportIcon />
+              <span>Report explanation in simple terms</span>
+            </div>
+            <div className="package-details-page__complimentary-item">
+              <ComplimentaryLifestyleIcon />
+              <span>Lifestyle &amp; habit recommendations</span>
+            </div>
           </div>
         </section>
 
@@ -1414,15 +1560,10 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
                     <div className="package-details-page__test-divider" />
 
                     <div className="package-details-page__test-grid">
-                      {group.items.map((item, idx) => (
-                        item ? (
-                          <div key={`${group.id}-${item}-${idx}`} className="package-details-page__test-pill">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="8" viewBox="0 0 11 8" fill="none" aria-hidden="true">
-                              <path d="M9.91536 0.583496L3.4987 7.00016L0.582031 4.0835" stroke="#90DF9E" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                            <span>{item}</span>
-                          </div>
-                        ) : <div key={`${group.id}-empty-${idx}`} />
+                      {reorderItemsForPillPacking(group.items).map((item, idx) => (
+                        <div key={`${group.id}-${item}-${idx}`} className="package-details-page__test-pill">
+                          <span>{item}</span>
+                        </div>
                       ))}
                     </div>
 

@@ -8,7 +8,9 @@ import RiskAnalysisSection, {
   buildHomeBloodMarkersFromBloodParametersResponse,
 } from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
-import { fetchLatestAssessmentReport, fetchLatestHealthSpanIndex } from '../../services/reportService';
+import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
+import { getAccessToken } from '../../utils/authStorage';
+import { fetchLatestAssessmentReport, fetchLatestHealthSpanIndex, getLatestAssessmentIdsCached } from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
 import {
   hasNutritionLogQuestionnaireDraft,
@@ -198,6 +200,19 @@ const ChecklistTickIcon = () => (
   </svg>
 );
 
+const HomeDownloadIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M11.625 15.513C11.5083 15.471 11.4 15.4 11.3 15.3L7.7 11.7C7.5 11.5 7.404 11.2667 7.412 11C7.42 10.7333 7.516 10.5 7.7 10.3C7.9 10.1 8.13767 9.996 8.413 9.988C8.68833 9.98 8.92567 10.0757 9.125 10.275L11 12.15V5C11 4.71667 11.096 4.47934 11.288 4.288C11.48 4.09667 11.7173 4.00067 12 4C12.2827 3.99934 12.5203 4.09534 12.713 4.288C12.9057 4.48067 13.0013 4.718 13 5V12.15L14.875 10.275C15.075 10.075 15.3127 9.979 15.588 9.987C15.8633 9.995 16.1007 10.0993 16.3 10.3C16.4833 10.5 16.5793 10.7333 16.588 11C16.5967 11.2667 16.5007 11.5 16.3 11.7L12.7 15.3C12.6 15.4 12.4917 15.471 12.375 15.513C12.2583 15.555 12.1333 15.5757 12 15.575C11.8667 15.5743 11.7417 15.5537 11.625 15.513ZM6 20C5.45 20 4.97933 19.8043 4.588 19.413C4.19667 19.0217 4.00067 18.5507 4 18V16C4 15.7167 4.096 15.4793 4.288 15.288C4.48 15.0967 4.71733 15.0007 5 15C5.28267 14.9993 5.52033 15.0953 5.713 15.288C5.90567 15.4807 6.00133 15.718 6 16V18H18V16C18 15.7167 18.096 15.4793 18.288 15.288C18.48 15.0967 18.7173 15.0007 19 15C19.2827 14.9993 19.5203 15.0953 19.713 15.288C19.9057 15.4807 20.0013 15.718 20 16V18C20 18.55 19.8043 19.021 19.413 19.413C19.0217 19.805 18.5507 20.0007 18 20H6Z" fill="white" />
+  </svg>
+);
+
+const HomeReportEyeIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M22 12C22 12 17.522 18 12 18C6.478 18 2 12 2 12C2 12 6.478 6 12 6C17.522 6 22 12 22 12Z" stroke="white" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 15C12.7956 15 13.5587 14.6839 14.1213 14.1213C14.6839 13.5587 15 12.7956 15 12C15 11.2044 14.6839 10.4413 14.1213 9.87868C13.5587 9.31607 12.7956 9 12 9C11.2044 9 10.4413 9.31607 9.87868 9.87868C9.31607 10.4413 9 11.2044 9 12C9 12.7956 9.31607 13.5587 9.87868 14.1213C10.4413 14.6839 11.2044 15 12 15Z" stroke="white" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const b2bCampChecklistItems = [
   'Fasting (10–12 hrs) preferred',
   'OR have a light breakfast: idli, dosa, poha, black tea/coffee, coconut water, apple/guava, or a few nuts',
@@ -312,6 +327,20 @@ const formatEngagementDateLabel = (raw) => {
   return `${formatted} (Day 1)`;
 };
 
+const parseResponseBody = async (response) => {
+  const contentType = response?.headers?.get?.('content-type') || '';
+  if (contentType.toLowerCase().includes('application/json')) {
+    return response.json();
+  }
+
+  const text = await response.text();
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return { message: text };
+  }
+};
+
 const HomePage = ({
   userName = 'User',
   userAge = null,
@@ -352,6 +381,9 @@ const HomePage = ({
   const [hasStableOverviewData, setHasStableOverviewData] = useState(() => hasRenderableOverviewData(preloadedData));
   /** null = overview pipeline has not returned blood markers yet; array = rows for RiskAnalysisSection (avoids a second request + idle delay). */
   const [homeBloodMarkersForSection, setHomeBloodMarkersForSection] = useState(null);
+  const [latestAssessmentId, setLatestAssessmentId] = useState(null);
+  const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+  const [isDownloadingReport, setIsDownloadingReport] = useState(false);
 
   const slotNorm = upcomingSlotNormalized || EMPTY_UPCOMING_SLOT;
   const campFlowActive = Boolean(slotNorm.hasScheduledSlot)
@@ -587,7 +619,13 @@ const HomePage = ({
         (assessmentId) => `/reports/${assessmentId}/blood-parameters`,
         ttlMs,
       )
-        .then(({ response }) => buildHomeBloodMarkersFromBloodParametersResponse(response))
+        .then(({ response, assessmentId }) => {
+          const parsedAssessmentId = Number(assessmentId);
+          if (Number.isFinite(parsedAssessmentId) && parsedAssessmentId > 0) {
+            setLatestAssessmentId(parsedAssessmentId);
+          }
+          return buildHomeBloodMarkersFromBloodParametersResponse(response);
+        })
         .catch(() => [])
     );
 
@@ -744,6 +782,7 @@ const HomePage = ({
 
   const handleNavigate = (itemId) => {
     console.log('Navigating to:', itemId);
+    setIsDownloadMenuOpen(false);
     if (itemId === 'packages' && onNavigateToPackages) {
       onNavigateToPackages();
       return;
@@ -775,6 +814,142 @@ const HomePage = ({
   const handleHealthScanSeeMore = () => {
     if (onNavigateToHealthScan) {
       onNavigateToHealthScan();
+    }
+  };
+
+  const handleDownloadMenuToggle = () => {
+    setIsDownloadMenuOpen((prev) => !prev);
+  };
+
+  const handleCloseDownloadMenu = () => {
+    setIsDownloadMenuOpen(false);
+  };
+
+  const handleDownloadBioAiReport = async () => {
+    if (isDownloadingReport) {
+      return;
+    }
+
+    setIsDownloadingReport(true);
+
+    try {
+      let assessmentId = Number(latestAssessmentId);
+
+      if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
+        const assessmentIds = await getLatestAssessmentIdsCached();
+        assessmentId = Number(assessmentIds?.[0]);
+      }
+
+      if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
+        throw new Error('No report available yet.');
+      }
+
+      if (!BACKEND_ENABLED) {
+        throw new Error('Backend base URL is not configured.');
+      }
+
+      const accessToken = getAccessToken();
+      if (!accessToken) {
+        throw new Error('You are not logged in.');
+      }
+
+      const response = await fetch(`${BACKEND_BASE_URL}/reports/${assessmentId}/bio-ai/pdf`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const body = await parseResponseBody(response);
+
+      if (!response.ok) {
+        throw new Error(body?.message || body?.detail || 'Failed to download report.');
+      }
+
+      const reportUrl = body?.data?.report_url || body?.report_url;
+      if (!reportUrl || typeof reportUrl !== 'string') {
+        throw new Error('Report URL is missing from API response.');
+      }
+
+      const link = document.createElement('a');
+      link.href = reportUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      setLatestAssessmentId(assessmentId);
+      setIsDownloadMenuOpen(false);
+    } catch (error) {
+      console.error('Failed to download Bio-AI report PDF:', error);
+      window.alert(error?.message || 'Failed to download report. Please try again.');
+    } finally {
+      setIsDownloadingReport(false);
+    }
+  };
+
+  const handleDownloadBloodReport = async () => {
+    if (isDownloadingReport) {
+      return;
+    }
+
+    setIsDownloadingReport(true);
+
+    try {
+      let assessmentId = Number(latestAssessmentId);
+
+      if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
+        const assessmentIds = await getLatestAssessmentIdsCached();
+        assessmentId = Number(assessmentIds?.[0]);
+      }
+
+      if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
+        throw new Error('No report available yet.');
+      }
+
+      if (!BACKEND_ENABLED) {
+        throw new Error('Backend base URL is not configured.');
+      }
+
+      const accessToken = getAccessToken();
+      if (!accessToken) {
+        throw new Error('You are not logged in.');
+      }
+
+      const response = await fetch(`${BACKEND_BASE_URL}/reports/${assessmentId}/blood-parameters/pdf`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const body = await parseResponseBody(response);
+
+      if (!response.ok) {
+        throw new Error(body?.message || body?.detail || 'Failed to download report.');
+      }
+
+      const reportUrl = body?.data?.report_url || body?.report_url;
+      if (!reportUrl || typeof reportUrl !== 'string') {
+        throw new Error('Report URL is missing from API response.');
+      }
+
+      const link = document.createElement('a');
+      link.href = reportUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      setLatestAssessmentId(assessmentId);
+      setIsDownloadMenuOpen(false);
+    } catch (error) {
+      console.error('Failed to download Blood Parameters report PDF:', error);
+      window.alert(error?.message || 'Failed to download report. Please try again.');
+    } finally {
+      setIsDownloadingReport(false);
     }
   };
 
@@ -940,7 +1115,7 @@ const HomePage = ({
             <div className="home-page-analyzing__copy">
               <h2>Analyzing your Bio-Markers</h2>
               <p className="home-page-analyzing__subtitle">
-                We&rsquo;re preparing your Health Playbook. Report ready in 24-48 hours.
+                We&rsquo;re preparing your Health Playbook. Report ready in 48-72 hours.
               </p>
             </div>
           </section>
@@ -1131,6 +1306,15 @@ const HomePage = ({
 
   return (
     <div className="home-page">
+      {isDownloadMenuOpen ? (
+        <button
+          type="button"
+          className="home-page__download-overlay-backdrop"
+          onClick={handleCloseDownloadMenu}
+          aria-label="Close reports panel"
+        />
+      ) : null}
+
       {/* Header */}
       <Header 
         name={userName} 
@@ -1166,6 +1350,41 @@ const HomePage = ({
         onBloodMarkersSeeMore={handleBloodMarkersSeeMore}
         prefetchedHomeBloodMarkers={homeBloodMarkersForSection}
       />
+
+      {isDownloadMenuOpen ? (
+        <div className="home-page__download-panel" role="dialog" aria-label="Reports">
+          <button
+            type="button"
+            className="home-page__download-panel-item"
+            onClick={handleDownloadBioAiReport}
+            disabled={isDownloadingReport}
+            aria-busy={isDownloadingReport}
+          >
+            <span>{isDownloadingReport ? 'Downloading report...' : 'Bio-AI Health Report'}</span>
+            <HomeReportEyeIcon />
+          </button>
+          <button
+            type="button"
+            className="home-page__download-panel-item"
+            onClick={handleDownloadBloodReport}
+            disabled={isDownloadingReport}
+            aria-busy={isDownloadingReport}
+          >
+            <span>{isDownloadingReport ? 'Downloading report...' : 'Blood Report'}</span>
+            <HomeReportEyeIcon />
+          </button>
+        </div>
+      ) : null}
+
+      <button
+        type="button"
+        className="home-page__floating-download-btn"
+        onClick={handleDownloadMenuToggle}
+        aria-label={isDownloadMenuOpen ? 'Close report options' : 'Open report options'}
+        aria-expanded={isDownloadMenuOpen}
+      >
+        <HomeDownloadIcon />
+      </button>
 
       <NavBar defaultActive="home" onNavigate={handleNavigate} />
     </div>

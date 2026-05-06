@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './DiseaseDetailPage.css';
 import lifestyleTick from '../../images/tick(lifestyle).svg';
-import trendsImage from '../../images/trends.svg';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
 
 const RISK_ZONES = [
@@ -154,7 +153,6 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   const scoreLabel = hasScore ? String(score) : '-';
   const hasHealthRank = apiDetail?.disease_percentile !== null && apiDetail?.disease_percentile !== undefined;
   const healthRankScore = hasHealthRank ? toClampedScore(apiDetail?.disease_percentile, 0) : 0;
-  const trendSummary = '-';
   const scoreZoneIndex = getZoneIndexForScore(score);
   const healthRankZoneIndex = getZoneIndexForScore(healthRankScore);
   const [animatedMarkerLeftPercent, setAnimatedMarkerLeftPercent] = useState(0);
@@ -694,14 +692,6 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
           </button>
         ))}
 
-        <section className="disease-detail-trends-section" aria-label="Trends">
-          <h3 className="disease-detail-trends-title">Trends</h3>
-          <p className="disease-detail-trends-description">We recommend testing every 16 weeks</p>
-          <div className="disease-detail-trends-chart-shell">
-            <img src={trendsImage} alt="Trends chart" className="disease-detail-trends-chart-image" />
-          </div>
-          <p className="disease-detail-trend-summary">{trendSummary}</p>
-        </section>
       </section>
       </div>
 

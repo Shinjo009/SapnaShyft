@@ -441,7 +441,7 @@ const DEFAULT_FORM_DATA = {
 };
 
 const RELATION_OPTIONS = ['Parent', 'Child', 'Sibling', 'Spouse', 'Friend', 'Self', 'Other'];
-const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
+const GENDER_OPTIONS = ['Male', 'Female'];
 
 const DEFAULT_ADDRESS_DATA = {
   house: '',
