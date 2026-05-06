@@ -223,11 +223,43 @@
 
 @keyframes spin3D {
   0% {
-    transform: rotateX(0deg) rotateY(0deg);
+    transform: rotateX(-18deg) rotateY(0deg);
+  }
+
+  /* Front icon (Bio Ai) */
+  18% {
+    transform: rotateX(-18deg) rotateY(0deg);
+  }
+
+  /* Right icon (Nutrition) */
+  25% {
+    transform: rotateX(-18deg) rotateY(-90deg);
+  }
+
+  43% {
+    transform: rotateX(-18deg) rotateY(-90deg);
+  }
+
+  /* Back icon (Longevity) */
+  50% {
+    transform: rotateX(-18deg) rotateY(-180deg);
+  }
+
+  68% {
+    transform: rotateX(-18deg) rotateY(-180deg);
+  }
+
+  /* Left icon (Prevention) */
+  75% {
+    transform: rotateX(-18deg) rotateY(-270deg);
+  }
+
+  93% {
+    transform: rotateX(-18deg) rotateY(-270deg);
   }
 
   100% {
-    transform: rotateX(360deg) rotateY(360deg);
+    transform: rotateX(-18deg) rotateY(-360deg);
   }
 }
 
