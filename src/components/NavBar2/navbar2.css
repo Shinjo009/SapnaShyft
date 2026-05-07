@@ -103,6 +103,7 @@
 
 /* Active: same top border band as inactive (transparent); white segment centered, shorter than tab */
 .navbar2__slot--active {
+  --nav2-indicator-width: min(36px, 58%);
   padding: 10px 12px 6px 12px;
   border-top-color: transparent;
 }
@@ -112,7 +113,7 @@
   position: absolute;
   top: 0;
   left: 50%;
-  width: min(50px, 78%);
+  width: var(--nav2-indicator-width);
   height: 2px;
   transform: translateX(-50%);
   background: #ffffff;
@@ -127,15 +128,16 @@
   position: absolute;
   top: 2px;
   left: 50%;
-  width: min(124px, 142%);
+  width: min(118px, 136%);
   height: calc(100% - 2px);
   transform: translateX(-50%);
   background:
-    radial-gradient(ellipse at 50% 10%, rgba(143, 255, 177, 0.22) 0%, rgba(143, 255, 177, 0.095) 36%, rgba(143, 255, 177, 0) 74%),
-    linear-gradient(to bottom, rgba(143, 255, 177, 0.17) 0%, rgba(143, 255, 177, 0.055) 34%, rgba(143, 255, 177, 0) 100%);
-  clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%);
-  filter: blur(0.2px);
-  opacity: 0.82;
+    radial-gradient(ellipse at 50% 8%, rgba(143, 255, 177, 0.16) 0%, rgba(143, 255, 177, 0.075) 42%, rgba(143, 255, 177, 0) 78%),
+    linear-gradient(to bottom, rgba(143, 255, 177, 0.13) 0%, rgba(143, 255, 177, 0.045) 36%, rgba(143, 255, 177, 0) 100%);
+  /* Narrow at top (aligned to indicator), wider at bottom */
+  clip-path: polygon(35% 0, 65% 0, 100% 100%, 0 100%);
+  filter: blur(0.8px);
+  opacity: 0.74;
   pointer-events: none;
   z-index: 1;
 }
