@@ -332,7 +332,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
     },
     rank: {
       title: 'Health Rank',
-      description: 'Your health score is compared with people in similar age group. Higher rank means better health compared to others.',
+      description: 'Your health score is compared with people in similar age group. Lower rank means better health compared to others.',
       Icon: HealthRankInfoIcon
     }
   };

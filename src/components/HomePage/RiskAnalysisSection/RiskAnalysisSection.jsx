@@ -55,82 +55,49 @@ const DISEASES_DATA = [
   { id: 10, name: 'Thyroid Health', icon: ThyroidHealthIcon, score: 20 },
 ];
 
-const ACTION_COPY_BY_DISEASE_AND_RISK = {
-  metabolic: {
-    low: 'No metabolic syndrome detected, keep up physical activity, balanced nutrition, quality sleep, and stress management.',
-    high: 'Cut refined carbs and processed foods, exercise regularly, manage weight, sleep better, and reduce stress, results visible in 8–12 weeks.',
-  },
-  'metabolic syndrome': {
-    low: 'No metabolic syndrome detected, keep up physical activity, balanced nutrition, quality sleep, and stress management.',
-    high: 'Cut refined carbs and processed foods, exercise regularly, manage weight, sleep better, and reduce stress, results visible in 8–12 weeks.',
-  },
-  'type 2 diabetes': {
-    low: 'No significant diabetes risk detected, maintain regular physical activity, a low-sugar diet, healthy weight, and consistent sleep.',
-    high: 'Cut refined carbs and sugars, exercise daily, manage weight, sleep better, reduce stress, and consult a doctor for a full plan.',
-  },
-  hypertension: {
-    low: 'Healthy blood pressure detected, keep up regular exercise, a low-sodium diet, healthy weight, limited alcohol, and stress management.',
-    high: 'Cut salt and processed foods, exercise aerobically, manage weight, limit alcohol, quit smoking, improve sleep, and consult a doctor.',
-  },
-  obesity: {
-    low: 'Healthy weight maintained, keep up balanced eating, strength training, and regular physical activity while monitoring weight periodically.',
-    high: 'Create a sustainable calorie deficit with whole foods and exercise, improve sleep, manage stress, and consult a doctor or nutritionist.',
-  },
-  'pcos/pcod': {
-    low: 'No significant PCOS/PCOD risk detected, maintain a balanced diet, regular physical activity, healthy weight, and stress management.',
-    high: 'Cut refined carbs and sugars, exercise regularly, manage weight and stress, and consult a doctor for hormonal evaluation and treatment.',
-  },
-  pcos: {
-    low: 'No significant PCOS/PCOD risk detected, maintain a balanced diet, regular physical activity, healthy weight, and stress management.',
-    high: 'Cut refined carbs and sugars, exercise regularly, manage weight and stress, and consult a doctor for hormonal evaluation and treatment.',
-  },
-  pcod: {
-    low: 'No significant PCOS/PCOD risk detected, maintain a balanced diet, regular physical activity, healthy weight, and stress management.',
-    high: 'Cut refined carbs and sugars, exercise regularly, manage weight and stress, and consult a doctor for hormonal evaluation and treatment.',
-  },
-  nafld: {
-    low: 'Healthy liver detected, maintain a whole foods diet low in refined carbs and fructose, stay active, and limit alcohol intake.',
-    high: 'Cut refined carbs, sugars, fructose, and processed foods, exercise regularly, manage weight, and consult a doctor.',
-  },
-  'cardiac health': {
-    low: 'Good cardiac health detected, keep up aerobic exercise, a heart-healthy diet, healthy weight, limited alcohol, and stress management.',
-    high: 'Cut saturated fat, sodium, and refined carbs, exercise aerobically, quit smoking, limit alcohol, manage stress, and consult a doctor.',
-  },
-  'thyroid health': {
-    low: 'Good thyroid health detected, maintain adequate iodine, selenium, and zinc intake, manage stress, and prioritize quality sleep.',
-    high: 'Consult a doctor for a full thyroid evaluation and address stress, nutritional deficiencies, and poor sleep alongside any prescribed therapy.',
-  },
-  dyslipidemia: {
-    low: 'Well-controlled lipid levels detected, keep up a heart-healthy diet, regular physical activity, healthy weight, and limited alcohol intake.',
-    high: 'Cut saturated fats, refined carbs, sugar, and processed foods, exercise regularly, quit smoking, and consult a doctor for a lipid evaluation.',
-  },
-  'oxidative stress': {
-    low: 'Well-balanced oxidative state detected, maintain a colorful whole foods diet, moderate exercise, quality sleep, and stress management.',
-    high: 'Increase antioxidant-rich foods, cut processed foods and sugar, quit smoking, limit alcohol, exercise moderately, and improve sleep.',
-  },
+/** Single action line per disease (home Risk Analysis cards); not varied by risk band. */
+const ACTION_COPY_BY_DISEASE = {
+  metabolic:
+    'Cut refined carbs and processed foods, exercise regularly, manage weight, improve sleep quality, and reduce stress consistently; noticeable improvements can be seen within 8 - 12 weeks.',
+  'metabolic syndrome':
+    'Cut refined carbs and processed foods, exercise regularly, manage weight, improve sleep quality, and reduce stress consistently; noticeable improvements can be seen within 8 - 12 weeks.',
+  'type 2 diabetes':
+    'Reduce refined carbs and sugars, stay physically active daily, maintain a healthy weight, improve sleep quality, manage stress, and consult a doctor for a comprehensive diabetes prevention plan.',
+  hypertension:
+    'Reduce salt and processed food intake, prioritize aerobic exercise, manage body weight, limit alcohol, quit smoking, improve sleep quality, and consult a doctor for blood pressure management.',
+  obesity:
+    'Create a sustainable calorie deficit using whole foods and regular exercise, improve sleep, manage stress effectively, and consult a doctor or nutritionist for structured weight management support.',
+  'pcos/pcod':
+    'Reduce refined carbs and sugars, exercise consistently, manage weight and stress levels, and consult a doctor for hormonal evaluation and personalized treatment guidance.',
+  pcos:
+    'Reduce refined carbs and sugars, exercise consistently, manage weight and stress levels, and consult a doctor for hormonal evaluation and personalized treatment guidance.',
+  pcod:
+    'Reduce refined carbs and sugars, exercise consistently, manage weight and stress levels, and consult a doctor for hormonal evaluation and personalized treatment guidance.',
+  nafld:
+    'Reduce refined carbs, sugars, fructose, and processed foods, stay physically active, focus on healthy weight management, and consult a doctor for liver health evaluation and guidance.',
+  'cardiac health':
+    'Reduce saturated fats, sodium, and refined carbs, perform regular aerobic exercise, quit smoking, limit alcohol intake, manage stress, and consult a doctor for cardiovascular risk assessment.',
+  'thyroid health':
+    'Consult a doctor for a comprehensive thyroid evaluation while improving sleep quality, reducing stress, and addressing potential nutritional deficiencies alongside prescribed treatment if needed.',
+  dyslipidemia:
+    'Reduce saturated fats, refined carbs, sugars, and processed foods, exercise regularly, quit smoking, and consult a doctor for a detailed lipid profile evaluation and management plan.',
+  'oxidative stress':
+    'Increase intake of antioxidant-rich whole foods, reduce processed foods and sugar, quit smoking, limit alcohol intake, engage in moderate exercise, and prioritize restorative sleep.',
 };
 
 const DISEASE_ACTION_ALIASES = {
   'pcos / pcod': 'pcos/pcod',
   'pcos-pcod': 'pcos/pcod',
   'type ii diabetes': 'type 2 diabetes',
+  diabetes: 'type 2 diabetes',
 };
 
 const normalizeDiseaseKey = (name = '') => name.replace(/\s+/g, ' ').trim().toLowerCase();
-const getRiskBand = (item, scoreValue) => {
-  const directRisk = String(item?.risk || item?.risk_level || item?.risk_type || '').trim().toLowerCase();
-  if (directRisk.includes('high')) return 'high';
-  if (directRisk.includes('low') || directRisk.includes('optimal') || directRisk.includes('normal')) return 'low';
-  const numericScore = Number(scoreValue);
-  return Number.isFinite(numericScore) && numericScore >= 50 ? 'high' : 'low';
-};
 
-const toActionCopy = (diseaseName, riskBand) => {
+const toActionCopy = (diseaseName) => {
   const diseaseKey = normalizeDiseaseKey(diseaseName);
   const canonicalDiseaseKey = DISEASE_ACTION_ALIASES[diseaseKey] || diseaseKey;
-  const actionMap = ACTION_COPY_BY_DISEASE_AND_RISK[canonicalDiseaseKey];
-  if (!actionMap) return '-';
-  return riskBand === 'high' ? actionMap.high : actionMap.low;
+  return ACTION_COPY_BY_DISEASE[canonicalDiseaseKey] || '-';
 };
 
 const toClampedPercentile = (value) => {
@@ -149,7 +116,7 @@ const defaultCards = DISEASES_DATA
   .map((disease) => ({
     ...disease,
     code: normalizeDiseaseKey(disease.name).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''),
-    action: toActionCopy(disease.name, getRiskBand(disease, disease.score)),
+    action: toActionCopy(disease.name),
     healthRankLabel: '-',
   }));
 
@@ -183,8 +150,6 @@ const toRiskAnalysisCardsFromApi = (riskAnalysis) => {
     // Disease detail screen computes health rank from disease_percentile.
     const percentile = toClampedPercentile(item?.disease_percentile ?? item?.healthy_percentile);
     const hasHealthRank = percentile !== null;
-    const riskBand = getRiskBand(item, score);
-
     return {
       id: `api-risk-${index}-${code || 'row'}`,
       code,
@@ -192,7 +157,7 @@ const toRiskAnalysisCardsFromApi = (riskAnalysis) => {
       icon: DISEASE_ICON_BY_CODE[code] || MetabolicIcon,
       score,
       scoreDisplay: hasScore ? String(score) : '-',
-      action: toActionCopy(name, riskBand),
+      action: toActionCopy(name),
       healthRankLabel: hasHealthRank ? formatOrdinal(percentile) : '-',
       isPlaceholder: false,
     };

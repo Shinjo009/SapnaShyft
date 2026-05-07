@@ -290,6 +290,62 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     return buildMetricStatus();
   };
 
+  const formatIdealRangeBand = (band) => {
+    if (!band || typeof band !== 'object') return '-';
+    const low = Number(band.low);
+    const high = Number(band.high);
+    const unit = String(band.unit ?? '').trim();
+    if (!Number.isFinite(low) || !Number.isFinite(high)) return '-';
+    const range = `${toCompactNumberText(low)}-${toCompactNumberText(high)}`;
+    return unit ? `${range} ${unit}` : range;
+  };
+
+  const getFitnessIdealBandStatus = (value, idealBand) => {
+    const v = Number(value);
+    const lo = Number(idealBand?.low);
+    const hi = Number(idealBand?.high);
+    if (!Number.isFinite(v) || !Number.isFinite(lo) || !Number.isFinite(hi)) {
+      return buildMetricStatus();
+    }
+    if (v >= lo && v <= hi) {
+      return buildMetricStatus({ severity: 'within' });
+    }
+    const span = Math.max(hi - lo, 1e-6);
+    if (v < lo) {
+      const delta = lo - v;
+      const ratio = delta / span;
+      if (ratio >= 0.35 || delta >= span * 0.5) return buildMetricStatus({ direction: 'down', severity: 'red' });
+      if (ratio >= 0.15) return buildMetricStatus({ direction: 'down', severity: 'orange' });
+      return buildMetricStatus({ direction: 'down', severity: 'yellow' });
+    }
+    const delta = v - hi;
+    const ratio = delta / span;
+    if (ratio >= 0.35 || delta >= span * 0.5) return buildMetricStatus({ direction: 'up', severity: 'red' });
+    if (ratio >= 0.15) return buildMetricStatus({ direction: 'up', severity: 'orange' });
+    return buildMetricStatus({ direction: 'up', severity: 'yellow' });
+  };
+
+  const getFitnessBloodPressureStatus = (fit) => {
+    const bp = fit?.blood_pressure;
+    let sys;
+    let dia;
+    if (bp && typeof bp === 'object') {
+      sys = Number(bp.systolic ?? bp.systolic_bp ?? bp.sys);
+      dia = Number(bp.diastolic ?? bp.diastolic_bp ?? bp.dia);
+    } else {
+      sys = Number(fit?.systolic_blood_pressure);
+      dia = Number(fit?.diastolic_blood_pressure);
+    }
+    if (!Number.isFinite(sys) || !Number.isFinite(dia)) return buildMetricStatus();
+    if (sys <= 120 && dia <= 80) return buildMetricStatus({ severity: 'within' });
+    const sysOver = Math.max(0, sys - 120);
+    const diaOver = Math.max(0, dia - 80);
+    const score = sysOver / 40 + diaOver / 30;
+    if (score >= 1.5) return buildMetricStatus({ direction: 'up', severity: 'red' });
+    if (score >= 0.6) return buildMetricStatus({ direction: 'up', severity: 'orange' });
+    return buildMetricStatus({ direction: 'up', severity: 'yellow' });
+  };
+
   const renderMetricStatusIcon = (status) => {
     if (status.direction === 'up') {
       return (
@@ -332,6 +388,47 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
   const proteinStatus = getMacroMetricStatus(nutrition?.protein);
   const fibreStatus = getMacroMetricStatus(nutrition?.fibre);
   const waterStatus = getWaterMetricStatus(nutrition?.water);
+
+  const fitnessBloodPressureDisplay = formatBloodPressureText(
+    fitness?.blood_pressure
+    ?? (
+      fitness?.systolic_blood_pressure != null && fitness?.diastolic_blood_pressure != null
+        ? `${String(fitness.systolic_blood_pressure).trim()}/${String(fitness.diastolic_blood_pressure).trim()} mmHg`
+        : null
+    ),
+  );
+
+  const bmrIdealRangeDisplay = (() => {
+    const hr = String(fitness?.basal_metabolic_rate?.healthy_range ?? '').trim();
+    if (hr) return hr;
+    return formatIdealRangeBand(fitness?.ideal_bmr);
+  })();
+
+  const bodyFatIdealRangeDisplay = (() => {
+    const hr = String(fitness?.estimated_body_fat?.healthy_range ?? '').trim();
+    if (hr) return hr;
+    return formatIdealRangeBand(fitness?.ideal_body_fat);
+  })();
+
+  const waistIdealRangeDisplay = formatIdealRangeBand(fitness?.ideal_waist);
+
+  const waistDisplayText = (() => {
+    const w = Number(fitness?.waist);
+    const unit = String(fitness?.ideal_waist?.unit ?? '').trim();
+    if (!Number.isFinite(w)) return '-';
+    return unit ? `${toCompactNumberText(w)} ${unit}` : toCompactNumberText(w);
+  })();
+
+  const fitnessBpStatus = getFitnessBloodPressureStatus(fitness);
+  const fitnessBmrStatus = getFitnessIdealBandStatus(
+    fitness?.basal_metabolic_rate?.value,
+    fitness?.ideal_bmr,
+  );
+  const fitnessWaistStatus = getFitnessIdealBandStatus(fitness?.waist, fitness?.ideal_waist);
+  const fitnessBodyFatStatus = getFitnessIdealBandStatus(
+    fitness?.estimated_body_fat?.value,
+    fitness?.ideal_body_fat,
+  );
 
   return (
     <div className="health-scan-page">
@@ -416,12 +513,10 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   <img src={bloodPressureIcon} alt="" aria-hidden="true" />
                   <span>Blood pressure</span>
                 </div>
-                <div className="health-scan-page__metric-value health-scan-page__metric-value--within">
-                  <span>{formatBloodPressureText(fitness?.blood_pressure)}</span>
+                <div className={`health-scan-page__metric-value ${fitnessBpStatus.className}`}>
+                  <span>{fitnessBloodPressureDisplay}</span>
                   <span className="health-scan-page__metric-icon" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    {renderMetricStatusIcon(fitnessBpStatus)}
                   </span>
                 </div>
                 <span className="health-scan-page__metric-range-container">
@@ -435,17 +530,15 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   <img src={bmrIcon} alt="" aria-hidden="true" />
                   <span>Basal Metabolic Rate</span>
                 </div>
-                <div className="health-scan-page__metric-value health-scan-page__metric-value--below">
+                <div className={`health-scan-page__metric-value ${fitnessBmrStatus.className}`}>
                   <span>{toNumberText(fitness?.basal_metabolic_rate?.value, fitness?.basal_metabolic_rate?.unit)}</span>
                   <span className="health-scan-page__metric-icon" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
-                    </svg>
+                    {renderMetricStatusIcon(fitnessBmrStatus)}
                   </span>
                 </div>
                 <span className="health-scan-page__metric-range-container">
                   <span className="health-scan-page__metric-range-label">Ideal range</span>
-                  <span className="health-scan-page__metric-range-value">{toText(fitness?.basal_metabolic_rate?.healthy_range)}</span>
+                  <span className="health-scan-page__metric-range-value">{toText(bmrIdealRangeDisplay, '-')}</span>
                 </span>
               </div>
 
@@ -455,17 +548,15 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <img src={waistIcon} alt="" aria-hidden="true" />
                     <span>Waist</span>
                   </div>
-                  <div className="health-scan-page__metric-value health-scan-page__metric-value--above">
-                    <span>{toNumberText(fitness?.waist)}</span>
+                  <div className={`health-scan-page__metric-value ${fitnessWaistStatus.className}`}>
+                    <span>{waistDisplayText}</span>
                     <span className="health-scan-page__metric-icon" aria-hidden="true">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
-                      </svg>
+                      {renderMetricStatusIcon(fitnessWaistStatus)}
                     </span>
                   </div>
                   <span className="health-scan-page__metric-range-container">
-                    <span className="health-scan-page__metric-range-label">Ideal range</span>
-                    <span className="health-scan-page__metric-range-value">-</span>
+                    <span className="health-scan-page__metric-range-label">Ideal</span>
+                    <span className="health-scan-page__metric-range-value">{toText(waistIdealRangeDisplay, '-')}</span>
                   </span>
                 </div>
 
@@ -474,17 +565,15 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                     <img src={bodyFatIcon} alt="" aria-hidden="true" />
                     <span>Body fat</span>
                   </div>
-                  <div className="health-scan-page__metric-value health-scan-page__metric-value--above">
+                  <div className={`health-scan-page__metric-value ${fitnessBodyFatStatus.className}`}>
                     <span>{toNumberText(fitness?.estimated_body_fat?.value, fitness?.estimated_body_fat?.unit)}</span>
                     <span className="health-scan-page__metric-icon" aria-hidden="true">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
-                      </svg>
+                      {renderMetricStatusIcon(fitnessBodyFatStatus)}
                     </span>
                   </div>
                   <span className="health-scan-page__metric-range-container">
-                    <span className="health-scan-page__metric-range-label">Ideal range</span>
-                    <span className="health-scan-page__metric-range-value">{toText(fitness?.estimated_body_fat?.healthy_range)}</span>
+                    <span className="health-scan-page__metric-range-label">Ideal</span>
+                    <span className="health-scan-page__metric-range-value">{toText(bodyFatIdealRangeDisplay, '-')}</span>
                   </span>
                 </div>
               </div>
