@@ -3,6 +3,7 @@ import './RiskAnalysisSection.css';
 import { fetchLatestAssessmentReport } from '../../../services/reportService';
 import { normalizeBloodParametersReportPayload } from '../../../utils/bloodParametersReportNormalize';
 import ObesityIcon from '../../../images/Obesity-RA.svg';
+import { formatOrdinal } from '../../../utils/formatOrdinal';
 import ThyroidHealthIcon from '../../../images/Thyroid-RA.svg';
 import NAFLDIcon from '../../../images/NAFLD-RA.svg';
 import Type2Icon from '../../../images/Type2-RA.svg';
@@ -192,7 +193,7 @@ const toRiskAnalysisCardsFromApi = (riskAnalysis) => {
       score,
       scoreDisplay: hasScore ? String(score) : '-',
       action: toActionCopy(name, riskBand),
-      healthRankLabel: hasHealthRank ? `${percentile}th` : '-',
+      healthRankLabel: hasHealthRank ? formatOrdinal(percentile) : '-',
       isPlaceholder: false,
     };
   });

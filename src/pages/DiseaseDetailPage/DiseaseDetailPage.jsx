@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './DiseaseDetailPage.css';
 import lifestyleTick from '../../images/tick(lifestyle).svg';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
+import { formatOrdinal } from '../../utils/formatOrdinal';
 
 const RISK_ZONES = [
   {
@@ -257,7 +258,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   const hasLifestyle = apiDetail?.lifestyle_contribution !== null && apiDetail?.lifestyle_contribution !== undefined;
   const lifestyleTargetPercent = hasLifestyle ? toClampedScore(apiDetail?.lifestyle_contribution, 0) : 0;
   const lifestyleBand = hasLifestyle ? lifestyleBandFromPercent(lifestyleTargetPercent) : '-';
-  const healthRankLabel = hasHealthRank ? `${healthRankScore}th` : '-';
+  const healthRankLabel = hasHealthRank ? formatOrdinal(healthRankScore) : '-';
   const currentZoneDisplayColor = hasScore ? currentZoneColor : '#C4C4C4';
   const currentZoneLabel = hasScore ? currentZone.label : '-';
   const healthRankDisplayColor = hasHealthRank ? healthRankColor : '#C4C4C4';
