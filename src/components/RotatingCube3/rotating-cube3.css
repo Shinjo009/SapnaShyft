@@ -72,7 +72,6 @@
   position: absolute;
   width: 320px;
   height: 320px;
-  /* Pure cyan faces: #00ffff tint + glow (sky-blue only on .beam-outer below) */
   background: rgba(0, 255, 255, 0.08);
   box-shadow: inset 0 0 50px rgba(0, 255, 255, 0.14), 0 0 24px rgba(0, 255, 255, 0.22);
   border-radius: 12px;
@@ -85,8 +84,8 @@
 }
 
 .icon-circle {
-  width: 176px;
-  height: 176px;
+  width: 160px;
+  height: 160px;
   border-radius: 50%;
   position: relative;
   border: 2px solid #00ffff;
@@ -106,14 +105,12 @@
   pointer-events: none;
 }
 
-/* Inner ring */
 .icon-circle::before {
   inset: 8px;
   border: 1.6px solid rgba(220, 255, 255, 0.55);
   box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.16);
 }
 
-/* Outer ring + cyan aura */
 .icon-circle::after {
   inset: -9px;
   border: 1.8px solid rgba(210, 255, 255, 0.45);
@@ -123,7 +120,6 @@
     0 0 54px rgba(0, 180, 255, 0.22);
 }
 
-/* Label stack: optional SVG above word (variant="labels") */
 .cube-face-label-stack {
   position: relative;
   z-index: 1;
@@ -138,8 +134,8 @@
 }
 
 .cube-face-label-icon {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   object-fit: contain;
   object-position: center;
   flex-shrink: 0;
@@ -149,14 +145,13 @@
 
 .cube-face-label-icon-spacer {
   display: block;
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   flex-shrink: 0;
   pointer-events: none;
   visibility: hidden;
 }
 
-/* Splash label mode — spec typography + cyan glow (matches former icon treatment) */
 .cube-face-label {
   position: relative;
   z-index: 1;
@@ -167,10 +162,10 @@
   box-sizing: border-box;
   color: #03fdfd;
   font-family: Lato, system-ui, sans-serif;
-  font-size: 26px;
+  font-size: 25px;
   font-style: normal;
   font-weight: 700;
-  line-height: 29.98px; /* ~115.3% of 26px */
+  line-height: 28.83px;
   letter-spacing: 0.1px;
   text-align: center;
   leading-trim: both;
@@ -184,7 +179,6 @@
   transform: translate3d(0, 0, 0);
 }
 
-/* Full-cube icon mode only (direct child img — not label stack icons) */
 .icon-circle > img {
   width: 62%;
   height: 62%;
@@ -249,8 +243,8 @@
 
   .cube-face-label-icon,
   .cube-face-label-icon-spacer {
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
   }
 
   .cube-face-label-stack {
@@ -282,7 +276,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cube-container {
-    /* Much slower spin instead of stopping — keeps motion subtle for PRM users */
     animation: spin3D 85s linear infinite;
   }
 }

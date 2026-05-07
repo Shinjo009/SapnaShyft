@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import RotatingCube from '../../components/RotatingCube/RotatingCube';
+import RotatingCube3 from '../../components/RotatingCube3/RotatingCube3';
 import supershyftLogo from '../../images/SuperShyft - Logo [Final]-03 1.png';
 import poweredBySupershyft from '../../images/Powered by Supershyt.svg';
 import './SplashScreen3.css';
@@ -9,7 +9,7 @@ const PAD = 36;
 const EDGE = 320;
 const SCENE_PX = PAD * 2 + EDGE;
 
-/** Graph / line intro disabled � cube visible on load; 1s hold then spin. */
+/** Graph / line intro disabled - cube visible on load; 1s hold then spin. */
 const PHASE_SPIN_MS = 1000;
 
 const GRAPH_SCALE_MIN = 0.34;
@@ -76,9 +76,9 @@ const SplashScreen3 = ({ onComplete: _onComplete, onLogin, onSignup, showInstall
           >
             <div className="splash-v3-scene-flat">
               <div className="splash-v3-cube-layer">
-                {/* Same 320�320 front face as graph square; offset (PAD,PAD) inside SCENE_PX via CSS. */}
+                {/* Same 320x320 front face as graph square; offset (PAD,PAD) inside SCENE_PX via CSS. */}
                 <div className="splash-v3-cube-zwrap">
-                  <RotatingCube variant="labels" showLabelIcons={false} />
+                  <RotatingCube3 variant="labels" showLabelIcons={false} />
                 </div>
               </div>
 
