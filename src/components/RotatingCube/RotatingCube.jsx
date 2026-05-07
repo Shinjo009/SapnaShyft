@@ -19,9 +19,10 @@ const CUBE_FACES = [
 /**
  * Same DOM / 3D layout as technology.html (lines 421–458).
  * `variant="icons"` (default): SVGs from `src/images/Cube/*.svg`.
- * `variant="labels"`: icon above Lato label per face (`labelIcon`; optional for Holistic / Age Reversal). Used by SplashScreen3.
+ * `variant="labels"`: icon above Lato label per face (`labelIcon`; optional for Holistic / Age Reversal).
+ * Set `showLabelIcons={false}` for text-only label mode (used by SplashScreen3).
  */
-export default function RotatingCube({ variant = 'icons' }) {
+export default function RotatingCube({ variant = 'icons', showLabelIcons = true }) {
   const useLabels = variant === 'labels';
 
   return (
@@ -36,18 +37,20 @@ export default function RotatingCube({ variant = 'icons' }) {
             <div className="icon-circle">
               {useLabels ? (
                 <div className="cube-face-label-stack">
-                  {labelIcon ? (
-                    <img
-                      src={labelIcon}
-                      alt=""
-                      className="cube-face-label-icon"
-                      width={56}
-                      height={56}
-                      decoding="async"
-                    />
-                  ) : (
-                    <span className="cube-face-label-icon-spacer" aria-hidden />
-                  )}
+                  {showLabelIcons ? (
+                    labelIcon ? (
+                      <img
+                        src={labelIcon}
+                        alt=""
+                        className="cube-face-label-icon"
+                        width={56}
+                        height={56}
+                        decoding="async"
+                      />
+                    ) : (
+                      <span className="cube-face-label-icon-spacer" aria-hidden />
+                    )
+                  ) : null}
                   <span className="cube-face-label">{label}</span>
                 </div>
               ) : (

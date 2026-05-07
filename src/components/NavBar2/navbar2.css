@@ -98,6 +98,7 @@
   transition:
     border-top-color 0.2s ease,
     opacity 0.2s ease;
+  isolation: isolate;
 }
 
 /* Active: same top border band as inactive (transparent); white segment centered, shorter than tab */
@@ -111,12 +112,32 @@
   position: absolute;
   top: 0;
   left: 50%;
-  width: min(56px, 85%);
+  width: min(50px, 78%);
   height: 2px;
   transform: translateX(-50%);
   background: #ffffff;
   border-radius: 1px;
   pointer-events: none;
+  z-index: 3;
+}
+
+/* Active spotlight beam under the top indicator (Figma-style) */
+.navbar2__slot--active::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: min(124px, 142%);
+  height: calc(100% - 2px);
+  transform: translateX(-50%);
+  background:
+    radial-gradient(ellipse at 50% 10%, rgba(143, 255, 177, 0.22) 0%, rgba(143, 255, 177, 0.095) 36%, rgba(143, 255, 177, 0) 74%),
+    linear-gradient(to bottom, rgba(143, 255, 177, 0.17) 0%, rgba(143, 255, 177, 0.055) 34%, rgba(143, 255, 177, 0) 100%);
+  clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%);
+  filter: blur(0.2px);
+  opacity: 0.82;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .navbar2__slot:focus-visible {
@@ -135,6 +156,8 @@
   justify-content: center;
   flex-shrink: 0;
   min-height: 23px;
+  position: relative;
+  z-index: 2;
 }
 
 .navbar2__icon {
@@ -163,6 +186,8 @@
   letter-spacing: 0.1px;
   color: #ffffff;
   white-space: nowrap;
+  position: relative;
+  z-index: 2;
 }
 
 @media (min-width: 481px) {

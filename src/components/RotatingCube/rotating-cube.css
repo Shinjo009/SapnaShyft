@@ -167,10 +167,10 @@
   box-sizing: border-box;
   color: #03fdfd;
   font-family: Lato, system-ui, sans-serif;
-  font-size: 24px;
+  font-size: 25px;
   font-style: normal;
   font-weight: 700;
-  line-height: 27.68px; /* ~115.3% of 24px */
+  line-height: 28.83px; /* ~115.3% of 25px */
   letter-spacing: 0.1px;
   text-align: center;
   leading-trim: both;
@@ -223,43 +223,11 @@
 
 @keyframes spin3D {
   0% {
-    transform: rotateX(-18deg) rotateY(0deg);
-  }
-
-  /* Front icon (Bio Ai) */
-  18% {
-    transform: rotateX(-18deg) rotateY(0deg);
-  }
-
-  /* Right icon (Nutrition) */
-  25% {
-    transform: rotateX(-18deg) rotateY(-90deg);
-  }
-
-  43% {
-    transform: rotateX(-18deg) rotateY(-90deg);
-  }
-
-  /* Back icon (Longevity) */
-  50% {
-    transform: rotateX(-18deg) rotateY(-180deg);
-  }
-
-  68% {
-    transform: rotateX(-18deg) rotateY(-180deg);
-  }
-
-  /* Left icon (Prevention) */
-  75% {
-    transform: rotateX(-18deg) rotateY(-270deg);
-  }
-
-  93% {
-    transform: rotateX(-18deg) rotateY(-270deg);
+    transform: rotateX(0deg) rotateY(0deg);
   }
 
   100% {
-    transform: rotateX(-18deg) rotateY(-360deg);
+    transform: rotateX(360deg) rotateY(360deg);
   }
 }
 

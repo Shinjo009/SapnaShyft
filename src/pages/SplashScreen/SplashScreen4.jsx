@@ -1,5 +1,5 @@
 /**
- * SplashScreen4 — inactive stub while SplashScreen3 is the default splash (`SplashScreen.jsx`).
+ * SplashScreen4 � inactive stub while SplashScreen3 is the default splash (`SplashScreen.jsx`).
  * Restore from `SplashScreen3.jsx` + `./SplashScreen4.css` if you need this module again.
  */
 
