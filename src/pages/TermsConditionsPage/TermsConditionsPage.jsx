@@ -2,6 +2,8 @@ import React from 'react';
 import infoIcon from '../../images/info-terms.svg';
 import eligibilityIcon from '../../images/Eligibility-terms.svg';
 import servicesIcon from '../../images/Services-terms.svg';
+import healthDisclaimerIcon from '../../images/health-disclaimer-terms.svg';
+import bookingsThirdPartyIcon from '../../images/bookings-third-party-terms.svg';
 import './TermsConditionsPage.css';
 
 const TermsConditionsPage = ({ onBack }) => {
@@ -87,7 +89,7 @@ const TermsConditionsPage = ({ onBack }) => {
 
           <section className="terms-page__card">
             <div className="terms-page__card-header">
-              <img src={eligibilityIcon} alt="" aria-hidden="true" className="terms-page__icon" />
+              <img src={healthDisclaimerIcon} alt="" aria-hidden="true" className="terms-page__icon" />
               <h2>Health Disclaimer &amp; User Responsibility</h2>
             </div>
 
@@ -102,7 +104,7 @@ const TermsConditionsPage = ({ onBack }) => {
 
           <section className="terms-page__card">
             <div className="terms-page__card-header">
-              <img src={eligibilityIcon} alt="" aria-hidden="true" className="terms-page__icon" />
+              <img src={bookingsThirdPartyIcon} alt="" aria-hidden="true" className="terms-page__icon" />
               <h2>Bookings, Third-Party Services &amp; Updates</h2>
             </div>
 

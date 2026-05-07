@@ -1,5 +1,5 @@
 import './App.css';
-import { useState, useEffect, useRef, Suspense, lazy, useCallback } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy, useCallback, useMemo } from 'react';
 import SplashScreen from './pages/SplashScreen';
 import LoginPage from './pages/LoginPage';
 import { getSuperClubLikedSportIds } from './pages/SuperClubPage/superClubStorage';
@@ -221,13 +221,17 @@ function App() {
     setSuperClubLikedSportIds(Array.isArray(likedIds) ? likedIds : []);
     setCurrentPage('super-club-2');
   }, []);
-  const clearBloodMarkerDetailFromHome = useCallback(() => {
-    setBloodMarkerDetailFromHome(null);
-  }, []);
   const handleNavigateToBloodMarkerDetail = useCallback((row) => {
     setBloodMarkerDetailFromHome(row);
     setCurrentPage('blood-markers');
   }, []);
+  const bloodMarkersPageDetailProps = useMemo(
+    () => ({
+      initialDetailMarker: bloodMarkerDetailFromHome,
+      onInitialDetailConsumed: () => setBloodMarkerDetailFromHome(null),
+    }),
+    [bloodMarkerDetailFromHome],
+  );
   const [, setIsB2bQuestionnaireFlow] = useState(false);
   const [healthAssessmentBackPage, setHealthAssessmentBackPage] = useState('home');
   // const [superClubOnboardingDone, setSuperClubOnboardingDone] = useState(() =>
@@ -1587,8 +1591,7 @@ function App() {
 
       {currentPage === 'blood-markers' && (
         <BloodMarkersPage
-          initialDetailMarker={bloodMarkerDetailFromHome}
-          onInitialDetailConsumed={clearBloodMarkerDetailFromHome}
+          {...bloodMarkersPageDetailProps}
           onBack={() => {
             console.log('Back to Home');
             setCurrentPage('home');

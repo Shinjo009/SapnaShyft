@@ -4,7 +4,8 @@ import personsIcon from '../../images/PFWIC.svg';
 import purposeIcon from '../../images/POC.svg';
 import typesIcon from '../../images/TOPI.svg';
 import tickIcon from '../../images/tickpp.svg';
-import grievanceIcon from '../../images/GO.svg';
+import grievanceIcon from '../../images/grievance-officer-pp.svg';
+import dataProtectionIcon from '../../images/data-protection-pp.svg';
 import './PrivacyPolicyPage.css';
 
 const purposeItems = [
@@ -150,7 +151,7 @@ const PrivacyPolicyPage = ({ onBack }) => {
 
           <section className="privacy-page__card privacy-page__card--last">
             <div className="privacy-page__card-header">
-              <img src={grievanceIcon} alt="" aria-hidden="true" className="privacy-page__icon" />
+              <img src={dataProtectionIcon} alt="" aria-hidden="true" className="privacy-page__icon" />
               <h2>Data Protection, Security &amp; User Rights</h2>
             </div>
 

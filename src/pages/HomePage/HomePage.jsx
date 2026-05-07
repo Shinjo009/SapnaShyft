@@ -384,7 +384,8 @@ const HomePage = ({
   const [homeBloodMarkersForSection, setHomeBloodMarkersForSection] = useState(null);
   const [latestAssessmentId, setLatestAssessmentId] = useState(null);
   const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
-  const [isDownloadingReport, setIsDownloadingReport] = useState(false);
+  /** null | 'bio-ai' | 'blood' — only the active row shows "Downloading..." */
+  const [downloadingReportKind, setDownloadingReportKind] = useState(null);
 
   const slotNorm = upcomingSlotNormalized || EMPTY_UPCOMING_SLOT;
   const campFlowActive = Boolean(slotNorm.hasScheduledSlot)
@@ -827,11 +828,11 @@ const HomePage = ({
   };
 
   const handleDownloadBioAiReport = async () => {
-    if (isDownloadingReport) {
+    if (downloadingReportKind !== null) {
       return;
     }
 
-    setIsDownloadingReport(true);
+    setDownloadingReportKind('bio-ai');
 
     try {
       let assessmentId = Number(latestAssessmentId);
@@ -886,16 +887,16 @@ const HomePage = ({
       console.error('Failed to download Bio-AI report PDF:', error);
       window.alert(error?.message || 'Failed to download report. Please try again.');
     } finally {
-      setIsDownloadingReport(false);
+      setDownloadingReportKind(null);
     }
   };
 
   const handleDownloadBloodReport = async () => {
-    if (isDownloadingReport) {
+    if (downloadingReportKind !== null) {
       return;
     }
 
-    setIsDownloadingReport(true);
+    setDownloadingReportKind('blood');
 
     try {
       let assessmentId = Number(latestAssessmentId);
@@ -950,7 +951,7 @@ const HomePage = ({
       console.error('Failed to download Blood Parameters report PDF:', error);
       window.alert(error?.message || 'Failed to download report. Please try again.');
     } finally {
-      setIsDownloadingReport(false);
+      setDownloadingReportKind(null);
     }
   };
 
@@ -1365,20 +1366,20 @@ const HomePage = ({
             type="button"
             className="home-page__download-panel-item"
             onClick={handleDownloadBioAiReport}
-            disabled={isDownloadingReport}
-            aria-busy={isDownloadingReport}
+            disabled={downloadingReportKind !== null}
+            aria-busy={downloadingReportKind === 'bio-ai'}
           >
-            <span>{isDownloadingReport ? 'Downloading report...' : 'Bio-AI Health Report'}</span>
+            <span>{downloadingReportKind === 'bio-ai' ? 'Downloading report...' : 'Bio-AI Health Report'}</span>
             <HomeReportEyeIcon />
           </button>
           <button
             type="button"
             className="home-page__download-panel-item"
             onClick={handleDownloadBloodReport}
-            disabled={isDownloadingReport}
-            aria-busy={isDownloadingReport}
+            disabled={downloadingReportKind !== null}
+            aria-busy={downloadingReportKind === 'blood'}
           >
-            <span>{isDownloadingReport ? 'Downloading report...' : 'Blood Report'}</span>
+            <span>{downloadingReportKind === 'blood' ? 'Downloading report...' : 'Blood Report'}</span>
             <HomeReportEyeIcon />
           </button>
         </div>
