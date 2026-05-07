@@ -212,6 +212,7 @@ function App() {
   const [customPackageCard, setCustomPackageCard] = useState(null);
   const [pendingCustomPackagePayload, setPendingCustomPackagePayload] = useState(null);
   const [selectedPackageCard, setSelectedPackageCard] = useState(null);
+  const [bloodMarkerDetailFromHome, setBloodMarkerDetailFromHome] = useState(null);
   const [canSwipeBack, setCanSwipeBack] = useState(false);
   const [preloadedHomeData, setPreloadedHomeData] = useState(null);
   const [forceHomeApiRefresh, setForceHomeApiRefresh] = useState(false);
@@ -219,6 +220,13 @@ function App() {
   const handleSuperClubOnboardingComplete = useCallback((likedIds) => {
     setSuperClubLikedSportIds(Array.isArray(likedIds) ? likedIds : []);
     setCurrentPage('super-club-2');
+  }, []);
+  const clearBloodMarkerDetailFromHome = useCallback(() => {
+    setBloodMarkerDetailFromHome(null);
+  }, []);
+  const handleNavigateToBloodMarkerDetail = useCallback((row) => {
+    setBloodMarkerDetailFromHome(row);
+    setCurrentPage('blood-markers');
   }, []);
   const [, setIsB2bQuestionnaireFlow] = useState(false);
   const [healthAssessmentBackPage, setHealthAssessmentBackPage] = useState('home');
@@ -1383,6 +1391,7 @@ function App() {
             console.log('Navigate to Blood Markers');
             setCurrentPage('blood-markers');
           }}
+          onNavigateToBloodMarkerDetail={handleNavigateToBloodMarkerDetail}
           onNavigateToPackages={() => {
             console.log('Navigate to Packages');
             setCurrentPage('packages');
@@ -1578,6 +1587,8 @@ function App() {
 
       {currentPage === 'blood-markers' && (
         <BloodMarkersPage
+          initialDetailMarker={bloodMarkerDetailFromHome}
+          onInitialDetailConsumed={clearBloodMarkerDetailFromHome}
           onBack={() => {
             console.log('Back to Home');
             setCurrentPage('home');

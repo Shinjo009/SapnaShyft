@@ -355,6 +355,7 @@ const HomePage = ({
   onOpenHealthAssessment,
   onOpenB2bHealthAssessment,
   onNavigateToBloodMarkers,
+  onNavigateToBloodMarkerDetail,
   onNavigateToPackages,
   onNavigateToDoctors,
   onNavigateToSuperClub,
@@ -984,6 +985,12 @@ const HomePage = ({
     }
   };
 
+  const handleHomeBloodMarkerCardSelect = (markerRow) => {
+    if (onNavigateToBloodMarkerDetail) {
+      onNavigateToBloodMarkerDetail(markerRow);
+    }
+  };
+
   const handleBioMarkersClick = () => {
     setNoDataStage('camp_scheduled');
     setChecklistScrollProgress(0);
@@ -1348,6 +1355,7 @@ const HomePage = ({
         onSeeMore={handleRiskAnalysisSeeMore}
         onDiseaseSelect={onNavigateToDiseaseDetail}
         onBloodMarkersSeeMore={handleBloodMarkersSeeMore}
+        onHomeBloodMarkerSelect={handleHomeBloodMarkerCardSelect}
         prefetchedHomeBloodMarkers={homeBloodMarkersForSection}
       />
 

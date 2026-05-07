@@ -701,6 +701,7 @@
   border-radius: 8px;
   border: 0.5px solid rgba(233, 93, 92, 0.50);
   box-shadow: -1px 0 4px 0 rgba(233, 93, 92, 0.25);
+  cursor: pointer;
 }
 
 .risk-analysis-wins__blood-marker-card--high {

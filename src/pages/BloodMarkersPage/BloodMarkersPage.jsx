@@ -24,6 +24,17 @@ import hormonesIcon from '../../images/Hormones.svg';
 
 const FILTERS = ['Optimal', 'Marginal', 'Critical'];
 
+/** Same limit as homepage Blood Markers list (`RiskAnalysisSection`). */
+const BLOOD_MARKERS_STACK_CARD_NAME_MAX = 14;
+
+const truncateBloodMarkersStackCardName = (name) => {
+  const s = String(name ?? '');
+  if (s.length <= BLOOD_MARKERS_STACK_CARD_NAME_MAX) {
+    return s;
+  }
+  return `${s.slice(0, BLOOD_MARKERS_STACK_CARD_NAME_MAX)}...`;
+};
+
 const ORGAN_ICON_BY_NAME = {
   haematology: haematologyIcon,
   liver: liverIcon,
@@ -243,6 +254,36 @@ const formatValue = (value) => {
   }
 
   return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2).replace(/\.00$/, '');
+};
+
+/** Row from homepage `RiskAnalysisSection` blood markers → `BloodMarkerDetailView` marker shape */
+const mapHomeBloodMarkerRowToDetailMarker = (row) => {
+  if (!row || typeof row !== 'object') {
+    return null;
+  }
+  const name = String(row.displayName || row.name || 'Test').trim();
+  const markerUpper = name.toUpperCase();
+  const numeric = Number(row.numericValue);
+  const hasVal = Number.isFinite(numeric);
+  const unit = String(row.unit || '').trim();
+  const rk = row.riskKey;
+  const riskType = rk === 'high' ? 'high' : rk === 'low' ? 'moderate' : 'low';
+  const lower = row.normalMin;
+  const higher = row.normalMax;
+
+  return {
+    id: String(row.id || `home-${markerUpper}`),
+    marker: markerUpper,
+    title: name,
+    value: hasVal ? formatValue(numeric) : '--',
+    unit,
+    diagnosticTestId: row.diagnosticTestId ?? null,
+    normalMin: Number.isFinite(Number(lower)) ? Number(lower) : null,
+    normalMax: Number.isFinite(Number(higher)) ? Number(higher) : null,
+    riskType,
+    causes: [],
+    effects: [],
+  };
 };
 
 const toStringArray = (value) => {
@@ -1698,7 +1739,29 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
           </div>
         </div>
 
-        <article className="blood-markers-page__optimal-card" aria-label={`${section.organ} optimal summary`}>
+        <article
+          className="blood-markers-page__optimal-card"
+          aria-label={`${section.organ} optimal summary`}
+          aria-expanded={isOptimalExpanded}
+          role="button"
+          tabIndex={0}
+          onClick={(event) => {
+            if (event.target.closest('.blood-markers-page__optimal-params')) {
+              return;
+            }
+            setIsOptimalExpanded((prev) => !prev);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+              return;
+            }
+            if (event.target.closest('.blood-markers-page__optimal-params')) {
+              return;
+            }
+            event.preventDefault();
+            setIsOptimalExpanded((prev) => !prev);
+          }}
+        >
           <div className="blood-markers-page__card-top-row">
             <div className="blood-markers-page__marker-block">
               <span className="blood-markers-page__marker-line blood-markers-page__marker-line--low" />
@@ -1724,7 +1787,10 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
               type="button"
               className={`blood-markers-page__optimal-chevron ${isOptimalExpanded ? 'blood-markers-page__optimal-chevron--expanded' : ''}`}
               aria-label={isOptimalExpanded ? 'Hide parameters' : 'Show parameters'}
-              onClick={() => setIsOptimalExpanded((prev) => !prev)}
+              onClick={(event) => {
+                event.stopPropagation();
+                setIsOptimalExpanded((prev) => !prev);
+              }}
             >
               <DownChevron />
             </button>
@@ -1806,19 +1872,29 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                 }
               }}
               className={`blood-markers-page__stack-card blood-markers-page__stack-card--${role} blood-markers-page__stack-card--theme-${card.riskType}${isLowCard ? ' blood-markers-page__stack-card--optimal-in-stack' : ''}${isLowCard && isLowCardExpanded && role === 'front' ? ' blood-markers-page__stack-card--optimal-expanded' : ''}`}
-              onClick={() => {
-                if (card.riskType !== 'low') {
-                  onOpenDetail({ ...card, organ: section.organ, parameters: section.parameters });
+              onClick={(event) => {
+                if (card.riskType === 'low') {
+                  if (event.target.closest('.blood-markers-page__optimal-params')) {
+                    return;
+                  }
+                  setExpandedLowCardIds((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
+                  return;
                 }
+                onOpenDetail({ ...card, organ: section.organ, parameters: section.parameters });
               }}
               role="button"
               tabIndex={0}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
-                  if (card.riskType !== 'low') {
-                    onOpenDetail({ ...card, organ: section.organ, parameters: section.parameters });
+                  if (card.riskType === 'low') {
+                    if (event.target.closest('.blood-markers-page__optimal-params')) {
+                      return;
+                    }
+                    setExpandedLowCardIds((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
+                    return;
                   }
+                  onOpenDetail({ ...card, organ: section.organ, parameters: section.parameters });
                 }
               }}
             >
@@ -1833,7 +1909,16 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                       </>
                     ) : (
                       <>
-                        <span className="blood-markers-page__marker-label">{card.marker}</span>
+                        <span
+                          className="blood-markers-page__marker-label"
+                          title={
+                            String(card.marker ?? '').length > BLOOD_MARKERS_STACK_CARD_NAME_MAX
+                              ? String(card.marker)
+                              : undefined
+                          }
+                        >
+                          {truncateBloodMarkersStackCardName(card.marker)}
+                        </span>
                         <div className="blood-markers-page__marker-value-row">
                           <span className="blood-markers-page__marker-value">{card.value}</span>
                           <span className="blood-markers-page__marker-unit">{card.unit}</span>
@@ -1903,12 +1988,33 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
   );
 };
 
-const BloodMarkersPage = ({ onBack }) => {
+const BloodMarkersPage = ({ onBack, initialDetailMarker = null, onInitialDetailConsumed }) => {
   const [activeFilter, setActiveFilter] = useState('Optimal');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [apiSections, setApiSections] = useState([]);
+
+  useEffect(() => {
+    if (!initialDetailMarker) {
+      return;
+    }
+    const mapped = mapHomeBloodMarkerRowToDetailMarker(initialDetailMarker);
+    if (mapped) {
+      const rk = initialDetailMarker.riskKey;
+      if (rk === 'high') {
+        setActiveFilter('Critical');
+      } else if (rk === 'low') {
+        setActiveFilter('Marginal');
+      } else {
+        setActiveFilter('Optimal');
+      }
+      setSelectedMarker(mapped);
+    }
+    if (typeof onInitialDetailConsumed === 'function') {
+      onInitialDetailConsumed();
+    }
+  }, [initialDetailMarker, onInitialDetailConsumed]);
 
   useEffect(() => {
     let isActive = true;

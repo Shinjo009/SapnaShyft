@@ -575,6 +575,8 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .blood-markers-page__marker-line {
@@ -603,6 +605,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .blood-markers-page__marker-label {
@@ -614,6 +618,10 @@
   line-height: 16px;
   letter-spacing: 1.2px;
   text-transform: uppercase;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .blood-markers-page__marker-value-row {
@@ -641,13 +649,15 @@
 }
 
 .blood-markers-page__risk-chip {
-  display: flex;
+  display: inline-flex;
+  flex-shrink: 0;
   padding: 2px 8px;
   align-items: center;
   gap: 6px;
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.10);
   align-self: flex-start;
+  white-space: nowrap;
 }
 
 .blood-markers-page__risk-chip-text {
@@ -658,6 +668,7 @@
   line-height: 15px;
   letter-spacing: -0.5px;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .blood-markers-page__card-bottom-row {
@@ -743,6 +754,7 @@
   width: calc(100% - 12px);
   margin-left: auto;
   margin-right: auto;
+  cursor: pointer;
 }
 
 .blood-markers-page__optimal-card .blood-markers-page__card-bottom-row {

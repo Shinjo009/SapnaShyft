@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './RiskAnalysisSection.css';
 import { fetchLatestAssessmentReport } from '../../../services/reportService';
-import { normalizeBloodParametersReportPayload } from '../../../utils/bloodParametersReportNormalize';
+import { normalizeBloodParametersReportPayload, resolveBloodParameterNumericValue } from '../../../utils/bloodParametersReportNormalize';
 import ObesityIcon from '../../../images/Obesity-RA.svg';
 import { formatOrdinal } from '../../../utils/formatOrdinal';
 import ThyroidHealthIcon from '../../../images/Thyroid-RA.svg';
@@ -298,13 +298,15 @@ const buildBloodMarkersFromGroups = (groups) => {
     const tests = Array.isArray(group?.tests) ? group.tests : [];
 
     tests.forEach((test, testIndex) => {
-      if (test?.value === null || test?.value === undefined) {
+      const n = test && typeof test === 'object' ? test : {};
+      const resolvedNumeric = resolveBloodParameterNumericValue(n, test);
+      if (resolvedNumeric === undefined || resolvedNumeric === null) {
         return;
       }
 
-      const value = Number(test?.value);
-      const lower = Number(test?.lower_range);
-      const upper = Number(test?.higher_range);
+      const value = Number(resolvedNumeric);
+      const lower = Number(n.lower_range);
+      const upper = Number(n.higher_range);
       const hasClassifiableData = Number.isFinite(value) && Number.isFinite(lower) && Number.isFinite(upper);
 
       // Homepage list should only show actual report parameters with usable ranges.
@@ -312,13 +314,20 @@ const buildBloodMarkersFromGroups = (groups) => {
         return;
       }
 
-      const unit = String(test?.unit || '').trim();
+      const unit = String(n.unit || '').trim();
       const riskKey = getRiskTypeFromBounds(value, lower, upper);
+      const displayName = String(n.test_name || 'Test');
 
       rows.push({
         id: `api-bm-${groupIndex}-${testIndex}`,
-        name: String(test?.test_name || 'Test'),
+        displayName,
+        name: displayName,
         value: `${formatValue(value)}${unit ? ` ${unit}` : ''}`,
+        numericValue: value,
+        unit,
+        normalMin: n.lower_range,
+        normalMax: n.higher_range,
+        diagnosticTestId: n.diagnostic_test_id ?? null,
         profile: String(group?.group_name || 'Blood Marker'),
         disease,
         risk: toRiskLabel(riskKey),
@@ -386,6 +395,7 @@ const RiskAnalysisSection = ({
   onDiseaseSelect,
   onSeeMore,
   onBloodMarkersSeeMore,
+  onHomeBloodMarkerSelect,
   prefetchedHomeBloodMarkers,
 }) => {
   const stackCards = useMemo(() => {
@@ -946,7 +956,19 @@ const RiskAnalysisSection = ({
 
         <div className="risk-analysis-wins__blood-markers-list">
           {bloodMarkers.map((marker) => (
-            <article className={`risk-analysis-wins__blood-marker-card risk-analysis-wins__blood-marker-card--${marker.riskKey}`} key={marker.id}>
+            <article
+              className={`risk-analysis-wins__blood-marker-card risk-analysis-wins__blood-marker-card--${marker.riskKey}`}
+              key={marker.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onHomeBloodMarkerSelect?.(marker)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onHomeBloodMarkerSelect?.(marker);
+                }
+              }}
+            >
               <div className="risk-analysis-wins__blood-marker-left">
                 <div className="risk-analysis-wins__blood-marker-main-row">
                   <span
