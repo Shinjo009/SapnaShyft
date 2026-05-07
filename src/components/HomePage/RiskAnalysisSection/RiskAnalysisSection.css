@@ -738,6 +738,8 @@
   font-style: normal;
   font-weight: 700;
   line-height: 20px;
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .risk-analysis-wins__blood-marker-divider {

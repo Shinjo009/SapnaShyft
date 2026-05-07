@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './RiskAnalysisSection.css';
 import { fetchLatestAssessmentReport } from '../../../services/reportService';
+import { normalizeBloodParametersReportPayload } from '../../../utils/bloodParametersReportNormalize';
 import ObesityIcon from '../../../images/Obesity-RA.svg';
 import ThyroidHealthIcon from '../../../images/Thyroid-RA.svg';
 import NAFLDIcon from '../../../images/NAFLD-RA.svg';
@@ -236,16 +237,6 @@ const BLOOD_MARKER_COLOR_BY_RISK = {
   optimal: '#4ADE80',
 };
 
-const extractArray = (payload) => {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.results)) return payload.results;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload?.data?.items)) return payload.data.items;
-  if (Array.isArray(payload?.data?.results)) return payload.data.results;
-  return [];
-};
-
 const getRiskTypeFromBounds = (value, lowerRange, upperRange) => {
   const numericValue = Number(value);
   const lower = Number(lowerRange);
@@ -275,6 +266,16 @@ const formatValue = (value) => {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return String(value ?? '--');
   return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2).replace(/\.00$/, '');
+};
+
+const HOME_BLOOD_MARKER_NAME_MAX = 14;
+
+const truncateHomeBloodMarkerName = (name) => {
+  const s = String(name ?? '');
+  if (s.length <= HOME_BLOOD_MARKER_NAME_MAX) {
+    return s;
+  }
+  return `${s.slice(0, HOME_BLOOD_MARKER_NAME_MAX)}...`;
 };
 
 const toDiseaseName = (groupName = '') => {
@@ -329,7 +330,7 @@ const buildBloodMarkersFromGroups = (groups) => {
 };
 
 export const buildHomeBloodMarkersFromBloodParametersResponse = (response) => (
-  buildBloodMarkersFromGroups(extractArray(response))
+  buildBloodMarkersFromGroups(normalizeBloodParametersReportPayload(response))
 );
 
 const orderByHierarchy = (markers) => {
@@ -779,10 +780,8 @@ const RiskAnalysisSection = ({
         const { response } = await fetchLatestAssessmentReport(
           (assessmentId) => `/reports/${assessmentId}/blood-parameters`,
         );
-        const groups = extractArray(response);
-
         if (isActive) {
-          setApiBloodMarkers(buildBloodMarkersFromGroups(groups));
+          setApiBloodMarkers(buildBloodMarkersFromGroups(normalizeBloodParametersReportPayload(response)));
         }
       } catch (error) {
         console.error('Failed to load homepage blood markers:', error);
@@ -949,7 +948,12 @@ const RiskAnalysisSection = ({
             <article className={`risk-analysis-wins__blood-marker-card risk-analysis-wins__blood-marker-card--${marker.riskKey}`} key={marker.id}>
               <div className="risk-analysis-wins__blood-marker-left">
                 <div className="risk-analysis-wins__blood-marker-main-row">
-                  <span className="risk-analysis-wins__blood-marker-name">{marker.name}</span>
+                  <span
+                    className="risk-analysis-wins__blood-marker-name"
+                    title={String(marker.name ?? '').length > HOME_BLOOD_MARKER_NAME_MAX ? String(marker.name) : undefined}
+                  >
+                    {truncateHomeBloodMarkerName(marker.name)}
+                  </span>
                   <span className={`risk-analysis-wins__blood-marker-divider risk-analysis-wins__blood-marker-divider--${marker.riskKey}`} aria-hidden="true" />
                   <span className="risk-analysis-wins__blood-marker-value">{marker.value}</span>
                   <span className="risk-analysis-wins__blood-marker-trend" aria-hidden="true"><MarkerTrendIcon color={BLOOD_MARKER_COLOR_BY_RISK[marker.riskKey] || '#EF4444'} /></span>
