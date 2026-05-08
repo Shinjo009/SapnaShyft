@@ -1,11 +1,11 @@
 // export { default } from './SplashScreen2';
 
-import SplashScreen4 from './SplashScreen4';
+import SplashScreen3 from './SplashScreen3';
 
-export default SplashScreen4;
+export default SplashScreen3;
 
-// import SplashScreen3 from './SplashScreen3';
-// export default SplashScreen3;
+// import SplashScreen4 from './SplashScreen4';
+// export default SplashScreen4;
 
 /*
  * ---------------------------------------------------------------------------

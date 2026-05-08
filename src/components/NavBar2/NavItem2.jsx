@@ -2,7 +2,8 @@ import React, { forwardRef } from 'react';
 import './navbar2.css';
 
 /**
- * Single BNB-14 tab — Figma shows label only on active item; aria-label always from parent button.
+ * Single navbar tab — show label on inactive items, hide label on active item.
+ * Aria-label always comes from the parent button.
  */
 const NavItem2 = forwardRef(function NavItem2(
   { id, label, icon, iconSize = 20, isActive, locked = false, onClick },
@@ -32,9 +33,7 @@ const NavItem2 = forwardRef(function NavItem2(
       <span className="navbar2__icon-wrap" aria-hidden="true">
         <img src={icon} alt="" className="navbar2__icon" style={iconStyle} />
       </span>
-      {isActive ? (
-        <span className="navbar2__label">{label}</span>
-      ) : null}
+      {!isActive ? <span className="navbar2__label">{label}</span> : null}
     </button>
   );
 });
