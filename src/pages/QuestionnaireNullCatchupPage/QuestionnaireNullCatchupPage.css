@@ -1,0 +1,48 @@
+.questionnaire-null-catchup--center {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  box-sizing: border-box;
+  background: #0a0a0a;
+}
+
+.questionnaire-null-catchup__brand {
+  margin: 0 0 14px;
+  color: #fff;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.questionnaire-null-catchup__text {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.questionnaire-null-catchup__btn {
+  margin-top: 20px;
+  padding: 10px 24px;
+  border-radius: 36px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+}
+
+.questionnaire-null-catchup__btn:active {
+  transform: scale(0.99);
+}

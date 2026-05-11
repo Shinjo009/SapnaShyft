@@ -16,6 +16,7 @@ import {
   invalidateNutritionLogQuestionnaireDraftCache,
   hasNutritionLogQuestionnaireDraft,
   hasFamilyHistoryQuestionnaireDraft,
+  markFitprintGapQuestionnaireSubmitted,
 } from './services/questionnaireService';
 import {
   fetchLatestAssessmentReport,
@@ -68,6 +69,7 @@ const FAQPage = lazy(() => import('./pages/FAQPage'));
 const TermsConditionsPage = lazy(() => import('./pages/TermsConditionsPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const HealthAssessmentPage = lazy(() => import('./pages/HealthAssessmentPage'));
+const QuestionnaireNullCatchupPage = lazy(() => import('./pages/QuestionnaireNullCatchupPage/QuestionnaireNullCatchupPage'));
 const QuestionnaireBlankPage = lazy(() => import('./pages/QuestionnaireBlankPage'));
 const BloodMarkersPage = lazy(() => import('./pages/BloodMarkersPage/BloodMarkersPage'));
 const PackagesPage = lazy(() => import('./pages/PackagesPage'));
@@ -234,6 +236,7 @@ function App() {
   );
   const [, setIsB2bQuestionnaireFlow] = useState(false);
   const [healthAssessmentBackPage, setHealthAssessmentBackPage] = useState('home');
+  const [nullCatchupAssessmentInstanceId, setNullCatchupAssessmentInstanceId] = useState(null);
   // const [superClubOnboardingDone, setSuperClubOnboardingDone] = useState(() =>
   //   isSuperClubOnboardingComplete(),
   // );
@@ -637,6 +640,15 @@ function App() {
     setIsB2bQuestionnaireFlow(true);
     initializeQuestionnaire();
   };
+
+  const handleOpenFitprintGapQuestionnaire = useCallback((assessmentInstanceId) => {
+    const id = Number(assessmentInstanceId);
+    if (!Number.isFinite(id) || id <= 0) {
+      return;
+    }
+    setNullCatchupAssessmentInstanceId(id);
+    setCurrentPage('questionnaire-null-catchup');
+  }, []);
 
   useEffect(() => {
     const trySessionRestore = async () => {
@@ -1391,6 +1403,7 @@ function App() {
             initializeQuestionnaire();
           }}
           onOpenB2bHealthAssessment={handleOpenB2bHealthAssessment}
+          onOpenFitprintGapQuestionnaire={handleOpenFitprintGapQuestionnaire}
           onNavigateToBloodMarkers={() => {
             console.log('Navigate to Blood Markers');
             setCurrentPage('blood-markers');
@@ -1594,6 +1607,26 @@ function App() {
           {...bloodMarkersPageDetailProps}
           onBack={() => {
             console.log('Back to Home');
+            setCurrentPage('home');
+          }}
+        />
+      )}
+
+      {currentPage === 'questionnaire-null-catchup' && Number(nullCatchupAssessmentInstanceId) > 0 && (
+        <QuestionnaireNullCatchupPage
+          assessmentInstanceId={nullCatchupAssessmentInstanceId}
+          onBack={() => {
+            setNullCatchupAssessmentInstanceId(null);
+            setForceHomeApiRefresh(true);
+            setCurrentPage('home');
+          }}
+          onDone={() => {
+            setNullCatchupAssessmentInstanceId(null);
+            markFitprintGapQuestionnaireSubmitted();
+            invalidateFamilyHistoryQuestionnaireDraftCache();
+            invalidateNutritionLogQuestionnaireDraftCache();
+            clearReportRequestCache();
+            setForceHomeApiRefresh(true);
             setCurrentPage('home');
           }}
         />

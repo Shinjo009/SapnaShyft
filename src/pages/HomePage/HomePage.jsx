@@ -3,6 +3,7 @@ import './HomePage.css';
 import Header from '../../components/HomePage/Header';
 import MetabolicAgeOrb from '../../metabolic-age-orb/MetabolicAgeOrb.jsx';
 import HealthParametersSection from '../../components/HomePage/HealthParametersSection';
+import HomeHealthSpanIndexLockedStack from '../../components/HomePage/HomeHealthSpanIndexLockedStack';
 import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/PositiveWinsSection';
 import RiskAnalysisSection, {
   buildHomeBloodMarkersFromBloodParametersResponse,
@@ -10,7 +11,12 @@ import RiskAnalysisSection, {
 import NavBar from '../../components/NavBar';
 import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
 import { getAccessToken } from '../../utils/authStorage';
-import { fetchLatestAssessmentReport, fetchLatestHealthSpanIndex, getLatestAssessmentIdsCached } from '../../services/reportService';
+import {
+  fetchLatestAssessmentReport,
+  fetchLatestHealthSpanIndex,
+  getHealthSpanIndexSourceStatus,
+  getLatestAssessmentIdsCached,
+} from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
 import {
   hasNutritionLogQuestionnaireDraft,
@@ -19,8 +25,11 @@ import {
   peekFamilyHistoryQuestionnaireDraftCache,
   invalidateNutritionLogQuestionnaireDraftCache,
   invalidateFamilyHistoryQuestionnaireDraftCache,
+  isFitprintGapQuestionnaireSubmittedFlagSet,
+  clearFitprintGapQuestionnaireSubmittedFlag,
 } from '../../services/questionnaireService';
 import { hasRenderableOverviewData, HOME_PRELOAD_COMPLETE_KEY } from '../../utils/homeOverviewPreload';
+import { isFitprintGapQuestionnaireFullyComplete } from '../../utils/fitprintGapCatchupCompletion';
 import clockCircleSrc from '../../images/clock_circle.svg';
 import clockHandsSrc from '../../images/clock_hands.svg';
 
@@ -106,19 +115,6 @@ const CostEffectiveIcon = () => (
 const DataPrivacyIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
     <path d="M5.66602 7.08333V4.95833C5.66602 3.39292 6.93393 2.125 8.49935 2.125C10.0648 2.125 11.3327 3.39292 11.3327 4.95833V7.08333M8.49935 10.625C8.68721 10.625 8.86738 10.5504 9.00022 10.4175C9.13305 10.2847 9.20768 10.1045 9.20768 9.91667C9.20768 9.7288 9.13305 9.54864 9.00022 9.4158C8.86738 9.28296 8.68721 9.20833 8.49935 9.20833C8.31149 9.20833 8.13132 9.28296 7.99848 9.4158C7.86564 9.54864 7.79102 9.7288 7.79102 9.91667C7.79102 10.1045 7.86564 10.2847 7.99848 10.4175C8.13132 10.5504 8.31149 10.625 8.49935 10.625ZM8.49935 10.625V12.75M4.67435 7.08333H12.3243C12.9477 7.08333 13.4577 7.59333 13.4577 8.21667V13.175C13.4577 14.11 12.6927 14.875 11.7577 14.875H5.24102C4.30602 14.875 3.54102 14.11 3.54102 13.175V8.21667C3.54102 7.59333 4.05102 7.08333 4.67435 7.08333Z" stroke="#358678" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const LockIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 29 29" fill="none" aria-hidden="true">
-    <mask id="lock-icon-mask" maskUnits="userSpaceOnUse" x="3" y="1" width="23" height="27" style={{ maskType: 'luminance' }}>
-      <path d="M23.5618 13.3208H5.43685C4.7695 13.3208 4.22852 13.8618 4.22852 14.5291V25.4041C4.22852 26.0715 4.7695 26.6125 5.43685 26.6125H23.5618C24.2292 26.6125 24.7702 26.0715 24.7702 25.4041V14.5291C24.7702 13.8618 24.2292 13.3208 23.5618 13.3208Z" fill="white" stroke="white" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M8.45703 13.2916V8.46129C8.45401 5.3589 10.8272 2.75917 13.9465 2.44742C17.0658 2.13567 19.9163 4.2134 20.5404 7.25356" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M14.5 18.125V21.75" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </mask>
-    <g mask="url(#lock-icon-mask)">
-      <path d="M0 0H29V29H0V0Z" fill="white" />
-    </g>
   </svg>
 );
 
@@ -354,6 +350,7 @@ const HomePage = ({
   onNavigateToDiseaseDetail,
   onOpenHealthAssessment,
   onOpenB2bHealthAssessment,
+  onOpenFitprintGapQuestionnaire,
   onNavigateToBloodMarkers,
   onNavigateToBloodMarkerDetail,
   onNavigateToPackages,
@@ -366,6 +363,12 @@ const HomePage = ({
   const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
   const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
   const [healthSpanScores, setHealthSpanScores] = useState(preloadedData?.healthSpanScores || null);
+  const [healthSpanLockedNoFitprint, setHealthSpanLockedNoFitprint] = useState(false);
+  const [healthSpanGapBasicProAssessmentId, setHealthSpanGapBasicProAssessmentId] = useState(null);
+  /** True while resolving FitPrint-gap questionnaire completion (avoid wrong locked copy on first paint). */
+  const [healthSpanFitprintGatePending, setHealthSpanFitprintGatePending] = useState(false);
+  /** From server answers on Basic/Pro when FitPrint row is missing (reports not ready yet). */
+  const [fitprintGapQCompleteFromServer, setFitprintGapQCompleteFromServer] = useState(false);
   const [isNoDataHome, setIsNoDataHome] = useState(
     () => homePreloadComplete && !hasRenderableOverviewData(preloadedData),
   );
@@ -403,6 +406,15 @@ const HomePage = ({
     if (onOpenHealthAssessment) {
       onOpenHealthAssessment();
     }
+  };
+
+  const openQuestionnaireFromFitprintLock = () => {
+    const id = Number(healthSpanGapBasicProAssessmentId);
+    if (onOpenFitprintGapQuestionnaire && Number.isFinite(id) && id > 0) {
+      onOpenFitprintGapQuestionnaire(id);
+      return;
+    }
+    openB2bQuestionnaire();
   };
 
   useLayoutEffect(() => {
@@ -508,8 +520,42 @@ const HomePage = ({
     let cancelled = false;
 
     (async () => {
+      const ttlMs = forceRefreshFromProfile ? 0 : 45000;
+      const sourceStatus = await getHealthSpanIndexSourceStatus({ ttlMs });
+      if (cancelled) {
+        return;
+      }
+
+      if (sourceStatus.status === 'missing_fitprint') {
+        const basicProId = Number(sourceStatus.basicOrProAssessmentId);
+        const normalizedId = Number.isFinite(basicProId) && basicProId > 0 ? basicProId : null;
+
+        setHealthSpanFitprintGatePending(true);
+        setHealthSpanLockedNoFitprint(true);
+        setHealthSpanScores(null);
+        setHealthSpanGapBasicProAssessmentId(normalizedId);
+        setFitprintGapQCompleteFromServer(false);
+
+        let gapQuestionnaireComplete = false;
+        if (normalizedId != null) {
+          gapQuestionnaireComplete = await isFitprintGapQuestionnaireFullyComplete(normalizedId);
+        }
+        if (cancelled) {
+          setHealthSpanFitprintGatePending(false);
+          return;
+        }
+        setFitprintGapQCompleteFromServer(Boolean(gapQuestionnaireComplete));
+        setHealthSpanFitprintGatePending(false);
+        return;
+      }
+
+      clearFitprintGapQuestionnaireSubmittedFlag();
+      setHealthSpanFitprintGatePending(false);
+      setFitprintGapQCompleteFromServer(false);
+      setHealthSpanLockedNoFitprint(false);
+      setHealthSpanGapBasicProAssessmentId(null);
+
       try {
-        const ttlMs = forceRefreshFromProfile ? 0 : 45000;
         const result = await fetchLatestHealthSpanIndex({ includeDetails: false, ttlMs });
         if (!cancelled) {
           setHealthSpanScores(result?.scores || null);
@@ -1075,26 +1121,10 @@ const HomePage = ({
             </div>
           </div>
 
-          <section className="home-page-no-data__health-box" aria-label="Health Span Index locked until test completion">
-            <div className="home-page-no-data__health-top">
-              <p className="home-page-no-data__health-title">Health Span Index</p>
-              <button type="button" className="home-page-no-data__see-more" aria-disabled="true">See more</button>
-            </div>
-            <p className="home-page-no-data__health-subtitle">Tap the card to know more</p>
-
-            <div className="home-page-no-data__health-blurred">
-              <div className="home-page-no-data__locked-circles" aria-hidden="true">
-                <span className="home-page-no-data__locked-circle home-page-no-data__locked-circle--red" />
-                <span className="home-page-no-data__locked-circle home-page-no-data__locked-circle--yellow" />
-                <span className="home-page-no-data__locked-circle home-page-no-data__locked-circle--green" />
-              </div>
-            </div>
-
-            <div className="home-page-no-data__unlock-center">
-              <LockIcon />
-              <p>Unlock your Health Scores after the Test</p>
-            </div>
-          </section>
+          <HomeHealthSpanIndexLockedStack
+            onCompleteAssessment={openQuestionnaireFromFitprintLock}
+            ariaLabel="Health Span Index locked until test completion"
+          />
 
           <NavBar defaultActive="home" onNavigate={handleNavigate} />
         </div>
@@ -1337,16 +1367,34 @@ const HomePage = ({
         absoluteMetabolicAge={metabolicOrbProps.absoluteMetabolicAge}
       />
 
-      {/* Health Parameters Section */}
-      <HealthParametersSection 
-        data={[
-          { percentage: healthSpanScores?.fitnessScore ?? null, label: 'Fitness score' },
-          { percentage: healthSpanScores?.nutritionScore ?? null, label: 'Nutrition score' },
-          { percentage: healthSpanScores?.lifestyleScore ?? null, label: 'Lifestyle score' }
-        ]}
-        onSeeMore={handleHealthScanSeeMore}
-        onCardClick={handleHealthScanCircleClick}
-      />
+      {/* Health Span Index: scores, or locked when Basic/Pro exists without matching FitPrint */}
+      {healthSpanLockedNoFitprint ? (
+        <div className="health-parameters">
+          {healthSpanFitprintGatePending ? (
+            <div className="home-page-fitprint-gate-loading" aria-busy="true" aria-label="Checking questionnaire status">
+              <p className="home-page-fitprint-gate-loading__text">Loading…</p>
+            </div>
+          ) : (
+            <HomeHealthSpanIndexLockedStack
+              onCompleteAssessment={openQuestionnaireFromFitprintLock}
+              ariaLabel="Health Span Index locked until FitPrint assessment is completed"
+              postSubmitAwaitingReports={
+                isFitprintGapQuestionnaireSubmittedFlagSet() || fitprintGapQCompleteFromServer
+              }
+            />
+          )}
+        </div>
+      ) : (
+        <HealthParametersSection
+          data={[
+            { percentage: healthSpanScores?.fitnessScore ?? null, label: 'Fitness score' },
+            { percentage: healthSpanScores?.nutritionScore ?? null, label: 'Nutrition score' },
+            { percentage: healthSpanScores?.lifestyleScore ?? null, label: 'Lifestyle score' },
+          ]}
+          onSeeMore={handleHealthScanSeeMore}
+          onCardClick={handleHealthScanCircleClick}
+        />
+      )}
 
       <PositiveWinsSection apiPositiveWins={positiveWinsData} />
 

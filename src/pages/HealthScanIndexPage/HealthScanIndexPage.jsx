@@ -410,7 +410,17 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     return formatIdealRangeBand(fitness?.ideal_body_fat);
   })();
 
-  const waistIdealRangeDisplay = formatIdealRangeBand(fitness?.ideal_waist);
+  const waistIdealRangeDisplay = (() => {
+    const band = fitness?.ideal_waist;
+    if (!band || typeof band !== 'object') return '-';
+    const low = Number(band.low);
+    const high = Number(band.high);
+    const unit = String(band.unit ?? '').trim();
+    if (!Number.isFinite(low) || !Number.isFinite(high)) return '-';
+    const range = `${toCompactNumberText(low)}-${toCompactNumberText(high)}`;
+    const normalizedUnit = /^(in|inch|inches)$/i.test(unit) ? '(in)' : unit;
+    return normalizedUnit ? `${range} ${normalizedUnit}` : range;
+  })();
 
   const waistDisplayText = (() => {
     const w = Number(fitness?.waist);

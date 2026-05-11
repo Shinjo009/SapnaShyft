@@ -176,7 +176,7 @@ const isNil = (value) => value === null || value === undefined;
 
 const isBlankString = (value) => typeof value === 'string' && value.trim() === '';
 
-const isEmptyAnswer = (value) => {
+export const isEmptyAnswer = (value) => {
   if (isNil(value)) {
     return true;
   }
@@ -338,7 +338,7 @@ const extractResponsesFromCategoryPayload = (payload, questions = []) => {
   return Array.from(mergedByQuestionId.values());
 };
 
-const mapCategoryToRouteId = (category) => {
+export const mapCategoryToRouteId = (category) => {
   const key = String(category?.category_key || '').toLowerCase();
   const name = String(category?.display_name || '').toLowerCase();
 
@@ -696,9 +696,36 @@ export const submitQuestionnaireResponses = (assessmentInstanceId, categoryId, r
     ? responses.map(normalizeCategoryResponseItem).filter(Boolean)
     : [];
 
+  if (normalizedResponses.length === 0) {
+    return Promise.resolve(null);
+  }
+
   return authorizedPut(`/questionnaire/${assessmentInstanceId}/category/${categoryId}/responses`, {
     responses: normalizedResponses,
   });
+};
+
+/** True when the GET questionnaire payload shows no answer for this question (draft catch-up). */
+export const isQuestionnaireQuestionUnanswered = (question) => {
+  if (!question || typeof question !== 'object') {
+    return false;
+  }
+  if (question.is_read_only) {
+    return false;
+  }
+  if (question.is_visible === false) {
+    return false;
+  }
+
+  const answer = question?.answer
+    ?? question?.response
+    ?? question?.value
+    ?? question?.selected_option
+    ?? question?.selected_options
+    ?? question?.user_answer
+    ?? question?.user_response;
+
+  return isEmptyAnswer(answer);
 };
 
 export const loadQuestionnaireContext = async () => {
@@ -760,3 +787,97 @@ export const loadQuestionnaireContext = async () => {
     responsesByCategoryId,
   };
 };
+
+/**
+ * Same as {@link loadQuestionnaireContext} but for a specific assessment instance (e.g. completed Basic/Pro
+ * when filling gaps before FitPrint).
+ */
+export const loadQuestionnaireContextForAssessmentInstance = async (assessmentInstanceId) => {
+  const id = Number(assessmentInstanceId);
+  if (!Number.isFinite(id) || id <= 0) {
+    throw new Error('Invalid assessment instance id.');
+  }
+
+  const assessmentsPayload = await listMyAssessments(1, 50);
+  const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
+  const assessment = assessments.find((row) => getAssessmentInstanceId(row) === id) || {
+    assessment_instance_id: id,
+    assessment_id: id,
+    id,
+  };
+
+  const statusPayload = await getAssessmentStatus(id);
+  const rawCategories = extractCategoriesFromAssessmentStatus(statusPayload);
+  const categoriesWithRoute = rawCategories
+    .map((category) => {
+      const normalizedCategory = {
+        ...category,
+        category_id: Number(category?.category_id || category?.id || 0),
+        category_key: category?.category_key || category?.key || '',
+        display_name: category?.display_name || category?.name || category?.category_name || '',
+        assessment_instance_id: Number(category?.assessment_instance_id || category?.assessment_id || id),
+      };
+
+      return {
+        ...normalizedCategory,
+        routeId: mapCategoryToRouteId(normalizedCategory),
+        status: normalizeCategoryStatus(category?.status || category?.category_status),
+      };
+    })
+    .filter((category) => Number(category?.category_id || 0) > 0);
+
+  const categories = sortCategories(categoriesWithRoute);
+
+  const questionEntries = await Promise.all(
+    categories.map(async (category) => {
+      const categoryAssessmentInstanceId = Number(category?.assessment_instance_id || id);
+      const questionnairePayload = await getCategoryQuestionnaire(categoryAssessmentInstanceId, category.category_id);
+      const questions = extractQuestionsFromCategoryPayload(questionnairePayload);
+      const responses = extractResponsesFromCategoryPayload(questionnairePayload, questions);
+      return [String(category.category_id), { questions, responses }];
+    })
+  );
+
+  const questionsByCategoryId = {};
+  const responsesByCategoryId = {};
+
+  for (const [categoryId, entry] of questionEntries) {
+    questionsByCategoryId[categoryId] = entry.questions;
+    responsesByCategoryId[categoryId] = entry.responses;
+  }
+
+  return {
+    assessments,
+    assessment,
+    categories,
+    questionsByCategoryId,
+    responsesByCategoryId,
+  };
+};
+
+/** Session flag: FitPrint-gap questionnaire was submitted; home shows “reports preparing” until HSI unlocks. */
+export const FITPRINT_GAP_QUESTIONNAIRE_SUBMITTED_SESSION_KEY = 'ss_fitprint_gap_questionnaire_submitted';
+
+export function markFitprintGapQuestionnaireSubmitted() {
+  try {
+    sessionStorage.setItem(FITPRINT_GAP_QUESTIONNAIRE_SUBMITTED_SESSION_KEY, '1');
+  } catch {
+    // private mode / disabled storage
+  }
+}
+
+export function clearFitprintGapQuestionnaireSubmittedFlag() {
+  try {
+    sessionStorage.removeItem(FITPRINT_GAP_QUESTIONNAIRE_SUBMITTED_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function isFitprintGapQuestionnaireSubmittedFlagSet() {
+  try {
+    return sessionStorage.getItem(FITPRINT_GAP_QUESTIONNAIRE_SUBMITTED_SESSION_KEY) === '1';
+  } catch {
+    return false;
+  }
+}

@@ -344,6 +344,62 @@ export const fetchLatestAssessmentReport = async (buildPath, ttlMs = 45000) => {
   throw lastError || new Error('No report available.');
 };
 
+/**
+ * Resolves latest Basic/Pro and matching FitPrint (same engagement) from /assessments/me rows.
+ * Used for Health Span Index gating without calling the report endpoint.
+ */
+export const resolveHealthSpanIndexSourcesFromRows = (rawRows) => {
+  const rows = sortAssessmentRowsLatestFirst(Array.isArray(rawRows) ? rawRows : []);
+
+  const latestBasicOrPro = rows.find((row) => normalizedAssessmentFamily(row) === 'basic_or_pro') || null;
+  if (!latestBasicOrPro) {
+    return { status: 'no_basic_or_pro', rows };
+  }
+
+  const basicOrProAssessmentId = Number(extractAssessmentIdFromRow(latestBasicOrPro));
+  if (!Number.isFinite(basicOrProAssessmentId) || basicOrProAssessmentId <= 0) {
+    return { status: 'invalid_basic_or_pro', rows };
+  }
+
+  const basicOrProEngagementId = String(extractEngagementIdFromRow(latestBasicOrPro) || '').trim();
+  if (!basicOrProEngagementId) {
+    return { status: 'missing_engagement', rows, basicOrProAssessmentId };
+  }
+
+  const latestMatchingFitprint = rows.find((row) => (
+    normalizedAssessmentFamily(row) === 'fitprint'
+      && String(extractEngagementIdFromRow(row) || '').trim() === basicOrProEngagementId
+  )) || null;
+
+  if (!latestMatchingFitprint) {
+    return { status: 'missing_fitprint', rows, basicOrProAssessmentId, engagementId: basicOrProEngagementId };
+  }
+
+  const fitprintAssessmentId = Number(extractAssessmentIdFromRow(latestMatchingFitprint));
+  if (!Number.isFinite(fitprintAssessmentId) || fitprintAssessmentId <= 0) {
+    return { status: 'invalid_fitprint', rows };
+  }
+
+  return {
+    status: 'ready',
+    rows,
+    fitprintAssessmentId,
+    basicOrProAssessmentId,
+    engagementId: basicOrProEngagementId,
+    latestMatchingFitprint,
+    latestBasicOrPro,
+  };
+};
+
+export const getHealthSpanIndexSourceStatus = async ({ ttlMs = 45000 } = {}) => {
+  try {
+    const response = await fetchMyAssessmentsPageCached(ttlMs, DEFAULT_ASSESSMENTS_ME_QUERY);
+    return resolveHealthSpanIndexSourcesFromRows(extractArray(response));
+  } catch {
+    return { status: 'fetch_error', rows: [] };
+  }
+};
+
 export const fetchLatestHealthSpanIndex = async ({
   includeDetails = false,
   ttlMs = 45000,
@@ -363,42 +419,23 @@ export const fetchLatestHealthSpanIndex = async ({
     })),
   });
 
-  const latestBasicOrPro = rows.find((row) => normalizedAssessmentFamily(row) === 'basic_or_pro') || null;
-  if (!latestBasicOrPro) {
+  const resolved = resolveHealthSpanIndexSourcesFromRows(rows);
+  if (resolved.status === 'no_basic_or_pro') {
     console.warn(`${debugPrefix} latest Basic/Pro not found`);
     throw new Error('No Basic/Pro assessment available for Health Span Index.');
   }
-
-  const basicOrProAssessmentId = Number(extractAssessmentIdFromRow(latestBasicOrPro));
-  if (!Number.isFinite(basicOrProAssessmentId) || basicOrProAssessmentId <= 0) {
+  if (resolved.status === 'invalid_basic_or_pro') {
     throw new Error('Invalid Basic/Pro assessment id for Health Span Index.');
   }
-
-  const basicOrProEngagementId = String(extractEngagementIdFromRow(latestBasicOrPro) || '').trim();
-  if (!basicOrProEngagementId) {
+  if (resolved.status === 'missing_engagement') {
     console.warn(`${debugPrefix} latest Basic/Pro missing engagement`, {
-      assessment_instance_id: basicOrProAssessmentId,
-      package_code: latestBasicOrPro?.package_code || null,
-      package_display_name: latestBasicOrPro?.package_display_name || null,
+      assessment_instance_id: resolved.basicOrProAssessmentId,
     });
     throw new Error('Missing engagement id on latest Basic/Pro assessment.');
   }
-  console.log(`${debugPrefix} latest Basic/Pro selected`, {
-    assessment_instance_id: basicOrProAssessmentId,
-    engagement_id: basicOrProEngagementId,
-    package_code: latestBasicOrPro?.package_code || null,
-    package_display_name: latestBasicOrPro?.package_display_name || null,
-    assessment_type_code: latestBasicOrPro?.assessment_type_code || null,
-  });
-
-  const latestMatchingFitprint = rows.find((row) => (
-    normalizedAssessmentFamily(row) === 'fitprint'
-      && String(extractEngagementIdFromRow(row) || '').trim() === basicOrProEngagementId
-  )) || null;
-
-  if (!latestMatchingFitprint) {
+  if (resolved.status === 'missing_fitprint') {
     console.warn(`${debugPrefix} matching Fitprint not found`, {
-      required_engagement_id: basicOrProEngagementId,
+      required_engagement_id: resolved.engagementId,
       fitprintCandidates: rows
         .filter((row) => normalizedAssessmentFamily(row) === 'fitprint')
         .slice(0, 10)
@@ -412,11 +449,25 @@ export const fetchLatestHealthSpanIndex = async ({
     });
     throw new Error('No Fitprint assessment found for latest Basic/Pro engagement.');
   }
-
-  const fitprintAssessmentId = Number(extractAssessmentIdFromRow(latestMatchingFitprint));
-  if (!Number.isFinite(fitprintAssessmentId) || fitprintAssessmentId <= 0) {
+  if (resolved.status === 'invalid_fitprint') {
     throw new Error('Invalid Fitprint assessment id for Health Span Index.');
   }
+
+  const {
+    fitprintAssessmentId,
+    basicOrProAssessmentId,
+    engagementId: basicOrProEngagementId,
+    latestMatchingFitprint,
+    latestBasicOrPro,
+  } = resolved;
+
+  console.log(`${debugPrefix} latest Basic/Pro selected`, {
+    assessment_instance_id: basicOrProAssessmentId,
+    engagement_id: basicOrProEngagementId,
+    package_code: latestBasicOrPro?.package_code || null,
+    package_display_name: latestBasicOrPro?.package_display_name || null,
+    assessment_type_code: latestBasicOrPro?.assessment_type_code || null,
+  });
   console.log(`${debugPrefix} matching Fitprint selected`, {
     assessment_instance_id: fitprintAssessmentId,
     engagement_id: basicOrProEngagementId,
