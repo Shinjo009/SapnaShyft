@@ -1079,7 +1079,7 @@ const familyCards = [
   {
     key: 'family-blood',
     title: 'Do any of your close blood relatives (i.e., parents or siblings) have the following health conditions?',
-    helper: '(Select multiple or None that apply)',
+    helper: '(Select all that apply)',
     infoLines: [
       'Fatty Liver : Non alcoholic fatty liver disorder',
       'Heart ailments : Heart disease, heart attack, stroke',
@@ -1096,7 +1096,7 @@ const familyCards = [
   {
     key: 'diagnosed',
     title: 'Are you diagnosed with the following diseases?',
-    helper: '(Select multiple or None that apply)',
+    helper: '(Select all that apply)',
     infoLines: [
       'Fatty Liver : Non alcoholic fatty liver disorder',
       'Heart ailments : Heart disease, heart attack, stroke',
@@ -1120,9 +1120,57 @@ const familyCards = [
   },
 ];
 
+/** Instruction line below the question (matches product copy); title match is normalized. */
+const getHardcodedQuestionnaireSubline = (title) => {
+  const t = String(title || '').trim().toLowerCase();
+  if (!t) {
+    return '';
+  }
+  if (t.includes('close blood relatives') && t.includes('health conditions')) {
+    return '(Select all that apply)';
+  }
+  if (t.includes('taking medications') && t.includes('following diseases')) {
+    return '(Select all that apply)';
+  }
+  if (t.includes('diagnosed with the following diseases')) {
+    return '(Select all that apply)';
+  }
+  if (t.includes('which of the following food groups') && t.includes('consume')) {
+    return '(Select all that apply)';
+  }
+  if (t.includes('sugary drinks') && t.includes('desserts')) {
+    return '(Soft Drinks, Ice Cream, Chocolate, Cakes, Pastries, Candies or Sweets)';
+  }
+  if (t.includes('what type of coffee or tea')) {
+    return '(Select all that apply)';
+  }
+  if (t.includes('glasses of water') && t.includes('day')) {
+    return '(1 glass of water is ~250 ml)';
+  }
+  if (t.includes('fall sick') && t.includes('year')) {
+    return '(Required at least a day of bed rest)';
+  }
+  if (t.includes('physical activity') && t.includes('exercise') && t.includes('daily')) {
+    return '(Brisk Walking or Bicycling or Heavy Lifting or Games or Yoga or Meditation or Cleaning)';
+  }
+  if (t.includes('actively walking') && (t.includes('each day') || t.includes('every day'))) {
+    return '(Includes commuting to work, breaks at work and household chores)';
+  }
+  if (t.includes('alcohol consumption')) {
+    return '(1 serving = 125 ml wine or 330 ml of beer or 40 ml of hard liquor)';
+  }
+  if (t.includes('what sports') && t.includes('play')) {
+    return '(Select all that apply)';
+  }
+  if (t.includes('primary health and wellness priorities')) {
+    return '(Choose your top two priority)';
+  }
+  return '';
+};
+
 const familyHelperByQuestionKey = {
-  family_health_conditions: '(Select multiple or None that apply)',
-  diagnosed_diseases: '(Select multiple or None that apply)',
+  family_health_conditions: '(Select all that apply)',
+  diagnosed_diseases: '(Select all that apply)',
 };
 
 const toFamilyApiCards = (questions = []) => {
@@ -1142,8 +1190,8 @@ const toFamilyApiCards = (questions = []) => {
 
     const normalizedTitle = String(question?.question_text || '').toLowerCase();
     const helper = familyHelperByQuestionKey[key]
-      || (normalizedTitle.includes('close blood relatives') ? '(Select multiple or None that apply)' : '')
-      || (normalizedTitle.includes('diagnosed with the following') ? '(Select multiple or None that apply)' : '');
+      || (normalizedTitle.includes('close blood relatives') ? '(Select all that apply)' : '')
+      || (normalizedTitle.includes('diagnosed with the following') ? '(Select all that apply)' : '');
 
     return {
       key,
@@ -2733,6 +2781,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
   };
 
   const textInputValue = activeSelections[0] || '';
+  const questionSubline = getHardcodedQuestionnaireSubline(activeCard.title) || activeCard.helper;
 
   return (
     <div className="family-history-page">
@@ -2779,7 +2828,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
               </button>
             ) : null}
           </div>
-          {activeCard.helper ? <p className="family-history-page__helper">{activeCard.helper}</p> : null}
+          {questionSubline ? <p className="family-history-page__helper">{questionSubline}</p> : null}
 
           {activeCard.isTextInput ? (
             <div className="family-history-page__text-input-wrap">
@@ -3369,6 +3418,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
   };
 
   const textInputValue = activeSelections[0] || '';
+  const questionSubline = getHardcodedQuestionnaireSubline(activeCard.title) || activeCard.helper;
 
   return (
     <div className="lifestyle-habits-page">
@@ -3416,7 +3466,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
             ) : null}
           </div>
 
-          {activeCard.helper ? <p className="lifestyle-habits-page__helper">{activeCard.helper}</p> : null}
+          {questionSubline ? <p className="lifestyle-habits-page__helper">{questionSubline}</p> : null}
 
           {activeCard.isTextInput ? (
             <div className="lifestyle-habits-page__text-input-wrap">
@@ -4150,6 +4200,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
   };
 
   const textInputValue = activeSelections[0] || '';
+  const questionSubline = getHardcodedQuestionnaireSubline(activeCard.title) || activeCard.helper;
 
   return (
     <div className="nutrition-log-page">
@@ -4197,7 +4248,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
             ) : null}
           </div>
 
-          {activeCard.helper ? <p className="nutrition-log-page__helper">{activeCard.helper}</p> : null}
+          {questionSubline ? <p className="nutrition-log-page__helper">{questionSubline}</p> : null}
 
           {activeCard.isTextInput ? (
             <div className="nutrition-log-page__text-input-wrap">
