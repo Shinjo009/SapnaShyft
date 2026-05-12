@@ -6,13 +6,9 @@ import './navbar2.css';
  * Aria-label always comes from the parent button.
  */
 const NavItem2 = forwardRef(function NavItem2(
-  { id, label, icon, iconSize = 20, isActive, locked = false, onClick },
+  { id, label, iconFilled, iconUnfilled, isActive, locked = false, onClick },
   ref
 ) {
-  const iconStyle = {
-    '--nav2-icon-size': `${iconSize}px`,
-  };
-
   return (
     <button
       ref={ref}
@@ -31,9 +27,12 @@ const NavItem2 = forwardRef(function NavItem2(
       }
     >
       <span className="navbar2__icon-wrap" aria-hidden="true">
-        <img src={icon} alt="" className="navbar2__icon" style={iconStyle} />
+        <img src={iconFilled} alt="" className="navbar2__icon navbar2__icon--filled" />
+        <img src={iconUnfilled} alt="" className="navbar2__icon navbar2__icon--unfilled" />
       </span>
-      {!isActive ? <span className="navbar2__label">{label}</span> : null}
+      <span className={`navbar2__label ${isActive ? 'navbar2__label--concealed' : ''}`} aria-hidden={isActive}>
+        {label}
+      </span>
     </button>
   );
 });

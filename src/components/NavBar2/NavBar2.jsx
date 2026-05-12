@@ -2,28 +2,47 @@ import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from '
 import './navbar2.css';
 import NavItem2 from './NavItem2';
 import homeIcon from '../../images/home.svg';
+import homeIconUnfilled from '../../images/Home unfilled.svg';
 import superCareIcon from '../../images/SuperCare.svg';
+import superCareIconUnfilled from '../../images/Super care unfilled.svg';
 import superClubIcon from '../../images/SuperClub.svg';
+import superClubIconUnfilled from '../../images/Super club unfilled.svg';
 import packagesIcon from '../../images/Packages.svg';
+import packagesIconUnfilled from '../../images/Packages unfilled.svg';
 import { prefetchRouteChunk } from '../../utils/routePrefetch';
 
 /**
  * Bottom navigation — compact active cell (10px 12px 6px), gap 3px,
- * border-top indicator, flex column centered. Icons ~20px (club/care ~23px).
+ * border-top indicator, flex column centered. Icons share one rail size (see navbar2.css).
  *
  * Props: `defaultActive`, `onNavigate`.
  */
 export default function NavBar2({ defaultActive = 'home', onNavigate }) {
   const navItems = useMemo(
     () => [
-      { id: 'home', label: 'Home', icon: homeIcon, iconSize: 20 },
-      { id: 'packages', label: 'Packages', icon: packagesIcon, iconSize: 20 },
-      { id: 'super-club', label: 'Super Club', icon: superClubIcon, iconSize: 23 },
+      {
+        id: 'home',
+        label: 'Home',
+        iconFilled: homeIcon,
+        iconUnfilled: homeIconUnfilled,
+      },
+      {
+        id: 'packages',
+        label: 'Packages',
+        iconFilled: packagesIcon,
+        iconUnfilled: packagesIconUnfilled,
+      },
+      {
+        id: 'super-club',
+        label: 'Super Club',
+        iconFilled: superClubIcon,
+        iconUnfilled: superClubIconUnfilled,
+      },
       {
         id: 'super-sync',
         label: 'Super Care',
-        icon: superCareIcon,
-        iconSize: 23,
+        iconFilled: superCareIcon,
+        iconUnfilled: superCareIconUnfilled,
       },
     ],
     []
@@ -70,8 +89,8 @@ export default function NavBar2({ defaultActive = 'home', onNavigate }) {
                 key={item.id}
                 id={item.id}
                 label={item.label}
-                icon={item.icon}
-                iconSize={item.iconSize}
+                iconFilled={item.iconFilled}
+                iconUnfilled={item.iconUnfilled}
                 locked={Boolean(item.locked)}
                 isActive={activeItem === item.id}
                 onClick={handleItemClick}
