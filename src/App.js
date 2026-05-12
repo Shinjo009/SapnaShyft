@@ -21,6 +21,7 @@ import {
 import {
   fetchLatestAssessmentReport,
   fetchLatestHealthSpanIndex,
+  getHealthSpanIndexSourceStatus,
   getLatestAssessmentIdsCached,
   clearReportRequestCache,
   clearStoredLatestAssessmentId,
@@ -45,6 +46,7 @@ import {
   hasRenderableOverviewData,
   HOME_PRELOAD_COMPLETE_KEY,
 } from './utils/homeOverviewPreload';
+import { isFitprintGapQuestionnaireFullyComplete } from './utils/fitprintGapCatchupCompletion';
 
 // Same asset as Profile logout modal (`/public/BG-1.png`).
 const questionnaireSuccessModalBg = `${process.env.PUBLIC_URL || ''}/BG-1.png`;
@@ -933,37 +935,78 @@ function App() {
     const healthSpanPromise = fetchLatestHealthSpanIndex({ includeDetails: false, ttlMs: 45000 })
       .then((result) => result?.scores || null)
       .catch(() => null);
+
+    const fitprintPreloadPromise = (async () => {
+      try {
+        const sourceStatus = await getHealthSpanIndexSourceStatus({ ttlMs: 45000 });
+        if (sourceStatus.status !== 'missing_fitprint') {
+          return {};
+        }
+        const basicProId = Number(sourceStatus.basicOrProAssessmentId);
+        const normalizedId = Number.isFinite(basicProId) && basicProId > 0 ? basicProId : null;
+        let gapQuestionnaireComplete = false;
+        if (normalizedId != null) {
+          gapQuestionnaireComplete = await isFitprintGapQuestionnaireFullyComplete(normalizedId);
+        }
+        return {
+          fitprintGapLockPreloaded: true,
+          healthSpanLockedNoFitprint: true,
+          healthSpanGapBasicProAssessmentId: normalizedId,
+          fitprintGapQCompleteFromServer: Boolean(gapQuestionnaireComplete),
+        };
+      } catch {
+        return {};
+      }
+    })();
+
+    const mergePreloadedHomePayload = (partial, healthSpanScores, fitprintExtras) => {
+      const spanScores = fitprintExtras.fitprintGapLockPreloaded ? null : (partial.healthSpanScores ?? healthSpanScores);
+      return {
+        ...partial,
+        ...fitprintExtras,
+        healthSpanScores: spanScores,
+      };
+    };
+
     try {
       const { response } = await fetchLatestAssessmentReport(
         (assessmentId) => `/reports/${assessmentId}/overview`
       );
       const overview = resolveOverviewPayload(response);
+      const [healthSpanScores, fitprintExtras] = await Promise.all([
+        healthSpanPromise,
+        fitprintPreloadPromise,
+      ]);
 
       if (overview && typeof overview === 'object') {
         const metabolicAge = Number(overview?.metabolic_age);
         const metabolicAgeDisplay = Number.isFinite(metabolicAge) ? String(Math.round(metabolicAge)) : '-';
 
-        setPreloadedHomeData({
+        setPreloadedHomeData(mergePreloadedHomePayload({
           [HOME_PRELOAD_COMPLETE_KEY]: true,
           metabolicAgeValue: metabolicAgeDisplay,
           positiveWinsData: resolvePositiveWinsPayload(overview),
           riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
-          healthSpanScores: await healthSpanPromise,
-        });
+          healthSpanScores,
+        }, healthSpanScores, fitprintExtras));
         return true;
       }
 
-      setPreloadedHomeData({
+      setPreloadedHomeData(mergePreloadedHomePayload({
         ...createEmptyPreloadedHome(),
-        healthSpanScores: await healthSpanPromise,
-      });
+        healthSpanScores,
+      }, healthSpanScores, fitprintExtras));
       return false;
     } catch (err) {
       console.error('Failed to preload home screen data:', err);
-      setPreloadedHomeData({
+      const [healthSpanScores, fitprintExtras] = await Promise.all([
+        healthSpanPromise,
+        fitprintPreloadPromise,
+      ]);
+      setPreloadedHomeData(mergePreloadedHomePayload({
         ...createEmptyPreloadedHome(),
-        healthSpanScores: await healthSpanPromise,
-      });
+        healthSpanScores,
+      }, healthSpanScores, fitprintExtras));
       return false;
     }
   };

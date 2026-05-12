@@ -15,7 +15,7 @@ import {
   fetchLatestAssessmentReport,
   fetchLatestHealthSpanIndex,
   getHealthSpanIndexSourceStatus,
-  getLatestAssessmentIdsCached,
+  getLatestMetsightsBasicOrProAssessmentIdCached,
 } from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
 import {
@@ -362,13 +362,22 @@ const HomePage = ({
   const [metabolicAgeValue, setMetabolicAgeValue] = useState(preloadedData?.metabolicAgeValue || '-');
   const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
   const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
-  const [healthSpanScores, setHealthSpanScores] = useState(preloadedData?.healthSpanScores || null);
-  const [healthSpanLockedNoFitprint, setHealthSpanLockedNoFitprint] = useState(false);
-  const [healthSpanGapBasicProAssessmentId, setHealthSpanGapBasicProAssessmentId] = useState(null);
-  /** True while resolving FitPrint-gap questionnaire completion (avoid wrong locked copy on first paint). */
-  const [healthSpanFitprintGatePending, setHealthSpanFitprintGatePending] = useState(false);
+  const [healthSpanScores, setHealthSpanScores] = useState(() => {
+    if (preloadedData?.fitprintGapLockPreloaded && preloadedData?.healthSpanLockedNoFitprint) {
+      return null;
+    }
+    return preloadedData?.healthSpanScores || null;
+  });
+  const [healthSpanLockedNoFitprint, setHealthSpanLockedNoFitprint] = useState(
+    () => Boolean(preloadedData?.fitprintGapLockPreloaded && preloadedData?.healthSpanLockedNoFitprint),
+  );
+  const [healthSpanGapBasicProAssessmentId, setHealthSpanGapBasicProAssessmentId] = useState(
+    () => (preloadedData?.fitprintGapLockPreloaded ? preloadedData.healthSpanGapBasicProAssessmentId ?? null : null),
+  );
   /** From server answers on Basic/Pro when FitPrint row is missing (reports not ready yet). */
-  const [fitprintGapQCompleteFromServer, setFitprintGapQCompleteFromServer] = useState(false);
+  const [fitprintGapQCompleteFromServer, setFitprintGapQCompleteFromServer] = useState(
+    () => Boolean(preloadedData?.fitprintGapLockPreloaded && preloadedData?.fitprintGapQCompleteFromServer),
+  );
   const [isNoDataHome, setIsNoDataHome] = useState(
     () => homePreloadComplete && !hasRenderableOverviewData(preloadedData),
   );
@@ -516,11 +525,34 @@ const HomePage = ({
     return undefined;
   }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
 
+  useLayoutEffect(() => {
+    if (preloadedData?.fitprintGapLockPreloaded !== true || forceRefreshFromProfile) {
+      return;
+    }
+    setHealthSpanLockedNoFitprint(Boolean(preloadedData.healthSpanLockedNoFitprint));
+    setHealthSpanGapBasicProAssessmentId(preloadedData.healthSpanGapBasicProAssessmentId ?? null);
+    setFitprintGapQCompleteFromServer(Boolean(preloadedData.fitprintGapQCompleteFromServer));
+    if (preloadedData.healthSpanLockedNoFitprint) {
+      setHealthSpanScores(null);
+    }
+  }, [
+    forceRefreshFromProfile,
+    preloadedData?.fitprintGapLockPreloaded,
+    preloadedData?.healthSpanLockedNoFitprint,
+    preloadedData?.healthSpanGapBasicProAssessmentId,
+    preloadedData?.fitprintGapQCompleteFromServer,
+  ]);
+
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       const ttlMs = forceRefreshFromProfile ? 0 : 45000;
+
+      if (preloadedData?.fitprintGapLockPreloaded === true && !forceRefreshFromProfile) {
+        return;
+      }
+
       const sourceStatus = await getHealthSpanIndexSourceStatus({ ttlMs });
       if (cancelled) {
         return;
@@ -530,27 +562,21 @@ const HomePage = ({
         const basicProId = Number(sourceStatus.basicOrProAssessmentId);
         const normalizedId = Number.isFinite(basicProId) && basicProId > 0 ? basicProId : null;
 
-        setHealthSpanFitprintGatePending(true);
-        setHealthSpanLockedNoFitprint(true);
-        setHealthSpanScores(null);
-        setHealthSpanGapBasicProAssessmentId(normalizedId);
-        setFitprintGapQCompleteFromServer(false);
-
         let gapQuestionnaireComplete = false;
         if (normalizedId != null) {
           gapQuestionnaireComplete = await isFitprintGapQuestionnaireFullyComplete(normalizedId);
         }
         if (cancelled) {
-          setHealthSpanFitprintGatePending(false);
           return;
         }
+        setHealthSpanLockedNoFitprint(true);
+        setHealthSpanScores(null);
+        setHealthSpanGapBasicProAssessmentId(normalizedId);
         setFitprintGapQCompleteFromServer(Boolean(gapQuestionnaireComplete));
-        setHealthSpanFitprintGatePending(false);
         return;
       }
 
       clearFitprintGapQuestionnaireSubmittedFlag();
-      setHealthSpanFitprintGatePending(false);
       setFitprintGapQCompleteFromServer(false);
       setHealthSpanLockedNoFitprint(false);
       setHealthSpanGapBasicProAssessmentId(null);
@@ -570,7 +596,14 @@ const HomePage = ({
     return () => {
       cancelled = true;
     };
-  }, [forceRefreshFromProfile, preloadedData?.healthSpanScores]);
+  }, [
+    forceRefreshFromProfile,
+    preloadedData?.healthSpanScores,
+    preloadedData?.fitprintGapLockPreloaded,
+    preloadedData?.healthSpanLockedNoFitprint,
+    preloadedData?.healthSpanGapBasicProAssessmentId,
+    preloadedData?.fitprintGapQCompleteFromServer,
+  ]);
 
   const metabolicAgeDetail = useMemo(() => {
     const chronologicalAge = Number(userAge);
@@ -881,15 +914,9 @@ const HomePage = ({
     setDownloadingReportKind('bio-ai');
 
     try {
-      let assessmentId = Number(latestAssessmentId);
-
+      const assessmentId = await getLatestMetsightsBasicOrProAssessmentIdCached();
       if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
-        const assessmentIds = await getLatestAssessmentIdsCached();
-        assessmentId = Number(assessmentIds?.[0]);
-      }
-
-      if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
-        throw new Error('No report available yet.');
+        throw new Error('No Metsights Basic or Pro report available yet.');
       }
 
       if (!BACKEND_ENABLED) {
@@ -945,15 +972,9 @@ const HomePage = ({
     setDownloadingReportKind('blood');
 
     try {
-      let assessmentId = Number(latestAssessmentId);
-
+      const assessmentId = await getLatestMetsightsBasicOrProAssessmentIdCached();
       if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
-        const assessmentIds = await getLatestAssessmentIdsCached();
-        assessmentId = Number(assessmentIds?.[0]);
-      }
-
-      if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
-        throw new Error('No report available yet.');
+        throw new Error('No Metsights Basic or Pro report available yet.');
       }
 
       if (!BACKEND_ENABLED) {
@@ -1370,19 +1391,13 @@ const HomePage = ({
       {/* Health Span Index: scores, or locked when Basic/Pro exists without matching FitPrint */}
       {healthSpanLockedNoFitprint ? (
         <div className="health-parameters">
-          {healthSpanFitprintGatePending ? (
-            <div className="home-page-fitprint-gate-loading" aria-busy="true" aria-label="Checking questionnaire status">
-              <p className="home-page-fitprint-gate-loading__text">Loading…</p>
-            </div>
-          ) : (
-            <HomeHealthSpanIndexLockedStack
-              onCompleteAssessment={openQuestionnaireFromFitprintLock}
-              ariaLabel="Health Span Index locked until FitPrint assessment is completed"
-              postSubmitAwaitingReports={
-                isFitprintGapQuestionnaireSubmittedFlagSet() || fitprintGapQCompleteFromServer
-              }
-            />
-          )}
+          <HomeHealthSpanIndexLockedStack
+            onCompleteAssessment={openQuestionnaireFromFitprintLock}
+            ariaLabel="Health Span Index locked until FitPrint assessment is completed"
+            postSubmitAwaitingReports={
+              isFitprintGapQuestionnaireSubmittedFlagSet() || fitprintGapQCompleteFromServer
+            }
+          />
         </div>
       ) : (
         <HealthParametersSection

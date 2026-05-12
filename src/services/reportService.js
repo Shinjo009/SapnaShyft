@@ -292,6 +292,23 @@ export const peekMyAssessmentsRowsCached = async (ttlMs = 45000) => {
   return extractArray(await fetchMyAssessmentsPageCached(ttlMs, DEFAULT_ASSESSMENTS_ME_QUERY));
 };
 
+/**
+ * Latest Metsights Basic/Pro assessment instance id from `/assessments/me` (newest first).
+ * Excludes FitPrint and unrecognized package rows — use for lab-backed reports (e.g. Bio-AI / blood PDFs).
+ */
+export const getLatestMetsightsBasicOrProAssessmentIdCached = async (ttlMs = 45000) => {
+  const rows = sortAssessmentRowsLatestFirst(await peekMyAssessmentsRowsCached(ttlMs));
+  const latestBasicOrPro = rows.find((row) => normalizedAssessmentFamily(row) === 'basic_or_pro') || null;
+  if (!latestBasicOrPro) {
+    return null;
+  }
+  const id = Number(extractAssessmentIdFromRow(latestBasicOrPro));
+  if (!Number.isFinite(id) || id <= 0) {
+    return null;
+  }
+  return id;
+};
+
 export const getLatestAssessmentIdsCached = async (ttlMs = 45000) => {
   const response = await fetchMyAssessmentsPageCached(ttlMs, DEFAULT_ASSESSMENTS_ME_QUERY);
   const ids = getSortedAssessmentIds(extractArray(response));
