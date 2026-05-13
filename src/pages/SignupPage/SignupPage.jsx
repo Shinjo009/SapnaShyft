@@ -30,6 +30,50 @@ const SelectGenderHeadingIcon = () => (
   </svg>
 );
 
+const REQUIRED_FIELD = 'Required Field';
+const INVALID_FORMAT = 'Invalid Format';
+const FIELD_REQUIRED = 'Field Required';
+
+const RE_NAME = /^(?=.*[a-zA-Z])[a-zA-Z\s'-]{1,60}$/;
+const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RE_PHONE = /^\d{10}$/;
+const RE_CITY = /^(?=.*[a-zA-Z])[a-zA-Z\s,.'-]{1,100}$/;
+/** Integers 1–99 only */
+const RE_AGE = /^([1-9]|[1-8][0-9]|9[0-9])$/;
+
+const requiredOrInvalidFormat = (value, pattern) => {
+  const t = String(value).trim();
+  if (!t) return REQUIRED_FIELD;
+  if (!pattern.test(t)) return INVALID_FORMAT;
+  return null;
+};
+
+const validateSignupForm = (data) => {
+  const errors = {};
+  const set = (key, msg) => {
+    if (msg) errors[key] = msg;
+  };
+  set('firstName', requiredOrInvalidFormat(data.firstName, RE_NAME));
+  set('lastName', requiredOrInvalidFormat(data.lastName, RE_NAME));
+  set('email', requiredOrInvalidFormat(data.email, RE_EMAIL));
+  set('phone', requiredOrInvalidFormat(data.phone, RE_PHONE));
+  set('city', requiredOrInvalidFormat(data.city, RE_CITY));
+  set('age', requiredOrInvalidFormat(data.age, RE_AGE));
+  if (!data.gender) {
+    errors.gender = FIELD_REQUIRED;
+  }
+  return errors;
+};
+
+const clearFieldError = (setFieldErrors, field) => {
+  setFieldErrors((prev) => {
+    if (!prev[field]) return prev;
+    const next = { ...prev };
+    delete next[field];
+    return next;
+  });
+};
+
 /**
  * SignupPage - User registration with personal details
  * 
@@ -49,13 +93,16 @@ const SignupPage = ({ onSuccess, onLogin }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    const nextValue = name === 'age' ? value.replace(/\D/g, '').slice(0, 2) : value;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: nextValue
     }));
+    clearFieldError(setFieldErrors, name);
   };
 
   const handlePhoneChange = (e) => {
@@ -64,6 +111,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
       ...prev,
       phone: value
     }));
+    clearFieldError(setFieldErrors, 'phone');
   };
 
   const handleGenderChange = (gender) => {
@@ -71,20 +119,23 @@ const SignupPage = ({ onSuccess, onLogin }) => {
       ...prev,
       gender
     }));
+    clearFieldError(setFieldErrors, 'gender');
   };
 
   const handleSendOTP = async () => {
-    const { firstName, lastName, email, phone, city, age, gender } = formData;
-    if (firstName.trim() && lastName.trim() && email.trim() && phone.trim() && city.trim() && age.trim() && gender) {
-      try {
-        setLoading(true);
-        setError('');
-        await onSuccess(formData);
-      } catch (sendError) {
-        setError(sendError?.message || 'Failed to send OTP. Please try again.');
-      } finally {
-        setLoading(false);
-      }
+    const validation = validateSignupForm(formData);
+    setFieldErrors(validation);
+    if (Object.keys(validation).length > 0) {
+      return;
+    }
+    try {
+      setLoading(true);
+      setError('');
+      await onSuccess(formData);
+    } catch (sendError) {
+      setError(sendError?.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -105,6 +156,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
               placeholder="First Name"
               value={formData.firstName}
               onChange={handleInputChange}
+              error={fieldErrors.firstName}
               className="!text-[13px] !leading-[13px] placeholder:!text-[13px] placeholder:!leading-[13px]"
             />
             <Input
@@ -113,6 +165,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
               placeholder="Last Name"
               value={formData.lastName}
               onChange={handleInputChange}
+              error={fieldErrors.lastName}
               className="!text-[13px] !leading-[13px] placeholder:!text-[13px] placeholder:!leading-[13px]"
             />
           </div>
@@ -123,25 +176,39 @@ const SignupPage = ({ onSuccess, onLogin }) => {
             placeholder="Email Id"
             value={formData.email}
             onChange={handleInputChange}
+            error={fieldErrors.email}
             className="!text-[13px] !leading-[13px] placeholder:!text-[13px] placeholder:!leading-[13px]"
           />
 
-          <div className="flex self-stretch w-full h-10 box-border px-[15px] py-[10px] rounded-lg border border-transparent bg-input-bg items-center focus-within:border-white/20 focus-within:shadow-[0_0_10px_0_rgba(144,223,158,0.30)] transition-all">
-            <span className="flex-1 min-w-0 flex items-center gap-[6px]">
-              <span className="pointer-events-none inline-flex items-center justify-center">
-                <PhoneFieldIcon />
+          <div className="w-full space-y-1">
+            <div
+              className={
+                fieldErrors.phone
+                  ? 'flex self-stretch w-full h-10 box-border px-[15px] py-[10px] rounded-lg border border-red-500 bg-input-bg items-center shadow-[0_0_10px_0_rgba(255,0,0,0.30)] focus-within:border-red-500 focus-within:shadow-[0_0_10px_0_rgba(255,0,0,0.30)] transition-all'
+                  : 'flex self-stretch w-full h-10 box-border px-[15px] py-[10px] rounded-lg border border-transparent bg-input-bg items-center focus-within:border-white/20 focus-within:shadow-[0_0_10px_0_rgba(144,223,158,0.30)] transition-all'
+              }
+            >
+              <span className="flex-1 min-w-0 flex items-center gap-[6px]">
+                <span className="pointer-events-none inline-flex items-center justify-center">
+                  <PhoneFieldIcon />
+                </span>
+                <input
+                  name="phone"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="Phone Number"
+                  value={formData.phone}
+                  onChange={handlePhoneChange}
+                  className="flex-1 min-w-0 bg-transparent text-white !text-[13px] !leading-[13px] placeholder:text-label-gray placeholder:!text-[13px] placeholder:!leading-[13px] font-lato focus:outline-none"
+                />
               </span>
-              <input
-                name="phone"
-                type="tel"
-                inputMode="numeric"
-                maxLength={10}
-                placeholder="Phone Number"
-                value={formData.phone}
-                onChange={handlePhoneChange}
-                className="flex-1 min-w-0 bg-transparent text-white !text-[13px] !leading-[13px] placeholder:text-label-gray placeholder:!text-[13px] placeholder:!leading-[13px] font-lato focus:outline-none"
-              />
-            </span>
+            </div>
+            {fieldErrors.phone ? (
+              <Typography variant="label" className="!text-[10px] !leading-[14px] text-red-500">
+                {fieldErrors.phone}
+              </Typography>
+            ) : null}
           </div>
 
           <Input
@@ -150,15 +217,19 @@ const SignupPage = ({ onSuccess, onLogin }) => {
             placeholder="City"
             value={formData.city}
             onChange={handleInputChange}
+            error={fieldErrors.city}
             className="!text-[13px] !leading-[13px] placeholder:!text-[13px] placeholder:!leading-[13px]"
           />
 
           <Input
             name="age"
-            type="number"
+            type="text"
+            inputMode="numeric"
+            maxLength={2}
             placeholder="Age"
             value={formData.age}
             onChange={handleInputChange}
+            error={fieldErrors.age}
             className="!text-[13px] !leading-[13px] placeholder:!text-[13px] placeholder:!leading-[13px]"
           />
 
@@ -194,6 +265,11 @@ const SignupPage = ({ onSuccess, onLogin }) => {
                 <span className="font-lato !text-[13px] !leading-[13px]">Female</span>
               </button>
             </div>
+            {fieldErrors.gender ? (
+              <Typography variant="label" className="!text-[10px] !leading-[14px] text-red-500">
+                {fieldErrors.gender}
+              </Typography>
+            ) : null}
           </div>
 
           <div className="pt-3">

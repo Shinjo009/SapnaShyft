@@ -13,6 +13,11 @@ import {
   getPackageBookingStatus,
   getDefaultRazorpayKeyId,
 } from '../../services/paymentService';
+import {
+  bookBioAiBatch,
+  buildBookBioAiPayload,
+  formatBloodCollectionTimeSlot,
+} from '../../services/bookingService';
 import { PAYMENT_DEMO_MODE, BACKEND_ENABLED } from '../../config/appConfig';
 import PackageDetailsPage from '../../pages/PackageDetailsPage/PackageDetailsPage';
 
@@ -451,6 +456,26 @@ const DEFAULT_ADDRESS_DATA = {
   pincode: '',
 };
 
+const ADDRESS_REQUIRED_MSG = 'Required Field';
+const ADDRESS_PIN_INVALID_MSG = 'Invalid Format';
+const RE_PACKAGE_ADDRESS_PINCODE = /^\d{6}$/;
+
+const validatePackageAddressForm = (data) => {
+  const errors = {};
+  ['house', 'area', 'landmark', 'city'].forEach((key) => {
+    if (!String(data[key] || '').trim()) {
+      errors[key] = ADDRESS_REQUIRED_MSG;
+    }
+  });
+  const pin = String(data.pincode || '').trim();
+  if (!pin) {
+    errors.pincode = ADDRESS_REQUIRED_MSG;
+  } else if (!RE_PACKAGE_ADDRESS_PINCODE.test(pin)) {
+    errors.pincode = ADDRESS_PIN_INVALID_MSG;
+  }
+  return errors;
+};
+
 const getAgeFromProfile = (profile) => {
   if (typeof profile?.age === 'number' && profile.age > 0) {
     return String(profile.age);
@@ -561,6 +586,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   const [activeAddressField, setActiveAddressField] = useState('house');
   const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
   const [addressData, setAddressData] = useState(DEFAULT_ADDRESS_DATA);
+  const [addressFieldErrors, setAddressFieldErrors] = useState({});
   const [savingPatient, setSavingPatient] = useState(false);
   const [selectedDateId, setSelectedDateId] = useState('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('06:00 AM');
@@ -570,6 +596,8 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   const [customSelectedIds, setCustomSelectedIds] = useState(() => new Set(['thyroid-tests', 'liver-function']));
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
+  const [bioBookingError, setBioBookingError] = useState('');
+  const [bioBookingSubmitting, setBioBookingSubmitting] = useState(false);
   const [confirmedBookingId, setConfirmedBookingId] = useState(null);
   const [paymentOutcome, setPaymentOutcome] = useState('success');
   const [packageCardsFromApi, setPackageCardsFromApi] = useState([]);
@@ -589,12 +617,17 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       const day = SCHEDULE_DAY_LABELS[date.getDay()];
       const dayOfMonth = String(date.getDate()).padStart(2, '0');
       const month = SCHEDULE_MONTH_LABELS[date.getMonth()];
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      const isoDate = `${y}-${m}-${d}`;
 
       return {
         id: `${day.toLowerCase()}-${dayOfMonth}-${month.toLowerCase()}`,
         day,
         date: dayOfMonth,
         month,
+        isoDate,
       };
     });
   }, []);
@@ -611,6 +644,8 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       setEmailSame(false);
       setPaymentError(null);
       setPaymentSubmitting(false);
+      setBioBookingError('');
+      setBioBookingSubmitting(false);
       setConfirmedBookingId(null);
       setPaymentOutcome('success');
       setPackageTargetPatientId(null);
@@ -1112,6 +1147,38 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
     return `${selectedDate.date} ${selectedDate.month} | ${format12(startDate)} - ${format12(endDate)} ${endDate.getHours() >= 12 ? 'PM' : 'AM'}`;
   };
 
+  const handleDetailsContinueToPayment = async () => {
+    setBioBookingError('');
+    if (!BACKEND_ENABLED || customFlow) {
+      setView('payment');
+      return;
+    }
+
+    setBioBookingSubmitting(true);
+    try {
+      const selectedScheduleDate = scheduleDates.find((item) => item.id === selectedDateId);
+      const bloodCollectionDate = selectedScheduleDate?.isoDate || '';
+      const bloodCollectionTimeSlot = formatBloodCollectionTimeSlot(selectedTimeSlot);
+      if (!bloodCollectionDate || !bloodCollectionTimeSlot) {
+        throw new Error('Select a collection date and time slot.');
+      }
+      const bioPayload = buildBookBioAiPayload({
+        selectedPatients,
+        addressData,
+        bloodCollectionDate,
+        bloodCollectionTimeSlot,
+        getPackageForPatient,
+        getNumericPatientUserId,
+      });
+      await bookBioAiBatch(bioPayload);
+      setView('payment');
+    } catch (err) {
+      setBioBookingError(err?.message || 'Booking could not be saved. Please try again.');
+    } finally {
+      setBioBookingSubmitting(false);
+    }
+  };
+
   const handlePayWithRazorpay = async () => {
     setPaymentError(null);
     setPaymentOutcome('success');
@@ -1427,39 +1494,45 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   };
 
   const handleAddressContinue = () => {
-    const house = String(addressData.house || '').trim();
-    const area = String(addressData.area || '').trim();
-    const city = String(addressData.city || '').trim();
-    const pincode = String(addressData.pincode || '').trim();
-
-    if (!house || !area || !city || !pincode) {
-      window.alert('Please fill all required address fields before continuing.');
+    const nextErrors = validatePackageAddressForm(addressData);
+    setAddressFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
       return;
     }
-
-    if (!/^\d{6}$/.test(pincode)) {
-      window.alert('Please enter a valid 6-digit pincode.');
-      return;
-    }
-
+    setAddressFieldErrors({});
     setView('schedule');
   };
 
   const renderAddressField = (key, label, options = {}) => {
-    const fieldClass = `patient-address__field${activeAddressField === key ? ' is-focused' : ''}${options.half ? ' patient-address__field--half' : ''}`;
+    const errMsg = addressFieldErrors[key];
+    const fieldClass = `patient-address__field${activeAddressField === key ? ' is-focused' : ''}${errMsg ? ' is-error' : ''}${options.half ? ' patient-address__field--half' : ''}`;
     return (
-      <label className={fieldClass} htmlFor={`address-${key}`}>
-        <span className="patient-add__label-chip">{label}</span>
-        <div className="patient-address__field-inner">
-          <input
-            id={`address-${key}`}
-            value={addressData[key]}
-            onFocus={() => setActiveAddressField(key)}
-            onChange={(event) => setAddressData((prev) => ({ ...prev, [key]: event.target.value }))}
-            className="patient-address__input"
-          />
-        </div>
-      </label>
+      <div className={`patient-address__field-wrap${options.half ? ' patient-address__field-wrap--half' : ''}`}>
+        <label className={fieldClass} htmlFor={`address-${key}`}>
+          <span className="patient-add__label-chip">{label}</span>
+          <div className="patient-address__field-inner">
+            <input
+              id={`address-${key}`}
+              value={addressData[key]}
+              onFocus={() => setActiveAddressField(key)}
+              onChange={(event) => {
+                const raw = key === 'pincode' ? event.target.value.replace(/\D/g, '').slice(0, 6) : event.target.value;
+                setAddressData((prev) => ({ ...prev, [key]: raw }));
+                setAddressFieldErrors((prev) => {
+                  if (!prev[key]) return prev;
+                  const next = { ...prev };
+                  delete next[key];
+                  return next;
+                });
+              }}
+              className="patient-address__input"
+              inputMode={key === 'pincode' ? 'numeric' : undefined}
+              maxLength={key === 'pincode' ? 6 : undefined}
+            />
+          </div>
+        </label>
+        {errMsg ? <p className="patient-address__field-error">{errMsg}</p> : null}
+      </div>
     );
   };
 
@@ -2083,7 +2156,20 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                 </div>
               </div>
 
-              <button type="button" className="patient-confirm__continue" onClick={() => setView('payment')}>Continue</button>
+              {bioBookingError ? (
+                <p className="patient-payment__error" role="alert">
+                  {bioBookingError}
+                </p>
+              ) : null}
+
+              <button
+                type="button"
+                className="patient-confirm__continue"
+                onClick={handleDetailsContinueToPayment}
+                disabled={bioBookingSubmitting}
+              >
+                {bioBookingSubmitting ? 'Please wait…' : 'Continue'}
+              </button>
             </div>
           </>
         ) : view === 'payment' ? (

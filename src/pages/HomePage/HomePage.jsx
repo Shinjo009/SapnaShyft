@@ -394,7 +394,6 @@ const HomePage = ({
   const [hasStableOverviewData, setHasStableOverviewData] = useState(() => hasRenderableOverviewData(preloadedData));
   /** null = overview pipeline has not returned blood markers yet; array = rows for RiskAnalysisSection (avoids a second request + idle delay). */
   const [homeBloodMarkersForSection, setHomeBloodMarkersForSection] = useState(null);
-  const [latestAssessmentId, setLatestAssessmentId] = useState(null);
   const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
   /** null | 'bio-ai' | 'blood' — only the active row shows "Downloading..." */
   const [downloadingReportKind, setDownloadingReportKind] = useState(null);
@@ -700,13 +699,7 @@ const HomePage = ({
         (assessmentId) => `/reports/${assessmentId}/blood-parameters`,
         ttlMs,
       )
-        .then(({ response, assessmentId }) => {
-          const parsedAssessmentId = Number(assessmentId);
-          if (Number.isFinite(parsedAssessmentId) && parsedAssessmentId > 0) {
-            setLatestAssessmentId(parsedAssessmentId);
-          }
-          return buildHomeBloodMarkersFromBloodParametersResponse(response);
-        })
+        .then(({ response }) => buildHomeBloodMarkersFromBloodParametersResponse(response))
         .catch(() => [])
     );
 
@@ -954,7 +947,6 @@ const HomePage = ({
       link.click();
       link.remove();
 
-      setLatestAssessmentId(assessmentId);
       setIsDownloadMenuOpen(false);
     } catch (error) {
       console.error('Failed to download Bio-AI report PDF:', error);
@@ -1012,7 +1004,6 @@ const HomePage = ({
       link.click();
       link.remove();
 
-      setLatestAssessmentId(assessmentId);
       setIsDownloadMenuOpen(false);
     } catch (error) {
       console.error('Failed to download Blood Parameters report PDF:', error);
