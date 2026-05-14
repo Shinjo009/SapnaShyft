@@ -1,0 +1,667 @@
+/* Super Club playlist confirm — Figma node 4558:17284 (360×780 artboard) */
+
+.superclub-pc {
+  /* Match app shell (e.g. 480px); fan row can use full width — no 360px phone gutter on desktop */
+  --pc-frame: min(480px, 100%);
+  --pc-col: 100%;
+  --pc-col-shift: 0px;
+  --pc-tile: 159.5px;
+  --pc-fan-w: 502.5px;
+  --pc-fan-h: 227.5px;
+  position: relative;
+  width: 100%;
+  max-width: var(--pc-frame);
+  margin: 0 auto;
+  box-sizing: border-box;
+  min-height: 100%;
+  min-height: 100dvh;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  color: #fff;
+  background: transparent;
+}
+
+.superclub-pc__top {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.superclub-pc__back {
+  position: absolute;
+  left: 16px;
+  top: 56px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 101;
+}
+
+.superclub-pc__back:hover {
+  opacity: 0.85;
+}
+
+.superclub-pc__back:focus-visible {
+  outline: 2px solid rgba(144, 223, 158, 0.65);
+  outline-offset: 2px;
+}
+
+.superclub-pc__search {
+  position: absolute;
+  right: 16px;
+  top: 56px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 101;
+}
+
+.superclub-pc__search:hover {
+  opacity: 0.85;
+}
+
+.superclub-pc__search:focus-visible {
+  outline: 2px solid rgba(144, 223, 158, 0.65);
+  outline-offset: 2px;
+}
+
+/* Figma Frame 1984078958: full-bleed column offset left */
+.superclub-pc__main {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.superclub-pc__col {
+  position: relative;
+  left: var(--pc-col-shift);
+  width: var(--pc-col);
+  max-width: 100%;
+  margin: 0 auto;
+  padding-top: 4px;
+  box-sizing: border-box;
+}
+
+.superclub-pc__kicker {
+  margin: 0 auto 4px;
+  width: 213px;
+  max-width: 100%;
+  text-align: center;
+  font-family: 'DM Sans', 'Lato', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: normal;
+  font-variation-settings: 'opsz' 14;
+  background: linear-gradient(90deg, #3b82f6 0%, #90df9e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.superclub-pc__block {
+  padding: 27px 0 0;
+  width: 100%;
+}
+
+.superclub-pc__copy {
+  padding: 38.895px 24px 0;
+  width: 410.6px;
+  max-width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.superclub-pc__headline {
+  margin: 0 auto;
+  width: 282px;
+  max-width: 100%;
+  text-align: center;
+  font-family: 'DM Sans', 'Lato', sans-serif;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 36.8px;
+  letter-spacing: -1px;
+  font-variation-settings: 'opsz' 14;
+  color: #fff;
+}
+
+.superclub-pc__lede {
+  margin: 12px auto 0;
+  padding-bottom: 12px;
+  width: 326px;
+  max-width: 100%;
+  text-align: center;
+  font-family: 'DM Sans', 'Lato', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 24px;
+  color: #8b949e;
+  font-variation-settings: 'opsz' 14;
+}
+
+.superclub-pc__fan-wrap {
+  position: relative;
+  width: 100%;
+  min-height: calc(var(--pc-fan-h) + 40px);
+  margin-top: 26px;
+  overflow: visible;
+}
+
+.superclub-pc__fan-wrap--collapsed {
+  min-height: 0;
+  margin-top: 0;
+}
+
+/* Full-bleed decorative arcs (viewport width) behind the fan */
+.superclub-pc__lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  height: 100%;
+  min-height: var(--pc-fan-h);
+  pointer-events: none;
+  z-index: 0;
+  max-width: none;
+}
+
+.superclub-pc__empty {
+  margin: 0 auto;
+  padding: 24px 32px;
+  max-width: 320px;
+  text-align: center;
+  font-family: 'DM Sans', 'Lato', sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #8b949e;
+}
+
+.superclub-pc__fan.superclub-pc__fan--marquee {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(var(--pc-fan-h) + 40px);
+  padding: 20px 0;
+  margin-left: auto;
+  margin-right: auto;
+  overflow: hidden;
+  background: transparent;
+  --pc-marquee-duration: 22s;
+}
+
+.superclub-pc__fan-marquee-inner {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  width: calc(var(--pc-fan-w) * 2);
+  height: 100%;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background: transparent;
+}
+
+.superclub-pc__fan-slab {
+  position: relative;
+  flex: 0 0 var(--pc-fan-w);
+  width: var(--pc-fan-w);
+  height: 100%;
+  background: transparent;
+}
+
+.superclub-pc__fan-line {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  object-fit: contain;
+  object-position: center center;
+  z-index: 0;
+}
+
+/* Figma dev-mode positions (Group 1984078531), scaled to full-bleed width */
+.superclub-pc__fan-line--365 {
+  top: calc(-6 * 100% / 227.5);
+  height: calc(144 * 100% / 227.5);
+  transform: rotate(-3.51deg);
+  transform-origin: 50% 50%;
+  opacity: 0.95;
+}
+
+.superclub-pc__fan-line--368 {
+  top: calc(138 * 100% / 227.5);
+  height: calc(64 * 100% / 227.5);
+  transform: rotate(3.51deg);
+  transform-origin: 50% 50%;
+  opacity: 0.9;
+}
+
+.superclub-pc__fan-line--363 {
+  top: calc(8 * 100% / 227.5);
+  height: calc(84 * 100% / 227.5);
+  transform: rotate(3.51deg);
+  transform-origin: 50% 50%;
+  opacity: 0.88;
+}
+
+.superclub-pc__tile {
+  position: absolute;
+  width: var(--pc-tile);
+  height: var(--pc-tile);
+  box-sizing: border-box;
+  overflow: visible;
+  transform-origin: 50% 50%;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Inner layer: clipping (vertical wave runs on <article> so shell chrome moves with the card). */
+.superclub-pc__tile-motion {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  transform-origin: 50% 50%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Tile 5 — Figma 4558:17392 */
+.superclub-pc__tile--t5 {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+  background: #1a1025;
+}
+
+.superclub-pc__tile--t5 .superclub-pc__tile-grad-a {
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.45) 0%, rgba(218, 193, 90, 0.6) 100%);
+}
+
+.superclub-pc__tile--t5 .superclub-pc__tile-grad-b {
+  background: linear-gradient(to top, rgba(11, 7, 20, 0.95) 0%, rgba(11, 7, 20, 0.5) 50%, rgba(11, 7, 20, 0) 100%);
+}
+
+.superclub-pc__tile--t5 .superclub-pc__tile-ghost {
+  opacity: 0.08;
+}
+
+.superclub-pc__tile--t5 .superclub-pc__tile-body {
+  padding: 16px 12px 12px;
+}
+
+.superclub-pc__tile--t5 .superclub-pc__tile-cat {
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: capitalize;
+  color: #fbbf24;
+}
+
+.superclub-pc__tile--t5 .superclub-pc__tile-title {
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 18.75px;
+  color: #fff;
+}
+
+.superclub-pc__tile--t5 .superclub-pc__tile-sub {
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: normal;
+  color: #cbd5e1;
+}
+
+/* Tile 10 — Figma 4558:17479 */
+.superclub-pc__tile--t10 {
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+  background: #0b111c;
+}
+
+.superclub-pc__tile--t10 .superclub-pc__tile-grad-a {
+  background: linear-gradient(135deg, rgba(47, 210, 176, 0.35) 0%, rgba(124, 58, 237, 0.08) 100%);
+}
+
+.superclub-pc__tile--t10 .superclub-pc__tile-grad-b {
+  top: 30.25%;
+  bottom: 0.63%;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(9, 14, 23, 0.95) 0%, rgba(9, 14, 23, 0.3) 60%, rgba(9, 14, 23, 0) 100%);
+}
+
+.superclub-pc__tile--t10 .superclub-pc__tile-ghost {
+  opacity: 0.06;
+}
+
+.superclub-pc__tile--t10 .superclub-pc__tile-body {
+  padding: 16px;
+}
+
+.superclub-pc__tile--t10 .superclub-pc__tile-cat {
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.superclub-pc__tile--t10 .superclub-pc__tile-title {
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 20px;
+  color: #f8fafc;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.superclub-pc__tile--t10 .superclub-pc__tile-sub {
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: normal;
+  color: #cbd5e1;
+  opacity: 0.8;
+}
+
+/* Tile 2 — Figma 4558:17428 */
+.superclub-pc__tile--t2 {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+  background: #0b111c;
+}
+
+.superclub-pc__tile--t2 .superclub-pc__tile-grad-a {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.6) 0%, rgba(218, 193, 90, 0.6) 100%);
+}
+
+.superclub-pc__tile--t2 .superclub-pc__tile-grad-b {
+  background: linear-gradient(to top, rgba(9, 14, 23, 0.95) 0%, rgba(9, 14, 23, 0.4) 50%, rgba(9, 14, 23, 0) 100%);
+}
+
+.superclub-pc__tile--t2 .superclub-pc__tile-ghost {
+  opacity: 0.05;
+}
+
+.superclub-pc__tile--t2 .superclub-pc__tile-body {
+  padding: 16px;
+}
+
+.superclub-pc__tile--t2 .superclub-pc__tile-cat {
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.superclub-pc__tile--t2 .superclub-pc__tile-title {
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 20.4px;
+  color: #f8fafc;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.superclub-pc__tile--t2 .superclub-pc__tile-sub {
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: normal;
+  color: #cbd5e1;
+  opacity: 0.9;
+}
+
+/* Tile 7 — Figma 4558:17462 */
+.superclub-pc__tile--t7 {
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+  background: #0b111c;
+}
+
+.superclub-pc__tile--t7 .superclub-pc__tile-grad-a {
+  background: linear-gradient(135deg, rgba(47, 210, 176, 0.35) 0%, rgba(124, 58, 237, 0.08) 100%);
+}
+
+.superclub-pc__tile--t7 .superclub-pc__tile-grad-b {
+  top: 30.25%;
+  bottom: 0.63%;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(9, 14, 23, 0.95) 0%, rgba(9, 14, 23, 0.3) 60%, rgba(9, 14, 23, 0) 100%);
+}
+
+.superclub-pc__tile--t7 .superclub-pc__tile-ghost {
+  opacity: 0.06;
+}
+
+.superclub-pc__tile--t7 .superclub-pc__tile-body {
+  padding: 16px;
+}
+
+.superclub-pc__tile--t7 .superclub-pc__tile-cat {
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.superclub-pc__tile--t7 .superclub-pc__tile-title {
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 20px;
+  color: #f8fafc;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.superclub-pc__tile--t7 .superclub-pc__tile-sub {
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: normal;
+  color: #cbd5e1;
+  opacity: 0.8;
+}
+
+.superclub-pc__tile-media {
+  position: absolute;
+  inset: 1px;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.superclub-pc__tile-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.superclub-pc__tile-ghost {
+  position: absolute;
+  inset: 1px;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+  mix-blend-mode: overlay;
+  z-index: 1;
+}
+
+.superclub-pc__tile-ghost-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.superclub-pc__tile-grad-a,
+.superclub-pc__tile-grad-b {
+  position: absolute;
+  inset: 1px;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.superclub-pc__tile-grad-a {
+  z-index: 2;
+}
+
+.superclub-pc__tile-grad-b {
+  z-index: 3;
+}
+
+.superclub-pc__tile-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  z-index: 4;
+}
+
+.superclub-pc__tile-cat {
+  margin: 0 0 4px;
+}
+
+.superclub-pc__tile-title {
+  margin: 0 0 4px;
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.superclub-pc__tile-sub {
+  margin: 0;
+}
+
+.superclub-pc__tile-bookmark {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.superclub-pc__tile-rim {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 7;
+  box-shadow: inset 0 1px 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Figma Margin + CTA — 4558:17350 */
+.superclub-pc__cta-margin {
+  width: 300px;
+  max-width: 100%;
+  margin: 26px auto 0;
+  padding-top: 12px;
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.superclub-pc__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 300px;
+  max-width: 100%;
+  height: 40px;
+  padding: 10px 24px;
+  border-radius: 36px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-sizing: border-box;
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: normal;
+  cursor: pointer;
+  filter: drop-shadow(0 12px 10px rgba(255, 255, 255, 0.15));
+  -webkit-tap-highlight-color: transparent;
+}
+
+.superclub-pc__cta:focus-visible {
+  outline: 2px solid rgba(144, 223, 158, 0.75);
+  outline-offset: 2px;
+}
+
+.superclub-pc__cta:active {
+  transform: scale(0.99);
+}
+
+@media (max-width: 359px) {
+  .superclub-pc {
+    --pc-col-shift: 0px;
+    --pc-fan-w: min(502.5px, 138vw);
+  }
+
+  .superclub-pc__fan.superclub-pc__fan--marquee {
+    transform: scale(0.92);
+    transform-origin: 50% 100%;
+  }
+
+  .superclub-pc__headline {
+    font-size: 22px;
+    line-height: 32px;
+  }
+}

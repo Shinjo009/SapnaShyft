@@ -118,6 +118,8 @@
 }
 
 .app-scroll.app-scroll--superclub2-lock .superclub2__search,
+.app-scroll.app-scroll--superclub2-lock .superclub-pc__search,
+.app-scroll.app-scroll--superclub2-lock .superclub-pc__back,
 .app-scroll.app-scroll--superclub2-lock .superclub2__modal-cta,
 .app-scroll.app-scroll--superclub2-lock .header__menu-btn {
   touch-action: manipulation;
