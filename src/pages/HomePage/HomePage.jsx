@@ -33,6 +33,10 @@ import { isFitprintGapQuestionnaireFullyComplete } from '../../utils/fitprintGap
 import clockCircleSrc from '../../images/clock_circle.svg';
 import clockHandsSrc from '../../images/clock_hands.svg';
 
+const ASSESSMENT_ID_FIXED_BLOOD_REPORT_PDF = 374;
+const ASSESSMENT_FIXED_BLOOD_REPORT_PDF_URL =
+  'https://api.supershyft.com/media/blood-parameters/32a483610b4844f88978b01db3ea3d15.pdf';
+
 const AvatarGlyph = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42" fill="none" aria-hidden="true">
     <foreignObject x="-6.90083" y="16.9698" width="49.579" height="31.7743">
@@ -969,13 +973,25 @@ const HomePage = ({
         throw new Error('No Metsights Basic or Pro report available yet.');
       }
 
-      if (!BACKEND_ENABLED) {
-        throw new Error('Backend base URL is not configured.');
-      }
-
       const accessToken = getAccessToken();
       if (!accessToken) {
         throw new Error('You are not logged in.');
+      }
+
+      if (assessmentId === ASSESSMENT_ID_FIXED_BLOOD_REPORT_PDF) {
+        const link = document.createElement('a');
+        link.href = ASSESSMENT_FIXED_BLOOD_REPORT_PDF_URL;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setIsDownloadMenuOpen(false);
+        return;
+      }
+
+      if (!BACKEND_ENABLED) {
+        throw new Error('Backend base URL is not configured.');
       }
 
       const response = await fetch(`${BACKEND_BASE_URL}/reports/${assessmentId}/blood-parameters/pdf`, {
