@@ -29,6 +29,20 @@ const NavItem2 = forwardRef(function NavItem2(
       <span className="navbar2__icon-wrap" aria-hidden="true">
         <img src={iconFilled} alt="" className="navbar2__icon navbar2__icon--filled" />
         <img src={iconUnfilled} alt="" className="navbar2__icon navbar2__icon--unfilled" />
+        {locked ? (
+          <span className="navbar2__lock-badge" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <rect x="2.25" y="5.25" width="7.5" height="5.25" rx="1" fill="currentColor" />
+              <path
+                d="M3.75 5.25V4.125C3.75 2.8125 4.6875 1.875 6 1.875C7.3125 1.875 8.25 2.8125 8.25 4.125V5.25"
+                stroke="currentColor"
+                strokeWidth="1.125"
+                strokeLinecap="round"
+                fill="none"
+              />
+            </svg>
+          </span>
+        ) : null}
       </span>
       <span className={`navbar2__label ${isActive ? 'navbar2__label--concealed' : ''}`} aria-hidden={isActive}>
         {label}
