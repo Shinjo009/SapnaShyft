@@ -78,7 +78,8 @@ export function clearSuperclubPlaylistLock() {
 /**
  * @param {string} targetPage
  * @param {'default-auth' | 'superclub-nav'} mode
- *   default-auth — session restore / OTP / account-pick defaults (health-insights → confirm when locked).
+ *   default-auth — explicit post-login redirect targets only; does not remap the normal
+ *   health-insights landing (so reopening the app always follows the default home/insights flow).
  *   superclub-nav — Super Club tab / in-flow super-club routes only (plain Home navigation is not remapped).
  * @returns {{ page: string, updatePayload: boolean, payload: object | null }}
  */
@@ -96,12 +97,8 @@ export function resolvePageWithSuperclubLock(targetPage, mode = 'default-auth') 
     return { page: targetPage, updatePayload: false, payload: null };
   }
 
-  const authLandings = new Set([
-    'health-insights',
-    'super-club',
-    'super-club-early-access',
-    'super-club-playlist-confirm',
-  ]);
+  /* Only remap explicit Superclub routes from URL/deep-link — not the default session landing. */
+  const authLandings = new Set(['super-club', 'super-club-early-access', 'super-club-playlist-confirm']);
   if (authLandings.has(targetPage)) {
     return { page: 'super-club-playlist-confirm', updatePayload: true, payload };
   }
