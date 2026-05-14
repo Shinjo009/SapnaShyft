@@ -82,8 +82,8 @@ const DoctorsPage = lazy(() => import('./pages/DoctorsPage'));
 const ExpertDetailsPage = lazy(() => import('./pages/ExpertDetailsPage'));
 const IntegratedHealthProgramPage = lazy(() => import('./pages/IntegratedHealthProgramPage'));
 const SuperClubPage = lazy(() => import('./pages/SuperClubPage/SuperClubPage'));
-const SuperClubPlaylistPage = lazy(() => import('./pages/SuperClubPage/SuperClubPlaylistPage'));
 const SuperClubPage2 = lazy(() => import('./pages/SuperClubPage/SuperClubPage2'));
+const Superclub2Page = lazy(() => import('./pages/Superclub2/Superclub2Page'));
 const DiseaseRiskAnalysisPage = lazy(() => import('./pages/DiseaseRiskAnalysisPage'));
 const DiseaseDetailPage = lazy(() => import('./pages/DiseaseDetailPage'));
 
@@ -1368,7 +1368,10 @@ function App() {
         enabled={isTooltipEligibleHome}
         scopeKey={tooltipTourScopeKey}
       />
-      <div className="app-scroll" ref={appScrollRef}>
+      <div
+        className={`app-scroll${currentPage === 'super-club' ? ' app-scroll--superclub2-lock' : ''}`}
+        ref={appScrollRef}
+      >
       <Suspense fallback={null}>
       {currentPage === 'login' && (
         <LoginPage 
@@ -1467,7 +1470,7 @@ function App() {
       )}
 
       {currentPage === 'super-club' && (
-        <SuperClubPlaylistPage
+        <Superclub2Page
           userName={userName}
           onMenuClick={() => {
             setCurrentPage('profile');
@@ -1481,7 +1484,7 @@ function App() {
           onNavigateToPackages={() => {
             setCurrentPage('packages');
           }}
-          onJoinEarly={() => {
+          onJoinEarlyAccess={() => {
             setCurrentPage('super-club-swipe');
           }}
         />

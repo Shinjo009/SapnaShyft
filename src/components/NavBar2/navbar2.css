@@ -1,0 +1,276 @@
+/*
+ * NavBar2 — Figma BNB-14 active cell (navigation/menu - home):
+ * flex column, gap 3px, padding 10px 12px 6px 12px (active); short centered white line (~2px × min(56px,85%)).
+ * https://www.figma.com/design/TwCa9bQdzZtkRgIHvKyI9o/App--first-phase?node-id=4332-16559
+ *
+ * Figma `height: 50px` in Dev Mode may not include all chrome; bar uses min-height so
+ * border + padding + icon + label do not clip. Icon box is fixed on `.navbar2__rail`.
+ */
+
+.navbar2 {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  /* Safe area lives on .navbar2__bar so the bar fills edge-to-edge with no gap under rounded corners */
+  padding-bottom: 0;
+  pointer-events: none;
+}
+
+.navbar2 * {
+  pointer-events: auto;
+}
+
+.navbar2__glow {
+  width: 100%;
+  max-width: min(480px, 100%);
+  box-sizing: border-box;
+  /* Square top corners; rim only; fill comes from .navbar2__bar (glass tint) */
+  border-radius: 0;
+  background: transparent;
+  transform: translateZ(0);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(220, 235, 230, 0.14);
+}
+
+.navbar2__bar {
+  min-height: 56px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 12px env(safe-area-inset-bottom, 0px) 12px;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  overflow: hidden;
+  border-radius: 0;
+  /* Darker teal glass: higher-opacity tint + blur so less of the page shows through */
+  background-color: rgba(3, 22, 19, 0.72);
+  background-image: linear-gradient(
+    to top,
+    rgba(1, 8, 7, 0.9) 0%,
+    rgba(4, 32, 28, 0.78) 45%,
+    rgba(6, 48, 42, 0.7) 100%
+  );
+  backdrop-filter: blur(14px) saturate(1.18);
+  -webkit-backdrop-filter: blur(14px) saturate(1.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 -2px 20px rgba(0, 0, 0, 0.22);
+}
+
+.navbar2__rail {
+  --nav2-icon-box: 28px;
+  --nav2-icon-w: 25px;
+  --nav2-icon-h: 25px;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 56px;
+}
+
+/* Inactive: same top border weight so row height matches Figma active cell */
+.navbar2__slot {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  border: none;
+  box-sizing: border-box;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  /* Same horizontal padding as active — otherwise the content box shifts when selection changes */
+  padding: 10px 12px 6px 12px;
+  border-top: 2px solid transparent;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  --nav2-indicator-width: min(36px, 58%);
+  overflow: visible;
+  transition:
+    border-top-color 0.24s ease,
+    opacity 0.24s ease;
+  isolation: isolate;
+}
+
+/* Active: same padding as base (see .navbar2__slot) so icons don’t jump */
+.navbar2__slot--active {
+  border-top-color: transparent;
+}
+
+.navbar2__slot::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  width: var(--nav2-indicator-width);
+  height: 2px;
+  transform: translateX(-50%) scaleX(0.72);
+  background: #ffffff;
+  border-radius: 1px;
+  opacity: 0;
+  transition:
+    opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.navbar2__slot--active::before {
+  opacity: 1;
+  transform: translateX(-50%) scaleX(1);
+}
+
+.navbar2__slot::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(118px, 136%);
+  height: 100%;
+  transform: translateX(-50%) scale(0.94, 0.9);
+  background:
+    radial-gradient(ellipse at 50% 8%, rgba(143, 255, 177, 0.16) 0%, rgba(143, 255, 177, 0.075) 42%, rgba(143, 255, 177, 0) 78%),
+    linear-gradient(to bottom, rgba(143, 255, 177, 0.13) 0%, rgba(143, 255, 177, 0.045) 36%, rgba(143, 255, 177, 0) 100%);
+  clip-path: polygon(35% 0, 65% 0, 100% 100%, 0 100%);
+  filter: blur(0.8px);
+  opacity: 0;
+  transition:
+    opacity 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.navbar2__slot--active::after {
+  opacity: 0.74;
+  transform: translateX(-50%) scale(1, 1);
+}
+
+.navbar2__slot:focus-visible {
+  outline: 2px solid rgba(144, 223, 158, 0.65);
+  outline-offset: -2px;
+}
+
+.navbar2__slot--locked {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.navbar2__icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--nav2-icon-box, 28px);
+  height: var(--nav2-icon-box, 28px);
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.navbar2__slot:active:not(.navbar2__slot--locked) .navbar2__icon-wrap {
+  transform: scale(0.94);
+}
+
+.navbar2__icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--nav2-icon-w, 25px);
+  height: var(--nav2-icon-h, 25px);
+  object-fit: contain;
+  object-position: center;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.navbar2__icon--unfilled {
+  width: calc(var(--nav2-icon-w, 25px) * 0.9);
+  height: calc(var(--nav2-icon-h, 25px) * 0.9);
+}
+
+.navbar2__slot--active .navbar2__icon--filled {
+  opacity: 1;
+}
+
+.navbar2__slot--active .navbar2__icon--unfilled {
+  opacity: 0;
+  filter: none;
+}
+
+.navbar2__slot:not(.navbar2__slot--active) .navbar2__icon--filled {
+  opacity: 0;
+  filter: none;
+}
+
+.navbar2__slot:not(.navbar2__slot--active) .navbar2__icon--unfilled {
+  opacity: 1;
+  filter: none;
+}
+
+.navbar2__label {
+  font-size: 8px;
+  font-weight: 400;
+  line-height: 1;
+  min-height: 8px;
+  letter-spacing: 0.1px;
+  color: #ffffff;
+  white-space: nowrap;
+  position: relative;
+  z-index: 2;
+  transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Reserve label space when active; fade instead of popping layout */
+.navbar2__label--concealed {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (min-width: 481px) {
+  .navbar2 {
+    left: 50%;
+    right: auto;
+    width: 480px;
+    margin-left: -240px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navbar2__slot,
+  .navbar2__slot::before,
+  .navbar2__slot::after {
+    transition: none;
+  }
+
+  .navbar2__icon-wrap {
+    transition: none;
+  }
+
+  .navbar2__icon {
+    transition: none;
+  }
+
+  .navbar2__label {
+    transition: none;
+  }
+}
