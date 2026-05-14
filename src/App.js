@@ -716,7 +716,7 @@ function App() {
     };
 
     trySessionRestore();
-  }, []);
+  }, [applyLockedLanding]);
 
   // Warm code-split chunks at idle: NavBar targets first, then the rest of the
   // app so most navigations resolve cached modules (no chunk flash). This does
