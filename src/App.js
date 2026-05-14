@@ -1,5 +1,5 @@
 import './App.css';
-import { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy, useCallback } from 'react';
 import SplashScreen from './pages/SplashScreen';
 import LoginPage from './pages/LoginPage';
 // Previous Super Club v1 (swipe + results + storage) — retired; Superclub2 only.
@@ -44,6 +44,12 @@ import {
   hasRenderableOverviewData,
   HOME_PRELOAD_COMPLETE_KEY,
 } from './utils/homeOverviewPreload';
+import {
+  clearSuperclubPlaylistLock,
+  persistSuperclubPlaylistLock,
+  readSuperclubPlaylistLock,
+  resolvePageWithSuperclubLock,
+} from './utils/superclubPlaylistLock';
 
 // Same asset as Profile logout modal (`/public/BG-1.png`).
 const questionnaireSuccessModalBg = `${process.env.PUBLIC_URL || ''}/BG-1.png`;
@@ -94,6 +100,7 @@ const SWIPE_BACK_BLOCKED_PAGES = new Set([
   'splash',
   'health-insights',
   'account-selection',
+  'super-club-playlist-confirm',
 ]);
 
 const EDGE_SWIPE_TRIGGER_PX = 70;
@@ -217,6 +224,29 @@ function App() {
     lastX: 0,
     lastY: 0,
   });
+
+  const applyLockedLanding = useCallback((targetPage, mode = 'default-auth') => {
+    const next = resolvePageWithSuperclubLock(targetPage, mode);
+    if (next.updatePayload && next.payload) {
+      setSuperclubPlaylistPayload(next.payload);
+    }
+    setCurrentPage(next.page);
+  }, []);
+
+  const navigateToSuperClubFlow = useCallback(() => {
+    applyLockedLanding('super-club', 'superclub-nav');
+  }, [applyLockedLanding]);
+
+  const navigateToEarlyAccessFlow = useCallback(() => {
+    const { locked, payload } = readSuperclubPlaylistLock();
+    if (locked && payload) {
+      setSuperclubPlaylistPayload(payload);
+      setCurrentPage('super-club-playlist-confirm');
+      return;
+    }
+    setSuperclubPlaylistPayload(null);
+    setCurrentPage('super-club-early-access');
+  }, []);
 
   const isSwipeBackAllowedPage = (page) => !SWIPE_BACK_BLOCKED_PAGES.has(page);
 
@@ -672,7 +702,7 @@ function App() {
               /* HomePage will recover via its own fetch */
             }
           }
-          setCurrentPage(targetPage);
+          applyLockedLanding(targetPage);
           setIsBootstrappingSession(false);
           return;
         }
@@ -681,7 +711,7 @@ function App() {
       }
 
       await preloadHomeScreenData();
-      setCurrentPage('health-insights');
+      applyLockedLanding('health-insights');
       setIsBootstrappingSession(false);
     };
 
@@ -989,7 +1019,7 @@ function App() {
             /* HomePage will recover via its own fetch */
           }
         }
-        setCurrentPage(targetPage);
+        applyLockedLanding(targetPage);
         return;
       }
     } catch (profileError) {
@@ -997,14 +1027,14 @@ function App() {
     }
 
     await preloadHomeScreenData();
-    setCurrentPage('health-insights');
+    applyLockedLanding('health-insights');
   };
 
   const handleAccountSelectionStart = async (targetAccountId) => {
     const parsedTargetId = Number(targetAccountId || 0);
     if (parsedTargetId <= 0) {
       await preloadHomeScreenData();
-      setCurrentPage('health-insights');
+      applyLockedLanding('health-insights');
       return;
     }
 
@@ -1049,12 +1079,12 @@ function App() {
           /* HomePage will recover via its own fetch */
         }
       }
-      setCurrentPage(targetPage);
+      applyLockedLanding(targetPage);
       return;
     }
 
     await preloadHomeScreenData();
-    setCurrentPage('health-insights');
+    applyLockedLanding('health-insights');
   };
 
   const handleLogout = async () => {
@@ -1065,6 +1095,8 @@ function App() {
     clearAuthTokens();
     clearReportRequestCache();
     clearStoredLatestAssessmentId();
+    clearSuperclubPlaylistLock();
+    setSuperclubPlaylistPayload(null);
     setPhoneNumber('');
     setUserAge(null);
     setQuestionnaireSteps([]);
@@ -1142,6 +1174,8 @@ function App() {
   const isTooltipEligibleHome = Boolean(tooltipTourAccountId != null)
     && hasRenderableOverviewData(preloadedHomeData);
   const canDirectInstallPwa = Boolean(deferredPrompt) && !isIosInstallFlow;
+
+  const superclubPlaylistFlowLocked = readSuperclubPlaylistLock().locked;
 
   if (isBootstrappingSession) {
     return (
@@ -1229,7 +1263,7 @@ function App() {
         scopeKey={tooltipTourScopeKey}
       />
       <div
-        className={`app-scroll${currentPage === 'super-club' ? ' app-scroll--superclub2-lock' : ''}`}
+        className={`app-scroll${currentPage === 'super-club' || currentPage === 'super-club-playlist-confirm' ? ' app-scroll--superclub2-lock' : ''}`}
         ref={appScrollRef}
       >
       <Suspense fallback={null}>
@@ -1321,9 +1355,7 @@ function App() {
             console.log('Navigate to Doctors');
             setCurrentPage('doctors');
           }}
-          onNavigateToSuperClub={() => {
-            setCurrentPage('super-club');
-          }}
+          onNavigateToSuperClub={navigateToSuperClubFlow}
         />
       )}
 
@@ -1342,10 +1374,7 @@ function App() {
           onNavigateToPackages={() => {
             setCurrentPage('packages');
           }}
-          onJoinEarlyAccess={() => {
-            setSuperclubPlaylistPayload(null);
-            setCurrentPage('super-club-early-access');
-          }}
+          onJoinEarlyAccess={navigateToEarlyAccessFlow}
         />
       )}
 
@@ -1364,11 +1393,11 @@ function App() {
           onNavigateToPackages={() => {
             setCurrentPage('packages');
           }}
-          onNavigateToSuperClub={() => {
-            setCurrentPage('super-club');
-          }}
+          onNavigateToSuperClub={navigateToSuperClubFlow}
           onDone={(payload) => {
-            setSuperclubPlaylistPayload(payload || null);
+            const p = payload || {};
+            persistSuperclubPlaylistLock(p);
+            setSuperclubPlaylistPayload(p);
             setCurrentPage('super-club-playlist-confirm');
           }}
         />
@@ -1390,12 +1419,17 @@ function App() {
           onNavigateToPackages={() => {
             setCurrentPage('packages');
           }}
-          onNavigateToSuperClub={() => {
-            setCurrentPage('super-club');
-          }}
+          onNavigateToSuperClub={navigateToSuperClubFlow}
           onStayUpdated={() => {
             setCurrentPage('home');
           }}
+          onBackToMcq={
+            superclubPlaylistFlowLocked
+              ? undefined
+              : () => {
+                  setCurrentPage('super-club-early-access');
+                }
+          }
         />
       )}
 
@@ -1473,9 +1507,7 @@ function App() {
             console.log('Back to Home');
             setCurrentPage('home');
           }}
-          onNavigateToSuperClub={() => {
-            setCurrentPage('super-club');
-          }}
+          onNavigateToSuperClub={navigateToSuperClubFlow}
           onNavigateToDoctors={() => {
             console.log('Navigate to Doctors');
             setCurrentPage('doctors');
@@ -1498,9 +1530,7 @@ function App() {
             console.log('Back to Home');
             setCurrentPage('home');
           }}
-          onNavigateToSuperClub={() => {
-            setCurrentPage('super-club');
-          }}
+          onNavigateToSuperClub={navigateToSuperClubFlow}
           onOpenPackages={() => {
             console.log('Navigate to Packages');
             setCurrentPage('packages');

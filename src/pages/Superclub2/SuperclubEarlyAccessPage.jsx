@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import Header from '../../components/HomePage/Header';
 import NavBar from '../../components/NavBar';
 import tickIcon from '../../images/ques-tick.svg';
@@ -6,8 +6,8 @@ import '../../styles/nutritionLogMcq.css';
 import './SuperclubEarlyAccessPage.css';
 import { SPORT_CHIPS } from './superclubEarlyAccessSports';
 
-/** One full wave cycle (seconds); stagger uses index / chipCount × this value. */
-const SUPERCLUB_CHIP_WAVE_S = 2.75;
+/** When Done with no picks, playlist confirm still needs up to four tiles — use first N in chip order. */
+const DEFAULT_SPORT_COUNT = 4;
 
 export default function SuperclubEarlyAccessPage({
   userName = 'there',
@@ -18,7 +18,7 @@ export default function SuperclubEarlyAccessPage({
   onNavigateToSuperClub,
   onDone,
 }) {
-  const [selected, setSelected] = useState(() => new Set(['badminton', 'other']));
+  const [selected, setSelected] = useState(() => new Set());
   const [otherNote, setOtherNote] = useState('');
 
   const toggle = useCallback((id) => {
@@ -56,6 +56,29 @@ export default function SuperclubEarlyAccessPage({
 
   const otherSelected = selected.has('other');
 
+  const defaultSportIdsIfEmpty = useMemo(
+    () => SPORT_CHIPS.slice(0, DEFAULT_SPORT_COUNT).map((c) => c.id),
+    []
+  );
+
+  const handleDone = useCallback(() => {
+    let sportIds = [...selected].filter((id) => id !== 'other');
+    let resolvedOtherSelected = otherSelected;
+    let resolvedOtherNote = otherNote.trim();
+
+    if (sportIds.length === 0 && !resolvedOtherSelected) {
+      sportIds = defaultSportIdsIfEmpty;
+      resolvedOtherSelected = false;
+      resolvedOtherNote = '';
+    }
+
+    onDone?.({
+      sportIds,
+      otherSelected: resolvedOtherSelected,
+      otherNote: resolvedOtherNote,
+    });
+  }, [defaultSportIdsIfEmpty, onDone, otherNote, otherSelected, selected]);
+
   return (
     <div className="superclub-early">
       <div className="superclub-early__top">
@@ -84,19 +107,13 @@ export default function SuperclubEarlyAccessPage({
             </h2>
 
             <div className="nutrition-log-page__chips">
-              {SPORT_CHIPS.map((chip, index) => {
+              {SPORT_CHIPS.map((chip) => {
                 const isOn = selected.has(chip.id);
-                const n = SPORT_CHIPS.length;
-                const waveDelayS = n > 0 ? (index / n) * SUPERCLUB_CHIP_WAVE_S : 0;
                 return (
                   <button
                     key={chip.id}
                     type="button"
                     className={`nutrition-log-page__chip${isOn ? ' nutrition-log-page__chip--selected' : ''}`}
-                    style={{
-                      '--superclub-chip-wave-delay': `${waveDelayS}s`,
-                      '--superclub-chip-wave-duration': `${SUPERCLUB_CHIP_WAVE_S}s`,
-                    }}
                     onClick={() => toggle(chip.id)}
                     aria-pressed={isOn}
                   >
@@ -139,17 +156,7 @@ export default function SuperclubEarlyAccessPage({
           </section>
 
           <div className="superclub-early__done-wrap">
-            <button
-              type="button"
-              className="superclub-early__done"
-              onClick={() =>
-                onDone?.({
-                  sportIds: [...selected].filter((id) => id !== 'other'),
-                  otherSelected,
-                  otherNote: otherNote.trim(),
-                })
-              }
-            >
+            <button type="button" className="superclub-early__done" onClick={handleDone}>
               Done
             </button>
           </div>

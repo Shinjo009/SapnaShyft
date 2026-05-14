@@ -22,6 +22,7 @@ const META = {
   hyrox: { category: 'PERFORMANCE', subtitle: '50 Mins • Intense', image: imgCycling },
   football: { category: 'TEAM', subtitle: 'Field • Group', image: imgFootball },
   running: { category: 'CARDIO', subtitle: 'Outdoor • Clubs', image: imgRunning },
+  cycling: { category: 'CARDIO', subtitle: 'Outdoor • Ride', image: imgCycling },
   yoga: { category: 'MINDFULNESS', subtitle: 'Flow • Restore', image: imgYoga },
   badminton: { category: 'RACKET', subtitle: 'Indoor Motion', image: imgBadminton },
   cricket: { category: 'TEAM', subtitle: 'Turf • Social', image: imgCricket },

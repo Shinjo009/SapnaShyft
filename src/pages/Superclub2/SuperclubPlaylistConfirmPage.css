@@ -1,9 +1,10 @@
 /* Super Club playlist confirm — Figma node 4558:17284 (360×780 artboard) */
 
 .superclub-pc {
-  --pc-frame: 360px;
-  --pc-col: 458.6px;
-  --pc-col-shift: -49.6px;
+  /* Match app shell (e.g. 480px); fan row can use full width — no 360px phone gutter on desktop */
+  --pc-frame: min(480px, 100%);
+  --pc-col: 100%;
+  --pc-col-shift: 0px;
   --pc-tile: 159.5px;
   --pc-fan-w: 502.5px;
   --pc-fan-h: 227.5px;
@@ -30,6 +31,34 @@
   width: 100%;
 }
 
+.superclub-pc__back {
+  position: absolute;
+  left: 16px;
+  top: 56px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 101;
+}
+
+.superclub-pc__back:hover {
+  opacity: 0.85;
+}
+
+.superclub-pc__back:focus-visible {
+  outline: 2px solid rgba(144, 223, 158, 0.65);
+  outline-offset: 2px;
+}
+
 .superclub-pc__search {
   position: absolute;
   right: 16px;
@@ -46,7 +75,7 @@
   cursor: pointer;
   border-radius: 8px;
   -webkit-tap-highlight-color: transparent;
-  z-index: 3;
+  z-index: 101;
 }
 
 .superclub-pc__search:hover {
@@ -70,7 +99,7 @@
   position: relative;
   left: var(--pc-col-shift);
   width: var(--pc-col);
-  max-width: none;
+  max-width: 100%;
   margin: 0 auto;
   padding-top: 4px;
   box-sizing: border-box;
@@ -175,10 +204,10 @@
   position: relative;
   z-index: 1;
   box-sizing: border-box;
-  width: calc(var(--pc-fan-w) + 32px);
+  width: 100%;
   height: calc(var(--pc-fan-h) + 40px);
-  padding: 20px 16px;
-  margin-left: calc((var(--pc-col) - var(--pc-fan-w)) / 2 + 21.95px - 16px);
+  padding: 20px 0;
+  margin-left: auto;
   margin-right: auto;
   overflow: hidden;
   background: transparent;
@@ -622,12 +651,11 @@
 
 @media (max-width: 359px) {
   .superclub-pc {
-    --pc-col-shift: -36px;
+    --pc-col-shift: 0px;
     --pc-fan-w: min(502.5px, 138vw);
   }
 
   .superclub-pc__fan.superclub-pc__fan--marquee {
-    margin-left: 0;
     transform: scale(0.92);
     transform-origin: 50% 100%;
   }

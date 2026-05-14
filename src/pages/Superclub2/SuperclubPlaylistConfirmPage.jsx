@@ -85,6 +85,7 @@ export default function SuperclubPlaylistConfirmPage({
   userName = 'there',
   playlistPayload = null,
   onMenuClick,
+  onBackToMcq,
   onNavigateHome,
   onNavigateToDoctors,
   onNavigateToPackages,
@@ -200,9 +201,25 @@ export default function SuperclubPlaylistConfirmPage({
     onNavigateHome?.();
   }, [onStayUpdated, onNavigateHome]);
 
+  const handleBackToMcq = useCallback(() => {
+    onBackToMcq?.();
+  }, [onBackToMcq]);
+
   return (
     <div className="superclub-pc">
       <div className="superclub-pc__top">
+        {onBackToMcq ? (
+          <button
+            type="button"
+            className="superclub-pc__back"
+            onClick={handleBackToMcq}
+            aria-label="Back to sports selection"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        ) : null}
         <Header name={userName} onMenuClick={onMenuClick} />
         <button type="button" className="superclub-pc__search" aria-label="Search">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">

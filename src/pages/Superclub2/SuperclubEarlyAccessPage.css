@@ -184,34 +184,6 @@
   padding: 3px 8px;
   font-size: 11px;
   transform: translateZ(0);
-  backface-visibility: hidden;
-}
-
-/* Traveling wave (left → right in chip order): staggered delay on one shared loop. */
-@keyframes superclub-early-chip-wave {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  20% {
-    transform: translate3d(2px, -4px, 0);
-  }
-  45% {
-    transform: translate3d(5px, -9px, 0);
-  }
-  70% {
-    transform: translate3d(2px, -4px, 0);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .superclub-early__card .nutrition-log-page__chip {
-    animation-name: superclub-early-chip-wave;
-    animation-duration: var(--superclub-chip-wave-duration, 2.75s);
-    animation-timing-function: ease-in-out;
-    animation-iteration-count: infinite;
-    animation-delay: var(--superclub-chip-wave-delay, 0s);
-  }
 }
 
 .superclub-early__card .nutrition-log-page__chip span {
@@ -227,13 +199,14 @@
   box-shadow: var(--superclub-early-selected-inset);
 }
 
-/* “Other” — Figma 4329:15387 layout */
+/* “Other” — narrower + shorter than old 296×64 tile; grows when expanded */
 .superclub-early__other-panel {
   display: flex;
-  width: 296px;
+  width: min(220px, 100%);
   max-width: 100%;
-  height: 64px;
-  padding: 4px 10px 4px 20px;
+  min-height: 34px;
+  height: auto;
+  padding: 5px 10px 5px 14px;
   box-sizing: border-box;
   flex-direction: column;
   justify-content: center;
@@ -241,15 +214,15 @@
   margin-left: auto;
   margin-right: auto;
   margin-top: 12px;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 0.5px solid #4b8d83;
   background: rgba(0, 0, 0, 0.1);
   text-align: left;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .superclub-early__other-panel--selected {
-  padding: 4px 10px 4px 20px;
+  padding: 5px 10px 6px 14px;
   border: 0.5px solid #d0d0d0;
   background: radial-gradient(50% 50% at 50% 50%, #506983 0%, rgba(45, 85, 144, 0.21) 100%);
   box-shadow: var(--superclub-early-selected-inset);
@@ -258,7 +231,7 @@
 .superclub-early__other-panel-toggle {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   flex: 0 0 auto;
   margin: 0;
@@ -270,7 +243,8 @@
   font-family: 'DM Sans', 'Lato', sans-serif;
   font-size: 12px;
   font-weight: 400;
-  line-height: 20px;
+  line-height: 18px;
+  min-height: 0;
   text-align: left;
   -webkit-tap-highlight-color: transparent;
 }
@@ -288,7 +262,7 @@
 .superclub-early__other-panel-field {
   flex: 0 1 auto;
   width: 100%;
-  margin-top: 0;
+  margin-top: 4px;
   padding-right: 0;
   min-height: 0;
 }
@@ -373,9 +347,5 @@
     width: calc((100% - 12px) / 2);
     min-width: 0;
     max-width: none;
-  }
-
-  .superclub-early__other-panel {
-    max-width: 100%;
   }
 }

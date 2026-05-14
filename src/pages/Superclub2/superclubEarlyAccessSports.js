@@ -8,6 +8,7 @@ export const SPORT_CHIPS = [
   { id: 'hyrox', label: 'Hyrox Workshop' },
   { id: 'football', label: 'Football' },
   { id: 'running', label: 'Running Clubs' },
+  { id: 'cycling', label: 'Cycling' },
   { id: 'yoga', label: 'Yoga & Meditation' },
   { id: 'badminton', label: 'Badminton' },
   { id: 'cricket', label: 'Turf Cricket' },
