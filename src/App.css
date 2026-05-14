@@ -103,6 +103,26 @@
   display: none;
 }
 
+/* Superclub2: no outer scroll — only the in-page sport grid animates */
+.app-scroll.app-scroll--superclub2-lock {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+.app-scroll.app-scroll--superclub2-lock > * {
+  min-height: 100% !important;
+  max-height: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.app-scroll.app-scroll--superclub2-lock .superclub2__search,
+.app-scroll.app-scroll--superclub2-lock .superclub2__modal-cta,
+.app-scroll.app-scroll--superclub2-lock .header__menu-btn {
+  touch-action: manipulation;
+}
+
 /* Expand tap/click target for back-arrow buttons without changing visible size. */
 button[aria-label="Go back"],
 button[aria-label^="Back"] {

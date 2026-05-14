@@ -64,9 +64,9 @@
 }
 
 .navbar2__rail {
-  /* One size for every tab so filled/unfilled assets don’t jump when selection changes */
-  --nav2-icon-box: 24px;
-  --nav2-icon-size: 22px;
+  --nav2-icon-box: 28px;
+  --nav2-icon-w: 25px;
+  --nav2-icon-h: 25px;
   display: flex;
   flex-direction: row;
   align-items: stretch;
@@ -91,21 +91,21 @@
   justify-content: center;
   align-items: center;
   gap: 3px;
-  padding: 10px 6px 6px 6px;
+  /* Same horizontal padding as active — otherwise the content box shifts when selection changes */
+  padding: 10px 12px 6px 12px;
   border-top: 2px solid transparent;
   font-family: 'DM Sans', system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
   --nav2-indicator-width: min(36px, 58%);
+  overflow: visible;
   transition:
     border-top-color 0.24s ease,
-    opacity 0.24s ease,
-    padding 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 0.24s ease;
   isolation: isolate;
 }
 
-/* Active: wider horizontal padding; indicator + spotlight fade on every slot for smooth cross-tab motion */
+/* Active: same padding as base (see .navbar2__slot) so icons don’t jump */
 .navbar2__slot--active {
-  padding: 10px 12px 6px 12px;
   border-top-color: transparent;
 }
 
@@ -173,10 +173,11 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: var(--nav2-icon-box, 24px);
-  height: var(--nav2-icon-box, 24px);
+  width: var(--nav2-icon-box, 28px);
+  height: var(--nav2-icon-box, 28px);
   position: relative;
   z-index: 2;
+  overflow: visible;
   transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -188,10 +189,8 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: var(--nav2-icon-size, 22px);
-  height: var(--nav2-icon-size, 22px);
-  max-width: 100%;
-  max-height: 100%;
+  width: var(--nav2-icon-w, 25px);
+  height: var(--nav2-icon-h, 25px);
   object-fit: contain;
   object-position: center;
   transform: translate(-50%, -50%);
@@ -199,12 +198,18 @@
   opacity: 0;
   transition:
     opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-    filter 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    filter 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.navbar2__icon--unfilled {
+  width: calc(var(--nav2-icon-w, 25px) * 0.9);
+  height: calc(var(--nav2-icon-h, 25px) * 0.9);
 }
 
 .navbar2__slot--active .navbar2__icon--filled {
   opacity: 1;
-  filter: brightness(0) invert(1);
 }
 
 .navbar2__slot--active .navbar2__icon--unfilled {

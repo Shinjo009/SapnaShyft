@@ -1,0 +1,104 @@
+/**
+ * Nutrition Log questionnaire — MCQ chip grid + “Other” field.
+ * Shared with Super Club early-access playlist (same UX as Health Assessment).
+ */
+
+.nutrition-log-page__question {
+  margin: 0;
+  width: 100%;
+  text-align: left;
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.075px;
+}
+
+.nutrition-log-page__chips {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
+}
+
+.nutrition-log-page__chip {
+  display: flex;
+  min-height: 34px;
+  padding: 4px 10px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 0.5px solid rgba(160, 170, 176, 0.5);
+  background: transparent;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+  cursor: pointer;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nutrition-log-page__chip--full {
+  grid-column: 1 / -1;
+}
+
+.nutrition-log-page__chip--selected {
+  border: 0.5px solid #d0d0d0;
+  background: radial-gradient(50% 50% at 50% 50%, #506983 0%, rgba(45, 85, 144, 0.21) 100%);
+}
+
+.nutrition-log-page__chip span {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.nutrition-log-page__other-input-wrap {
+  width: 100%;
+  margin-top: -8px;
+  border-radius: 24px;
+  border: 0.5px solid rgba(160, 170, 176, 0.5);
+  background: rgba(0, 0, 0, 0.12);
+  padding: 10px 14px;
+  box-sizing: border-box;
+}
+
+.nutrition-log-page__other-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid rgba(196, 196, 196, 0.8);
+  background: transparent;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  line-height: 20px;
+  padding: 0 0 6px;
+}
+
+.nutrition-log-page__other-input::placeholder {
+  color: rgba(196, 196, 196, 0.85);
+}
+
+.nutrition-log-page__other-input:focus {
+  outline: none;
+}
+
+.nutrition-log-page__tick {
+  width: 12px;
+  height: 12px;
+}
+
+.nutrition-log-page__chip:focus-visible,
+.nutrition-log-page__other-input:focus-visible {
+  outline: 2px solid rgba(109, 157, 214, 0.35);
+  outline-offset: 2px;
+}

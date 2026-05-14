@@ -1,3 +1,5 @@
+@import '../../styles/nutritionLogMcq.css';
+
 .health-assessment-page {
   height: 100vh;
   width: 100%;
@@ -2336,19 +2338,6 @@ background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(144, 22
   gap: 8px;
 }
 
-.nutrition-log-page__question {
-  margin: 0;
-  width: 100%;
-  text-align: left;
-  color: #fff;
-  font-family: Lato;
-  font-size: 15px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: normal;
-  letter-spacing: 0.075px;
-}
-
 .nutrition-log-page__info-btn {
   width: 14px;
   height: 14px;
@@ -2370,49 +2359,6 @@ background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(144, 22
   font-weight: 400;
   line-height: normal;
   letter-spacing: 0.06px;
-}
-
-.nutrition-log-page__chips {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 12px;
-}
-
-.nutrition-log-page__chip {
-  display: flex;
-  min-height: 34px;
-  padding: 4px 10px;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  border-radius: 24px;
-  border: 0.5px solid rgba(160, 170, 176, 0.50);
-  background: transparent;
-  color: #fff;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 24px;
-}
-
-.nutrition-log-page__chip--full {
-  grid-column: 1 / -1;
-}
-
-.nutrition-log-page__chip--selected {
-  border: 0.5px solid #D0D0D0;
-  background: radial-gradient(50% 50% at 50% 50%, #506983 0%, rgba(45, 85, 144, 0.21) 100%);
-}
-
-.nutrition-log-page__chip span {
-  color: #fff;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 24px;
 }
 
 .nutrition-log-page__text-input-wrap {
@@ -2441,41 +2387,6 @@ background: linear-gradient(118deg, rgba(124, 58, 237, 0.14) 0.01%, rgba(144, 22
   outline: none;
   border-color: rgba(208, 208, 208, 0.95);
   box-shadow: 0 0 0 2px rgba(109, 157, 214, 0.2);
-}
-
-.nutrition-log-page__other-input-wrap {
-  width: 100%;
-  margin-top: -8px;
-  border-radius: 24px;
-  border: 0.5px solid rgba(160, 170, 176, 0.5);
-  background: rgba(0, 0, 0, 0.12);
-  padding: 10px 14px;
-  box-sizing: border-box;
-}
-
-.nutrition-log-page__other-input {
-  width: 100%;
-  border: none;
-  border-bottom: 1px solid rgba(196, 196, 196, 0.8);
-  background: transparent;
-  color: #fff;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  line-height: 20px;
-  padding: 0 0 6px;
-}
-
-.nutrition-log-page__other-input::placeholder {
-  color: rgba(196, 196, 196, 0.85);
-}
-
-.nutrition-log-page__other-input:focus {
-  outline: none;
-}
-
-.nutrition-log-page__tick {
-  width: 12px;
-  height: 12px;
 }
 
 .nutrition-log-page__stack-card {
