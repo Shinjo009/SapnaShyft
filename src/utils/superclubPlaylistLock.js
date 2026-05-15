@@ -5,7 +5,7 @@ const PAYLOAD_KEY = 'ss_superclub_playlist_payload';
  * Temporary: allow Super Club landing → MCQ → confirm navigation without skipping to confirm.
  * Set to `false` before release to restore post-MCQ lock behavior.
  */
-export const SUPERCLUB_PLAYLIST_FLOW_DEV_UNLOCK = true;
+export const SUPERCLUB_PLAYLIST_FLOW_DEV_UNLOCK = false;
 
 /** Matches empty-submit default on early-access (four chips in list order). */
 export function getDefaultSuperclubPlaylistPayload() {
