@@ -280,7 +280,7 @@ export default function SuperclubPlaylistConfirmPage({
 
             <div className="superclub-pc__cta-margin">
               <button type="button" className="superclub-pc__cta" onClick={handleStay}>
-                Stay Updated
+                Spot Reserved
               </button>
             </div>
           </div>
