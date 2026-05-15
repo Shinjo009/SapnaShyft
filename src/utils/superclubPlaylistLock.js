@@ -1,6 +1,12 @@
 const LOCK_KEY = 'ss_superclub_playlist_flow_done';
 const PAYLOAD_KEY = 'ss_superclub_playlist_payload';
 
+/**
+ * Temporary: allow Super Club landing → MCQ → confirm navigation without skipping to confirm.
+ * Set to `false` before release to restore post-MCQ lock behavior.
+ */
+export const SUPERCLUB_PLAYLIST_FLOW_DEV_UNLOCK = true;
+
 /** Matches empty-submit default on early-access (four chips in list order). */
 export function getDefaultSuperclubPlaylistPayload() {
   return {
@@ -18,9 +24,11 @@ export function readSuperclubPlaylistLock() {
     return { locked: false, payload: null };
   }
   try {
-    if (window.localStorage.getItem(LOCK_KEY) !== '1') {
+    const hasLock = window.localStorage.getItem(LOCK_KEY) === '1';
+    if (!hasLock) {
       return { locked: false, payload: null };
     }
+
     let payload = null;
     const raw = window.localStorage.getItem(PAYLOAD_KEY);
     if (raw) {
@@ -33,13 +41,19 @@ export function readSuperclubPlaylistLock() {
     if (!payload || typeof payload !== 'object' || !Array.isArray(payload.sportIds)) {
       payload = getDefaultSuperclubPlaylistPayload();
     }
+    const normalizedPayload = {
+      sportIds: payload.sportIds,
+      otherSelected: Boolean(payload.otherSelected),
+      otherNote: String(payload.otherNote || '').trim(),
+    };
+
+    if (SUPERCLUB_PLAYLIST_FLOW_DEV_UNLOCK) {
+      return { locked: false, payload: normalizedPayload };
+    }
+
     return {
       locked: true,
-      payload: {
-        sportIds: payload.sportIds,
-        otherSelected: Boolean(payload.otherSelected),
-        otherNote: String(payload.otherNote || '').trim(),
-      },
+      payload: normalizedPayload,
     };
   } catch {
     return { locked: false, payload: null };

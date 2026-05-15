@@ -1320,8 +1320,6 @@ function App() {
     && hasRenderableOverviewData(preloadedHomeData);
   const canDirectInstallPwa = Boolean(deferredPrompt) && !isIosInstallFlow;
 
-  const superclubPlaylistFlowLocked = readSuperclubPlaylistLock().locked;
-
   if (isBootstrappingSession) {
     return (
       <div className="app-root">
@@ -1570,13 +1568,9 @@ function App() {
           onStayUpdated={() => {
             setCurrentPage('home');
           }}
-          onBackToMcq={
-            superclubPlaylistFlowLocked
-              ? undefined
-              : () => {
-                  setCurrentPage('super-club-early-access');
-                }
-          }
+          onBackToMcq={() => {
+            setCurrentPage('super-club-early-access');
+          }}
         />
       )}
 

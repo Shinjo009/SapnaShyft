@@ -199,7 +199,7 @@
   box-shadow: var(--superclub-early-selected-inset);
 }
 
-/* “Other” — narrower + shorter than old 296×64 tile; grows when expanded */
+/* “Other” — unselected: compact row (pre-Figma); selected: 296×64 Figma tile */
 .superclub-early__other-panel {
   display: flex;
   width: min(220px, 100%);
@@ -222,10 +222,15 @@
 }
 
 .superclub-early__other-panel--selected {
-  padding: 5px 10px 6px 14px;
+  width: 296px;
+  height: 64px;
+  min-height: 64px;
+  padding: 4px 10px 4px 20px;
+  border-radius: 12px;
   border: 0.5px solid #d0d0d0;
   background: radial-gradient(50% 50% at 50% 50%, #506983 0%, rgba(45, 85, 144, 0.21) 100%);
   box-shadow: var(--superclub-early-selected-inset);
+  overflow: hidden;
 }
 
 .superclub-early__other-panel-toggle {
@@ -249,6 +254,11 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+.superclub-early__other-panel--selected .superclub-early__other-panel-toggle {
+  font-size: 11px;
+  line-height: 20px;
+}
+
 .superclub-early__other-panel--selected .superclub-early__other-panel-label {
   font-weight: 600;
 }
@@ -259,10 +269,10 @@
   border-radius: 4px;
 }
 
-.superclub-early__other-panel-field {
+.superclub-early__other-panel--selected .superclub-early__other-panel-field {
   flex: 0 1 auto;
   width: 100%;
-  margin-top: 4px;
+  margin-top: 0;
   padding-right: 0;
   min-height: 0;
 }
@@ -275,6 +285,10 @@
   line-height: 14px;
   color: #9a9a9a;
   font-variation-settings: 'opsz' 14;
+}
+
+.superclub-early__other-panel--selected .superclub-early__other-panel-hint {
+  line-height: 12px;
 }
 
 .superclub-early__other-panel-input {
@@ -291,6 +305,12 @@
   line-height: 16px;
   outline: none;
   box-sizing: border-box;
+}
+
+.superclub-early__other-panel--selected .superclub-early__other-panel-input {
+  font-size: 10px;
+  line-height: 14px;
+  padding: 0 0 1px;
 }
 
 .superclub-early__other-panel-input:focus {
