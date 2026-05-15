@@ -693,6 +693,25 @@
   }
 }
 
+/* Phone / mobile frame: arc peaks clip without extra top inset */
+@media (max-width: 480px) {
+  .superclub-pc__fan-wrap {
+    margin-top: 18px;
+    padding-top: 20px;
+    box-sizing: border-box;
+  }
+
+  .superclub-pc__lines {
+    top: 20px;
+    height: calc(100% - 20px);
+    min-height: calc(var(--pc-fan-h) + 14px);
+  }
+
+  .superclub-pc__fan.superclub-pc__fan--marquee {
+    margin-top: 6px;
+  }
+}
+
 /* Wider than phone frame (PC / desktop browser): room for arc peaks above the card fan */
 @media (min-width: 481px) {
   .superclub-pc__fan-wrap {
