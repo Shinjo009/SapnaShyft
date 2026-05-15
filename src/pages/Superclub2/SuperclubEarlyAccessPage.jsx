@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Header from '../../components/HomePage/Header';
 import NavBar from '../../components/NavBar';
 import tickIcon from '../../images/ques-tick.svg';
@@ -9,8 +9,21 @@ import { SPORT_CHIPS } from './superclubEarlyAccessSports';
 /** When Done with no picks, playlist confirm still needs up to four tiles — use first N in chip order. */
 const DEFAULT_SPORT_COUNT = 4;
 
+function stateFromPayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return { selected: new Set(), otherNote: '' };
+  }
+  const selected = new Set(Array.isArray(payload.sportIds) ? payload.sportIds : []);
+  const otherNote = String(payload.otherNote || '');
+  if (payload.otherSelected || otherNote.trim()) {
+    selected.add('other');
+  }
+  return { selected, otherNote };
+}
+
 export default function SuperclubEarlyAccessPage({
   userName = 'there',
+  initialPayload = null,
   onMenuClick,
   onNavigateHome,
   onNavigateToDoctors,
@@ -18,8 +31,13 @@ export default function SuperclubEarlyAccessPage({
   onNavigateToSuperClub,
   onDone,
 }) {
-  const [selected, setSelected] = useState(() => new Set());
-  const [otherNote, setOtherNote] = useState('');
+  const [selected, setSelected] = useState(() => stateFromPayload(initialPayload).selected);
+  const [otherNote, setOtherNote] = useState(() => stateFromPayload(initialPayload).otherNote);
+  const otherNoteRef = useRef(otherNote);
+
+  useEffect(() => {
+    otherNoteRef.current = otherNote;
+  }, [otherNote]);
 
   const toggle = useCallback((id) => {
     setSelected((prev) => {
@@ -61,23 +79,38 @@ export default function SuperclubEarlyAccessPage({
     []
   );
 
+  const handleOtherNoteChange = useCallback((e) => {
+    const value = e.target.value;
+    otherNoteRef.current = value;
+    setOtherNote(value);
+    if (value.trim()) {
+      setSelected((prev) => {
+        if (prev.has('other')) {
+          return prev;
+        }
+        const next = new Set(prev);
+        next.add('other');
+        return next;
+      });
+    }
+  }, []);
+
   const handleDone = useCallback(() => {
+    const resolvedOtherNote = otherNoteRef.current.trim();
     let sportIds = [...selected].filter((id) => id !== 'other');
-    let resolvedOtherSelected = otherSelected;
-    let resolvedOtherNote = otherNote.trim();
+    let resolvedOtherSelected = selected.has('other') || resolvedOtherNote.length > 0;
 
     if (sportIds.length === 0 && !resolvedOtherSelected) {
       sportIds = defaultSportIdsIfEmpty;
       resolvedOtherSelected = false;
-      resolvedOtherNote = '';
     }
 
     onDone?.({
       sportIds,
       otherSelected: resolvedOtherSelected,
-      otherNote: resolvedOtherNote,
+      otherNote: resolvedOtherSelected ? resolvedOtherNote : '',
     });
-  }, [defaultSportIdsIfEmpty, onDone, otherNote, otherSelected, selected]);
+  }, [defaultSportIdsIfEmpty, onDone, selected]);
 
   return (
     <div className="superclub-early">
@@ -146,7 +179,8 @@ export default function SuperclubEarlyAccessPage({
                     type="text"
                     className="superclub-early__other-panel-input"
                     value={otherNote}
-                    onChange={(e) => setOtherNote(e.target.value)}
+                    onChange={handleOtherNoteChange}
+                    onClick={(e) => e.stopPropagation()}
                     placeholder=""
                     autoComplete="off"
                   />

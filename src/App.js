@@ -1319,7 +1319,6 @@ function App() {
   const isTooltipEligibleHome = Boolean(tooltipTourAccountId != null)
     && hasRenderableOverviewData(preloadedHomeData);
   const canDirectInstallPwa = Boolean(deferredPrompt) && !isIosInstallFlow;
-  const superclubPlaylistFlowLocked = readSuperclubPlaylistLock().locked;
 
   if (isBootstrappingSession) {
     return (
@@ -1527,6 +1526,7 @@ function App() {
       {currentPage === 'super-club-early-access' && (
         <SuperclubEarlyAccessPage
           userName={userName}
+          initialPayload={superclubPlaylistPayload}
           onMenuClick={() => {
             setCurrentPage('profile');
           }}
@@ -1569,13 +1569,9 @@ function App() {
           onStayUpdated={() => {
             setCurrentPage('home');
           }}
-          onBackToMcq={
-            superclubPlaylistFlowLocked
-              ? undefined
-              : () => {
-                  setCurrentPage('super-club-early-access');
-                }
-          }
+          onBackToMcq={() => {
+            setCurrentPage('super-club-early-access');
+          }}
         />
       )}
 
