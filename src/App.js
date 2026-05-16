@@ -295,10 +295,10 @@ function App() {
     setCurrentPage('super-club-early-access');
   }, []);
 
-  /* After MCQ → playlist confirm, keep user on confirm (disabled while DEV_UNLOCK). */
+  /* After MCQ → playlist confirm, keep user on confirm (skipped when DEV_UNLOCK). */
   useEffect(() => {
     if (SUPERCLUB_PLAYLIST_FLOW_DEV_UNLOCK) {
-      return;
+      return undefined;
     }
     const { locked, payload } = readSuperclubPlaylistLock();
     if (!locked || !payload) {
@@ -382,6 +382,18 @@ function App() {
       const targetPage = pageHistoryRef.current.pop();
       if (!targetPage || targetPage === currentPage) {
         continue;
+      }
+
+      const { locked, payload } = readSuperclubPlaylistLock();
+      if (
+        locked &&
+        payload &&
+        (targetPage === 'super-club' || targetPage === 'super-club-early-access')
+      ) {
+        skipHistoryForNextPageRef.current = true;
+        setSuperclubPlaylistPayload(payload);
+        setCurrentPage('super-club-playlist-confirm');
+        return true;
       }
 
       skipHistoryForNextPageRef.current = true;
