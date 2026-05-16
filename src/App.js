@@ -4,7 +4,10 @@ import SplashScreen from './pages/SplashScreen';
 import LoginPage from './pages/LoginPage';
 import { getSuperClubLikedSportIds } from './pages/SuperClubPage/superClubStorage';
 import { getSuperClubSportsByIds } from './pages/SuperClubPage/superClubSportImages';
-import { SUPERCLUB_V1_SCREENS_ENABLED } from './utils/superclubPlaylistLock';
+import {
+  SUPERCLUB_PLAYLIST_FLOW_DEV_UNLOCK,
+  SUPERCLUB_V1_SCREENS_ENABLED,
+} from './utils/superclubPlaylistLock';
 import { sendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
 import { createUser, getMyProfiles, invalidateMyProfilesCache } from './services/usersService';
 import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
@@ -292,8 +295,11 @@ function App() {
     setCurrentPage('super-club-early-access');
   }, []);
 
-  /* After MCQ → playlist confirm, keep user on confirm (no landing / early-access). */
+  /* After MCQ → playlist confirm, keep user on confirm (disabled while DEV_UNLOCK). */
   useEffect(() => {
+    if (SUPERCLUB_PLAYLIST_FLOW_DEV_UNLOCK) {
+      return;
+    }
     const { locked, payload } = readSuperclubPlaylistLock();
     if (!locked || !payload) {
       return;

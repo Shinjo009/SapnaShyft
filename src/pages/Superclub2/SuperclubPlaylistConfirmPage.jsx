@@ -12,30 +12,33 @@ import line363 from '../../images/Superclub2/Line 363.svg';
 import bookmarkIcon from '../../images/Superclub2/playlist-tile-bookmark.svg';
 import './SuperclubPlaylistConfirmPage.css';
 
-/** Figma 4558:17391 — tile sizes 159.5×159.5; `left` keeps fan overlap; one shared `top` so wave crest/trough align on screen. */
+/** Figma 4558:17391 — 159.5×159.5 tiles; uniform fan overlap; shared `top` for wave alignment. */
 const FAN_SLOT_TOP_PX = 35;
-const FAN_SLOTS = [
-  { slot: 'tile5', left: 321.05, top: FAN_SLOT_TOP_PX, z: 1, shell: 't5' },
-  { slot: 'tile10', left: -21.95, top: FAN_SLOT_TOP_PX, z: 2, shell: 't10' },
-  { slot: 'tile2', left: 89.05, top: FAN_SLOT_TOP_PX, z: 3, shell: 't2' },
-  { slot: 'tile7', left: 208.05, top: FAN_SLOT_TOP_PX, z: 4, shell: 't7' },
-];
+/** Visible width of each card before the next stacks on top (~32% overlap, same for every pair). */
+const FAN_VISIBLE_STRIP_PX = 108;
+const FAN_OVERLAP_STEP_PX = FAN_VISIBLE_STRIP_PX;
+const FAN_ORIGIN_X_PX = 16;
+/** One marquee period = 4 strips so slab B card0 meets slab A card3 with the same overlap. */
+const FAN_MARQUEE_PERIOD_PX = FAN_OVERLAP_STEP_PX * 4;
 
-const SLOT_ORDER = ['tile5', 'tile10', 'tile2', 'tile7'];
+const FAN_SLOT_SHELLS = ['t10', 't2', 't7', 't5'];
+
+const FAN_SLOTS = FAN_SLOT_SHELLS.map((shell, i) => ({
+  slot: `c${i}`,
+  left: FAN_ORIGIN_X_PX + i * FAN_OVERLAP_STEP_PX,
+  top: FAN_SLOT_TOP_PX,
+  z: i + 1,
+  shell,
+}));
+
+const SLOT_ORDER = FAN_SLOTS.map((s) => s.slot);
 
 const SLOT_LEFT_PX = Object.fromEntries(FAN_SLOTS.map((s) => [s.slot, s.left]));
 
 function cardForSlot(slotId, cards) {
-  const n = cards.length;
-  if (n <= 0) return null;
-  const slotCount = SLOT_ORDER.length;
   const idx = SLOT_ORDER.indexOf(slotId);
-  if (n > slotCount) {
-    return idx >= 0 && idx < slotCount ? cards[idx] : null;
-  }
-  const firstIdx = slotCount - n;
-  if (idx < firstIdx) return null;
-  return cards[idx - firstIdx];
+  if (idx < 0 || idx >= cards.length) return null;
+  return cards[idx];
 }
 
 function parseMarqueeDurationMs(cssValue) {
@@ -123,7 +126,7 @@ export default function SuperclubPlaylistConfirmPage({
     const lanePxFromCss = () => {
       const raw = getComputedStyle(root).getPropertyValue('--pc-fan-w').trim();
       const n = parseFloat(raw);
-      return Number.isFinite(n) && n > 0 ? n : 502.5;
+      return Number.isFinite(n) && n > 0 ? n : FAN_MARQUEE_PERIOD_PX;
     };
 
     let rafId = 0;
@@ -219,16 +222,6 @@ export default function SuperclubPlaylistConfirmPage({
     <div className="superclub-pc">
       <div className="superclub-pc__top">
         <Header name={userName} onMenuClick={onMenuClick} showGreeting={false} />
-        <button type="button" className="superclub-pc__search" aria-label="Search">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M10.5 18C14.6421 18 18 14.6421 18 10.5C18 6.35786 14.6421 3 10.5 3C6.35786 3 3 6.35786 3 10.5C3 14.6421 6.35786 18 10.5 18Z"
-              stroke="white"
-              strokeWidth="1.75"
-            />
-            <path d="M16 16L21 21" stroke="white" strokeWidth="1.75" strokeLinecap="round" />
-          </svg>
-        </button>
       </div>
 
       <main className="superclub-pc__main">
@@ -251,7 +244,14 @@ export default function SuperclubPlaylistConfirmPage({
                     <img src={line368} alt="" className="superclub-pc__fan-line superclub-pc__fan-line--368" draggable={false} />
                     <img src={line363} alt="" className="superclub-pc__fan-line superclub-pc__fan-line--363" draggable={false} />
                   </div>
-                  <div ref={fanMarqueeRef} className="superclub-pc__fan superclub-pc__fan--marquee">
+                  <div
+                    ref={fanMarqueeRef}
+                    className="superclub-pc__fan superclub-pc__fan--marquee"
+                    style={{
+                      '--pc-fan-w': `${FAN_MARQUEE_PERIOD_PX}px`,
+                      '--pc-fan-strip': `${FAN_VISIBLE_STRIP_PX}px`,
+                    }}
+                  >
                     <div ref={fanTrackRef} className="superclub-pc__fan-marquee-inner">
                       <div className="superclub-pc__fan-slab" role="list" aria-label="Your selected sports">
                         {playlistFanTiles(cards, 'a', true)}
