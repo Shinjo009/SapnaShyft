@@ -23,6 +23,13 @@ import ferritinIcon from '../../images/Ferritin.svg';
 import homaIcon from '../../images/HOMA.svg';
 import insulinIcon from '../../images/Insulin.svg';
 import urineIcon from '../../images/Urine.svg';
+import breastIcon from '../../images/Breast_HAC.svg';
+import ovarianIcon from '../../images/Ovarian_HAC.svg';
+import prostateIcon from '../../images/Prostate_HAC.svg';
+import colorectalIcon from '../../images/Colorectal_HAC.svg';
+import pancreaticIcon from '../../images/Pancreatic_HAC.svg';
+import stomatchIcon from '../../images/Stomach_HAC.svg';
+import afpIcon from '../../images/AFP_HAC.svg';
 
 const ORGAN_ICON_KEYWORDS = [
   ['haematology', haematologyIcon],
@@ -53,6 +60,13 @@ const ORGAN_ICON_KEYWORDS = [
   ['homa', homaIcon],
   ['insulin', insulinIcon],
   ['urine', urineIcon],
+  ['breast', breastIcon],
+  ['ovarian', ovarianIcon],
+  ['prostate', prostateIcon],
+  ['colorectal', colorectalIcon],
+  ['pancreatic', pancreaticIcon],
+  ['stomach', stomatchIcon],
+  ['afp', afpIcon],
 ];
 
 const getCategoryIcon = (name) => {
