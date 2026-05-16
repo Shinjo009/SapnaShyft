@@ -1117,20 +1117,6 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
         <h1 className="blood-marker-detail__title">{detail.title}</h1>
       </header>
 
-      {shouldWaitForDiagnosticData && isDiagnosticLoading ? (
-        <p className="blood-marker-detail__description">Loading marker details...</p>
-      ) : (
-        <button
-          type="button"
-          className={`blood-marker-detail__description-toggle${isDescriptionExpanded ? ' is-expanded' : ''}`}
-          onClick={() => setIsDescriptionExpanded((prev) => !prev)}
-          aria-expanded={isDescriptionExpanded}
-          aria-label={isDescriptionExpanded ? 'Collapse marker description' : 'Expand marker description'}
-        >
-          <span className="blood-marker-detail__description">{detail.description}</span>
-        </button>
-      )}
-
       <section className="blood-marker-detail__scale-section" aria-label="Blood marker range scale">
         <div className="blood-marker-detail__risk-strip" ref={riskStripRef}>
           <div className="blood-marker-detail__risk-scale-shell" style={{ width: `${dotsTrackWidth}px` }}>
@@ -1205,6 +1191,22 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
             <span>{riskText}</span>
           </div>
         </div>
+      </section>
+
+      <section className="blood-marker-detail__description-section">
+        {shouldWaitForDiagnosticData && isDiagnosticLoading ? (
+        <p className="blood-marker-detail__description">Loading marker details...</p>
+      ) : (
+        <button
+          type="button"
+          className={`blood-marker-detail__description-toggle${isDescriptionExpanded ? ' is-expanded' : ''}`}
+          onClick={() => setIsDescriptionExpanded((prev) => !prev)}
+          aria-expanded={isDescriptionExpanded}
+          aria-label={isDescriptionExpanded ? 'Collapse marker description' : 'Expand marker description'}
+        >
+          <span className="blood-marker-detail__description">{detail.description}</span>
+        </button>
+      )}
       </section>
 
       <section className="blood-marker-detail__info-section">

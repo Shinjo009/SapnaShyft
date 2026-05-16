@@ -99,11 +99,11 @@
   line-clamp: 2;
   -webkit-box-orient: vertical;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: 18px;
-  margin: 0;
+  margin-top: 10px;
 }
 
 .disease-detail-description.expanded {

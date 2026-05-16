@@ -480,18 +480,6 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
 
           <h1 className="disease-detail-title">{title}</h1>
         </div>
-
-        <button
-          type="button"
-          className="disease-detail-description-toggle"
-          onClick={() => setIsDescriptionExpanded((prev) => !prev)}
-          aria-expanded={isDescriptionExpanded}
-          aria-label="Toggle full description"
-        >
-          <p className={`disease-detail-description ${isDescriptionExpanded ? 'expanded' : ''}`}>
-            {detailTopLine}
-          </p>
-        </button>
       </div>
 
       <div className={`disease-detail-content${activeInfoPopup ? ' disease-detail-content--blurred' : ''}`}>
@@ -655,6 +643,20 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
           <span className="disease-detail-health-rank-score-value" style={{ color: healthRankDisplayColor }}>{healthRankScoreLabel}</span>
           <span className="disease-detail-health-rank-score-max">/100</span>
         </div>
+      </section>
+
+      <section className="disease-detail-description-section">
+        <button
+          type="button"
+          className="disease-detail-description-toggle"
+          onClick={() => setIsDescriptionExpanded((prev) => !prev)}
+          aria-expanded={isDescriptionExpanded}
+          aria-label="Toggle full description"
+        >
+          <p className={`disease-detail-description ${isDescriptionExpanded ? 'expanded' : ''}`}>
+            {detailTopLine}
+          </p>
+        </button>
       </section>
 
       <section className="disease-detail-info-section">

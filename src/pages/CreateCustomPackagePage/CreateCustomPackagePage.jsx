@@ -19,6 +19,10 @@ import sleepIcon from '../../images/Sleep.svg';
 import hormonesIcon from '../../images/Hormones.svg';
 import allergiesIcon from '../../images/Allergies_HAC.svg';
 import cardiacIcon from '../../images/Cardiac-RA.svg';
+import ferritinIcon from '../../images/Ferritin.svg';
+import homaIcon from '../../images/HOMA.svg';
+import insulinIcon from '../../images/Insulin.svg';
+import urineIcon from '../../images/Urine.svg';
 
 const ORGAN_ICON_KEYWORDS = [
   ['haematology', haematologyIcon],
@@ -32,7 +36,7 @@ const ORGAN_ICON_KEYWORDS = [
   ['lipid', lipidIcon],
   ['cholesterol', lipidIcon],
   ['iron', ironIcon],
-  ['ferritin', ironIcon],
+  ['ferritin', ferritinIcon],
   ['thyroid', thyroidIcon],
   ['diabetes', diabetesIcon],
   ['hba1c', diabetesIcon],
@@ -46,6 +50,9 @@ const ORGAN_ICON_KEYWORDS = [
   ['allerg', allergiesIcon],
   ['cardiac', cardiacIcon],
   ['heart', cardiacIcon],
+  ['homa', homaIcon],
+  ['insulin', insulinIcon],
+  ['urine', urineIcon],
 ];
 
 const getCategoryIcon = (name) => {
