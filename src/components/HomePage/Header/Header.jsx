@@ -7,8 +7,9 @@ import './Header.css';
  * Props:
  * - name: User name to display in greeting
  * - onMenuClick: Callback when profile/menu control is clicked
+ * - showGreeting: When false, only the menu control is shown (Superclub screens).
  */
-const Header = ({ name = 'User', onMenuClick }) => {
+const Header = ({ name = 'User', onMenuClick, showGreeting = true }) => {
   return (
     <header className="header">
       <div className="header__container">
@@ -25,8 +26,7 @@ const Header = ({ name = 'User', onMenuClick }) => {
           </svg>
         </button>
 
-        {/* Greeting Text */}
-        <h1 className="header__greeting">Hello {name}!</h1>
+        {showGreeting ? <h1 className="header__greeting">Hello {name}!</h1> : null}
 
         <span className="header__side-spacer" aria-hidden="true" />
       </div>

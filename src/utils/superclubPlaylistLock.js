@@ -7,6 +7,12 @@ const PAYLOAD_KEY = 'ss_superclub_playlist_payload';
  */
 export const SUPERCLUB_PLAYLIST_FLOW_DEV_UNLOCK = false;
 
+/**
+ * Temporary: mount Super Club v1 routes (swipe, playlist, results) for QA.
+ * Set to `false` before release.
+ */
+export const SUPERCLUB_V1_SCREENS_ENABLED = true;
+
 /** Matches empty-submit default on early-access (four chips in list order). */
 export function getDefaultSuperclubPlaylistPayload() {
   return {

@@ -86,7 +86,7 @@ export default function SuperClubPage2({
       <div className="super-club-page__glow super-club-page__glow--br" aria-hidden="true" />
 
       <div className="super-club-page__header-wrap">
-        <Header name={userName} onMenuClick={onMenuClick} />
+        <Header name={userName} onMenuClick={onMenuClick} showGreeting={false} />
       </div>
 
       <main className="super-club-page__main">

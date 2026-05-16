@@ -26,10 +26,14 @@ const SLOT_ORDER = ['tile5', 'tile10', 'tile2', 'tile7'];
 const SLOT_LEFT_PX = Object.fromEntries(FAN_SLOTS.map((s) => [s.slot, s.left]));
 
 function cardForSlot(slotId, cards) {
-  const n = Math.min(cards.length, 4);
+  const n = cards.length;
   if (n <= 0) return null;
-  const firstIdx = 4 - n;
+  const slotCount = SLOT_ORDER.length;
   const idx = SLOT_ORDER.indexOf(slotId);
+  if (n > slotCount) {
+    return idx >= 0 && idx < slotCount ? cards[idx] : null;
+  }
+  const firstIdx = slotCount - n;
   if (idx < firstIdx) return null;
   return cards[idx - firstIdx];
 }
@@ -53,7 +57,7 @@ function playlistFanTiles(cards, idSuffix, listItem) {
         data-pc-slot={slot}
         data-pc-slab={idSuffix}
         data-pc-card={card.id}
-        className={`superclub-pc__tile superclub-pc__tile--${shell}${card.id === 'other' ? ' superclub-pc__tile--custom' : ''}`}
+        className={`superclub-pc__tile superclub-pc__tile--${shell}${card.id === 'other' ? ' superclub-pc__tile--custom' : ''}${card.userSelected === false ? ' superclub-pc__tile--faded' : ''}`}
         style={{ left, top, zIndex: z }}
         role={listItem ? 'listitem' : undefined}
       >
@@ -90,7 +94,6 @@ export default function SuperclubPlaylistConfirmPage({
   userName = 'there',
   playlistPayload = null,
   onMenuClick,
-  onBackToMcq,
   onNavigateHome,
   onNavigateToDoctors,
   onNavigateToPackages,
@@ -212,26 +215,10 @@ export default function SuperclubPlaylistConfirmPage({
     onNavigateHome?.();
   }, [onStayUpdated, onNavigateHome]);
 
-  const handleBackToMcq = useCallback(() => {
-    onBackToMcq?.();
-  }, [onBackToMcq]);
-
   return (
     <div className="superclub-pc">
       <div className="superclub-pc__top">
-        {onBackToMcq ? (
-          <button
-            type="button"
-            className="superclub-pc__back"
-            onClick={handleBackToMcq}
-            aria-label="Back to sports selection"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        ) : null}
-        <Header name={userName} onMenuClick={onMenuClick} />
+        <Header name={userName} onMenuClick={onMenuClick} showGreeting={false} />
         <button type="button" className="superclub-pc__search" aria-label="Search">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path

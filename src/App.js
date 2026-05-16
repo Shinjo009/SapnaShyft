@@ -2,9 +2,9 @@ import './App.css';
 import { useState, useEffect, useRef, Suspense, lazy, useCallback, useMemo } from 'react';
 import SplashScreen from './pages/SplashScreen';
 import LoginPage from './pages/LoginPage';
-// Previous Super Club v1 (swipe + results + storage) — retired; Superclub2 only.
-// import { getSuperClubLikedSportIds } from './pages/SuperClubPage/superClubStorage';
-// import { getSuperClubSportsByIds } from './pages/SuperClubPage/superClubSportImages';
+import { getSuperClubLikedSportIds } from './pages/SuperClubPage/superClubStorage';
+import { getSuperClubSportsByIds } from './pages/SuperClubPage/superClubSportImages';
+import { SUPERCLUB_V1_SCREENS_ENABLED } from './utils/superclubPlaylistLock';
 import { sendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
 import { createUser, getMyProfiles, invalidateMyProfilesCache } from './services/usersService';
 import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
@@ -88,12 +88,12 @@ const AccountSelectionPage = lazy(() => import('./pages/AccountSelectionPage'));
 const DoctorsPage = lazy(() => import('./pages/DoctorsPage'));
 const ExpertDetailsPage = lazy(() => import('./pages/ExpertDetailsPage'));
 const IntegratedHealthProgramPage = lazy(() => import('./pages/IntegratedHealthProgramPage'));
-// const SuperClubPage = lazy(() => import('./pages/SuperClubPage/SuperClubPage'));
-// const SuperClubPlaylistPage = lazy(() => import('./pages/SuperClubPage/SuperClubPlaylistPage'));
+const SuperClubPage = lazy(() => import('./pages/SuperClubPage/SuperClubPage'));
+const SuperClubPlaylistPage = lazy(() => import('./pages/SuperClubPage/SuperClubPlaylistPage'));
 const Superclub2Page = lazy(() => import('./pages/Superclub2/Superclub2Page'));
 const SuperclubEarlyAccessPage = lazy(() => import('./pages/Superclub2/SuperclubEarlyAccessPage'));
 const SuperclubPlaylistConfirmPage = lazy(() => import('./pages/Superclub2/SuperclubPlaylistConfirmPage'));
-// const SuperClubPage2 = lazy(() => import('./pages/SuperClubPage/SuperClubPage2'));
+const SuperClubPage2 = lazy(() => import('./pages/SuperClubPage/SuperClubPage2'));
 const DiseaseRiskAnalysisPage = lazy(() => import('./pages/DiseaseRiskAnalysisPage'));
 const DiseaseDetailPage = lazy(() => import('./pages/DiseaseDetailPage'));
 
@@ -231,11 +231,11 @@ function App() {
   const [canSwipeBack, setCanSwipeBack] = useState(false);
   const [preloadedHomeData, setPreloadedHomeData] = useState(null);
   const [forceHomeApiRefresh, setForceHomeApiRefresh] = useState(false);
-  // const [superClubLikedSportIds, setSuperClubLikedSportIds] = useState(() => getSuperClubLikedSportIds());
-  // const handleSuperClubOnboardingComplete = useCallback((likedIds) => {
-  //   setSuperClubLikedSportIds(Array.isArray(likedIds) ? likedIds : []);
-  //   setCurrentPage('super-club-2');
-  // }, []);
+  const [superClubLikedSportIds, setSuperClubLikedSportIds] = useState(() => getSuperClubLikedSportIds());
+  const handleSuperClubOnboardingComplete = useCallback((likedIds) => {
+    setSuperClubLikedSportIds(Array.isArray(likedIds) ? likedIds : []);
+    setCurrentPage('super-club-2');
+  }, []);
   const handleNavigateToBloodMarkerDetail = useCallback((row) => {
     setBloodMarkerDetailFromHome(row);
     setCurrentPage('blood-markers');
@@ -291,6 +291,18 @@ function App() {
     setSuperclubPlaylistPayload(null);
     setCurrentPage('super-club-early-access');
   }, []);
+
+  /* After MCQ → playlist confirm, keep user on confirm (no landing / early-access). */
+  useEffect(() => {
+    const { locked, payload } = readSuperclubPlaylistLock();
+    if (!locked || !payload) {
+      return;
+    }
+    if (currentPage === 'super-club' || currentPage === 'super-club-early-access') {
+      setSuperclubPlaylistPayload(payload);
+      setCurrentPage('super-club-playlist-confirm');
+    }
+  }, [currentPage]);
 
   const isSwipeBackAllowedPage = useCallback((page) => !SWIPE_BACK_BLOCKED_PAGES.has(page), []);
 
@@ -1319,8 +1331,6 @@ function App() {
   const isTooltipEligibleHome = Boolean(tooltipTourAccountId != null)
     && hasRenderableOverviewData(preloadedHomeData);
   const canDirectInstallPwa = Boolean(deferredPrompt) && !isIosInstallFlow;
-  const superclubPlaylistFlowLocked = readSuperclubPlaylistLock().locked;
-
   if (isBootstrappingSession) {
     return (
       <div className="app-root">
@@ -1570,41 +1580,10 @@ function App() {
           onStayUpdated={() => {
             setCurrentPage('home');
           }}
-          onBackToMcq={
-            superclubPlaylistFlowLocked
-              ? undefined
-              : () => {
-                  setCurrentPage('super-club-early-access');
-                }
-          }
         />
       )}
 
-      {/* ===== Previous Super Club screens (retired — only Superclub2Page is active at `super-club`) =====
-      Playlist (was same route id `super-club`):
-      {currentPage === 'super-club' && (
-        <Superclub2Page
-          userName={userName}
-          onMenuClick={() => {
-            setCurrentPage('profile');
-          }}
-          onNavigateHome={() => {
-            setCurrentPage('home');
-          }}
-          onNavigateToDoctors={() => {
-            setCurrentPage('doctors');
-          }}
-          onNavigateToPackages={() => {
-            setCurrentPage('packages');
-          }}
-          onJoinEarlyAccess={() => {
-            setCurrentPage('super-club-swipe');
-          }}
-        />
-      )}
-
-      Swipe onboarding (`super-club-swipe`) + results (`super-club-2`):
-      {currentPage === 'super-club-swipe' && (
+      {SUPERCLUB_V1_SCREENS_ENABLED && currentPage === 'super-club-swipe' && (
         <SuperClubPage
           userName={userName}
           onMenuClick={() => {
@@ -1623,7 +1602,28 @@ function App() {
         />
       )}
 
-      {currentPage === 'super-club-2' && (
+      {SUPERCLUB_V1_SCREENS_ENABLED && currentPage === 'super-club-v1-playlist' && (
+        <SuperClubPlaylistPage
+          userName={userName}
+          onMenuClick={() => {
+            setCurrentPage('profile');
+          }}
+          onNavigateHome={() => {
+            setCurrentPage('home');
+          }}
+          onNavigateToDoctors={() => {
+            setCurrentPage('doctors');
+          }}
+          onNavigateToPackages={() => {
+            setCurrentPage('packages');
+          }}
+          onJoinEarly={() => {
+            setCurrentPage('super-club');
+          }}
+        />
+      )}
+
+      {SUPERCLUB_V1_SCREENS_ENABLED && currentPage === 'super-club-2' && (
         <SuperClubPage2
           userName={userName}
           likedSports={getSuperClubSportsByIds(superClubLikedSportIds)}
@@ -1639,13 +1639,13 @@ function App() {
           onNavigateToPackages={() => {
             setCurrentPage('packages');
           }}
+          onNavigateToSuperClub={navigateToSuperClubFlow}
           onStayUpdated={() => {
             setCurrentPage('home');
           }}
           onSelectSport={() => {}}
         />
       )}
-      */}
 
       {currentPage === 'packages' && (
         <PackagesPage

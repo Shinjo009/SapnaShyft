@@ -221,7 +221,7 @@ export default function Superclub2Page({
       </div>
 
       <div className="superclub2__top">
-        <Header name={userName} onMenuClick={onMenuClick} />
+        <Header name={userName} onMenuClick={onMenuClick} showGreeting={false} />
         <button type="button" className="superclub2__search" aria-label="Search">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path
