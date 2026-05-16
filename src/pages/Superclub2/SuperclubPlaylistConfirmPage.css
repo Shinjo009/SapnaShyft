@@ -129,12 +129,12 @@
 
 .superclub-pc__fan-wrap {
   position: relative;
-  width: 100%;
+  width: 100vw;
+  max-width: none;
+  margin-left: calc(50% - 50vw);
   min-height: 0;
   flex: 1;
   margin-top: 10px;
-  padding-left: 8px;
-  padding-right: 8px;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -176,13 +176,11 @@
   z-index: 1;
   box-sizing: border-box;
   width: 100%;
-  max-width: calc(var(--pc-fan-w) * 0.75 + var(--pc-tile) + 24px);
+  max-width: none;
   height: 100%;
   max-height: calc(var(--pc-fan-h) + 28px);
   min-height: 160px;
   padding: 10px 0;
-  margin-left: auto;
-  margin-right: auto;
   overflow: hidden;
   background: transparent;
   --pc-marquee-duration: 22s;
@@ -703,8 +701,6 @@
   .superclub-pc__fan.superclub-pc__fan--marquee {
     max-height: calc(var(--pc-fan-h) * 0.88 + 20px);
     padding: 6px 0;
-    transform: scale(0.94);
-    transform-origin: 50% 50%;
   }
 }
 
@@ -750,11 +746,6 @@
   .superclub-pc {
     --pc-col-shift: 0px;
     --pc-fan-w: min(432px, 138vw);
-  }
-
-  .superclub-pc__fan.superclub-pc__fan--marquee {
-    transform: scale(0.92);
-    transform-origin: 50% 100%;
   }
 
   .superclub-pc__headline {

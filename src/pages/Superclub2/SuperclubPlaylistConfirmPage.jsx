@@ -17,7 +17,7 @@ const FAN_SLOT_TOP_PX = 35;
 /** Visible width of each card before the next stacks on top (~32% overlap, same for every pair). */
 const FAN_VISIBLE_STRIP_PX = 108;
 const FAN_OVERLAP_STEP_PX = FAN_VISIBLE_STRIP_PX;
-const FAN_ORIGIN_X_PX = 16;
+const FAN_ORIGIN_X_PX = 0;
 /** One marquee period = 4 strips so slab B card0 meets slab A card3 with the same overlap. */
 const FAN_MARQUEE_PERIOD_PX = FAN_OVERLAP_STEP_PX * 4;
 
