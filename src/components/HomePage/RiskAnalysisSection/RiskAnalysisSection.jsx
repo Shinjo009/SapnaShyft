@@ -391,8 +391,6 @@ const RiskAnalysisSection = ({
   const [activeIndex, setActiveIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() => (
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 481px)').matches : false
   ));
@@ -407,8 +405,20 @@ const RiskAnalysisSection = ({
   const pendingDragXRef = useRef(0);
   const dragFrameRef = useRef(null);
   const didMoveRef = useRef(false);
-  /** True after startAnimation until we settle once (left and/or transform both fire on the front card). */
+  /** True after startAnimation until we settle once (transform fires on the front card). */
   const stackSwapAwaitingSettleRef = useRef(false);
+
+  const setStackDragging = (dragging) => {
+    if (stackRef.current) {
+      stackRef.current.dataset.dragging = dragging ? 'true' : 'false';
+    }
+  };
+
+  const setStackResetting = (resetting) => {
+    if (stackRef.current) {
+      stackRef.current.dataset.resetting = resetting ? 'true' : 'false';
+    }
+  };
 
   const commitDragOffset = (value) => {
     if (stackRef.current) {
@@ -471,7 +481,7 @@ const RiskAnalysisSection = ({
   const startAnimation = (direction) => {
     if (cardCount <= 1) return;
     stackSwapAwaitingSettleRef.current = true;
-    setIsDragging(false);
+    setStackDragging(false);
     resetDragOffset();
     setSwipeDirection(direction);
     setIsAnimating(true);
@@ -496,7 +506,7 @@ const RiskAnalysisSection = ({
     touchStartYRef.current = event.touches[0].clientY;
     isHorizontalSwipeRef.current = false;
     didMoveRef.current = false;
-    setIsDragging(false);
+    setStackDragging(false);
     resetDragOffset();
   };
 
@@ -519,7 +529,7 @@ const RiskAnalysisSection = ({
         return;
       }
 
-      setIsDragging(true);
+      setStackDragging(true);
     }
 
     didMoveRef.current = true;
@@ -546,7 +556,7 @@ const RiskAnalysisSection = ({
     if (!isHorizontalSwipeRef.current) {
       touchStartXRef.current = null;
       touchStartYRef.current = null;
-      setIsDragging(false);
+      setStackDragging(false);
       resetDragOffset();
       didMoveRef.current = false;
       return;
@@ -562,7 +572,7 @@ const RiskAnalysisSection = ({
         goPrev();
       }
     } else {
-      setIsDragging(false);
+      setStackDragging(false);
       resetDragOffset();
     }
 
@@ -570,14 +580,14 @@ const RiskAnalysisSection = ({
     touchStartYRef.current = null;
     isHorizontalSwipeRef.current = false;
     didMoveRef.current = false;
-    setIsDragging(false);
+    setStackDragging(false);
   };
 
   const handleTouchCancel = () => {
     touchStartXRef.current = null;
     touchStartYRef.current = null;
     isHorizontalSwipeRef.current = false;
-    setIsDragging(false);
+    setStackDragging(false);
     resetDragOffset();
     didMoveRef.current = false;
   };
@@ -596,7 +606,7 @@ const RiskAnalysisSection = ({
     pointerIsHorizontalSwipeRef.current = false;
     activePointerIdRef.current = event.pointerId;
     didMoveRef.current = false;
-    setIsDragging(false);
+    setStackDragging(false);
     resetDragOffset();
 
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -626,7 +636,7 @@ const RiskAnalysisSection = ({
         return;
       }
 
-      setIsDragging(true);
+      setStackDragging(true);
     }
 
     didMoveRef.current = true;
@@ -653,7 +663,7 @@ const RiskAnalysisSection = ({
       pointerStartYRef.current = null;
       pointerIsHorizontalSwipeRef.current = false;
       activePointerIdRef.current = null;
-      setIsDragging(false);
+      setStackDragging(false);
       resetDragOffset();
       didMoveRef.current = false;
       return;
@@ -670,7 +680,7 @@ const RiskAnalysisSection = ({
         goPrev();
       }
     } else {
-      setIsDragging(false);
+      setStackDragging(false);
       resetDragOffset();
     }
 
@@ -679,7 +689,7 @@ const RiskAnalysisSection = ({
     pointerIsHorizontalSwipeRef.current = false;
     activePointerIdRef.current = null;
     didMoveRef.current = false;
-    setIsDragging(false);
+    setStackDragging(false);
 
     if (event.currentTarget?.hasPointerCapture?.(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -695,7 +705,7 @@ const RiskAnalysisSection = ({
     pointerStartYRef.current = null;
     pointerIsHorizontalSwipeRef.current = false;
     activePointerIdRef.current = null;
-    setIsDragging(false);
+    setStackDragging(false);
     resetDragOffset();
     didMoveRef.current = false;
 
@@ -707,18 +717,18 @@ const RiskAnalysisSection = ({
   const handleStackTransitionEnd = (event) => {
     if (!stackSwapAwaitingSettleRef.current) return;
     if (!event.target.classList.contains('risk-analysis-wins__stack-card--front')) return;
-    if (event.propertyName !== 'left') return;
+    if (event.propertyName !== 'transform') return;
 
     stackSwapAwaitingSettleRef.current = false;
 
-    setIsResetting(true);
+    setStackResetting(true);
     setActiveIndex((prev) => (prev + 1) % cardCount);
     setIsAnimating(false);
     resetDragOffset();
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        setIsResetting(false);
+        setStackResetting(false);
       });
     });
   };
@@ -798,8 +808,8 @@ const RiskAnalysisSection = ({
         ref={stackRef}
         className={`risk-analysis-wins__stack${isAnimating ? ` risk-analysis-wins__stack--moving-${swipeDirection}` : ''}`}
         style={cardCount === 2 ? {
-          '--risk-analysis-wins-back-two-left': 'var(--risk-analysis-wins-back-one-left)',
-          '--risk-analysis-wins-back-two-top': 'var(--risk-analysis-wins-back-one-top)',
+          '--risk-analysis-wins-back-two-x': 'var(--risk-analysis-wins-back-one-x)',
+          '--risk-analysis-wins-back-two-y': 'var(--risk-analysis-wins-back-one-y)',
           '--risk-analysis-wins-back-two-fade': 'var(--risk-analysis-wins-back-one-fade)',
         } : undefined}
         onTouchStart={handleTouchStart}
@@ -812,8 +822,8 @@ const RiskAnalysisSection = ({
         onPointerCancel={handlePointerCancel}
         onLostPointerCapture={handlePointerCancel}
         onTransitionEnd={handleStackTransitionEnd}
-        data-dragging={isDragging ? 'true' : 'false'}
-        data-resetting={isResetting ? 'true' : 'false'}
+        data-dragging="false"
+        data-resetting="false"
         data-card-count={cardCount}
       >
         {stackCards.map((card, index) => {

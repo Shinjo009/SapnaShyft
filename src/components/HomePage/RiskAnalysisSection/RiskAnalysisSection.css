@@ -77,13 +77,13 @@
   --risk-analysis-wins-card-height: 200px;
   --risk-analysis-wins-card-width-boost: 12px;
   --risk-analysis-wins-drag-x: 0px;
-  --risk-analysis-wins-front-left: -14px;
+  --risk-analysis-wins-front-x: -14px;
+  --risk-analysis-wins-front-y: 0px;
   --risk-analysis-wins-stack-gap: 8px;
-  --risk-analysis-wins-back-one-left: calc(var(--risk-analysis-wins-front-left) + var(--risk-analysis-wins-stack-gap));
-  --risk-analysis-wins-back-two-left: calc(var(--risk-analysis-wins-front-left) + (var(--risk-analysis-wins-stack-gap) * 2));
-  --risk-analysis-wins-front-top: 0px;
-  --risk-analysis-wins-back-one-top: var(--risk-analysis-wins-stack-gap);
-  --risk-analysis-wins-back-two-top: calc(var(--risk-analysis-wins-stack-gap) * 2);
+  --risk-analysis-wins-back-one-x: calc(var(--risk-analysis-wins-front-x) + var(--risk-analysis-wins-stack-gap));
+  --risk-analysis-wins-back-two-x: calc(var(--risk-analysis-wins-front-x) + (var(--risk-analysis-wins-stack-gap) * 2));
+  --risk-analysis-wins-back-one-y: var(--risk-analysis-wins-stack-gap);
+  --risk-analysis-wins-back-two-y: calc(var(--risk-analysis-wins-stack-gap) * 2);
   --risk-analysis-wins-stack-tail: calc((var(--risk-analysis-wins-stack-gap) * 2) + 4px);
   --risk-analysis-wins-back-one-fade: 0.42;
   --risk-analysis-wins-back-two-fade: 0.68;
@@ -95,13 +95,15 @@
   height: calc(var(--risk-analysis-wins-card-height, 252px) + var(--risk-analysis-wins-stack-tail));
   overflow: visible;
   touch-action: pan-y;
+  transform: translateZ(0);
+  isolation: isolate;
 }
 
 .risk-analysis-wins__stack-card {
   position: absolute;
-  left: var(--risk-analysis-wins-front-left);
-  width: calc(100% + var(--risk-analysis-wins-card-width-boost));
+  left: 0;
   top: 0;
+  width: calc(100% + var(--risk-analysis-wins-card-width-boost));
   height: var(--risk-analysis-wins-card-height, 252px);
   border-radius: 24px;
   display: flex;
@@ -110,23 +112,28 @@
   border: 1px solid rgba(233, 93, 92, 0.35);
   background: linear-gradient(112deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(233, 93, 92, 0.05) 100%);
   backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
   box-sizing: border-box;
   overflow: hidden;
   isolation: isolate;
-  will-change: transform;
+  contain: layout style;
   backface-visibility: hidden;
-  transition:
-    left 680ms cubic-bezier(0.19, 1, 0.22, 1),
-    transform 680ms cubic-bezier(0.19, 1, 0.22, 1);
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(var(--risk-analysis-wins-front-x), var(--risk-analysis-wins-front-y), 0);
+  transition: transform 680ms cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.risk-analysis-wins__stack[data-dragging='true'] .risk-analysis-wins__stack-card,
+.risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card,
+.risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card {
+  will-change: transform;
 }
 
 .risk-analysis-wins__stack[data-dragging='true'] .risk-analysis-wins__stack-card {
-  transition-property: transform;
   transition-duration: 0ms;
 }
 
 .risk-analysis-wins__stack[data-resetting='true'] .risk-analysis-wins__stack-card {
-  transition-property: left, transform;
   transition-duration: 0ms;
 }
 
@@ -149,16 +156,17 @@
 }
 
 .risk-analysis-wins__stack-card--front {
-  top: var(--risk-analysis-wins-front-top);
-  transform: translate3d(var(--risk-analysis-wins-drag-x), 0, 0);
+  transform: translate3d(
+    calc(var(--risk-analysis-wins-front-x) + var(--risk-analysis-wins-drag-x)),
+    var(--risk-analysis-wins-front-y),
+    0
+  );
   z-index: 3;
   opacity: 1;
 }
 
 .risk-analysis-wins__stack-card--back-one {
-  left: var(--risk-analysis-wins-back-one-left);
-  top: var(--risk-analysis-wins-back-one-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--risk-analysis-wins-back-one-x), var(--risk-analysis-wins-back-one-y), 0);
   z-index: 2;
   opacity: 1;
   pointer-events: none;
@@ -169,9 +177,7 @@
 }
 
 .risk-analysis-wins__stack-card--back-two {
-  left: var(--risk-analysis-wins-back-two-left);
-  top: var(--risk-analysis-wins-back-two-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--risk-analysis-wins-back-two-x), var(--risk-analysis-wins-back-two-y), 0);
   z-index: 1;
   opacity: 1;
   pointer-events: none;
@@ -182,9 +188,7 @@
 }
 
 .risk-analysis-wins__stack-card--hidden {
-  left: var(--risk-analysis-wins-front-left);
-  top: var(--risk-analysis-wins-front-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--risk-analysis-wins-front-x), var(--risk-analysis-wins-front-y), 0);
   z-index: 0;
   opacity: 0;
   pointer-events: none;
@@ -199,9 +203,7 @@
 }
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--front {
-  left: var(--risk-analysis-wins-back-two-left);
-  top: var(--risk-analysis-wins-back-two-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--risk-analysis-wins-back-two-x), var(--risk-analysis-wins-back-two-y), 0);
   z-index: 1;
 }
 
@@ -210,9 +212,7 @@
 }
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-one {
-  left: var(--risk-analysis-wins-front-left);
-  top: var(--risk-analysis-wins-front-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--risk-analysis-wins-front-x), var(--risk-analysis-wins-front-y), 0);
   z-index: 4;
 }
 
@@ -221,9 +221,7 @@
 }
 
 .risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--back-two {
-  left: var(--risk-analysis-wins-back-one-left);
-  top: var(--risk-analysis-wins-back-one-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--risk-analysis-wins-back-one-x), var(--risk-analysis-wins-back-one-y), 0);
   z-index: 2;
 }
 
@@ -232,9 +230,7 @@
 }
 
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--front {
-  left: var(--risk-analysis-wins-back-two-left);
-  top: var(--risk-analysis-wins-back-two-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--risk-analysis-wins-back-two-x), var(--risk-analysis-wins-back-two-y), 0);
   z-index: 1;
 }
 
@@ -243,9 +239,7 @@
 }
 
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-one {
-  left: var(--risk-analysis-wins-front-left);
-  top: var(--risk-analysis-wins-front-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--risk-analysis-wins-front-x), var(--risk-analysis-wins-front-y), 0);
   z-index: 4;
 }
 
@@ -254,9 +248,7 @@
 }
 
 .risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--back-two {
-  left: var(--risk-analysis-wins-back-one-left);
-  top: var(--risk-analysis-wins-back-one-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--risk-analysis-wins-back-one-x), var(--risk-analysis-wins-back-one-y), 0);
   z-index: 2;
 }
 
@@ -272,9 +264,7 @@
 
 .risk-analysis-wins__stack[data-card-count='2'].risk-analysis-wins__stack--moving-next .risk-analysis-wins__stack-card--front,
 .risk-analysis-wins__stack[data-card-count='2'].risk-analysis-wins__stack--moving-prev .risk-analysis-wins__stack-card--front {
-  left: var(--risk-analysis-wins-back-one-left);
-  top: var(--risk-analysis-wins-back-one-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--risk-analysis-wins-back-one-x), var(--risk-analysis-wins-back-one-y), 0);
   z-index: 1;
 }
 

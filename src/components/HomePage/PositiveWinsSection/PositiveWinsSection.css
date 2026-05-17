@@ -56,13 +56,13 @@
   --positive-wins-card-height: 194px;
   --positive-wins-card-width-boost: 12px;
   --positive-wins-drag-x: 0px;
-  --positive-wins-front-left: -14px;
+  --positive-wins-front-x: -14px;
+  --positive-wins-front-y: 0px;
   --positive-wins-stack-gap: 8px;
-  --positive-wins-back-one-left: calc(var(--positive-wins-front-left) + var(--positive-wins-stack-gap));
-  --positive-wins-back-two-left: calc(var(--positive-wins-front-left) + (var(--positive-wins-stack-gap) * 2));
-  --positive-wins-front-top: 0px;
-  --positive-wins-back-one-top: var(--positive-wins-stack-gap);
-  --positive-wins-back-two-top: calc(var(--positive-wins-stack-gap) * 2);
+  --positive-wins-back-one-x: calc(var(--positive-wins-front-x) + var(--positive-wins-stack-gap));
+  --positive-wins-back-two-x: calc(var(--positive-wins-front-x) + (var(--positive-wins-stack-gap) * 2));
+  --positive-wins-back-one-y: var(--positive-wins-stack-gap);
+  --positive-wins-back-two-y: calc(var(--positive-wins-stack-gap) * 2);
   --positive-wins-stack-tail: calc((var(--positive-wins-stack-gap) * 2) + 4px);
   --positive-wins-back-one-fade: 0.42;
   --positive-wins-back-two-fade: 0.68;
@@ -74,13 +74,15 @@
   height: calc(var(--positive-wins-card-height) + var(--positive-wins-stack-tail));
   overflow: visible;
   touch-action: pan-y;
+  transform: translateZ(0);
+  isolation: isolate;
 }
 
 .positive-wins__stack-card {
   position: absolute;
-  left: var(--positive-wins-front-left);
-  width: calc(100% + var(--positive-wins-card-width-boost));
+  left: 0;
   top: 0;
+  width: calc(100% + var(--positive-wins-card-width-boost));
   height: var(--positive-wins-card-height);
   border-radius: 24px;
   display: flex;
@@ -91,23 +93,28 @@
     linear-gradient(109deg, rgba(255, 255, 255, 0.03) 0.65%, rgba(20, 29, 26, 0.01) 99.35%),
     linear-gradient(112deg, #12382b 1.9%, #182923 50.95%, #19362d 100%);
   backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
   background-clip: padding-box;
   box-sizing: border-box;
   overflow: hidden;
-  will-change: transform;
+  contain: layout style;
   backface-visibility: hidden;
-  transition:
-    left 680ms cubic-bezier(0.19, 1, 0.22, 1),
-    transform 680ms cubic-bezier(0.19, 1, 0.22, 1);
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(var(--positive-wins-front-x), var(--positive-wins-front-y), 0);
+  transition: transform 680ms cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.positive-wins__stack[data-dragging='true'] .positive-wins__stack-card,
+.positive-wins__stack--moving-next .positive-wins__stack-card,
+.positive-wins__stack--moving-prev .positive-wins__stack-card {
+  will-change: transform;
 }
 
 .positive-wins__stack[data-dragging='true'] .positive-wins__stack-card {
-  transition-property: transform;
   transition-duration: 0ms;
 }
 
 .positive-wins__stack[data-resetting='true'] .positive-wins__stack-card {
-  transition-property: left, transform;
   transition-duration: 0ms;
 }
 
@@ -130,16 +137,17 @@
 }
 
 .positive-wins__stack-card--front {
-  top: var(--positive-wins-front-top);
-  transform: translate3d(var(--positive-wins-drag-x), 0, 0);
+  transform: translate3d(
+    calc(var(--positive-wins-front-x) + var(--positive-wins-drag-x)),
+    var(--positive-wins-front-y),
+    0
+  );
   z-index: 3;
   opacity: 1;
 }
 
 .positive-wins__stack-card--back-one {
-  left: var(--positive-wins-back-one-left);
-  top: var(--positive-wins-back-one-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--positive-wins-back-one-x), var(--positive-wins-back-one-y), 0);
   z-index: 2;
   opacity: 1;
   pointer-events: none;
@@ -150,9 +158,7 @@
 }
 
 .positive-wins__stack-card--back-two {
-  left: var(--positive-wins-back-two-left);
-  top: var(--positive-wins-back-two-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--positive-wins-back-two-x), var(--positive-wins-back-two-y), 0);
   z-index: 1;
   opacity: 1;
   pointer-events: none;
@@ -163,12 +169,10 @@
 }
 
 .positive-wins__stack-card--hidden {
-  left: var(--positive-wins-front-left);
-  top: var(--positive-wins-front-top);
+  transform: translate3d(var(--positive-wins-front-x), var(--positive-wins-front-y), 0);
   z-index: 0;
   opacity: 0;
   pointer-events: none;
-  transform: translate3d(0, 0, 0);
 }
 
 .positive-wins__stack--moving-next .positive-wins__stack-card--hidden {
@@ -180,9 +184,7 @@
 }
 
 .positive-wins__stack--moving-next .positive-wins__stack-card--front {
-  left: var(--positive-wins-back-two-left);
-  top: var(--positive-wins-back-two-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--positive-wins-back-two-x), var(--positive-wins-back-two-y), 0);
   z-index: 1;
 }
 
@@ -191,9 +193,7 @@
 }
 
 .positive-wins__stack--moving-next .positive-wins__stack-card--back-one {
-  left: var(--positive-wins-front-left);
-  top: var(--positive-wins-front-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--positive-wins-front-x), var(--positive-wins-front-y), 0);
   z-index: 4;
 }
 
@@ -202,9 +202,7 @@
 }
 
 .positive-wins__stack--moving-next .positive-wins__stack-card--back-two {
-  left: var(--positive-wins-back-one-left);
-  top: var(--positive-wins-back-one-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--positive-wins-back-one-x), var(--positive-wins-back-one-y), 0);
   z-index: 2;
 }
 
@@ -213,9 +211,7 @@
 }
 
 .positive-wins__stack--moving-prev .positive-wins__stack-card--front {
-  left: var(--positive-wins-back-two-left);
-  top: var(--positive-wins-back-two-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--positive-wins-back-two-x), var(--positive-wins-back-two-y), 0);
   z-index: 1;
 }
 
@@ -224,9 +220,7 @@
 }
 
 .positive-wins__stack--moving-prev .positive-wins__stack-card--back-one {
-  left: var(--positive-wins-front-left);
-  top: var(--positive-wins-front-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--positive-wins-front-x), var(--positive-wins-front-y), 0);
   z-index: 4;
 }
 
@@ -235,9 +229,7 @@
 }
 
 .positive-wins__stack--moving-prev .positive-wins__stack-card--back-two {
-  left: var(--positive-wins-back-one-left);
-  top: var(--positive-wins-back-one-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--positive-wins-back-one-x), var(--positive-wins-back-one-y), 0);
   z-index: 2;
 }
 
@@ -253,9 +245,7 @@
 
 .positive-wins__stack[data-card-count='2'].positive-wins__stack--moving-next .positive-wins__stack-card--front,
 .positive-wins__stack[data-card-count='2'].positive-wins__stack--moving-prev .positive-wins__stack-card--front {
-  left: var(--positive-wins-back-one-left);
-  top: var(--positive-wins-back-one-top);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(var(--positive-wins-back-one-x), var(--positive-wins-back-one-y), 0);
   z-index: 1;
 }
 
