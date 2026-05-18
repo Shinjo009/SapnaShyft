@@ -1,4 +1,5 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import './BloodMarkersPage.css';
 import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
 import { getAccessToken } from '../../utils/authStorage';
@@ -23,6 +24,12 @@ import sleepIcon from '../../images/Sleep.svg';
 import hormonesIcon from '../../images/Hormones.svg';
 
 const FILTERS = ['Critical', 'Marginal', 'Optimal'];
+
+const EMPTY_FILTER_MESSAGE = {
+  Critical: 'No Critical Markers Detected',
+  Marginal: 'No Marginal Markers Detected',
+  Optimal: 'No Optimal Markers Detected',
+};
 
 /** Same limit as homepage Blood Markers list (`RiskAnalysisSection`). */
 const BLOOD_MARKERS_STACK_CARD_NAME_MAX = 14;
@@ -1300,6 +1307,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
   const [expandedLowCardIds, setExpandedLowCardIds] = useState({});
   const cards = markerCards(section);
   const cardCount = cards.length;
+  const isSingleCardStack = cardCount <= 1;
   const [activeIndex, setActiveIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
@@ -1319,6 +1327,8 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
   /** True after startAnimation until we settle once (left and/or transform both fire on the front card). */
   const stackSwapAwaitingSettleRef = useRef(false);
   const frontStackCardRef = useRef(null);
+  const swappingExpandedCardIdRef = useRef(null);
+  const [isSwappingFromExpanded, setIsSwappingFromExpanded] = useState(false);
 
   const commitDragOffset = (value) => {
     latestDragXRef.current = value;
@@ -1327,14 +1337,17 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
     }
   };
 
-  const resetDragOffset = () => {
+  const resetDragOffset = useCallback(() => {
     pendingDragXRef.current = 0;
     if (dragFrameRef.current !== null) {
       cancelAnimationFrame(dragFrameRef.current);
       dragFrameRef.current = null;
     }
-    commitDragOffset(0);
-  };
+    latestDragXRef.current = 0;
+    if (stackRef.current) {
+      stackRef.current.style.setProperty('--blood-markers-drag-x', '0px');
+    }
+  }, []);
 
   const applyDragOffset = (value) => {
     pendingDragXRef.current = value;
@@ -1353,31 +1366,59 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
       if (dragFrameRef.current !== null) {
         cancelAnimationFrame(dragFrameRef.current);
       }
+      swappingExpandedCardIdRef.current = null;
       stackSwapAwaitingSettleRef.current = false;
     };
   }, []);
 
-  const startAnimation = (direction) => {
+  const isFrontAggregateExpanded = (index = activeIndex) => {
+    const frontCard = cards[index];
+    return Boolean(
+      frontCard?.cardRole === 'optimal-aggregate' && expandedLowCardIds[frontCard.id],
+    );
+  };
+
+  const beginStackSwapAnimation = (direction) => {
     if (cardCount <= 1) return;
     stackSwapAwaitingSettleRef.current = true;
     setIsDragging(false);
     resetDragOffset();
     setSwipeDirection(direction);
-    setIsAnimating(true);
+
+    const startMotion = () => setIsAnimating(true);
+    if (swappingExpandedCardIdRef.current) {
+      startMotion();
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(startMotion);
+    });
+  };
+
+  const requestStackSwap = (direction) => {
+    if (isAnimating || cardCount <= 1) {
+      return;
+    }
+
+    if (isFrontAggregateExpanded()) {
+      swappingExpandedCardIdRef.current = cards[activeIndex]?.id ?? null;
+      setIsSwappingFromExpanded(true);
+    }
+
+    beginStackSwapAnimation(direction);
   };
 
   const goPrev = () => {
-    if (isAnimating || cardCount <= 1) return;
-    startAnimation('prev');
+    requestStackSwap('prev');
   };
 
   const goNext = () => {
-    if (isAnimating || cardCount <= 1) return;
-    startAnimation('next');
+    requestStackSwap('next');
   };
 
   const handleTouchStart = (event) => {
-    if (isAnimating) {
+    if (isSingleCardStack || isAnimating) {
       return;
     }
     touchStartXRef.current = event.touches[0].clientX;
@@ -1464,7 +1505,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
   };
 
   const handlePointerDown = (event) => {
-    if (isAnimating) {
+    if (isSingleCardStack || isAnimating) {
       return;
     }
 
@@ -1587,13 +1628,29 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
   const handleStackTransitionEnd = (event) => {
     if (!stackSwapAwaitingSettleRef.current) return;
     if (!event.target.classList.contains('blood-markers-page__stack-card--front')) return;
-    if (event.propertyName !== 'left' && event.propertyName !== 'transform') return;
+    if (event.propertyName !== 'left') return;
 
     stackSwapAwaitingSettleRef.current = false;
 
-    setIsResetting(true);
-    setActiveIndex((prev) => (prev + 1) % cardCount);
-    setIsAnimating(false);
+    const collapsingCardId = swappingExpandedCardIdRef.current;
+
+    flushSync(() => {
+      if (collapsingCardId) {
+        setExpandedLowCardIds((prev) => {
+          if (!prev[collapsingCardId]) {
+            return prev;
+          }
+          const next = { ...prev };
+          delete next[collapsingCardId];
+          return next;
+        });
+        setIsSwappingFromExpanded(false);
+        swappingExpandedCardIdRef.current = null;
+      }
+      setIsResetting(true);
+      setActiveIndex((prev) => (prev + 1) % cardCount);
+      setIsAnimating(false);
+    });
     resetDragOffset();
 
     requestAnimationFrame(() => {
@@ -1607,7 +1664,14 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [cards.length, section.id]);
+    setIsAnimating(false);
+    setIsDragging(false);
+    setIsResetting(false);
+    setIsSwappingFromExpanded(false);
+    swappingExpandedCardIdRef.current = null;
+    stackSwapAwaitingSettleRef.current = false;
+    resetDragOffset();
+  }, [cards.length, section.id, resetDragOffset]);
 
   const activeFrontCard = cards[activeIndex];
   const isAggregateFrontExpanded = Boolean(
@@ -1624,7 +1688,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
     const BASE_CARD_PX = 136;
 
     const syncStackHeight = () => {
-      if (!isAggregateFrontExpanded || !card) {
+      if (isSwappingFromExpanded || !isAggregateFrontExpanded || !card) {
         stack.style.removeProperty('--blood-markers-stack-front-height');
         return;
       }
@@ -1648,7 +1712,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
         ro.disconnect();
       }
     };
-  }, [isAggregateFrontExpanded, activeIndex, cardCount, section.id]);
+  }, [isAggregateFrontExpanded, isSwappingFromExpanded, activeIndex, cardCount, section.id]);
 
   return (
     <section className="blood-markers-page__section">
@@ -1669,7 +1733,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
 
       <div
         ref={stackRef}
-        className={`blood-markers-page__stack${isAnimating ? ` blood-markers-page__stack--moving-${swipeDirection}` : ''}`}
+        className={`blood-markers-page__stack${isSingleCardStack ? ' blood-markers-page__stack--single' : ''}${isAnimating ? ` blood-markers-page__stack--moving-${swipeDirection}` : ''}`}
         style={cardCount === 2 ? {
           '--blood-markers-back-two-left': 'var(--blood-markers-back-one-left)',
           '--blood-markers-back-two-top': 'var(--blood-markers-back-one-top)',
@@ -1689,6 +1753,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
         data-resetting={isResetting ? 'true' : 'false'}
         data-card-count={cardCount}
         data-front-optimal-expanded={isAggregateFrontExpanded ? 'true' : 'false'}
+        data-swapping-from-expanded={isSwappingFromExpanded ? 'true' : 'false'}
       >
         {cards.map((card, index) => {
           const distance = (index - activeIndex + cards.length) % cards.length;
@@ -1824,11 +1889,13 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
         })}
       </div>
 
-      <div className="blood-markers-page__swipe-hint" aria-hidden="true">
-        <span className="blood-markers-page__swipe-arrow blood-markers-page__swipe-arrow--left"><SwipeArrow /></span>
-        <span className="blood-markers-page__swipe-text">Swipe to explore</span>
-        <span className="blood-markers-page__swipe-arrow"><SwipeArrow /></span>
-      </div>
+      {!isSingleCardStack ? (
+        <div className="blood-markers-page__swipe-hint" aria-hidden="true">
+          <span className="blood-markers-page__swipe-arrow blood-markers-page__swipe-arrow--left"><SwipeArrow /></span>
+          <span className="blood-markers-page__swipe-text">Swipe to explore</span>
+          <span className="blood-markers-page__swipe-arrow"><SwipeArrow /></span>
+        </div>
+      ) : null}
     </section>
   );
 };
@@ -1839,6 +1906,7 @@ const BloodMarkersPage = ({ onBack, initialDetailMarker = null, onInitialDetailC
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [apiSections, setApiSections] = useState([]);
+  const [hasLoadedReport, setHasLoadedReport] = useState(false);
 
   useEffect(() => {
     if (!initialDetailMarker) {
@@ -1871,11 +1939,13 @@ const BloodMarkersPage = ({ onBack, initialDetailMarker = null, onInitialDetailC
         );
         if (isActive) {
           setApiSections(buildSectionsFromApi(response));
+          setHasLoadedReport(true);
         }
       } catch (error) {
         console.error('Failed to load blood marker report:', error);
         if (isActive) {
           setApiSections([]);
+          setHasLoadedReport(true);
         }
       }
     };
@@ -1899,6 +1969,7 @@ const BloodMarkersPage = ({ onBack, initialDetailMarker = null, onInitialDetailC
           || markerText.includes(normalizedQuery);
       })
     : sections;
+  const showFilterEmptyState = hasLoadedReport && sections.length === 0;
 
   if (selectedMarker) {
     return (
@@ -1972,10 +2043,18 @@ const BloodMarkersPage = ({ onBack, initialDetailMarker = null, onInitialDetailC
         })}
       </div>
 
-      <div className="blood-markers-page__sections">
-        {filteredSections.map((section) => (
-          <BloodMarkerStackSection key={section.id} section={section} onOpenDetail={setSelectedMarker} />
-        ))}
+      <div
+        className={`blood-markers-page__sections${showFilterEmptyState ? ' blood-markers-page__sections--empty' : ''}`}
+      >
+        {showFilterEmptyState ? (
+          <p className="blood-markers-page__empty" role="status">
+            {EMPTY_FILTER_MESSAGE[activeFilter]}
+          </p>
+        ) : (
+          filteredSections.map((section) => (
+            <BloodMarkerStackSection key={section.id} section={section} onOpenDetail={setSelectedMarker} />
+          ))
+        )}
       </div>
 
     </div>
