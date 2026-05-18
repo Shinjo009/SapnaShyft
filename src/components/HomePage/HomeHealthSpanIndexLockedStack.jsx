@@ -42,6 +42,7 @@ const HomeHealthSpanIndexLockedStack = ({
   stackClassName = '',
   ariaLabel = 'Health Span Index locked until FitPrint assessment is completed',
   postSubmitAwaitingReports = false,
+  showCompleteAssessmentButton = true,
 }) => {
   const lockMaskId = `hsi-lock-${useId().replace(/:/g, '')}`;
   const submittedAria = postSubmitAwaitingReports
@@ -85,7 +86,7 @@ const HomeHealthSpanIndexLockedStack = ({
       </div>
     </section>
 
-    {!postSubmitAwaitingReports ? (
+    {!postSubmitAwaitingReports && showCompleteAssessmentButton ? (
       <button
         type="button"
         className="home-page-no-data__complete-assessment-btn"

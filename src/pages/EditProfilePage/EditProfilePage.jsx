@@ -65,6 +65,7 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
     age: '',
     gender: '',
     address: '',
+    city: '',
     country: '',
     organization_name: '',
     phone: '',
@@ -119,6 +120,7 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
           age: getAgeValue(profile),
           gender: (profile?.gender || '').toLowerCase(),
           address: profile?.address || '',
+          city: profile?.city || '',
           country: profile?.country || '',
           organization_name: profile?.referred_by || '',
           phone: profile?.phone || '',
@@ -176,6 +178,7 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
         email: formData.email.trim() || null,
         gender: formData.gender.trim() || null,
         address: formData.address.trim() || null,
+        city: formData.city.trim() || null,
         country: formData.country.trim() || null,
         referred_by: formData.organization_name.trim() || null,
         ...(isPhoneEditable ? { phone: formData.phone.trim() || null } : {}),
@@ -191,7 +194,7 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
           relationship: String(activeRelationship || '').trim().toLowerCase() || null,
           phone: formData.phone.trim() || null,
           email: formData.email.trim() || null,
-          city: formData.country.trim() || null,
+          city: formData.city.trim() || null,
           address: formData.address.trim() || null,
         };
 
@@ -283,6 +286,14 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
             placeholder="Address"
             value={formData.address}
             onChange={(e) => handleChange('address', e.target.value)}
+            className={inputTextClass}
+            disabled={loading}
+          />
+
+          <Input
+            placeholder="City"
+            value={formData.city}
+            onChange={(e) => handleChange('city', e.target.value)}
             className={inputTextClass}
             disabled={loading}
           />

@@ -18,6 +18,7 @@ import {
   getLatestMetsightsBasicOrProAssessmentIdCached,
 } from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
+import { getMyProfileCached } from '../../services/profileService';
 import {
   hasNutritionLogQuestionnaireDraft,
   hasFamilyHistoryQuestionnaireDraft,
@@ -140,6 +141,15 @@ const TimeRowIcon = () => (
   </svg>
 );
 
+const LocationRowIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+    <path
+      d="M9 1.5C6.1005 1.5 3.75 3.8505 3.75 6.75C3.75 10.6875 9 16.5 9 16.5C9 16.5 14.25 10.6875 14.25 6.75C14.25 3.8505 11.8995 1.5 9 1.5ZM9 8.625C8.0055 8.625 7.125 7.7445 7.125 6.75C7.125 5.7555 8.0055 4.875 9 4.875C9.9945 4.875 10.875 5.7555 10.875 6.75C10.875 7.7445 9.9945 8.625 9 8.625Z"
+      fill="#E6E6E6"
+    />
+  </svg>
+);
+
 const SlotDateCalendarIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
     <path
@@ -236,6 +246,13 @@ const analyzingQuestionnairePendingTimeline = [
   { id: 'reports-generated', label: 'Reports Generated', state: 'pending' },
 ];
 
+const b2cSampleCollectedTimeline = [
+  { id: 'sample-collected', label: 'Sample Collected', state: 'current' },
+  { id: 'questionnaire-pending', label: 'Questionnaire Completion', state: 'pending' },
+  { id: 'analysis-pending', label: 'Analysis in Progress', state: 'pending' },
+  { id: 'reports-generated', label: 'Reports Generated', state: 'pending' },
+];
+
 const analyzingNextItems = [
   'Your detailed health analysis covers 88+ bio-markers',
   'Bio-AI powered analysis generates actionable insights',
@@ -277,6 +294,7 @@ const resolvePositiveWinsPayload = (overview) => {
 const EMPTY_UPCOMING_SLOT = {
   hasScheduledSlot: false,
   isB2b: false,
+  isB2c: false,
   organizationName: '',
   slotStart: '',
   slotEnd: '',
@@ -301,6 +319,7 @@ const normalizeUpcomingSlotPayload = (root) => {
   return {
     hasScheduledSlot: hasScheduled && slots.length > 0,
     isB2b: engagementType === 'b2b',
+    isB2c: engagementType === 'b2c',
     organizationName: String(engagement.organization_name || '').trim(),
     slotStart: String(slot.slot_start_time || '').trim(),
     slotEnd: String(slot.slot_end_time || '').trim(),
@@ -325,6 +344,114 @@ const formatEngagementDateLabel = (raw) => {
     year: 'numeric',
   }).format(d);
   return `${formatted} (Day 1)`;
+};
+
+const formatB2cEngagementDate = (raw) => {
+  const ymd = String(raw || '').slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return ymd;
+  }
+  return String(raw || '').trim();
+};
+
+const formatSlotTimeLabel = (raw) => {
+  const value = String(raw || '').trim();
+  if (!value) {
+    return '';
+  }
+
+  const timeMatch = value.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (timeMatch) {
+    const hours = Number(timeMatch[1]);
+    const minutes = timeMatch[2];
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHour = hours % 12 || 12;
+    return `${displayHour}:${minutes} ${period}`;
+  }
+
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(parsed);
+  }
+
+  return value;
+};
+
+const formatB2cTestingWindowTitle = (slotNorm) => {
+  const start = formatSlotTimeLabel(slotNorm?.slotStart);
+  const end = formatSlotTimeLabel(slotNorm?.slotEnd);
+  const date = formatB2cEngagementDate(slotNorm?.engagementDateRaw);
+  const timePart = [start, end].filter(Boolean).join(' - ');
+
+  if (timePart && date) {
+    return `${timePart} | ${date}`;
+  }
+
+  return timePart || date || '—';
+};
+
+const formatB2cAddressLines = (profile) => {
+  const street = String(profile?.address || '').trim();
+  const city = String(profile?.city || '').trim();
+  const state = String(profile?.state || '').trim();
+  const cityState = [city, state].filter(Boolean).join(', ');
+
+  if (street) {
+    return {
+      primary: street,
+      secondary: cityState,
+    };
+  }
+
+  return {
+    primary: cityState || '—',
+    secondary: '',
+  };
+};
+
+const unwrapProfileResponse = (response) => (
+  response?.data && typeof response.data === 'object' ? response.data : response
+);
+
+const parseSlotBoundaryDate = (engagementDateRaw, timeRaw) => {
+  const ymd = String(engagementDateRaw || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return null;
+  }
+
+  const time = String(timeRaw || '').trim();
+  const timeMatch = time.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (timeMatch) {
+    const hours = String(Number(timeMatch[1])).padStart(2, '0');
+    const minutes = timeMatch[2];
+    const seconds = String(Number(timeMatch[3] || 0)).padStart(2, '0');
+    const parsed = new Date(`${ymd}T${hours}:${minutes}:${seconds}`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  if (!time) {
+    return null;
+  }
+
+  const parsed = new Date(`${ymd}T${time}`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const isB2cSlotEnded = (slotNorm, now = new Date()) => {
+  if (!slotNorm?.isB2c) {
+    return false;
+  }
+
+  const endAt = parseSlotBoundaryDate(slotNorm.engagementDateRaw, slotNorm.slotEnd);
+  if (!endAt) {
+    return false;
+  }
+
+  return now.getTime() > endAt.getTime();
 };
 
 const parseResponseBody = async (response) => {
@@ -392,6 +519,8 @@ const HomePage = ({
   const [checklistScrollProgress, setChecklistScrollProgress] = useState(0);
   const [upcomingSlotNormalized, setUpcomingSlotNormalized] = useState(null);
   const [upcomingSlotStatus, setUpcomingSlotStatus] = useState('idle');
+  const [b2cProfile, setB2cProfile] = useState(null);
+  const [b2cSlotEnded, setB2cSlotEnded] = useState(false);
   const [isQuestionnaireCompleted, setIsQuestionnaireCompleted] = useState(false);
   /** When camp B2B no-data UI needs nutrition-log draft check; false until that request finishes (avoids camp → analyzing flicker). */
   const [isB2bCampNoDataGateResolved, setIsB2bCampNoDataGateResolved] = useState(true);
@@ -436,6 +565,20 @@ const HomePage = ({
     if (!isB2bCampNoDataGateResolved) {
       return;
     }
+
+    if (slotNorm.isB2c) {
+      if (isQuestionnaireCompleted) {
+        setNoDataStage('analyzing');
+        return;
+      }
+      if (b2cSlotEnded) {
+        setNoDataStage('b2c_sample_collected');
+        return;
+      }
+      setNoDataStage('camp_scheduled');
+      return;
+    }
+
     try {
       if (isQuestionnaireCompleted) {
         setNoDataStage('analyzing');
@@ -456,7 +599,26 @@ const HomePage = ({
     isB2bCampNoDataGateResolved,
     isQuestionnaireCompleted,
     forceRefreshFromProfile,
+    slotNorm.isB2c,
+    b2cSlotEnded,
   ]);
+
+  useEffect(() => {
+    if (!slotNorm.isB2c || !slotNorm.hasScheduledSlot) {
+      setB2cSlotEnded(false);
+      return undefined;
+    }
+
+    const refreshSlotEnded = () => {
+      setB2cSlotEnded(isB2cSlotEnded(slotNorm));
+    };
+
+    refreshSlotEnded();
+    const intervalId = window.setInterval(refreshSlotEnded, 30000);
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [slotNorm]);
 
   useEffect(() => {
     let cancelled = false;
@@ -851,6 +1013,35 @@ const HomePage = ({
     };
   }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const slot = upcomingSlotNormalized || EMPTY_UPCOMING_SLOT;
+    const shouldLoadB2cProfile = Boolean(slot.hasScheduledSlot && slot.isB2c);
+
+    if (!shouldLoadB2cProfile) {
+      setB2cProfile(null);
+      return undefined;
+    }
+
+    (async () => {
+      try {
+        const response = await getMyProfileCached();
+        if (cancelled) {
+          return;
+        }
+        setB2cProfile(unwrapProfileResponse(response));
+      } catch {
+        if (!cancelled) {
+          setB2cProfile(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [upcomingSlotNormalized]);
+
   const handleMenuClick = () => {
     console.log('Menu clicked');
     if (onNavigateToProfile) {
@@ -1067,8 +1258,9 @@ const HomePage = ({
   };
 
   const handleBioMarkersClick = () => {
-    setNoDataStage('camp_scheduled');
-    setChecklistScrollProgress(0);
+    if (onNavigateToPackages) {
+      onNavigateToPackages();
+    }
   };
 
   const handleChecklistScroll = (event) => {
@@ -1152,7 +1344,69 @@ const HomePage = ({
           <HomeHealthSpanIndexLockedStack
             onCompleteAssessment={openQuestionnaireFromFitprintLock}
             ariaLabel="Health Span Index locked until test completion"
+            showCompleteAssessmentButton={false}
           />
+
+          <NavBar defaultActive="home" onNavigate={handleNavigate} />
+        </div>
+      );
+    }
+
+    if (noDataStage === 'b2c_sample_collected') {
+      return (
+        <div className="home-page home-page--no-data-analyzing home-page--b2c-sample-collected">
+          <Header
+            name={userName}
+            onMenuClick={handleMenuClick}
+          />
+
+          <section className="home-page-analyzing__hero">
+            <div className="home-page-scheduled__clock-wrap" aria-hidden="true">
+              <span className="home-page-scheduled__clock-glow" />
+              <AnalysisHourglassIcon />
+            </div>
+            <div className="home-page-analyzing__copy">
+              <h2>Sample Collected</h2>
+              <p className="home-page-analyzing__subtitle">
+                Your sample has been collected. Complete your health assessment while we prepare your report.
+              </p>
+            </div>
+          </section>
+
+          <section className="home-page-analyzing__card">
+            <h3>Status Timeline</h3>
+            <div className="home-page-analyzing__timeline">
+              {b2cSampleCollectedTimeline.map((item, index) => (
+                <div key={item.id} className="home-page-analyzing__timeline-row">
+                  <div className="home-page-analyzing__timeline-rail" aria-hidden="true">
+                    <span
+                      className={`home-page-analyzing__timeline-node home-page-analyzing__timeline-node--${
+                        item.state === 'current' ? 'current' : item.state
+                      }`}
+                    >
+                      {item.state === 'done' ? <ChecklistTickIcon /> : null}
+                    </span>
+                    {index < b2cSampleCollectedTimeline.length - 1 ? (
+                      <span className="home-page-analyzing__timeline-line is-muted" />
+                    ) : null}
+                  </div>
+                  <p
+                    className={`home-page-analyzing__timeline-label home-page-analyzing__timeline-label--${
+                      item.state === 'current' ? 'active' : item.state
+                    }`}
+                  >
+                    {item.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div className="home-page-b2b__cta-wrap">
+            <button type="button" className="home-page-b2b__cta" onClick={openB2bQuestionnaire}>
+              Complete your Health Assessment
+            </button>
+          </div>
 
           <NavBar defaultActive="home" onNavigate={handleNavigate} />
         </div>
@@ -1248,12 +1502,16 @@ const HomePage = ({
     }
 
     if (noDataStage === 'camp_scheduled') {
-      const slotWindowTitle = [slotNorm.slotStart, slotNorm.slotEnd].filter(Boolean).join(' – ') || '—';
+      const isB2cScheduled = slotNorm.isB2c;
+      const slotWindowTitle = isB2cScheduled
+        ? formatB2cTestingWindowTitle(slotNorm)
+        : [slotNorm.slotStart, slotNorm.slotEnd].filter(Boolean).join(' – ') || '—';
       const dateLine = formatEngagementDateLabel(slotNorm.engagementDateRaw) || '—';
+      const b2cAddressLines = formatB2cAddressLines(b2cProfile);
       const campHeroTitle = slotNorm.isB2b ? 'Your Health Camp is Scheduled' : 'Your Test is Scheduled';
 
       return (
-        <div className="home-page home-page--no-data-scheduled home-page--b2b-camp">
+        <div className={`home-page home-page--no-data-scheduled${slotNorm.isB2b ? ' home-page--b2b-camp' : ' home-page--b2c-scheduled'}`}>
           <Header
             name={userName}
             onMenuClick={handleMenuClick}
@@ -1299,9 +1557,11 @@ const HomePage = ({
           <section className="home-page-scheduled__card home-page-b2b__slot-card">
             <div className="home-page-b2b__slot-head">
               <h3 className="home-page-b2b__slot-title">Your Assigned Slot</h3>
-              <span className="home-page-b2b__arrive-pill">
-                Arrive 10 mins early
-              </span>
+              {slotNorm.isB2b ? (
+                <span className="home-page-b2b__arrive-pill">
+                  Arrive 10 mins early
+                </span>
+              ) : null}
             </div>
             <div className="home-page-scheduled__time-place">
               <div className="home-page-scheduled__line-item">
@@ -1313,15 +1573,29 @@ const HomePage = ({
                   <p className="home-page-scheduled__line-sub">Testing Window</p>
                 </div>
               </div>
-              <div className="home-page-scheduled__line-item">
-                <div className="home-page-scheduled__icon-box" aria-hidden="true">
-                  <SlotDateCalendarIcon />
+              {isB2cScheduled ? (
+                <div className="home-page-scheduled__line-item">
+                  <div className="home-page-scheduled__icon-box" aria-hidden="true">
+                    <LocationRowIcon />
+                  </div>
+                  <div className="home-page-scheduled__line-copy">
+                    <p className="home-page-scheduled__line-title">{b2cAddressLines.primary}</p>
+                    {b2cAddressLines.secondary ? (
+                      <p className="home-page-scheduled__line-sub">{b2cAddressLines.secondary}</p>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="home-page-scheduled__line-copy">
-                  <p className="home-page-scheduled__line-title">{dateLine}</p>
-                  <p className="home-page-scheduled__line-sub">Camp day</p>
+              ) : (
+                <div className="home-page-scheduled__line-item">
+                  <div className="home-page-scheduled__icon-box" aria-hidden="true">
+                    <SlotDateCalendarIcon />
+                  </div>
+                  <div className="home-page-scheduled__line-copy">
+                    <p className="home-page-scheduled__line-title">{dateLine}</p>
+                    <p className="home-page-scheduled__line-sub">Camp day</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </section>
 
@@ -1356,11 +1630,13 @@ const HomePage = ({
             </div>
           </section>
 
-          <div className="home-page-b2b__cta-wrap">
-            <button type="button" className="home-page-b2b__cta" onClick={openB2bQuestionnaire}>
-              Complete your Health Assessment
-            </button>
-          </div>
+          {slotNorm.isB2b ? (
+            <div className="home-page-b2b__cta-wrap">
+              <button type="button" className="home-page-b2b__cta" onClick={openB2bQuestionnaire}>
+                Complete your Health Assessment
+              </button>
+            </div>
+          ) : null}
 
           <NavBar defaultActive="home" onNavigate={handleNavigate} />
         </div>
