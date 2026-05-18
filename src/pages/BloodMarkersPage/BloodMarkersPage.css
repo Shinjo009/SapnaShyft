@@ -981,7 +981,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  padding-top: 30px;
+  padding-top: 40px;
 }
 
 .blood-marker-detail__header {
@@ -1178,7 +1178,7 @@
 }
 
 .blood-marker-detail__value-row {
-  margin-top: 20px;
+  margin-top: 35px;
   position: absolute;
   top: 54px;
   transform: translateX(-50%);

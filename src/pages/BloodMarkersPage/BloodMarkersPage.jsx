@@ -914,7 +914,7 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
 
   const detail = {
     ...baseDetail,
-    title: marker?.marker ? String(marker.marker).charAt(0) + String(marker.marker).slice(1).toLowerCase() : baseDetail.title,
+    title: String(marker?.title || marker?.marker || baseDetail.title).trim() || baseDetail.title,
     description: shouldWaitForDiagnosticData
       ? (isDiagnosticLoading ? '' : (diagnosticDescription || 'No details provided in report.'))
       : baseDetail.description,
