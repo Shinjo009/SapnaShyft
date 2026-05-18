@@ -1,5 +1,6 @@
 import './App.css';
 import { useState, useEffect, useRef, Suspense, lazy, useCallback, useMemo } from 'react';
+import { flushSync } from 'react-dom';
 import SplashScreen from './pages/SplashScreen';
 import LoginPage from './pages/LoginPage';
 import { getSuperClubLikedSportIds } from './pages/SuperClubPage/superClubStorage';
@@ -57,6 +58,8 @@ import {
   readSuperclubPlaylistLock,
   resolvePageWithSuperclubLock,
 } from './utils/superclubPlaylistLock';
+import { setBootstrapLoading } from './loading/globalLoading';
+import { GlobalPageLoader } from './components/PageLoader';
 
 // Same asset as Profile logout modal (`/public/BG-1.png`).
 const questionnaireSuccessModalBg = `${process.env.PUBLIC_URL || ''}/BG-1.png`;
@@ -110,6 +113,16 @@ const SWIPE_BACK_BLOCKED_PAGES = new Set([
   'account-selection',
   'super-club-playlist-confirm',
 ]);
+
+/** Placeholder route while restoring an existing session (never shows splash cube). */
+const SESSION_RESTORE_PAGE = 'session-restore';
+
+const getInitialAppPage = () => {
+  if (typeof window === 'undefined') {
+    return 'splash';
+  }
+  return getRefreshToken() ? SESSION_RESTORE_PAGE : 'splash';
+};
 
 const EDGE_SWIPE_TRIGGER_PX = 70;
 const EDGE_SWIPE_VERTICAL_TOLERANCE_PX = 80;
@@ -205,8 +218,10 @@ const deriveEmployerOrganizerName = (profile) => {
 };
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('splash'); // Start with splash screen
-  const [isBootstrappingSession, setIsBootstrappingSession] = useState(true);
+  const [currentPage, setCurrentPage] = useState(getInitialAppPage);
+  const [isBootstrappingSession, setIsBootstrappingSession] = useState(
+    () => getInitialAppPage() === SESSION_RESTORE_PAGE,
+  );
   const [phoneNumber, setPhoneNumber] = useState('');
   const [userName, setUserName] = useState('');
   const [employerOrganizerName, setEmployerOrganizerName] = useState('');
@@ -365,6 +380,10 @@ function App() {
 
     window.history.pushState(state, '', window.location.href);
   }, [currentPage]);
+
+  useEffect(() => {
+    setBootstrapLoading(isBootstrappingSession);
+  }, [isBootstrappingSession]);
 
   useEffect(() => {
     trackAppScreen(currentPage);
@@ -796,6 +815,17 @@ function App() {
     setCurrentPage('questionnaire-null-catchup');
   }, []);
 
+  const finishAuthenticatedBootstrap = useCallback((nextPage, { useLockedLanding = false } = {}) => {
+    flushSync(() => {
+      if (useLockedLanding) {
+        applyLockedLanding(nextPage);
+      } else {
+        setCurrentPage(nextPage);
+      }
+      setIsBootstrappingSession(false);
+    });
+  }, [applyLockedLanding]);
+
   useEffect(() => {
     const trySessionRestore = async () => {
       const refreshTokenValue = getRefreshToken();
@@ -889,8 +919,7 @@ function App() {
         setSelectedAccountId(normalizedCurrentUserId || normalizedAccounts[0]?.id || null);
 
         if (normalizedAccounts.length > 1) {
-          setCurrentPage('account-selection');
-          setIsBootstrappingSession(false);
+          finishAuthenticatedBootstrap('account-selection');
           return;
         }
 
@@ -905,8 +934,7 @@ function App() {
               /* HomePage will recover via its own fetch */
             }
           }
-          applyLockedLanding(targetPage);
-          setIsBootstrappingSession(false);
+          finishAuthenticatedBootstrap(targetPage, { useLockedLanding: true });
           return;
         }
       } catch (bootstrapError) {
@@ -914,12 +942,11 @@ function App() {
       }
 
       await preloadHomeScreenData();
-      applyLockedLanding('health-insights');
-      setIsBootstrappingSession(false);
+      finishAuthenticatedBootstrap('health-insights', { useLockedLanding: true });
     };
 
     trySessionRestore();
-  }, [applyLockedLanding]);
+  }, [finishAuthenticatedBootstrap]);
 
   // Warm code-split chunks at idle: NavBar targets first, then the rest of the
   // app so most navigations resolve cached modules (no chunk flash). This does
@@ -1430,13 +1457,8 @@ function App() {
   const canDirectInstallPwa = Boolean(deferredPrompt) && !isIosInstallFlow;
   if (isBootstrappingSession) {
     return (
-      <div className="app-root">
-        <SplashScreen
-          onComplete={() => {}}
-          onLogin={() => {}}
-          onSignup={() => {}}
-          showInstallBannerLogo={false}
-        />
+      <div className="app-root app-root--bootstrapping" aria-busy="true" aria-label="Loading application">
+        <GlobalPageLoader />
       </div>
     );
   }
@@ -2196,8 +2218,8 @@ function App() {
         />
       )}
 
-      {currentPage === 'splash' && (
-        <SplashScreen 
+      {currentPage === 'splash' && !isBootstrappingSession && (
+        <SplashScreen
           onComplete={() => {
             console.log('Splash animation complete');
           }}

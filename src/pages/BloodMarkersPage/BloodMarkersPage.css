@@ -177,6 +177,26 @@
   gap: 24px;
 }
 
+.blood-markers-page__sections--empty {
+  flex: 1;
+  min-height: calc(100vh - 220px);
+  align-items: center;
+  justify-content: center;
+}
+
+.blood-markers-page__empty {
+  margin: 0;
+  padding: 0 24px;
+  color: rgba(255, 255, 255, 0.72);
+  text-align: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0.2px;
+}
+
 .blood-markers-page__section {
   display: flex;
   flex-direction: column;
@@ -286,6 +306,8 @@
   height: calc(var(--blood-markers-stack-front-height, var(--blood-markers-card-height)) + var(--blood-markers-stack-tail));
   overflow: visible;
   touch-action: pan-y;
+  transform: translateZ(0);
+  isolation: isolate;
   transition: height 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -310,11 +332,19 @@
   box-sizing: border-box;
   border: 1px solid transparent;
   overflow: hidden;
+  contain: layout style paint;
   will-change: transform;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   transition:
     left 680ms cubic-bezier(0.19, 1, 0.22, 1),
-    transform 680ms cubic-bezier(0.19, 1, 0.22, 1);
+    top 680ms cubic-bezier(0.19, 1, 0.22, 1),
+    transform 680ms cubic-bezier(0.19, 1, 0.22, 1),
+    height 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.blood-markers-page__stack[class*='blood-markers-page__stack--moving'] .blood-markers-page__stack-card {
+  will-change: left, top, transform;
 }
 
 .blood-markers-page__stack[data-dragging='true'] .blood-markers-page__stack-card {
@@ -323,7 +353,7 @@
 }
 
 .blood-markers-page__stack[data-resetting='true'] .blood-markers-page__stack-card {
-  transition-property: left, transform;
+  transition-property: left, top, transform, height;
   transition-duration: 0ms;
 }
 
@@ -447,6 +477,22 @@
   transform: translate3d(0, 0, 0);
 }
 
+.blood-markers-page__stack[data-card-count='1'] {
+  width: 100%;
+  --blood-markers-front-left: 0px;
+  --blood-markers-stack-tail: 0px;
+  height: var(--blood-markers-stack-front-height, var(--blood-markers-card-height));
+}
+
+.blood-markers-page__stack[data-card-count='1'] .blood-markers-page__stack-card {
+  left: 0;
+  width: 100%;
+}
+
+.blood-markers-page__stack[data-card-count='1'] .blood-markers-page__stack-card--front {
+  transform: none;
+}
+
 .blood-markers-page__stack[data-card-count='2'] .blood-markers-page__stack-card--back-two,
 .blood-markers-page__stack[data-card-count='2'] .blood-markers-page__stack-card--hidden {
   display: none;
@@ -468,6 +514,38 @@
   height: auto;
   min-height: var(--blood-markers-card-height);
   overflow: visible;
+}
+
+/* Retract expanded aggregate details during swap (instant clip; motion masks the change). */
+.blood-markers-page__stack[data-swapping-from-expanded='true'][class*='blood-markers-page__stack--moving'] {
+  height: calc(var(--blood-markers-card-height) + var(--blood-markers-stack-tail)) !important;
+  pointer-events: none;
+}
+
+.blood-markers-page__stack[data-swapping-from-expanded='true'][class*='blood-markers-page__stack--moving']
+  .blood-markers-page__stack-card--front.blood-markers-page__stack-card--optimal-expanded {
+  height: var(--blood-markers-card-height) !important;
+  min-height: var(--blood-markers-card-height);
+  overflow: hidden;
+}
+
+.blood-markers-page__stack[data-swapping-from-expanded='true'][class*='blood-markers-page__stack--moving']
+  .blood-markers-page__stack-card--front
+  .blood-markers-page__optimal-params {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  margin-top: 0 !important;
+  padding: 0 !important;
+  visibility: hidden;
+  pointer-events: none;
+  transition: none !important;
+}
+
+.blood-markers-page__stack[data-swapping-from-expanded='true'][class*='blood-markers-page__stack--moving']
+  .blood-markers-page__stack-card--front
+  .blood-markers-page__optimal-chevron {
+  transform: rotate(0deg);
+  transition: none;
 }
 
 .blood-markers-page__stack--moving-next .blood-markers-page__stack-card--front {

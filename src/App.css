@@ -16,6 +16,11 @@
   margin: 0;
   padding: 0;
   overscroll-behavior-x: none;
+  isolation: isolate;
+}
+
+.app-root--bootstrapping {
+  background: #000;
 }
 
 @media (min-width: 481px) {
