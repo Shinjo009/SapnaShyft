@@ -637,7 +637,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                 <div className="health-scan-page__metric-card">
                   <div className="health-scan-page__metric-title">
                     <img src={carbsIcon} alt="" aria-hidden="true" />
-                    <span>Carbs</span>
+                    <span>Carbohydrates</span>
                   </div>
                   <div className={`health-scan-page__metric-value ${carbsStatus.className}`}>
                     <span>{formatMacroRange(nutrition?.carbs)}</span>

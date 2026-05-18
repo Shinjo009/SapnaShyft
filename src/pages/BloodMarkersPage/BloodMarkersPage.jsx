@@ -35,6 +35,22 @@ const truncateBloodMarkersStackCardName = (name) => {
   return `${s.slice(0, BLOOD_MARKERS_STACK_CARD_NAME_MAX)}...`;
 };
 
+const OPTIMAL_AGGREGATE_RANGE_TITLE = 'OPTIMAL RANGE';
+
+const formatOptimalAggregatePrefix = (count) => {
+  const n = Math.max(0, Number(count) || 0);
+  const parameterWord = n === 1 ? 'PARAMETER' : 'PARAMETERS';
+  const verb = n === 1 ? 'IS' : 'ARE';
+  return `${n} OTHER ${parameterWord} ${verb} IN`;
+};
+
+const getOptimalAggregateParameterCount = (card) => {
+  if (Array.isArray(card?.aggregateTests) && card.aggregateTests.length > 0) {
+    return card.aggregateTests.length;
+  }
+  return Number(card?.value) || 0;
+};
+
 const ORGAN_ICON_BY_NAME = {
   haematology: haematologyIcon,
   liver: liverIcon,
@@ -737,13 +753,21 @@ const BloodMarkersParameterRows = ({ rows, keyPrefix = '' }) => {
 };
 
 const buildAggregateOptimalRows = (tests) => {
-  const items = (tests || []).map((t) => ({
-    type: 'item',
-    key: t.id,
-    text: `${t.title}: ${t.value}${t.unit ? ` ${t.unit}` : ''}`.trim(),
-  }));
-  items.push({ type: 'more-trailing', key: 'optimal-dropdown-more' });
-  return items;
+  const list = tests || [];
+  if (list.length === 0) {
+    return [];
+  }
+
+  return [
+    {
+      type: 'pill-group',
+      key: 'optimal-params',
+      tests: list.map((t) => ({
+        id: t.id,
+        title: t.title,
+      })),
+    },
+  ];
 };
 
 const BLOOD_MARKER_DETAIL_CONTENT = {
@@ -1710,27 +1734,40 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                 <div className="blood-markers-page__marker-block">
                   <span className={`blood-markers-page__marker-line blood-markers-page__marker-line--${card.riskType === 'low' ? 'low' : card.riskType}`} />
                   <div className="blood-markers-page__marker-copy">
-                    <span
-                      className="blood-markers-page__marker-label"
-                      title={
-                        String(card.marker ?? '').length > BLOOD_MARKERS_STACK_CARD_NAME_MAX
-                          ? String(card.marker)
-                          : undefined
-                      }
-                    >
-                      {truncateBloodMarkersStackCardName(card.marker)}
-                    </span>
-                    <div className="blood-markers-page__marker-value-row">
-                      <span className="blood-markers-page__marker-value">{card.value}</span>
-                      <span className="blood-markers-page__marker-unit">{card.unit}</span>
-                    </div>
+                    {isAggregateOptimalCard ? (
+                      <>
+                        <span className="blood-markers-page__optimal-prefix">
+                          {formatOptimalAggregatePrefix(getOptimalAggregateParameterCount(card))}
+                        </span>
+                        <span className="blood-markers-page__optimal-title">{OPTIMAL_AGGREGATE_RANGE_TITLE}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span
+                          className="blood-markers-page__marker-label"
+                          title={
+                            String(card.marker ?? '').length > BLOOD_MARKERS_STACK_CARD_NAME_MAX
+                              ? String(card.marker)
+                              : undefined
+                          }
+                        >
+                          {truncateBloodMarkersStackCardName(card.marker)}
+                        </span>
+                        <div className="blood-markers-page__marker-value-row">
+                          <span className="blood-markers-page__marker-value">{card.value}</span>
+                          <span className="blood-markers-page__marker-unit">{card.unit}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                <span className="blood-markers-page__risk-chip">
-                  <span className="blood-markers-page__risk-chip-text" style={{ color: riskMeta.color }}>{riskMeta.label}</span>
-                  <RiskTrendIcon type={card.riskType} />
-                </span>
+                {!isOptimalPeerCard ? (
+                  <span className="blood-markers-page__risk-chip">
+                    <span className="blood-markers-page__risk-chip-text" style={{ color: riskMeta.color }}>{riskMeta.label}</span>
+                    <RiskTrendIcon type={card.riskType} />
+                  </span>
+                ) : null}
               </div>
 
               <div className={`blood-markers-page__card-bottom-row${isSingleOptimalPeerCard ? ' blood-markers-page__card-bottom-row--optimal-peer-only' : ''}`}>
@@ -1747,7 +1784,11 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                   <button
                     type="button"
                     className={`blood-markers-page__optimal-chevron ${isLowCardExpanded ? 'blood-markers-page__optimal-chevron--expanded' : ''}`}
-                    aria-label={isLowCardExpanded ? 'Hide additional optimal parameters' : 'Show additional optimal parameters'}
+                    aria-label={
+                      isLowCardExpanded
+                        ? `Hide ${formatOptimalAggregatePrefix(getOptimalAggregateParameterCount(card))} ${OPTIMAL_AGGREGATE_RANGE_TITLE}`
+                        : `Show ${formatOptimalAggregatePrefix(getOptimalAggregateParameterCount(card))} ${OPTIMAL_AGGREGATE_RANGE_TITLE}`
+                    }
                     onClick={(event) => {
                       event.stopPropagation();
                       setExpandedLowCardIds((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
