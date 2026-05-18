@@ -16,12 +16,22 @@
   height: var(--metabolic-orb-size);
   /* Softer shadow avoids a harsh dark “ring” around the canvas blob. */
   filter: drop-shadow(0 14px 26px rgba(8, 14, 22, 0.2));
+  contain: layout style paint;
+  transform: translateZ(0);
 }
 
 .metabolic-orb__canvas {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+.metabolic-orb__canvas-surface {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* MetabolicAgeOrb2 — topographic canvas; circular clip to match orb silhouette */

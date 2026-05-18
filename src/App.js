@@ -264,6 +264,7 @@ function App() {
   const postLoginRedirectPageRef = useRef(resolvePostLoginRedirectPage());
   const edgeSwipeStateRef = useRef({
     tracking: false,
+    blockNativeBackGesture: false,
     startX: 0,
     startY: 0,
     lastX: 0,
@@ -312,6 +313,17 @@ function App() {
 
   const isSwipeBackAllowedPage = useCallback((page) => !SWIPE_BACK_BLOCKED_PAGES.has(page), []);
 
+  const pinHomeBrowserHistory = useCallback(() => {
+    if (typeof window === 'undefined' || !window.history) {
+      return;
+    }
+
+    const state = { appPage: 'home' };
+    const url = window.location.href;
+    window.history.replaceState(state, '', url);
+    window.history.pushState(state, '', url);
+  }, []);
+
   useEffect(() => {
     if (appScrollRef.current) {
       appScrollRef.current.scrollTo({ top: 0, left: 0, behavior: 'auto' });
@@ -338,6 +350,16 @@ function App() {
     if (skipBrowserHistoryPushRef.current) {
       skipBrowserHistoryPushRef.current = false;
       window.history.replaceState(state, '', window.location.href);
+      return;
+    }
+
+    // Root/auth screens replace the current history entry instead of pushing,
+    // so iOS edge-swipe cannot walk back through splash → login → health-insights.
+    if (SWIPE_BACK_BLOCKED_PAGES.has(currentPage)) {
+      window.history.replaceState(state, '', window.location.href);
+      if (currentPage === 'home') {
+        window.history.pushState(state, '', window.location.href);
+      }
       return;
     }
 
@@ -407,12 +429,24 @@ function App() {
   }, [currentPage, isSwipeBackAllowedPage]);
 
   const handleEdgeSwipeStart = (event) => {
-    if (!canSwipeBack || !isSwipeBackAllowedPage(currentPage)) {
+    const touch = event.touches?.[0];
+    if (!touch) {
       return;
     }
 
-    const touch = event.touches?.[0];
-    if (!touch) {
+    if (!isSwipeBackAllowedPage(currentPage) && touch.clientX <= EDGE_SWIPE_START_ZONE_PX) {
+      edgeSwipeStateRef.current = {
+        tracking: false,
+        blockNativeBackGesture: true,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        lastX: touch.clientX,
+        lastY: touch.clientY,
+      };
+      return;
+    }
+
+    if (!canSwipeBack || !isSwipeBackAllowedPage(currentPage)) {
       return;
     }
 
@@ -422,6 +456,7 @@ function App() {
 
     edgeSwipeStateRef.current = {
       tracking: true,
+      blockNativeBackGesture: false,
       startX: touch.clientX,
       startY: touch.clientY,
       lastX: touch.clientX,
@@ -431,6 +466,26 @@ function App() {
 
   const handleEdgeSwipeMove = (event) => {
     const swipeState = edgeSwipeStateRef.current;
+
+    if (swipeState.blockNativeBackGesture) {
+      const touch = event.touches?.[0];
+      if (!touch) {
+        return;
+      }
+
+      swipeState.lastX = touch.clientX;
+      swipeState.lastY = touch.clientY;
+
+      const deltaX = swipeState.lastX - swipeState.startX;
+      const deltaY = swipeState.lastY - swipeState.startY;
+
+      if (deltaX > 0 && Math.abs(deltaY) <= EDGE_SWIPE_VERTICAL_TOLERANCE_PX) {
+        event.preventDefault();
+      }
+
+      return;
+    }
+
     if (!swipeState.tracking) {
       return;
     }
@@ -458,6 +513,11 @@ function App() {
 
   const handleEdgeSwipeEnd = () => {
     const swipeState = edgeSwipeStateRef.current;
+    if (swipeState.blockNativeBackGesture) {
+      swipeState.blockNativeBackGesture = false;
+      return;
+    }
+
     if (!swipeState.tracking) {
       return;
     }
@@ -473,6 +533,7 @@ function App() {
 
   const handleEdgeSwipeCancel = () => {
     edgeSwipeStateRef.current.tracking = false;
+    edgeSwipeStateRef.current.blockNativeBackGesture = false;
   };
 
   useEffect(() => {
@@ -481,9 +542,15 @@ function App() {
     }
 
     const handleBrowserBack = () => {
+      if (currentPage === 'home') {
+        skipBrowserHistoryPushRef.current = true;
+        pinHomeBrowserHistory();
+        return;
+      }
+
       if (!isSwipeBackAllowedPage(currentPage)) {
         skipBrowserHistoryPushRef.current = true;
-        window.history.pushState({ appPage: currentPage }, '', window.location.href);
+        window.history.replaceState({ appPage: currentPage }, '', window.location.href);
         return;
       }
 
@@ -495,14 +562,14 @@ function App() {
       }
 
       skipBrowserHistoryPushRef.current = true;
-      window.history.pushState({ appPage: currentPage }, '', window.location.href);
+      window.history.replaceState({ appPage: currentPage }, '', window.location.href);
     };
 
     window.addEventListener('popstate', handleBrowserBack);
     return () => {
       window.removeEventListener('popstate', handleBrowserBack);
     };
-  }, [goBackBySwipe, currentPage, isSwipeBackAllowedPage]);
+  }, [goBackBySwipe, currentPage, isSwipeBackAllowedPage, pinHomeBrowserHistory]);
 
   const getProgressFromCategories = (categories) => {
     let completedCount = 0;
