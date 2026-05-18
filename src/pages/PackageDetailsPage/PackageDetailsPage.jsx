@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState, Suspense, lazy } from 'react';
 import './PackageDetailsPage.css';
 import { getDiagnosticPackageDetail, getDiagnosticPackageTests } from '../../services/diagnosticPackagesService';
+import { getComplimentaryConsultationContent } from '../../utils/complimentaryConsultation';
 import { mapHealthAreasForDisplay } from '../../utils/healthAreasCovered';
+import medicalInsightsIcon from '../../images/medicalinsights_D+N.svg';
+import guidanceIcon from '../../images/Guidance_D+N.svg';
 
 // PatientSelectionOverlay is only mounted when user opens the booking sheet — defer its ~14 KiB chunk.
 const PatientSelectionOverlay = lazy(() => import('../../components/PatientSelectionOverlay'));
@@ -185,6 +188,33 @@ const ComplimentaryLifestyleIcon = () => (
     </defs>
   </svg>
 );
+
+const COMPLIMENTARY_ITEM_ICONS = {
+  call: ComplimentaryCallIcon,
+  call_both: ComplimentaryCallIcon,
+  diet: ComplimentaryDietIcon,
+  report: ComplimentaryReportIcon,
+  lifestyle: ComplimentaryLifestyleIcon,
+  medical_insights: () => (
+    <img src={medicalInsightsIcon} alt="" aria-hidden="true" className="package-details-page__complimentary-item-icon-image" />
+  ),
+  guidance: () => (
+    <img src={guidanceIcon} alt="" aria-hidden="true" className="package-details-page__complimentary-item-icon-image" />
+  ),
+};
+
+const ComplimentaryItemIcon = ({ iconKey }) => {
+  const IconComponent = COMPLIMENTARY_ITEM_ICONS[iconKey];
+  if (!IconComponent) {
+    return null;
+  }
+
+  return (
+    <span className="package-details-page__complimentary-item-icon" aria-hidden="true">
+      <IconComponent />
+    </span>
+  );
+};
 
 const BIOMARKER_BENEFITS = [
   {
@@ -930,6 +960,11 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
     return packageCard || null;
   }, [isCustomReview, packageCard, packageDetail]);
 
+  const complimentaryConsultation = useMemo(() => {
+    const source = packageDetail || packageCard?.apiData || packageCard;
+    return getComplimentaryConsultationContent(source);
+  }, [packageCard, packageDetail]);
+
   const frontCardIndex = order[0];
 
   const slotByCardIndex = useMemo(() => {
@@ -1135,10 +1170,12 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
       </div>
 
       <div className="package-details-page__content">
+        {complimentaryConsultation ? (
         <div className="package-details-page__complimentary-top-pill">
           <ComplimentaryTopPillIcon />
-          <span>Complimentary Nutritionist Consultation</span>
+          <span>{complimentaryConsultation.topPillLabel}</span>
         </div>
+        ) : null}
 
         <section className="package-details-page__overview-box">
           <h2 className="package-details-page__pack-title">{packageTitle}</h2>
@@ -1217,35 +1254,30 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
         </section>
         ) : null}
 
-        <section className="package-details-page__complimentary-section" aria-label="Complimentary Nutritionist">
-          <h3 className="package-details-page__complimentary-title">Complimentary Nutritionist</h3>
+        {complimentaryConsultation ? (
+        <section
+          className="package-details-page__complimentary-section"
+          aria-label={complimentaryConsultation.sectionAriaLabel}
+        >
+          <h3 className="package-details-page__complimentary-title">{complimentaryConsultation.sectionTitle}</h3>
 
           <div className="package-details-page__complimentary-worth-pill">
             <ComplimentarySparkleIcon />
-            <span>WORTH ₹999 — INCLUDED FREE</span>
+            <span>{complimentaryConsultation.worthLabel}</span>
           </div>
 
           <p className="package-details-page__complimentary-subtitle">What&apos;s Included</p>
 
           <div className="package-details-page__complimentary-list">
-            <div className="package-details-page__complimentary-item">
-              <ComplimentaryCallIcon />
-              <span>1-on-1 Consultation call</span>
-            </div>
-            <div className="package-details-page__complimentary-item">
-              <ComplimentaryDietIcon />
-              <span>Personalized diet plan</span>
-            </div>
-            <div className="package-details-page__complimentary-item">
-              <ComplimentaryReportIcon />
-              <span>Report explanation in simple terms</span>
-            </div>
-            <div className="package-details-page__complimentary-item">
-              <ComplimentaryLifestyleIcon />
-              <span>Lifestyle &amp; habit recommendations</span>
-            </div>
+            {complimentaryConsultation.items.map((item) => (
+              <div key={`${item.icon}-${item.label}`} className="package-details-page__complimentary-item">
+                <ComplimentaryItemIcon iconKey={item.icon} />
+                <span>{item.label}</span>
+              </div>
+            ))}
           </div>
         </section>
+        ) : null}
 
         {isCustomReview ? (
           <section className="package-details-page__ai-section" aria-label="AI suggested tests">

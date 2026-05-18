@@ -686,6 +686,21 @@
   gap: 12px;
 }
 
+.package-details-page__complimentary-item-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.package-details-page__complimentary-item-icon-image {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
 .package-details-page__complimentary-item span {
   color: #CCC;
   font-family: "DM Sans", sans-serif;

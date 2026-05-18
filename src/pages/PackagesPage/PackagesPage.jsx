@@ -3,6 +3,7 @@ import './PackagesPage.css';
 import NavBar from '../../components/NavBar';
 import { listDiagnosticPackages, listPublicDiagnosticPackageFilterChips } from '../../services/diagnosticPackagesService';
 import { getMyProfileCached } from '../../services/profileService';
+import { getComplimentaryConsultationContent } from '../../utils/complimentaryConsultation';
 import { getAccessToken } from '../../utils/authStorage';
 
 // PatientSelectionOverlay is a large (~14 KiB) booking sheet that only renders when the user
@@ -738,12 +739,21 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
               </div>
 
               <div className="packages-card__book-row">
-                <div className="packages-card__book-perks">
-                  <span className="packages-card__book-perk-pill">
-                    <ComplimentaryConsultationIcon />
-                    <span>Complimentary Nutritionist Consultation</span>
-                  </span>
-                </div>
+                {(() => {
+                  const consultation = getComplimentaryConsultationContent(pkg?.apiData || pkg);
+                  if (!consultation) {
+                    return null;
+                  }
+
+                  return (
+                    <div className="packages-card__book-perks">
+                      <span className="packages-card__book-perk-pill">
+                        <ComplimentaryConsultationIcon />
+                        <span>{consultation.topPillLabel}</span>
+                      </span>
+                    </div>
+                  );
+                })()}
                 <div className="packages-card__book-main">
                   <div className="packages-card__price-wrap">
                     <div className="packages-card__price-top">
