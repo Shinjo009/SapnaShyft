@@ -560,6 +560,7 @@ const ProfilePage = ({
                 </p>
               </>
             )}
+            
 
             <div className="profile-page__modal-buttons">
               <button
