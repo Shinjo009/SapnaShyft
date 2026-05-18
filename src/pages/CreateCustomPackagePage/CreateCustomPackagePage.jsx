@@ -6,17 +6,17 @@ import {
   listDiagnosticTestGroups,
 } from '../../services/diagnosticPackagesService';
 import { getAccessToken } from '../../utils/authStorage';
-import liverIcon from '../../images/Liver.svg';
-import haematologyIcon from '../../images/Haemotology.svg';
-import kidneyIcon from '../../images/Kidney.svg';
+import liverIcon from '../../images/Liver_HAC.svg';
+import haematologyIcon from '../../images/Haemotology_HAC.svg';
+import kidneyIcon from '../../images/Kidney_HAC.svg';
 import vitaminsIcon from '../../images/Vitamins.svg';
-import lipidIcon from '../../images/Lipid.svg';
-import ironIcon from '../../images/Iron.svg';
+import lipidIcon from '../../images/Lipid_Flow.svg';
+import ironIcon from '../../images/Iron_HAC.svg';
 import thyroidIcon from '../../images/Thyroid.svg';
-import diabetesIcon from '../../images/Diabetes.svg';
+import diabetesIcon from '../../images/Diabetes_HAC.svg';
 import inflammationIcon from '../../images/Inflammation.svg';
 import sleepIcon from '../../images/Sleep.svg';
-import hormonesIcon from '../../images/Hormones.svg';
+import hormonesIcon from '../../images/Hormones_Outline.svg';
 import allergiesIcon from '../../images/Allergies_HAC.svg';
 import cardiacIcon from '../../images/Cardiac-RA.svg';
 import ferritinIcon from '../../images/Ferritin.svg';
