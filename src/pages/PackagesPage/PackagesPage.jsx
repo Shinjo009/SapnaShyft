@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, Suspense, lazy } from 'react';
 import './PackagesPage.css';
 import NavBar from '../../components/NavBar';
 import { listDiagnosticPackages, listPublicDiagnosticPackageFilterChips } from '../../services/diagnosticPackagesService';
+import { getMyProfileCached } from '../../services/profileService';
 import { getAccessToken } from '../../utils/authStorage';
 
 // PatientSelectionOverlay is a large (~14 KiB) booking sheet that only renders when the user
@@ -14,7 +15,154 @@ const ALL_FILTER = {
   display_name: 'All',
 };
 
+const FOR_YOU_CHIP_KEYS = new Set(['for_you', 'for-you', 'foryou']);
+
+const FOR_YOU_AGE_BANDS = [
+  {
+    id: 'young',
+    min: 0,
+    max: 29,
+    keywords: ['genz', 'gen z', 'basic', 'core', 'supershyft basic', 'supershyft core'],
+  },
+  {
+    id: 'mid',
+    min: 30,
+    max: 44,
+    keywords: ['peak', 'elite', 'performance', 'progressive'],
+  },
+  {
+    id: 'mature',
+    min: 45,
+    max: 120,
+    keywords: ['c-suite', 'c suite', 'csuite', 'executive', 'ddecor'],
+  },
+];
+
 const MISSING_VALUE = '-';
+
+const unwrapProfileResponse = (response) => (
+  response?.data && typeof response.data === 'object' ? response.data : response
+);
+
+const getAgeFromProfile = (profile) => {
+  if (typeof profile?.age === 'number' && profile.age > 0) {
+    return Math.floor(profile.age);
+  }
+
+  if (!profile?.date_of_birth) {
+    return null;
+  }
+
+  const dob = new Date(profile.date_of_birth);
+  if (Number.isNaN(dob.getTime())) {
+    return null;
+  }
+
+  const today = new Date();
+  let calculatedAge = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    calculatedAge -= 1;
+  }
+
+  return calculatedAge > 0 ? calculatedAge : null;
+};
+
+const normalizeProfileGender = (profile) => {
+  const gender = String(profile?.gender || '').trim().toLowerCase();
+  if (gender === 'male' || gender === 'm' || gender === 'man') {
+    return 'male';
+  }
+  if (gender === 'female' || gender === 'f' || gender === 'woman') {
+    return 'female';
+  }
+  return null;
+};
+
+const buildPackageSearchHaystack = (pkg) => {
+  const parts = [
+    String(pkg?.title || ''),
+    String(pkg?.apiData?.package_name || ''),
+    ...(Array.isArray(pkg?.badges) ? pkg.badges : []),
+    ...(Array.isArray(pkg?.chips) ? pkg.chips : []),
+    ...getPackageFilterChips(pkg?.apiData || {}),
+  ];
+
+  const rawTags = Array.isArray(pkg?.apiData?.tags) ? pkg.apiData.tags : [];
+  rawTags.forEach((tag) => {
+    if (typeof tag === 'string' || typeof tag === 'number') {
+      parts.push(String(tag));
+      return;
+    }
+
+    if (tag && typeof tag === 'object') {
+      parts.push(
+        tag.tag_name,
+        tag.name,
+        tag.filter_chip,
+        tag.chip_key,
+        tag.display_name,
+      );
+    }
+  });
+
+  return parts
+    .map((part) => String(part || '').trim())
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+};
+
+const getPackageAgeBandIds = (pkg) => {
+  const haystack = buildPackageSearchHaystack(pkg);
+
+  return FOR_YOU_AGE_BANDS
+    .filter((band) => band.keywords.some((keyword) => haystack.includes(keyword)))
+    .map((band) => band.id);
+};
+
+const getAgeBandForAge = (age) => {
+  if (!Number.isFinite(age)) {
+    return null;
+  }
+
+  return FOR_YOU_AGE_BANDS.find((band) => age >= band.min && age <= band.max) || null;
+};
+
+const packageMatchesForYouGender = (pkg, userGender) => {
+  if (!userGender) {
+    return true;
+  }
+
+  const suitability = String(pkg?.apiData?.gender_suitability || '').trim().toLowerCase();
+  if (!suitability || suitability === 'both') {
+    return true;
+  }
+
+  return suitability === userGender;
+};
+
+const packageMatchesForYouAge = (pkg, userAge) => {
+  const userBand = getAgeBandForAge(userAge);
+  if (!userBand) {
+    return true;
+  }
+
+  const packageBands = getPackageAgeBandIds(pkg);
+  if (packageBands.length === 0) {
+    return true;
+  }
+
+  return packageBands.includes(userBand.id);
+};
+
+const isForYouChipKey = (chipKey) => FOR_YOU_CHIP_KEYS.has(String(chipKey || '').trim().toLowerCase());
+
+const packageMatchesForYou = (pkg, forYouContext) => (
+  packageMatchesForYouGender(pkg, forYouContext?.gender)
+  && packageMatchesForYouAge(pkg, forYouContext?.age)
+);
 
 const normalizeFilterChipValue = (value) => {
   if (value == null) {
@@ -241,6 +389,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
   const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
   const [packageCardsFromApi, setPackageCardsFromApi] = useState([]);
   const [bookingPackage, setBookingPackage] = useState(null);
+  const [forYouProfile, setForYouProfile] = useState(null);
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
   useEffect(() => {
@@ -276,6 +425,36 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
     };
 
     loadDiagnosticPackageCards();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadForYouProfile = async () => {
+      try {
+        const response = await getMyProfileCached();
+        const profile = unwrapProfileResponse(response);
+
+        if (!mounted) {
+          return;
+        }
+
+        setForYouProfile({
+          gender: normalizeProfileGender(profile),
+          age: getAgeFromProfile(profile),
+        });
+      } catch {
+        if (mounted) {
+          setForYouProfile({ gender: null, age: null });
+        }
+      }
+    };
+
+    loadForYouProfile();
 
     return () => {
       mounted = false;
@@ -323,6 +502,10 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
         return true;
       }
 
+      if (isForYouChipKey(selectedKey)) {
+        return packageMatchesForYou(pkg, forYouProfile);
+      }
+
       const packageValues = toNormalizedPackageTagValues(pkg);
       return packageValues.has(selectedKey) || (selectedLabel ? packageValues.has(selectedLabel) : false);
     });
@@ -367,7 +550,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
     return shouldIncludeCustomCard
       ? [...searchFilteredCards, { ...customPackageCard }]
       : searchFilteredCards;
-  }, [activeFilterKey, customPackageCard, filterChips, normalizedQuery, sourceCards]);
+  }, [activeFilterKey, customPackageCard, filterChips, forYouProfile, normalizedQuery, sourceCards]);
 
   useEffect(() => {
     const availableKeys = new Set(
