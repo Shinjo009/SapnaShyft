@@ -984,6 +984,13 @@
   padding-top: 40px;
 }
 
+/* Chrome & Safari (WebKit/Blink) */
+@supports (-webkit-appearance: none) {
+  .blood-marker-detail {
+    padding-top: 30px;
+  }
+}
+
 .blood-marker-detail__header {
   width: 100%;
   display: flex;
@@ -1205,6 +1212,10 @@
 .blood-marker-detail__value-main svg {
   width: 16px;
   height: 16px;
+}
+
+.blood-marker-detail__value-unit {
+  color: #9A9A9A;
 }
 
 .blood-marker-detail__risk-main {

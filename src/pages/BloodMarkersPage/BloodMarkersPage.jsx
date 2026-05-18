@@ -1208,7 +1208,12 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill={riskColor} />
             </svg>
-            <span>{activeValue} {detail.unit}</span>
+            <span className="blood-marker-detail__value-number">{activeValue}</span>
+            {String(marker?.unit || detail.unit || '').trim() ? (
+              <span className="blood-marker-detail__value-unit">
+                {` ${String(marker?.unit || detail.unit).trim()}`}
+              </span>
+            ) : null}
           </div>
           <div className="blood-marker-detail__risk-main">
             <span className="blood-marker-detail__risk-badge-dot" style={{ background: riskColor }} />
