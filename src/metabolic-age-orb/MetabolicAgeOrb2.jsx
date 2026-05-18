@@ -1,30 +1,97 @@
 import React, { useEffect, useRef } from 'react';
 
+const LOGICAL_SIZE = 600;
+const BASE_NUM_LINES = 122;
+const BASE_SEGS = 468;
+const DESKTOP_MIN_WIDTH_PX = 769;
+
 /**
  * Topographic orb — calm motion; line colours follow metabolic risk band (same ranges as legacy Orb).
  */
 export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
+  const rootRef = useRef(null);
   const canvasRef = useRef(null);
   const animRef = useRef(null);
   const riskBandRef = useRef(riskBand);
   riskBandRef.current = Math.min(3, Math.max(0, riskBand | 0));
 
+  const renderProfileRef = useRef({
+    scale: 1,
+    numLines: BASE_NUM_LINES,
+    segs: BASE_SEGS,
+    visible: true,
+    perfScale: 1,
+  });
+
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-    const ctx = canvas.getContext('2d', { alpha: true, desynchronized: false });
+    const root = rootRef.current;
+    if (!canvas || !root) return undefined;
+
+    const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
     if (!ctx) return undefined;
+
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.imageSmoothingEnabled = true;
+    if (typeof ctx.imageSmoothingQuality !== 'undefined') {
+      ctx.imageSmoothingQuality = 'high';
+    }
 
-    const SIZE = 600;
-    canvas.width = SIZE;
-    canvas.height = SIZE;
-
+    const SIZE = LOGICAL_SIZE;
     const cx = SIZE / 2;
     const cy = SIZE / 2;
     const RADIUS = 252;
+
+    const syncCanvasResolution = () => {
+      const cssSize = Math.max(1, Math.round(Math.min(root.clientWidth, root.clientHeight) || 252));
+      const isDesktop = typeof window !== 'undefined'
+        && window.matchMedia(`(min-width: ${DESKTOP_MIN_WIDTH_PX}px)`).matches;
+      const deviceDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+
+      const targetDpr = isDesktop
+        ? Math.min(3, Math.max(2.25, deviceDpr))
+        : Math.min(1.75, Math.max(1, deviceDpr * 0.92));
+
+      const profile = renderProfileRef.current;
+      const maxBuffer = isDesktop ? 1080 : 520;
+      const bufferSize = Math.min(
+        maxBuffer,
+        Math.max(280, Math.round(cssSize * targetDpr * profile.perfScale)),
+      );
+      const scale = bufferSize / SIZE;
+
+      profile.scale = scale;
+      const detailFactor = Math.min(1.12, Math.max(0.74, scale / 2.05));
+      profile.numLines = Math.max(96, Math.round(BASE_NUM_LINES * detailFactor));
+      profile.segs = Math.max(320, Math.round(BASE_SEGS * detailFactor));
+
+      const nextWidth = Math.round(SIZE * scale);
+      const nextHeight = Math.round(SIZE * scale);
+      if (canvas.width !== nextWidth || canvas.height !== nextHeight) {
+        canvas.width = nextWidth;
+        canvas.height = nextHeight;
+      }
+    };
+
+    syncCanvasResolution();
+
+    const resizeObserver = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => {
+        syncCanvasResolution();
+      })
+      : null;
+    resizeObserver?.observe(root);
+
+    const intersectionObserver = typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver(
+        (entries) => {
+          renderProfileRef.current.visible = entries.some((entry) => entry.isIntersecting);
+        },
+        { root: null, threshold: 0.05 },
+      )
+      : null;
+    intersectionObserver?.observe(root);
 
     /** Global volume — very small so mean radius stays ~constant. */
     function slowBreath(bx, by, bz, t) {
@@ -82,7 +149,6 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
       );
     }
 
-    /** Fast shimmer along contours. */
     /**
      * Same idea as legacy `bandToRgb` + displacement norm: green / yellow / orange / red ramps.
      */
@@ -183,11 +249,16 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
     }
 
     function draw(tOuter, tInner) {
-      ctx.clearRect(0, 0, SIZE, SIZE);
-      const tInnerWave = tInner * 0.9;
+      const profile = renderProfileRef.current;
+      const drawScale = profile.scale;
 
-      const NUM_LINES = 122;
-      const SEGS = 468;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(drawScale, 0, 0, drawScale, 0, 0);
+
+      const tInnerWave = tInner * 0.9;
+      const NUM_LINES = profile.numLines;
+      const SEGS = profile.segs;
 
       const focalX = cx - RADIUS * 0.32;
       const focalY = cy + RADIUS * 0.2;
@@ -219,7 +290,7 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
           const innerFine = innerNoise(
             bx * 2.82 + bz * 1.62 + linePhase * 0.085,
             by * 2.52 + linePhase * 0.118,
-            tInnerWave
+            tInnerWave,
           );
 
           const swirl = spiralFold(theta, phi, tInnerWave, tOuter);
@@ -306,25 +377,53 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
     let lastMs = 0;
     let smoothOuter = 0;
     let smoothInner = 0;
+    const frameDurations = [];
+    let perfCooldownUntil = 0;
 
     function animate(nowMs) {
       if (startMs === 0) {
         startMs = nowMs;
         lastMs = nowMs;
       }
-      const elapsedSec = (nowMs - startMs) / 1000;
-      const targetOuter = elapsedSec * OUTER_SPEED;
-      const targetInner = elapsedSec * INNER_SPEED;
 
       let dtSec = (nowMs - lastMs) / 1000;
       lastMs = nowMs;
       if (dtSec > 0.14) dtSec = 0.14;
 
+      const elapsedSec = (nowMs - startMs) / 1000;
+      const targetOuter = elapsedSec * OUTER_SPEED;
+      const targetInner = elapsedSec * INNER_SPEED;
+
       const blend = 1 - Math.exp(-SMOOTH_OMEGA * dtSec);
       smoothOuter += (targetOuter - smoothOuter) * blend;
       smoothInner += (targetInner - smoothInner) * blend;
 
-      draw(smoothOuter, smoothInner);
+      const profile = renderProfileRef.current;
+      if (profile.visible) {
+        draw(smoothOuter, smoothInner);
+
+        frameDurations.push(dtSec);
+        if (frameDurations.length > 24) {
+          frameDurations.shift();
+        }
+
+        if (nowMs > perfCooldownUntil && frameDurations.length >= 12) {
+          const avgFrame = frameDurations.reduce((sum, value) => sum + value, 0) / frameDurations.length;
+          const prevPerf = profile.perfScale;
+
+          if (avgFrame > 0.024 && profile.perfScale > 0.82) {
+            profile.perfScale = Math.max(0.82, profile.perfScale * 0.94);
+          } else if (avgFrame < 0.015 && profile.perfScale < 1) {
+            profile.perfScale = Math.min(1, profile.perfScale * 1.03);
+          }
+
+          if (Math.abs(prevPerf - profile.perfScale) > 0.02) {
+            syncCanvasResolution();
+            perfCooldownUntil = nowMs + 1200;
+          }
+        }
+      }
+
       animRef.current = requestAnimationFrame(animate);
     }
 
@@ -332,11 +431,14 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
 
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
+      resizeObserver?.disconnect();
+      intersectionObserver?.disconnect();
     };
   }, []);
 
   return (
     <div
+      ref={rootRef}
       className={className}
       style={{
         width: '100%',
@@ -349,6 +451,7 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
     >
       <canvas
         ref={canvasRef}
+        className="metabolic-orb__canvas-surface"
         style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }}
         aria-hidden
       />
