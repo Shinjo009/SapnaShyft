@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import './RiskAnalysisSection.css';
 import { fetchLatestAssessmentReport } from '../../../services/reportService';
 import { normalizeBloodParametersReportPayload, resolveBloodParameterNumericValue } from '../../../utils/bloodParametersReportNormalize';
@@ -321,6 +322,9 @@ const orderByHierarchy = (markers) => {
   return [...high, ...low, ...optimal];
 };
 
+const STACK_FRONT_X_PX = -14;
+const STACK_FRONT_Y_PX = 0;
+
 const GaugeDial = React.memo(function GaugeDial({ score, scoreDisplay }) {
   const safeScore = Math.max(0, Math.min(100, score ?? 0));
   const pathD = 'M4 40 A36 36 0 0 1 76 40';
@@ -389,8 +393,6 @@ const RiskAnalysisSection = ({
   }, [apiBloodMarkers]);
   const cardCount = stackCards.length;
   const [activeIndex, setActiveIndex] = useState(0);
-  const [swipeDirection, setSwipeDirection] = useState('next');
-  const [isAnimating, setIsAnimating] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() => (
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 481px)').matches : false
   ));
@@ -402,6 +404,7 @@ const RiskAnalysisSection = ({
   const pointerStartYRef = useRef(null);
   const pointerIsHorizontalSwipeRef = useRef(false);
   const activePointerIdRef = useRef(null);
+  const latestDragXRef = useRef(0);
   const pendingDragXRef = useRef(0);
   const dragFrameRef = useRef(null);
   const didMoveRef = useRef(false);
@@ -420,10 +423,27 @@ const RiskAnalysisSection = ({
     }
   };
 
+  const getFrontStackCard = () => (
+    stackRef.current?.querySelector('.risk-analysis-wins__stack-card--front') ?? null
+  );
+
+  const isStackMotionLocked = () => {
+    const stack = stackRef.current;
+    if (!stack) return false;
+    return stack.classList.contains('risk-analysis-wins__stack--moving-next')
+      || stack.classList.contains('risk-analysis-wins__stack--moving-prev');
+  };
+
+  const clearStackMotionClasses = () => {
+    stackRef.current?.classList.remove('risk-analysis-wins__stack--moving-next', 'risk-analysis-wins__stack--moving-prev');
+  };
+
   const commitDragOffset = (value) => {
-    if (stackRef.current) {
-      stackRef.current.style.setProperty('--risk-analysis-wins-drag-x', `${value}px`);
-    }
+    latestDragXRef.current = value;
+    const frontCard = getFrontStackCard();
+    if (!frontCard) return;
+    const x = STACK_FRONT_X_PX + value;
+    frontCard.style.transform = `translate3d(${x.toFixed(2)}px, ${STACK_FRONT_Y_PX}px, 0)`;
   };
 
   const resetDragOffset = () => {
@@ -432,7 +452,8 @@ const RiskAnalysisSection = ({
       cancelAnimationFrame(dragFrameRef.current);
       dragFrameRef.current = null;
     }
-    commitDragOffset(0);
+    latestDragXRef.current = 0;
+    getFrontStackCard()?.style.removeProperty('transform');
   };
 
   const applyDragOffset = (value) => {
@@ -479,26 +500,28 @@ const RiskAnalysisSection = ({
   }, [cardCount]);
 
   const startAnimation = (direction) => {
-    if (cardCount <= 1) return;
+    if (cardCount <= 1 || !stackRef.current) return;
     stackSwapAwaitingSettleRef.current = true;
     setStackDragging(false);
     resetDragOffset();
-    setSwipeDirection(direction);
-    setIsAnimating(true);
+    clearStackMotionClasses();
+    requestAnimationFrame(() => {
+      stackRef.current?.classList.add(`risk-analysis-wins__stack--moving-${direction}`);
+    });
   };
 
   const goPrev = () => {
-    if (isAnimating || cardCount <= 1) return;
+    if (isStackMotionLocked() || cardCount <= 1) return;
     startAnimation('prev');
   };
 
   const goNext = () => {
-    if (isAnimating || cardCount <= 1) return;
+    if (isStackMotionLocked() || cardCount <= 1) return;
     startAnimation('next');
   };
 
   const handleTouchStart = (event) => {
-    if (isAnimating) {
+    if (isStackMotionLocked()) {
       return;
     }
 
@@ -511,7 +534,7 @@ const RiskAnalysisSection = ({
   };
 
   const handleTouchMove = (event) => {
-    if (touchStartXRef.current == null || touchStartYRef.current == null || isAnimating) {
+    if (touchStartXRef.current == null || touchStartYRef.current == null || isStackMotionLocked()) {
       return;
     }
 
@@ -593,7 +616,7 @@ const RiskAnalysisSection = ({
   };
 
   const handlePointerDown = (event) => {
-    if (isAnimating) {
+    if (isStackMotionLocked()) {
       return;
     }
 
@@ -617,7 +640,7 @@ const RiskAnalysisSection = ({
       pointerStartXRef.current == null
       || pointerStartYRef.current == null
       || activePointerIdRef.current !== event.pointerId
-      || isAnimating
+      || isStackMotionLocked()
     ) {
       return;
     }
@@ -721,9 +744,12 @@ const RiskAnalysisSection = ({
 
     stackSwapAwaitingSettleRef.current = false;
 
-    setStackResetting(true);
-    setActiveIndex((prev) => (prev + 1) % cardCount);
-    setIsAnimating(false);
+    flushSync(() => {
+      setStackResetting(true);
+      setActiveIndex((prev) => (prev + 1) % cardCount);
+    });
+
+    clearStackMotionClasses();
     resetDragOffset();
 
     requestAnimationFrame(() => {
@@ -806,7 +832,7 @@ const RiskAnalysisSection = ({
 
       <div
         ref={stackRef}
-        className={`risk-analysis-wins__stack${isAnimating ? ` risk-analysis-wins__stack--moving-${swipeDirection}` : ''}`}
+        className="risk-analysis-wins__stack"
         style={cardCount === 2 ? {
           '--risk-analysis-wins-back-two-x': 'var(--risk-analysis-wins-back-one-x)',
           '--risk-analysis-wins-back-two-y': 'var(--risk-analysis-wins-back-one-y)',

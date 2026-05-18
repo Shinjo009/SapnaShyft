@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import './PositiveWinsSection.css';
 
 const PositiveWinsHeaderIcon = () => (
@@ -43,6 +44,9 @@ const barSegments = [
   'is-faint',
   'is-low',
 ];
+
+const STACK_FRONT_X_PX = -14;
+const STACK_FRONT_Y_PX = 0;
 
 const defaultCards = [
   {
@@ -174,8 +178,6 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
   }, [apiPositiveWins, cards]);
   const cardCount = stackCards.length;
   const [activeIndex, setActiveIndex] = useState(0);
-  const [swipeDirection, setSwipeDirection] = useState('next');
-  const [isAnimating, setIsAnimating] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() => (
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 481px)').matches : false
   ));
@@ -190,7 +192,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
   const latestDragXRef = useRef(0);
   const pendingDragXRef = useRef(0);
   const dragFrameRef = useRef(null);
-  /** True after startAnimation until we settle once (left and/or transform both fire on the front card). */
+  /** True after startAnimation until we settle once (transform fires on the front card). */
   const stackSwapAwaitingSettleRef = useRef(false);
 
   const setStackDragging = (dragging) => {
@@ -205,11 +207,27 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
     }
   };
 
+  const getFrontStackCard = () => (
+    stackRef.current?.querySelector('.positive-wins__stack-card--front') ?? null
+  );
+
+  const isStackMotionLocked = () => {
+    const stack = stackRef.current;
+    if (!stack) return false;
+    return stack.classList.contains('positive-wins__stack--moving-next')
+      || stack.classList.contains('positive-wins__stack--moving-prev');
+  };
+
+  const clearStackMotionClasses = () => {
+    stackRef.current?.classList.remove('positive-wins__stack--moving-next', 'positive-wins__stack--moving-prev');
+  };
+
   const commitDragOffset = (value) => {
     latestDragXRef.current = value;
-    if (stackRef.current) {
-      stackRef.current.style.setProperty('--positive-wins-drag-x', `${value}px`);
-    }
+    const frontCard = getFrontStackCard();
+    if (!frontCard) return;
+    const x = STACK_FRONT_X_PX + value;
+    frontCard.style.transform = `translate3d(${x.toFixed(2)}px, ${STACK_FRONT_Y_PX}px, 0)`;
   };
 
   const resetDragOffset = () => {
@@ -218,7 +236,8 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
       cancelAnimationFrame(dragFrameRef.current);
       dragFrameRef.current = null;
     }
-    commitDragOffset(0);
+    latestDragXRef.current = 0;
+    getFrontStackCard()?.style.removeProperty('transform');
   };
 
   const applyDragOffset = (value) => {
@@ -265,26 +284,28 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
   }, [cardCount]);
 
   const startAnimation = (direction) => {
-    if (cardCount <= 1) return;
+    if (cardCount <= 1 || !stackRef.current) return;
     stackSwapAwaitingSettleRef.current = true;
     setStackDragging(false);
     resetDragOffset();
-    setSwipeDirection(direction);
-    setIsAnimating(true);
+    clearStackMotionClasses();
+    requestAnimationFrame(() => {
+      stackRef.current?.classList.add(`positive-wins__stack--moving-${direction}`);
+    });
   };
 
   const goPrev = () => {
-    if (isAnimating || cardCount <= 1) return;
+    if (isStackMotionLocked() || cardCount <= 1) return;
     startAnimation('prev');
   };
 
   const goNext = () => {
-    if (isAnimating || cardCount <= 1) return;
+    if (isStackMotionLocked() || cardCount <= 1) return;
     startAnimation('next');
   };
 
   const handleTouchStart = (event) => {
-    if (isAnimating) {
+    if (isStackMotionLocked()) {
       return;
     }
 
@@ -296,7 +317,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
   };
 
   const handleTouchMove = (event) => {
-    if (touchStartXRef.current == null || touchStartYRef.current == null || isAnimating) {
+    if (touchStartXRef.current == null || touchStartYRef.current == null || isStackMotionLocked()) {
       return;
     }
 
@@ -374,7 +395,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
   };
 
   const handlePointerDown = (event) => {
-    if (isAnimating) {
+    if (isStackMotionLocked()) {
       return;
     }
 
@@ -397,7 +418,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
       pointerStartXRef.current == null
       || pointerStartYRef.current == null
       || activePointerIdRef.current !== event.pointerId
-      || isAnimating
+      || isStackMotionLocked()
     ) {
       return;
     }
@@ -496,9 +517,12 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
 
     stackSwapAwaitingSettleRef.current = false;
 
-    setStackResetting(true);
-    setActiveIndex((prev) => (prev + 1) % cardCount);
-    setIsAnimating(false);
+    flushSync(() => {
+      setStackResetting(true);
+      setActiveIndex((prev) => (prev + 1) % cardCount);
+    });
+
+    clearStackMotionClasses();
     resetDragOffset();
 
     requestAnimationFrame(() => {
@@ -522,7 +546,7 @@ const PositiveWinsSection = ({ cards = defaultCards, apiPositiveWins }) => {
 
       <div
         ref={stackRef}
-        className={`positive-wins__stack${isAnimating ? ` positive-wins__stack--moving-${swipeDirection}` : ''}`}
+        className="positive-wins__stack"
         style={cardCount === 2 ? {
           '--positive-wins-back-two-x': 'var(--positive-wins-back-one-x)',
           '--positive-wins-back-two-y': 'var(--positive-wins-back-one-y)',
