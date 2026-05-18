@@ -1,28 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, Suspense, lazy } from 'react';
 import './PackageDetailsPage.css';
 import { getDiagnosticPackageDetail, getDiagnosticPackageTests } from '../../services/diagnosticPackagesService';
-import BioAgeHacIcon from '../../images/BioAge_HAC.svg';
-import AllergiesHacIcon from '../../images/Allergies_HAC.svg';
-import HeartHacIcon from '../../images/Heart_HAC.svg';
-import HormonesHacIcon from '../../images/Hormones_HAC.svg';
-import ThyroidHacIcon from '../../images/thyroid_HAC.svg';
-import LiverHacIcon from '../../images/Liver_HAC.svg';
-import DiabetesHacIcon from '../../images/Diabetes_HAC.svg';
-import BoneHealthHacIcon from '../../images/BoneHealth_HAC.svg';
-import IronHacIcon from '../../images/Iron_HAC.svg';
-import VitaminsHacIcon from '../../images/Vitamins_HAC.svg';
-import InflammationHacIcon from '../../images/Inflammation_HAC.svg';
-import ProstateHacIcon from '../../images/Prostate_HAC.svg';
-import SleepHacIcon from '../../images/Sleep_HAC.svg';
-import StressHacIcon from '../../images/Stress_HAC.svg';
-import OvarianHacIcon from '../../images/Ovarian_HAC.svg';
-import PancreaticHacIcon from '../../images/Pancreatic_HAC.svg';
-import BreastHacIcon from '../../images/Breast_HAC.svg';
-import MenstrualHealthHacIcon from '../../images/MenstrualHealth_HAC.svg';
-import RecoveryHacIcon from '../../images/Recovery_HAC.svg';
-import GuthealthHacIcon from '../../images/Guthealth_HAC.svg';
-import HairHealthHacIcon from '../../images/HairHealth_HAC.svg';
-import EnergyHacIcon from '../../images/Energy_HAC.svg';
+import { mapHealthAreasForDisplay } from '../../utils/healthAreasCovered';
 
 // PatientSelectionOverlay is only mounted when user opens the booking sheet — defer its ~14 KiB chunk.
 const PatientSelectionOverlay = lazy(() => import('../../components/PatientSelectionOverlay'));
@@ -206,118 +185,6 @@ const ComplimentaryLifestyleIcon = () => (
     </defs>
   </svg>
 );
-
-const normalizeLookupKey = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-
-const HEALTH_AREA_ICON_BY_KEY = {
-  'bio age': BioAgeHacIcon,
-  allergy: AllergiesHacIcon,
-  allergies: AllergiesHacIcon,
-  heart: HeartHacIcon,
-  hormones: HormonesHacIcon,
-  thyroid: ThyroidHacIcon,
-  liver: LiverHacIcon,
-  diabetes: DiabetesHacIcon,
-  kidney: LiverHacIcon,
-  metabolism: EnergyHacIcon,
-  haematology: IronHacIcon,
-  'bone health': BoneHealthHacIcon,
-  iron: IronHacIcon,
-  vitamins: VitaminsHacIcon,
-  immunity: InflammationHacIcon,
-  muscle: RecoveryHacIcon,
-  recovery: RecoveryHacIcon,
-  nutrition: VitaminsHacIcon,
-  inflammation: InflammationHacIcon,
-  cancer: ProstateHacIcon,
-  colorectal: GuthealthHacIcon,
-  pancreatic: PancreaticHacIcon,
-  'alpha feto': ProstateHacIcon,
-  prostate: ProstateHacIcon,
-  sleep: SleepHacIcon,
-  'mental health': StressHacIcon,
-  pcos: OvarianHacIcon,
-  fertility: OvarianHacIcon,
-  'anti psa': ProstateHacIcon,
-  pancreas: PancreaticHacIcon,
-  breast: BreastHacIcon,
-  ovaries: OvarianHacIcon,
-  cervix: MenstrualHealthHacIcon,
-  'gen z': BioAgeHacIcon,
-  'c suite': BioAgeHacIcon,
-  'anti age': BioAgeHacIcon,
-  melatonin: SleepHacIcon,
-  cortisol: StressHacIcon,
-  sugar: DiabetesHacIcon,
-  stress: StressHacIcon,
-  'brain health': RecoveryHacIcon,
-  gut: GuthealthHacIcon,
-  'reproductive health': MenstrualHealthHacIcon,
-  'dht blockers': HairHealthHacIcon,
-  minerals: IronHacIcon,
-  energy: EnergyHacIcon,
-};
-
-const DEFAULT_HEALTH_AREA_LABELS = ['Bio Age', 'Allergy', 'Heart', 'Hormones', 'Liver'];
-
-const PACKAGE_HEALTH_AREA_LABELS_BY_NAME = {
-  'men peak performance': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Muscle', 'Hormones', 'Inflammation'],
-  'women peak performance': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Hormones', 'Muscle', 'Inflammation'],
-  'peak performance men': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Muscle', 'Hormones', 'Inflammation'],
-  'peak men': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Muscle', 'Hormones', 'Inflammation'],
-  'elite performance women': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Hormones', 'Inflammation'],
-  'elite women': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Hormones', 'Inflammation'],
-  'peak performance women': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Hormones', 'Muscle', 'Inflammation'],
-  'peak women': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Hormones', 'Muscle', 'Inflammation'],
-  'oncocare male': ['Cancer', 'Colorectal', 'Pancreatic', 'Alpha Feto', 'Prostate'],
-  'oncocare female': ['Cancer', 'Colorectal', 'Pancreatic', 'Ovarian', 'Breast'],
-  'oncocare men': ['Cancer', 'Colorectal', 'Pancreatic', 'Alpha Feto', 'Prostate'],
-  'cancer men': ['Cancer', 'Colorectal', 'Pancreatic', 'Alpha Feto', 'Prostate'],
-  'oncocare women': ['Cancer', 'Colorectal', 'Pancreatic', 'Ovarian', 'Breast'],
-  'cancer women': ['Cancer', 'Colorectal', 'Pancreatic', 'Ovarian', 'Breast'],
-  genz: ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Metabolism', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
-  'genz female': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Metabolism', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
-  'genz male': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Metabolism', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
-  'gen-z': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Metabolism', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
-  'gen z': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Metabolism', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
-  'gen z package': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Metabolism', 'Heart', 'Sleep', 'Thyroid', 'Liver'],
-  'executive men': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Inflammation', 'Heart', 'Bone Health', 'Liver', 'Thyroid', 'Metabolism', 'Prostate'],
-  'executive women': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Inflammation', 'Heart', 'Bone Health', 'Liver', 'Thyroid', 'Metabolism'],
-  'executive male': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Inflammation', 'Heart', 'Bone Health', 'Liver', 'Thyroid', 'Metabolism', 'Prostate'],
-  'exec male adults': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Inflammation', 'Heart', 'Bone Health', 'Liver', 'Thyroid', 'Metabolism', 'Prostate'],
-  'executive female': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Inflammation', 'Heart', 'Bone Health', 'Liver', 'Thyroid', 'Metabolism'],
-  'exec female adults': ['Bio Age', 'Nutrition', 'Hormones', 'Kidney', 'Inflammation', 'Heart', 'Bone Health', 'Liver', 'Thyroid', 'Metabolism'],
-  'c suite male': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Liver', 'Cancer', 'Iron', 'Immunity', 'Sleep', 'Hormones', 'Inflammation', 'Bone Health', 'Allergies', 'Thyroid'],
-  'c suite female': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Liver', 'Cancer', 'Iron', 'Immunity', 'Sleep', 'Hormones', 'Inflammation', 'Bone Health', 'Allergies', 'Thyroid'],
-  'c-suite': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Liver', 'Cancer', 'Iron', 'Immunity', 'Sleep', 'Hormones', 'Inflammation', 'Bone Health', 'Allergies', 'Thyroid'],
-  'c suite': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Liver', 'Cancer', 'Iron', 'Immunity', 'Sleep', 'Hormones', 'Inflammation', 'Bone Health', 'Allergies', 'Thyroid'],
-  sleep: ['Metabolism', 'Immunity', 'Sleep', 'Recovery', 'Inflammation', 'Bone Health', 'Stress', 'Thyroid', 'Hormones'],
-  'menstrual health': ['Metabolism', 'Stress', 'Thyroid', 'Hormones', 'Menstrual Health', 'Heart'],
-  'hair health male': ['Metabolism', 'Stress', 'Thyroid', 'Hormones', 'Heart', 'Hair Health', 'Nutrition', 'Inflammation', 'Kidney', 'Liver'],
-  'hair health female': ['Metabolism', 'Stress', 'Thyroid', 'Hormones', 'Heart', 'Hair Health', 'Nutrition', 'Inflammation', 'Kidney', 'Liver'],
-  'men/women hair': ['Metabolism', 'Stress', 'Thyroid', 'Hormones', 'Heart', 'Hair Health', 'Nutrition', 'Inflammation', 'Kidney', 'Liver'],
-  'men women hair': ['Metabolism', 'Stress', 'Thyroid', 'Hormones', 'Heart', 'Hair Health', 'Nutrition', 'Inflammation', 'Kidney', 'Liver'],
-  fatigue: ['Metabolism', 'Energy', 'Thyroid', 'Hormones', 'Heart', 'Nutrition', 'Liver'],
-  'supershyft basic': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Inflammation'],
-  'supershyft core': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Inflammation'],
-  basic: ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Inflammation'],
-  core: ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Inflammation'],
-  'elite performance male': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Inflammation'],
-  'elite performance female': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Hormones', 'Inflammation'],
-  'elite performance men': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Inflammation'],
-  'elite men': ['Bio Age', 'Kidney', 'Metabolism', 'Heart', 'Thyroid', 'Liver', 'Diabetes', 'Haematology', 'Iron', 'Vitamins', 'Immunity', 'Sleep', 'Inflammation'],
-};
-
-const getHealthAreaIconSrc = (label) => {
-  const key = normalizeLookupKey(label);
-  return HEALTH_AREA_ICON_BY_KEY[key] || HeartHacIcon;
-};
-
-const getPackageHealthAreaLabels = (packageName) => {
-  const normalizedName = normalizeLookupKey(packageName);
-  const labels = PACKAGE_HEALTH_AREA_LABELS_BY_NAME[normalizedName];
-  return Array.isArray(labels) && labels.length > 0 ? labels : DEFAULT_HEALTH_AREA_LABELS;
-};
 
 const BIOMARKER_BENEFITS = [
   {
@@ -901,12 +768,16 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
   }, [customPackageTitle, isCustomReview, packageCard, packageDetail]);
 
   const healthAreas = useMemo(() => {
-    return getPackageHealthAreaLabels(packageTitle).map((label) => ({
-      id: normalizeLookupKey(label).replace(/\s+/g, '-'),
-      label,
-      iconSrc: getHealthAreaIconSrc(label),
-    }));
-  }, [packageTitle]);
+    if (isCustomReview) {
+      return [];
+    }
+
+    const rawHealthAreas = packageDetail?.health_areas_covered
+      ?? packageCard?.apiData?.health_areas_covered
+      ?? packageCard?.health_areas_covered;
+
+    return mapHealthAreasForDisplay(rawHealthAreas);
+  }, [isCustomReview, packageCard, packageDetail]);
 
   const genderLabel = useMemo(() => {
     if (isCustomReview) {
@@ -1330,6 +1201,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
           <SwipeSideIcon />
         </div>
 
+        {healthAreas.length > 0 ? (
         <section className="package-details-page__areas-section" aria-label="Health areas covered">
           <h3 className="package-details-page__areas-title">Health Areas Covered</h3>
           <div className="package-details-page__areas-row">
@@ -1343,6 +1215,7 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
             ))}
           </div>
         </section>
+        ) : null}
 
         <section className="package-details-page__complimentary-section" aria-label="Complimentary Nutritionist">
           <h3 className="package-details-page__complimentary-title">Complimentary Nutritionist</h3>
