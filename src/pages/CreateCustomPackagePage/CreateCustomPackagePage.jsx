@@ -6,19 +6,30 @@ import {
   listDiagnosticTestGroups,
 } from '../../services/diagnosticPackagesService';
 import { getAccessToken } from '../../utils/authStorage';
-import liverIcon from '../../images/Liver.svg';
-import haematologyIcon from '../../images/Haemotology.svg';
-import kidneyIcon from '../../images/Kidney.svg';
+import liverIcon from '../../images/Liver_HAC.svg';
+import haematologyIcon from '../../images/Haemotology_HAC.svg';
+import kidneyIcon from '../../images/Kidney_HAC.svg';
 import vitaminsIcon from '../../images/Vitamins.svg';
-import lipidIcon from '../../images/Lipid.svg';
-import ironIcon from '../../images/Iron.svg';
+import lipidIcon from '../../images/Lipid_Flow.svg';
+import ironIcon from '../../images/Iron_HAC.svg';
 import thyroidIcon from '../../images/Thyroid.svg';
-import diabetesIcon from '../../images/Diabetes.svg';
+import diabetesIcon from '../../images/Diabetes_HAC.svg';
 import inflammationIcon from '../../images/Inflammation.svg';
 import sleepIcon from '../../images/Sleep.svg';
-import hormonesIcon from '../../images/Hormones.svg';
+import hormonesIcon from '../../images/Hormones_Outline.svg';
 import allergiesIcon from '../../images/Allergies_HAC.svg';
 import cardiacIcon from '../../images/Cardiac-RA.svg';
+import ferritinIcon from '../../images/Ferritin.svg';
+import homaIcon from '../../images/HOMA.svg';
+import insulinIcon from '../../images/Insulin.svg';
+import urineIcon from '../../images/Urine.svg';
+import breastIcon from '../../images/Breast_HAC.svg';
+import ovarianIcon from '../../images/Ovarian_HAC.svg';
+import prostateIcon from '../../images/Prostate_HAC.svg';
+import colorectalIcon from '../../images/Colorectal_HAC.svg';
+import pancreaticIcon from '../../images/Pancreatic_HAC.svg';
+import stomatchIcon from '../../images/Stomach_HAC.svg';
+import afpIcon from '../../images/AFP_HAC.svg';
 
 const ORGAN_ICON_KEYWORDS = [
   ['haematology', haematologyIcon],
@@ -32,7 +43,7 @@ const ORGAN_ICON_KEYWORDS = [
   ['lipid', lipidIcon],
   ['cholesterol', lipidIcon],
   ['iron', ironIcon],
-  ['ferritin', ironIcon],
+  ['ferritin', ferritinIcon],
   ['thyroid', thyroidIcon],
   ['diabetes', diabetesIcon],
   ['hba1c', diabetesIcon],
@@ -46,6 +57,16 @@ const ORGAN_ICON_KEYWORDS = [
   ['allerg', allergiesIcon],
   ['cardiac', cardiacIcon],
   ['heart', cardiacIcon],
+  ['homa', homaIcon],
+  ['insulin', insulinIcon],
+  ['urine', urineIcon],
+  ['breast', breastIcon],
+  ['ovarian', ovarianIcon],
+  ['prostate', prostateIcon],
+  ['colorectal', colorectalIcon],
+  ['pancreatic', pancreaticIcon],
+  ['stomach', stomatchIcon],
+  ['afp', afpIcon],
 ];
 
 const getCategoryIcon = (name) => {
