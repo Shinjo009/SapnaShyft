@@ -349,7 +349,9 @@ function App() {
 
     const previousPage = previousPageRef.current;
 
-    if (previousPage && previousPage !== currentPage && !skipHistoryForNextPageRef.current) {
+    if (currentPage === 'home') {
+      pageHistoryRef.current = [];
+    } else if (previousPage && previousPage !== currentPage && !skipHistoryForNextPageRef.current) {
       pageHistoryRef.current.push(previousPage);
     }
 
@@ -405,7 +407,7 @@ function App() {
   }, [currentPage, isSwipeBackAllowedPage]);
 
   const handleEdgeSwipeStart = (event) => {
-    if (!canSwipeBack) {
+    if (!canSwipeBack || !isSwipeBackAllowedPage(currentPage)) {
       return;
     }
 
@@ -479,18 +481,28 @@ function App() {
     }
 
     const handleBrowserBack = () => {
+      if (!isSwipeBackAllowedPage(currentPage)) {
+        skipBrowserHistoryPushRef.current = true;
+        window.history.pushState({ appPage: currentPage }, '', window.location.href);
+        return;
+      }
+
       const handledInApp = goBackBySwipe();
 
       if (handledInApp) {
         skipBrowserHistoryPushRef.current = true;
+        return;
       }
+
+      skipBrowserHistoryPushRef.current = true;
+      window.history.pushState({ appPage: currentPage }, '', window.location.href);
     };
 
     window.addEventListener('popstate', handleBrowserBack);
     return () => {
       window.removeEventListener('popstate', handleBrowserBack);
     };
-  }, [goBackBySwipe]);
+  }, [goBackBySwipe, currentPage, isSwipeBackAllowedPage]);
 
   const getProgressFromCategories = (categories) => {
     let completedCount = 0;
