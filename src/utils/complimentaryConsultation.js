@@ -68,7 +68,7 @@ export const COMPLIMENTARY_CONSULTATION_CONTENT = {
     ],
   },
   [COMPLIMENTARY_CONSULTATION_TYPES.DOCTOR_AND_NUTRITIONIST]: {
-    topPillLabel: 'Complimentary Doctor + Nutritionist Consultation',
+    topPillLabel: 'Complimentary Doctor + Nutritionist',
     sectionTitle: 'Complimentary Doctor + Nutritionist',
     sectionAriaLabel: 'Complimentary Doctor and Nutritionist',
     worthLabel: 'WORTH ₹1999 — INCLUDED FREE',
