@@ -76,17 +76,57 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
 
     syncCanvasResolution();
 
-    const resizeObserver = typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(() => {
+    let resizeRafId = 0;
+    const scheduleCanvasResizeSync = () => {
+      if (resizeRafId) return;
+      resizeRafId = requestAnimationFrame(() => {
+        resizeRafId = 0;
         syncCanvasResolution();
-      })
+      });
+    };
+
+    const resizeObserver = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(scheduleCanvasResizeSync)
       : null;
     resizeObserver?.observe(root);
+
+    let pageVisible = typeof document === 'undefined' ? true : !document.hidden;
+    let animLoopActive = false;
+
+    const stopAnimLoop = () => {
+      if (!animLoopActive) return;
+      if (animRef.current) {
+        cancelAnimationFrame(animRef.current);
+        animRef.current = null;
+      }
+      animLoopActive = false;
+    };
+
+    const startAnimLoop = () => {
+      if (animLoopActive) return;
+      animLoopActive = true;
+      animRef.current = requestAnimationFrame(animate);
+    };
+
+    const syncAnimLoop = () => {
+      if (renderProfileRef.current.visible && pageVisible) {
+        startAnimLoop();
+      } else {
+        stopAnimLoop();
+      }
+    };
+
+    const onPageVisibilityChange = () => {
+      pageVisible = !document.hidden;
+      syncAnimLoop();
+    };
+    document.addEventListener('visibilitychange', onPageVisibilityChange);
 
     const intersectionObserver = typeof IntersectionObserver !== 'undefined'
       ? new IntersectionObserver(
         (entries) => {
           renderProfileRef.current.visible = entries.some((entry) => entry.isIntersecting);
+          syncAnimLoop();
         },
         { root: null, threshold: 0.05 },
       )
@@ -248,9 +288,79 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
       return w1 + w2 + w3 + w4 + w5;
     }
 
+    const maxSegs = BASE_SEGS + 1;
+    const pxBuf = new Float32Array(maxSegs);
+    const pyBuf = new Float32Array(maxSegs);
+    const pzBuf = new Float32Array(maxSegs);
+    const dispBuf = new Float32Array(maxSegs);
+    const normColorLut = new Uint8Array(256 * 3);
+    const strokeStyleCache = new Map();
+    let cachedNormLutBand = -1;
+
+    const TILT = 0.18;
+    const TILT_COS = Math.cos(TILT);
+    const TILT_SIN = Math.sin(TILT);
+    const Z_CLIP = -RADIUS * 0.88;
+    const DEPTH_DIV = RADIUS * 1.75;
+    const FOCAL_X = cx - RADIUS * 0.32;
+    const FOCAL_Y = cy + RADIUS * 0.2;
+    const FOCAL_DIV = RADIUS * 1.05;
+
+    const ensureNormColorLut = (band) => {
+      if (cachedNormLutBand === band) return;
+      cachedNormLutBand = band;
+      for (let i = 0; i < 256; i += 1) {
+        const { cr, cg, cb } = rgbForBandAndNorm(band, i / 255);
+        const offset = i * 3;
+        normColorLut[offset] = cr;
+        normColorLut[offset + 1] = cg;
+        normColorLut[offset + 2] = cb;
+      }
+    };
+
+    const strokeStyleFor = (cr, cg, cb, alpha) => {
+      const alphaKey = Math.min(255, Math.round(alpha * 1000));
+      const key = (cr << 24) | (cg << 16) | (cb << 8) | alphaKey;
+      let style = strokeStyleCache.get(key);
+      if (!style) {
+        style = `rgba(${cr},${cg},${cb},${alpha})`;
+        strokeStyleCache.set(key, style);
+        if (strokeStyleCache.size > 4096) {
+          strokeStyleCache.clear();
+        }
+      }
+      return style;
+    };
+
+    const flushStrokeBatch = (state) => {
+      if (!state.active) return;
+      ctx.stroke();
+      state.active = false;
+    };
+
+    const strokeSegment = (state, x0, y0, x1, y1, style) => {
+      if (style !== state.style) {
+        flushStrokeBatch(state);
+        ctx.beginPath();
+        ctx.strokeStyle = style;
+        ctx.lineWidth = 0.66;
+        state.style = style;
+        state.active = true;
+      } else if (!state.active) {
+        ctx.beginPath();
+        ctx.strokeStyle = style;
+        ctx.lineWidth = 0.66;
+        state.active = true;
+      }
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y1);
+    };
+
     function draw(tOuter, tInner) {
       const profile = renderProfileRef.current;
       const drawScale = profile.scale;
+      const band = riskBandRef.current;
+      ensureNormColorLut(band);
 
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -259,9 +369,7 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
       const tInnerWave = tInner * 0.9;
       const NUM_LINES = profile.numLines;
       const SEGS = profile.segs;
-
-      const focalX = cx - RADIUS * 0.32;
-      const focalY = cy + RADIUS * 0.2;
+      const strokeBatch = { style: null, active: false };
 
       for (let li = 0; li <= NUM_LINES; li += 1) {
         const phi = (li / NUM_LINES) * Math.PI;
@@ -271,15 +379,19 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
         if (sinPhi < 0.001) continue;
 
         const linePhase = (li / NUM_LINES) * Math.PI * 4;
-
-        const points = [];
+        const sinPhi30 = sinPhi * 30;
+        const sinPhi20 = sinPhi * 20;
+        const sinPhi17 = sinPhi * 17;
+        const sinPhi18 = sinPhi * 18;
 
         for (let si = 0; si <= SEGS; si += 1) {
           const theta = (si / SEGS) * Math.PI * 2;
+          const cosTheta = Math.cos(theta);
+          const sinTheta = Math.sin(theta);
 
-          const bx = sinPhi * Math.cos(theta);
+          const bx = sinPhi * cosTheta;
           const by = cosPhi;
-          const bz = sinPhi * Math.sin(theta);
+          const bz = sinPhi * sinTheta;
 
           const breath = slowBreath(bx, by, bz, tOuter);
           const edge = edgeWobble(theta, phi, tOuter);
@@ -298,11 +410,7 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
 
           const innerDrape = innerNoise(bx * 2.02 + linePhase * 0.068, by * 1.52 + 5.0, tInnerWave);
 
-          const yDrape =
-            cloth * 30 * sinPhi +
-            crease * 20 * sinPhi +
-            swirl * 17 * sinPhi +
-            innerDrape * 18 * sinPhi;
+          const yDrape = cloth * sinPhi30 + crease * sinPhi20 + swirl * sinPhi17 + innerDrape * sinPhi18;
 
           const shear =
             (cloth * 0.55 + crease * 0.35 + innerFine * 0.25) *
@@ -310,38 +418,37 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
             Math.sin(theta * 2.05 + phi * 1.15 + tInnerWave * 0.72) *
             9.5;
 
-          const wx = rSphere * sinPhi * Math.cos(theta) + shear;
+          const wx = rSphere * sinPhi * cosTheta + shear;
           const wy = rSphere * cosPhi + yDrape;
-          const wz = rSphere * sinPhi * Math.sin(theta);
+          const wz = rSphere * sinPhi * sinTheta;
 
-          const tilt = 0.18;
-          const projY = wy * Math.cos(tilt) - wz * Math.sin(tilt);
-          const projZ = wy * Math.sin(tilt) + wz * Math.cos(tilt);
-
-          points.push({ x: cx + wx, y: cy + projY, z: projZ, disp: totalDisp });
+          pxBuf[si] = cx + wx;
+          pyBuf[si] = cy + (wy * TILT_COS - wz * TILT_SIN);
+          pzBuf[si] = wy * TILT_SIN + wz * TILT_COS;
+          dispBuf[si] = totalDisp;
         }
 
-        for (let si = 0; si < points.length - 1; si += 1) {
-          const p0 = points[si];
-          const p1 = points[si + 1];
+        for (let si = 0; si < SEGS; si += 1) {
+          const avgZ = (pzBuf[si] + pzBuf[si + 1]) * 0.5;
+          if (avgZ < Z_CLIP) continue;
 
-          const avgZ = (p0.z + p1.z) / 2;
-          const avgDisp = (p0.disp + p1.disp) / 2;
-
-          if (avgZ < -RADIUS * 0.88) continue;
-
-          const depthAlpha = Math.max(0, (avgZ + RADIUS) / (RADIUS * 1.75));
+          const avgDisp = (dispBuf[si] + dispBuf[si + 1]) * 0.5;
+          const depthAlpha = Math.max(0, (avgZ + RADIUS) / DEPTH_DIV);
           const norm = Math.max(0, Math.min(1, (avgDisp + 1.65) / 3.3));
+          const normIdx = (norm * 255) | 0;
+          const lutOffset = normIdx * 3;
 
-          let { cr, cg, cb } = rgbForBandAndNorm(riskBandRef.current, norm);
+          let cr = normColorLut[lutOffset];
+          let cg = normColorLut[lutOffset + 1];
+          let cb = normColorLut[lutOffset + 2];
 
-          const midX = (p0.x + p1.x) * 0.5;
-          const midY = (p0.y + p1.y) * 0.5;
+          const midX = (pxBuf[si] + pxBuf[si + 1]) * 0.5;
+          const midY = (pyBuf[si] + pyBuf[si + 1]) * 0.5;
           const lx = (midX - cx) / RADIUS;
           const ly = (midY - cy) / RADIUS;
           let faceLight = Math.max(0, Math.min(1, 0.36 + (-lx) * 0.44 + ly * 0.38));
 
-          const distF = Math.hypot(midX - focalX, midY - focalY) / (RADIUS * 1.05);
+          const distF = Math.hypot(midX - FOCAL_X, midY - FOCAL_Y) / FOCAL_DIV;
           const focalGlow = Math.max(0, Math.min(1, 1.12 - distF * 1.08));
           faceLight = Math.min(1, faceLight * 0.42 + focalGlow * 0.68);
 
@@ -355,14 +462,18 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
           cb = Math.round(cb * dim);
 
           const alpha = Math.min(0.98, depthAlpha * (0.56 + norm * 0.78));
-
-          ctx.beginPath();
-          ctx.moveTo(p0.x, p0.y);
-          ctx.lineTo(p1.x, p1.y);
-          ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha})`;
-          ctx.lineWidth = 0.66;
-          ctx.stroke();
+          strokeSegment(
+            strokeBatch,
+            pxBuf[si],
+            pyBuf[si],
+            pxBuf[si + 1],
+            pyBuf[si + 1],
+            strokeStyleFor(cr, cg, cb, alpha),
+          );
         }
+
+        flushStrokeBatch(strokeBatch);
+        strokeBatch.style = null;
       }
     }
 
@@ -399,7 +510,9 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
       smoothInner += (targetInner - smoothInner) * blend;
 
       const profile = renderProfileRef.current;
-      if (profile.visible) {
+      const shouldDraw = profile.visible && pageVisible;
+
+      if (shouldDraw) {
         draw(smoothOuter, smoothInner);
 
         frameDurations.push(dtSec);
@@ -418,19 +531,29 @@ export default function MetabolicAgeOrb2({ className = '', riskBand = 0 }) {
           }
 
           if (Math.abs(prevPerf - profile.perfScale) > 0.02) {
-            syncCanvasResolution();
+            scheduleCanvasResizeSync();
             perfCooldownUntil = nowMs + 1200;
           }
         }
       }
 
-      animRef.current = requestAnimationFrame(animate);
+      if (shouldDraw) {
+        animRef.current = requestAnimationFrame(animate);
+      } else {
+        animRef.current = null;
+        animLoopActive = false;
+      }
     }
 
-    animRef.current = requestAnimationFrame(animate);
+    syncAnimLoop();
 
     return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
+      stopAnimLoop();
+      if (resizeRafId) {
+        cancelAnimationFrame(resizeRafId);
+        resizeRafId = 0;
+      }
+      document.removeEventListener('visibilitychange', onPageVisibilityChange);
       resizeObserver?.disconnect();
       intersectionObserver?.disconnect();
     };

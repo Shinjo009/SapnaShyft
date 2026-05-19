@@ -15,7 +15,7 @@ function stateFromPayload(payload) {
   }
   const selected = new Set(Array.isArray(payload.sportIds) ? payload.sportIds : []);
   const otherNote = String(payload.otherNote || '');
-  if (payload.otherSelected || otherNote.trim()) {
+  if (otherNote.trim()) {
     selected.add('other');
   }
   return { selected, otherNote };
@@ -98,7 +98,7 @@ export default function SuperclubEarlyAccessPage({
   const handleDone = useCallback(() => {
     const resolvedOtherNote = otherNoteRef.current.trim();
     let sportIds = [...selected].filter((id) => id !== 'other');
-    let resolvedOtherSelected = selected.has('other') || resolvedOtherNote.length > 0;
+    const resolvedOtherSelected = resolvedOtherNote.length > 0;
 
     if (sportIds.length === 0 && !resolvedOtherSelected) {
       sportIds = defaultSportIdsIfEmpty;

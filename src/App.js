@@ -127,6 +127,8 @@ const getInitialAppPage = () => {
 const EDGE_SWIPE_TRIGGER_PX = 70;
 const EDGE_SWIPE_VERTICAL_TOLERANCE_PX = 80;
 const EDGE_SWIPE_START_ZONE_PX = 28;
+/** Wider zone used to block the native OS/browser back-swipe peek on locked screens (e.g. home). */
+const EDGE_SWIPE_BLOCK_ZONE_PX = 48;
 const normalizeRedirectTarget = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
   if (!normalized) {
@@ -219,6 +221,8 @@ const deriveEmployerOrganizerName = (profile) => {
 
 function App() {
   const [currentPage, setCurrentPage] = useState(getInitialAppPage);
+  const currentPageRef = useRef(currentPage);
+  currentPageRef.current = currentPage;
   const [isBootstrappingSession, setIsBootstrappingSession] = useState(
     () => getInitialAppPage() === SESSION_RESTORE_PAGE,
   );
@@ -453,7 +457,7 @@ function App() {
       return;
     }
 
-    if (!isSwipeBackAllowedPage(currentPage) && touch.clientX <= EDGE_SWIPE_START_ZONE_PX) {
+    if (!isSwipeBackAllowedPage(currentPage) && touch.clientX <= EDGE_SWIPE_BLOCK_ZONE_PX) {
       edgeSwipeStateRef.current = {
         tracking: false,
         blockNativeBackGesture: true,
@@ -589,6 +593,98 @@ function App() {
       window.removeEventListener('popstate', handleBrowserBack);
     };
   }, [goBackBySwipe, currentPage, isSwipeBackAllowedPage, pinHomeBrowserHistory]);
+
+  useEffect(() => {
+    if (currentPage !== 'home') {
+      document.documentElement.classList.remove('app-swipe-back-locked');
+      return undefined;
+    }
+
+    document.documentElement.classList.add('app-swipe-back-locked');
+    pinHomeBrowserHistory();
+
+    return () => {
+      document.documentElement.classList.remove('app-swipe-back-locked');
+    };
+  }, [currentPage, pinHomeBrowserHistory]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return undefined;
+    }
+
+    const onTouchStartCapture = (event) => {
+      const touch = event.touches?.[0];
+      if (!touch) {
+        return;
+      }
+
+      const page = currentPageRef.current;
+      const swipeState = edgeSwipeStateRef.current;
+
+      swipeState.startX = touch.clientX;
+      swipeState.startY = touch.clientY;
+      swipeState.lastX = touch.clientX;
+      swipeState.lastY = touch.clientY;
+
+      if (!SWIPE_BACK_BLOCKED_PAGES.has(page)) {
+        return;
+      }
+
+      if (touch.clientX <= EDGE_SWIPE_BLOCK_ZONE_PX) {
+        swipeState.blockNativeBackGesture = true;
+        swipeState.tracking = false;
+      }
+    };
+
+    const onTouchMoveCapture = (event) => {
+      const page = currentPageRef.current;
+      const swipeState = edgeSwipeStateRef.current;
+      const touch = event.touches?.[0];
+
+      if (!touch) {
+        return;
+      }
+
+      if (SWIPE_BACK_BLOCKED_PAGES.has(page) && touch.clientX <= EDGE_SWIPE_BLOCK_ZONE_PX) {
+        swipeState.blockNativeBackGesture = true;
+        swipeState.tracking = false;
+      }
+
+      if (!swipeState.blockNativeBackGesture) {
+        return;
+      }
+
+      swipeState.lastX = touch.clientX;
+      swipeState.lastY = touch.clientY;
+
+      const deltaX = swipeState.lastX - swipeState.startX;
+      const deltaY = swipeState.lastY - swipeState.startY;
+
+      if (deltaX >= 0 && Math.abs(deltaY) <= EDGE_SWIPE_VERTICAL_TOLERANCE_PX) {
+        event.preventDefault();
+      }
+    };
+
+    const onTouchEndCapture = () => {
+      edgeSwipeStateRef.current.blockNativeBackGesture = false;
+      edgeSwipeStateRef.current.tracking = false;
+    };
+
+    document.addEventListener('touchstart', onTouchStartCapture, { capture: true, passive: true });
+    document.addEventListener('touchmove', onTouchMoveCapture, { capture: true, passive: false });
+    document.addEventListener('touchend', onTouchEndCapture, { capture: true, passive: true });
+    document.addEventListener('touchcancel', onTouchEndCapture, { capture: true, passive: true });
+
+    return () => {
+      document.removeEventListener('touchstart', onTouchStartCapture, { capture: true });
+      document.removeEventListener('touchmove', onTouchMoveCapture, { capture: true });
+      document.removeEventListener('touchend', onTouchEndCapture, { capture: true });
+      document.removeEventListener('touchcancel', onTouchEndCapture, { capture: true });
+    };
+  }, []);
+
+  const isSwipeBackLockedPage = SWIPE_BACK_BLOCKED_PAGES.has(currentPage);
 
   const getProgressFromCategories = (categories) => {
     let completedCount = 0;
@@ -1465,7 +1561,7 @@ function App() {
 
   return (
     <div
-      className="app-root"
+      className={`app-root${isSwipeBackLockedPage ? ' app-root--swipe-back-locked' : ''}`}
       onTouchStart={handleEdgeSwipeStart}
       onTouchMove={handleEdgeSwipeMove}
       onTouchEnd={handleEdgeSwipeEnd}

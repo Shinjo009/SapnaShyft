@@ -222,12 +222,11 @@ export default function SuperclubPlaylistConfirmPage({
     <div className="superclub-pc">
       <div className="superclub-pc__top">
         <Header name={userName} onMenuClick={onMenuClick} showGreeting={false} />
+        <p className="superclub-pc__kicker">You&apos;ll love what&apos;s coming</p>
       </div>
 
       <main className="superclub-pc__main">
         <div className="superclub-pc__col">
-          <p className="superclub-pc__kicker">You&apos;ll love what&apos;s coming</p>
-
           <div className="superclub-pc__block">
             <div className="superclub-pc__copy">
               <h1 className="superclub-pc__headline">Those were some Interesting Choices!</h1>

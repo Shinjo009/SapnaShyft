@@ -15,8 +15,19 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  overscroll-behavior-x: none;
+  overscroll-behavior: none;
   isolation: isolate;
+}
+
+.app-root--swipe-back-locked,
+.app-root--swipe-back-locked .app-scroll {
+  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+}
+
+html.app-swipe-back-locked,
+html.app-swipe-back-locked body {
+  overscroll-behavior-x: none;
 }
 
 .app-root--bootstrapping {
