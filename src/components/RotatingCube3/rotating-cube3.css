@@ -1,6 +1,9 @@
 .parent-container {
+  --cube-size: 288px;
+  --cube-depth: calc(var(--cube-size) / 2);
+  --cube-icon-circle: 154px;
   position: relative;
-  min-height: 360px;
+  min-height: 324px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -58,8 +61,8 @@
 }
 
 .cube-container {
-  width: 320px;
-  height: 320px;
+  width: var(--cube-size);
+  height: var(--cube-size);
   transform-style: preserve-3d;
   backface-visibility: hidden;
   animation: spin3D 18s linear infinite;
@@ -70,8 +73,8 @@
 
 .cube-face {
   position: absolute;
-  width: 320px;
-  height: 320px;
+  width: var(--cube-size);
+  height: var(--cube-size);
   background: rgba(0, 255, 255, 0.08);
   box-shadow: inset 0 0 50px rgba(0, 255, 255, 0.14), 0 0 24px rgba(0, 255, 255, 0.22);
   border-radius: 12px;
@@ -84,8 +87,8 @@
 }
 
 .icon-circle {
-  width: 172px;
-  height: 172px;
+  width: var(--cube-icon-circle);
+  height: var(--cube-icon-circle);
   border-radius: 50%;
   position: relative;
   border: 2px solid #00ffff;
@@ -137,8 +140,8 @@
 }
 
 .cube-face-label-icon {
-  width: 52px;
-  height: 52px;
+  width: 47px;
+  height: 47px;
   object-fit: contain;
   object-position: center;
   flex-shrink: 0;
@@ -148,8 +151,8 @@
 
 .cube-face-label-icon-spacer {
   display: block;
-  width: 52px;
-  height: 52px;
+  width: 47px;
+  height: 47px;
   flex-shrink: 0;
   pointer-events: none;
   visibility: hidden;
@@ -166,7 +169,7 @@
   box-sizing: border-box;
   color: #03fdfd;
   font-family: Lato, system-ui, sans-serif;
-  font-size: 22px;
+  font-size: 20px;
   font-style: normal;
   font-weight: 700;
   line-height: 1.2;
@@ -198,22 +201,22 @@
 }
 
 .front {
-  transform: rotateY(0deg) translateZ(160px);
+  transform: rotateY(0deg) translateZ(var(--cube-depth));
 }
 .back {
-  transform: rotateY(180deg) translateZ(160px);
+  transform: rotateY(180deg) translateZ(var(--cube-depth));
 }
 .right {
-  transform: rotateY(90deg) translateZ(160px);
+  transform: rotateY(90deg) translateZ(var(--cube-depth));
 }
 .left {
-  transform: rotateY(-90deg) translateZ(160px);
+  transform: rotateY(-90deg) translateZ(var(--cube-depth));
 }
 .top {
-  transform: rotateX(90deg) translateZ(160px);
+  transform: rotateX(90deg) translateZ(var(--cube-depth));
 }
 .bottom {
-  transform: rotateX(-90deg) translateZ(160px);
+  transform: rotateX(-90deg) translateZ(var(--cube-depth));
 }
 
 @keyframes spin3D {
@@ -238,7 +241,7 @@
   }
 
   .cube-face-label {
-    font-size: 21px;
+    font-size: 19px;
     line-height: 1.2;
     padding: 0 2px;
   }
@@ -249,15 +252,15 @@
   }
 
   .icon-circle {
-    width: 166px;
-    height: 166px;
+    width: 148px;
+    height: 148px;
     box-shadow: 0 0 12px rgba(0, 255, 255, 0.55), 0 0 22px rgba(0, 255, 255, 0.28), inset 0 0 10px rgba(0, 255, 255, 0.2);
   }
 
   .cube-face-label-icon,
   .cube-face-label-icon-spacer {
-    width: 48px;
-    height: 48px;
+    width: 43px;
+    height: 43px;
   }
 
   .icon-circle::before {
