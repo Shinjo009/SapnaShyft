@@ -23,11 +23,24 @@
 .app-root--swipe-back-locked .app-scroll {
   overscroll-behavior: none;
   overscroll-behavior-x: none;
+  touch-action: pan-y pinch-zoom;
 }
 
 html.app-swipe-back-locked,
 html.app-swipe-back-locked body {
   overscroll-behavior-x: none;
+  touch-action: pan-y pinch-zoom;
+}
+
+@media (display-mode: standalone) {
+  html.app-swipe-back-locked,
+  html.app-swipe-back-locked body,
+  .app-root--swipe-back-locked,
+  .app-root--swipe-back-locked .app-scroll {
+    overscroll-behavior: none;
+    overscroll-behavior-x: none;
+    touch-action: pan-y pinch-zoom;
+  }
 }
 
 .app-root--bootstrapping {
