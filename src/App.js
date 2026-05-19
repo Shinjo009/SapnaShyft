@@ -129,10 +129,30 @@ const EDGE_SWIPE_VERTICAL_TOLERANCE_PX = 80;
 const EDGE_SWIPE_START_ZONE_PX = 28;
 /** Wider zone used to block the native OS/browser back-swipe peek on locked screens (e.g. home). */
 const EDGE_SWIPE_BLOCK_ZONE_PX = 48;
-/** Extra same-URL history entries so iOS PWA edge-swipe cannot reveal a prior screen snapshot. */
-const HOME_HISTORY_TRAP_DEPTH = 3;
+/** Bottom-nav roots: switch via replaceState so iOS PWA never keeps a back stack entry to peek. */
+const TAB_ROOT_PAGES = new Set(['home', 'packages', 'doctors', 'super-club']);
 
-const buildHomeHistoryState = () => ({ appPage: 'home', homeTrap: true });
+const buildPageHistoryState = (page) => ({
+  appPage: page,
+  ...(page === 'home' ? { homeTrap: true } : {}),
+});
+
+const buildPageHistoryUrl = (page) => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const { origin, pathname, search } = window.location;
+  const base = `${origin}${pathname || '/'}${search || ''}`;
+
+  if (page === 'home') {
+    return base;
+  }
+
+  return `${base}#${encodeURIComponent(page)}`;
+};
+
+const isTabRootPage = (page) => TAB_ROOT_PAGES.has(page);
 
 const getEdgeSwipeBlockZonePx = (page) => {
   if (typeof window === 'undefined' || page !== 'home') {
@@ -145,18 +165,16 @@ const getEdgeSwipeBlockZonePx = (page) => {
   );
 };
 
-const pushHomeHistoryTraps = (depth = HOME_HISTORY_TRAP_DEPTH) => {
+const replaceBrowserHistoryForPage = (page) => {
   if (typeof window === 'undefined' || !window.history) {
     return;
   }
 
-  const state = buildHomeHistoryState();
-  const url = window.location.href;
-  window.history.replaceState(state, '', url);
-
-  for (let i = 0; i < depth; i += 1) {
-    window.history.pushState(state, '', url);
-  }
+  window.history.replaceState(
+    buildPageHistoryState(page),
+    '',
+    buildPageHistoryUrl(page),
+  );
 };
 const normalizeRedirectTarget = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
@@ -320,7 +338,6 @@ function App() {
   });
   const hasInitializedBrowserHistoryRef = useRef(false);
   const skipBrowserHistoryPushRef = useRef(false);
-  const isProgrammaticHomeNavRef = useRef(false);
 
   const applyLockedLanding = useCallback((targetPage, mode = 'default-auth') => {
     const next = resolvePageWithSuperclubLock(targetPage, mode);
@@ -363,30 +380,10 @@ function App() {
   const isSwipeBackAllowedPage = useCallback((page) => !SWIPE_BACK_BLOCKED_PAGES.has(page), []);
 
   const pinHomeBrowserHistory = useCallback(() => {
-    pushHomeHistoryTraps();
+    replaceBrowserHistoryForPage('home');
   }, []);
 
   const navigateToHome = useCallback(() => {
-    if (typeof window === 'undefined') {
-      setCurrentPage('home');
-      return;
-    }
-
-    const topPage = window.history?.state?.appPage ?? null;
-    const leavingPage = currentPageRef.current;
-
-    skipBrowserHistoryPushRef.current = true;
-
-    // Pop the pushed screen (e.g. packages) instead of replacing it in place — iOS PWA
-    // keeps a visual snapshot per history entry, so replaceState still peeks packages on swipe.
-    if (topPage && topPage !== 'home' && topPage === leavingPage) {
-      isProgrammaticHomeNavRef.current = true;
-      window.history.go(-1);
-      setCurrentPage('home');
-      return;
-    }
-
-    pushHomeHistoryTraps();
     setCurrentPage('home');
   }, []);
 
@@ -405,32 +402,36 @@ function App() {
       return;
     }
 
-    const state = { appPage: currentPage };
+    const fromPage = previousPageRef.current;
+    const state = buildPageHistoryState(currentPage);
+    const url = buildPageHistoryUrl(currentPage);
 
     if (!hasInitializedBrowserHistoryRef.current) {
-      window.history.replaceState(state, '', window.location.href);
+      window.history.replaceState(state, '', url);
       hasInitializedBrowserHistoryRef.current = true;
       return;
     }
 
     if (skipBrowserHistoryPushRef.current) {
       skipBrowserHistoryPushRef.current = false;
-      window.history.replaceState(state, '', window.location.href);
+      window.history.replaceState(state, '', url);
+      return;
+    }
+
+    // Bottom-nav tabs replace in place — never push packages/home onto a back stack.
+    if (isTabRootPage(currentPage) && fromPage && isTabRootPage(fromPage)) {
+      window.history.replaceState(state, '', url);
       return;
     }
 
     // Root/auth screens replace the current history entry instead of pushing,
     // so iOS edge-swipe cannot walk back through splash → login → health-insights.
     if (SWIPE_BACK_BLOCKED_PAGES.has(currentPage)) {
-      if (currentPage === 'home') {
-        pushHomeHistoryTraps();
-      } else {
-        window.history.replaceState(state, '', window.location.href);
-      }
+      window.history.replaceState(state, '', url);
       return;
     }
 
-    window.history.pushState(state, '', window.location.href);
+    window.history.pushState(state, '', url);
   }, [currentPage]);
 
   useEffect(() => {
@@ -505,7 +506,10 @@ function App() {
       return;
     }
 
-    if (!isSwipeBackAllowedPage(currentPage) && touch.clientX <= getEdgeSwipeBlockZonePx(currentPage)) {
+    if (
+      currentPage === 'home'
+      || (!isSwipeBackAllowedPage(currentPage) && touch.clientX <= getEdgeSwipeBlockZonePx(currentPage))
+    ) {
       edgeSwipeStateRef.current = {
         tracking: false,
         blockNativeBackGesture: true,
@@ -613,27 +617,17 @@ function App() {
     }
 
     const handleBrowserBack = () => {
-      if (isProgrammaticHomeNavRef.current) {
-        isProgrammaticHomeNavRef.current = false;
-        skipBrowserHistoryPushRef.current = true;
-        pushHomeHistoryTraps();
-        if (currentPageRef.current !== 'home') {
-          setCurrentPage('home');
-        }
-        return;
-      }
-
       const page = currentPageRef.current;
 
       if (page === 'home') {
         skipBrowserHistoryPushRef.current = true;
-        window.history.pushState(buildHomeHistoryState(), '', window.location.href);
+        replaceBrowserHistoryForPage('home');
         return;
       }
 
       if (!isSwipeBackAllowedPage(page)) {
         skipBrowserHistoryPushRef.current = true;
-        window.history.replaceState({ appPage: page }, '', window.location.href);
+        replaceBrowserHistoryForPage(page);
         return;
       }
 
@@ -645,7 +639,7 @@ function App() {
       }
 
       skipBrowserHistoryPushRef.current = true;
-      window.history.replaceState({ appPage: page }, '', window.location.href);
+      replaceBrowserHistoryForPage(page);
     };
 
     window.addEventListener('popstate', handleBrowserBack, true);
@@ -665,7 +659,7 @@ function App() {
       }
 
       skipBrowserHistoryPushRef.current = true;
-      pushHomeHistoryTraps();
+      replaceBrowserHistoryForPage('home');
     };
 
     window.addEventListener('pageshow', handlePageShow);
@@ -683,10 +677,33 @@ function App() {
     document.documentElement.classList.add('app-swipe-back-locked');
     pinHomeBrowserHistory();
 
+    if (typeof window !== 'undefined' && window.location.hash) {
+      replaceBrowserHistoryForPage('home');
+    }
+
     return () => {
       document.documentElement.classList.remove('app-swipe-back-locked');
     };
   }, [currentPage, pinHomeBrowserHistory]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleHashChange = () => {
+      if (currentPageRef.current !== 'home') {
+        return;
+      }
+
+      replaceBrowserHistoryForPage('home');
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -706,6 +723,12 @@ function App() {
       swipeState.startY = touch.clientY;
       swipeState.lastX = touch.clientX;
       swipeState.lastY = touch.clientY;
+
+      if (page === 'home') {
+        swipeState.blockNativeBackGesture = true;
+        swipeState.tracking = false;
+        return;
+      }
 
       if (!SWIPE_BACK_BLOCKED_PAGES.has(page)) {
         return;
@@ -728,11 +751,15 @@ function App() {
         return;
       }
 
-      const blockZonePx = getEdgeSwipeBlockZonePx(page);
-
-      if (SWIPE_BACK_BLOCKED_PAGES.has(page) && touch.clientX <= blockZonePx) {
+      if (page === 'home') {
         swipeState.blockNativeBackGesture = true;
-        swipeState.tracking = false;
+      } else {
+        const blockZonePx = getEdgeSwipeBlockZonePx(page);
+
+        if (SWIPE_BACK_BLOCKED_PAGES.has(page) && touch.clientX <= blockZonePx) {
+          swipeState.blockNativeBackGesture = true;
+          swipeState.tracking = false;
+        }
       }
 
       if (!swipeState.blockNativeBackGesture) {

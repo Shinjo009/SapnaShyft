@@ -28,8 +28,10 @@
 
 html.app-swipe-back-locked,
 html.app-swipe-back-locked body {
+  overscroll-behavior: none;
   overscroll-behavior-x: none;
   touch-action: pan-y pinch-zoom;
+  -webkit-overflow-scrolling: auto;
 }
 
 @media (display-mode: standalone) {
