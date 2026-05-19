@@ -33,10 +33,12 @@ const META = {
  * @param {{ sportIds: string[], otherSelected?: boolean, otherNote?: string }} payload
  * @returns {Array<{ id: string, title: string, category: string, subtitle: string, image: string, skin: string }>}
  */
+export const PLAYLIST_FAN_TILE_MAX = 4;
+
 export function buildPlaylistCardsFromSelection(payload) {
   const sportIds = Array.isArray(payload?.sportIds) ? payload.sportIds : [];
-  const otherSelected = Boolean(payload?.otherSelected);
   const otherNote = String(payload?.otherNote || '').trim();
+  const includeOther = Boolean(payload?.otherSelected) || otherNote.length > 0;
 
   const order = SPORT_CHIPS.map((c) => c.id).filter((id) => sportIds.includes(id));
   const cards = order.map((id, i) => {
@@ -52,18 +54,31 @@ export function buildPlaylistCardsFromSelection(payload) {
     };
   });
 
-  if (otherSelected) {
+  if (includeOther) {
     const m = META.other;
-    const title = otherNote || 'Other';
     cards.push({
       id: 'other',
-      title,
+      title: otherNote || 'Other',
       category: m.category,
-      subtitle: otherNote ? 'As you specified' : m.subtitle,
+      subtitle: otherNote ? 'As you specified' : 'Your pick',
       image: m.image,
       skin: SKINS[cards.length % SKINS.length],
     });
   }
 
   return cards;
+}
+
+/** Fan shows at most four tiles — always keep the custom “Other” card when present. */
+export function pickPlaylistCardsForFan(cards, maxVisible = PLAYLIST_FAN_TILE_MAX) {
+  if (!Array.isArray(cards) || cards.length <= maxVisible) {
+    return cards || [];
+  }
+  const otherCard = cards.find((c) => c.id === 'other');
+  const sportCards = cards.filter((c) => c.id !== 'other');
+  if (!otherCard) {
+    return sportCards.slice(-maxVisible);
+  }
+  const sportSlots = maxVisible - 1;
+  return [...sportCards.slice(-sportSlots), otherCard];
 }

@@ -3,12 +3,20 @@ import './HomePage.css';
 import Header from '../../components/HomePage/Header';
 import MetabolicAgeOrb from '../../metabolic-age-orb/MetabolicAgeOrb.jsx';
 import HealthParametersSection from '../../components/HomePage/HealthParametersSection';
+import HomeHealthSpanIndexLockedStack from '../../components/HomePage/HomeHealthSpanIndexLockedStack';
 import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/PositiveWinsSection';
 import RiskAnalysisSection, {
   buildHomeBloodMarkersFromBloodParametersResponse,
 } from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
-import { fetchLatestAssessmentReport } from '../../services/reportService';
+import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
+import { getAccessToken } from '../../utils/authStorage';
+import {
+  fetchLatestAssessmentReport,
+  fetchLatestHealthSpanIndex,
+  getHealthSpanIndexSourceStatus,
+  getLatestMetsightsBasicOrProAssessmentIdCached,
+} from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
 import {
   hasNutritionLogQuestionnaireDraft,
@@ -17,10 +25,17 @@ import {
   peekFamilyHistoryQuestionnaireDraftCache,
   invalidateNutritionLogQuestionnaireDraftCache,
   invalidateFamilyHistoryQuestionnaireDraftCache,
+  isFitprintGapQuestionnaireSubmittedFlagSet,
+  clearFitprintGapQuestionnaireSubmittedFlag,
 } from '../../services/questionnaireService';
 import { hasRenderableOverviewData, HOME_PRELOAD_COMPLETE_KEY } from '../../utils/homeOverviewPreload';
+import { isFitprintGapQuestionnaireFullyComplete } from '../../utils/fitprintGapCatchupCompletion';
 import clockCircleSrc from '../../images/clock_circle.svg';
 import clockHandsSrc from '../../images/clock_hands.svg';
+
+const ASSESSMENT_ID_FIXED_BLOOD_REPORT_PDF = 374;
+const ASSESSMENT_FIXED_BLOOD_REPORT_PDF_URL =
+  'https://api.supershyft.com/media/blood-parameters/32a483610b4844f88978b01db3ea3d15.pdf';
 
 const AvatarGlyph = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42" fill="none" aria-hidden="true">
@@ -107,19 +122,6 @@ const DataPrivacyIcon = () => (
   </svg>
 );
 
-const LockIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 29 29" fill="none" aria-hidden="true">
-    <mask id="lock-icon-mask" maskUnits="userSpaceOnUse" x="3" y="1" width="23" height="27" style={{ maskType: 'luminance' }}>
-      <path d="M23.5618 13.3208H5.43685C4.7695 13.3208 4.22852 13.8618 4.22852 14.5291V25.4041C4.22852 26.0715 4.7695 26.6125 5.43685 26.6125H23.5618C24.2292 26.6125 24.7702 26.0715 24.7702 25.4041V14.5291C24.7702 13.8618 24.2292 13.3208 23.5618 13.3208Z" fill="white" stroke="white" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M8.45703 13.2916V8.46129C8.45401 5.3589 10.8272 2.75917 13.9465 2.44742C17.0658 2.13567 19.9163 4.2134 20.5404 7.25356" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M14.5 18.125V21.75" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </mask>
-    <g mask="url(#lock-icon-mask)">
-      <path d="M0 0H29V29H0V0Z" fill="white" />
-    </g>
-  </svg>
-);
-
 const AnalysisHourglassIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="27" height="29" viewBox="0 0 27 29" fill="none" aria-hidden="true">
     <path d="M0 1H26.6667M4.84848 1V7.06061C4.84848 10.697 10.9091 10.9818 10.9091 14.3333C10.9091 17.6848 4.84848 17.9697 4.84848 21.6061V27.6667M21.8182 1V7.06061C21.8182 10.697 15.7576 10.9818 15.7576 14.3333C15.7576 17.6848 21.8182 17.9697 21.8182 21.6061V27.6667M0 27.6667H26.6667M10.9091 5.24242H15.7576V7.06061C15.7576 8.27273 13.3333 9.48485 13.3333 9.48485C13.3333 9.48485 10.9091 8.27273 10.9091 7.06061V5.24242ZM8.48485 25.2424C8.48485 22.8182 13.3333 20.3939 13.3333 20.3939C13.3333 20.3939 18.1818 22.8182 18.1818 25.2424V27.6667H8.48485V25.2424Z" stroke="white" strokeWidth="2" />
@@ -198,6 +200,19 @@ const ChecklistTickIcon = () => (
   </svg>
 );
 
+const HomeDownloadIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M11.625 15.513C11.5083 15.471 11.4 15.4 11.3 15.3L7.7 11.7C7.5 11.5 7.404 11.2667 7.412 11C7.42 10.7333 7.516 10.5 7.7 10.3C7.9 10.1 8.13767 9.996 8.413 9.988C8.68833 9.98 8.92567 10.0757 9.125 10.275L11 12.15V5C11 4.71667 11.096 4.47934 11.288 4.288C11.48 4.09667 11.7173 4.00067 12 4C12.2827 3.99934 12.5203 4.09534 12.713 4.288C12.9057 4.48067 13.0013 4.718 13 5V12.15L14.875 10.275C15.075 10.075 15.3127 9.979 15.588 9.987C15.8633 9.995 16.1007 10.0993 16.3 10.3C16.4833 10.5 16.5793 10.7333 16.588 11C16.5967 11.2667 16.5007 11.5 16.3 11.7L12.7 15.3C12.6 15.4 12.4917 15.471 12.375 15.513C12.2583 15.555 12.1333 15.5757 12 15.575C11.8667 15.5743 11.7417 15.5537 11.625 15.513ZM6 20C5.45 20 4.97933 19.8043 4.588 19.413C4.19667 19.0217 4.00067 18.5507 4 18V16C4 15.7167 4.096 15.4793 4.288 15.288C4.48 15.0967 4.71733 15.0007 5 15C5.28267 14.9993 5.52033 15.0953 5.713 15.288C5.90567 15.4807 6.00133 15.718 6 16V18H18V16C18 15.7167 18.096 15.4793 18.288 15.288C18.48 15.0967 18.7173 15.0007 19 15C19.2827 14.9993 19.5203 15.0953 19.713 15.288C19.9057 15.4807 20.0013 15.718 20 16V18C20 18.55 19.8043 19.021 19.413 19.413C19.0217 19.805 18.5507 20.0007 18 20H6Z" fill="white" />
+  </svg>
+);
+
+const HomeReportEyeIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M22 12C22 12 17.522 18 12 18C6.478 18 2 12 2 12C2 12 6.478 6 12 6C17.522 6 22 12 22 12Z" stroke="white" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 15C12.7956 15 13.5587 14.6839 14.1213 14.1213C14.6839 13.5587 15 12.7956 15 12C15 11.2044 14.6839 10.4413 14.1213 9.87868C13.5587 9.31607 12.7956 9 12 9C11.2044 9 10.4413 9.31607 9.87868 9.87868C9.31607 10.4413 9 11.2044 9 12C9 12.7956 9.31607 13.5587 9.87868 14.1213C10.4413 14.6839 11.2044 15 12 15Z" stroke="white" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const b2bCampChecklistItems = [
   'Fasting (10–12 hrs) preferred',
   'OR have a light breakfast: idli, dosa, poha, black tea/coffee, coconut water, apple/guava, or a few nuts',
@@ -233,6 +248,30 @@ const resolveOverviewPayload = (payload) => {
   if (payload.result && typeof payload.result === 'object') return payload.result;
   if (payload.item && typeof payload.item === 'object') return payload.item;
   return payload;
+};
+
+const resolvePositiveWinsPayload = (overview) => {
+  if (!overview || typeof overview !== 'object') {
+    return null;
+  }
+
+  if (overview.positive_wins && typeof overview.positive_wins === 'object') {
+    return overview.positive_wins;
+  }
+
+  const hasTopLevelPositiveWinsFields = Object.prototype.hasOwnProperty.call(overview, 'healthy_habits')
+    || Object.prototype.hasOwnProperty.call(overview, 'healthy_profiles')
+    || Object.prototype.hasOwnProperty.call(overview, 'low_risk');
+
+  if (!hasTopLevelPositiveWinsFields) {
+    return null;
+  }
+
+  return {
+    healthy_habits: Array.isArray(overview.healthy_habits) ? overview.healthy_habits : [],
+    healthy_profiles: Array.isArray(overview.healthy_profiles) ? overview.healthy_profiles : [],
+    low_risk: Array.isArray(overview.low_risk) ? overview.low_risk : [],
+  };
 };
 
 const EMPTY_UPCOMING_SLOT = {
@@ -288,6 +327,20 @@ const formatEngagementDateLabel = (raw) => {
   return `${formatted} (Day 1)`;
 };
 
+const parseResponseBody = async (response) => {
+  const contentType = response?.headers?.get?.('content-type') || '';
+  if (contentType.toLowerCase().includes('application/json')) {
+    return response.json();
+  }
+
+  const text = await response.text();
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return { message: text };
+  }
+};
+
 const HomePage = ({
   userName = 'User',
   userAge = null,
@@ -301,7 +354,9 @@ const HomePage = ({
   onNavigateToDiseaseDetail,
   onOpenHealthAssessment,
   onOpenB2bHealthAssessment,
+  onOpenFitprintGapQuestionnaire,
   onNavigateToBloodMarkers,
+  onNavigateToBloodMarkerDetail,
   onNavigateToPackages,
   onNavigateToDoctors,
   onNavigateToSuperClub,
@@ -311,6 +366,22 @@ const HomePage = ({
   const [metabolicAgeValue, setMetabolicAgeValue] = useState(preloadedData?.metabolicAgeValue || '-');
   const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
   const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
+  const [healthSpanScores, setHealthSpanScores] = useState(() => {
+    if (preloadedData?.fitprintGapLockPreloaded && preloadedData?.healthSpanLockedNoFitprint) {
+      return null;
+    }
+    return preloadedData?.healthSpanScores || null;
+  });
+  const [healthSpanLockedNoFitprint, setHealthSpanLockedNoFitprint] = useState(
+    () => Boolean(preloadedData?.fitprintGapLockPreloaded && preloadedData?.healthSpanLockedNoFitprint),
+  );
+  const [healthSpanGapBasicProAssessmentId, setHealthSpanGapBasicProAssessmentId] = useState(
+    () => (preloadedData?.fitprintGapLockPreloaded ? preloadedData.healthSpanGapBasicProAssessmentId ?? null : null),
+  );
+  /** From server answers on Basic/Pro when FitPrint row is missing (reports not ready yet). */
+  const [fitprintGapQCompleteFromServer, setFitprintGapQCompleteFromServer] = useState(
+    () => Boolean(preloadedData?.fitprintGapLockPreloaded && preloadedData?.fitprintGapQCompleteFromServer),
+  );
   const [isNoDataHome, setIsNoDataHome] = useState(
     () => homePreloadComplete && !hasRenderableOverviewData(preloadedData),
   );
@@ -327,6 +398,9 @@ const HomePage = ({
   const [hasStableOverviewData, setHasStableOverviewData] = useState(() => hasRenderableOverviewData(preloadedData));
   /** null = overview pipeline has not returned blood markers yet; array = rows for RiskAnalysisSection (avoids a second request + idle delay). */
   const [homeBloodMarkersForSection, setHomeBloodMarkersForSection] = useState(null);
+  const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+  /** null | 'bio-ai' | 'blood' — only the active row shows "Downloading..." */
+  const [downloadingReportKind, setDownloadingReportKind] = useState(null);
 
   const slotNorm = upcomingSlotNormalized || EMPTY_UPCOMING_SLOT;
   const campFlowActive = Boolean(slotNorm.hasScheduledSlot)
@@ -344,6 +418,15 @@ const HomePage = ({
     if (onOpenHealthAssessment) {
       onOpenHealthAssessment();
     }
+  };
+
+  const openQuestionnaireFromFitprintLock = () => {
+    const id = Number(healthSpanGapBasicProAssessmentId);
+    if (onOpenFitprintGapQuestionnaire && Number.isFinite(id) && id > 0) {
+      onOpenFitprintGapQuestionnaire(id);
+      return;
+    }
+    openB2bQuestionnaire();
   };
 
   useLayoutEffect(() => {
@@ -445,6 +528,86 @@ const HomePage = ({
     return undefined;
   }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
 
+  useLayoutEffect(() => {
+    if (preloadedData?.fitprintGapLockPreloaded !== true || forceRefreshFromProfile) {
+      return;
+    }
+    setHealthSpanLockedNoFitprint(Boolean(preloadedData.healthSpanLockedNoFitprint));
+    setHealthSpanGapBasicProAssessmentId(preloadedData.healthSpanGapBasicProAssessmentId ?? null);
+    setFitprintGapQCompleteFromServer(Boolean(preloadedData.fitprintGapQCompleteFromServer));
+    if (preloadedData.healthSpanLockedNoFitprint) {
+      setHealthSpanScores(null);
+    }
+  }, [
+    forceRefreshFromProfile,
+    preloadedData?.fitprintGapLockPreloaded,
+    preloadedData?.healthSpanLockedNoFitprint,
+    preloadedData?.healthSpanGapBasicProAssessmentId,
+    preloadedData?.fitprintGapQCompleteFromServer,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const ttlMs = forceRefreshFromProfile ? 0 : 45000;
+
+      if (preloadedData?.fitprintGapLockPreloaded === true && !forceRefreshFromProfile) {
+        return;
+      }
+
+      const sourceStatus = await getHealthSpanIndexSourceStatus({ ttlMs });
+      if (cancelled) {
+        return;
+      }
+
+      if (sourceStatus.status === 'missing_fitprint') {
+        const basicProId = Number(sourceStatus.basicOrProAssessmentId);
+        const normalizedId = Number.isFinite(basicProId) && basicProId > 0 ? basicProId : null;
+
+        let gapQuestionnaireComplete = false;
+        if (normalizedId != null) {
+          gapQuestionnaireComplete = await isFitprintGapQuestionnaireFullyComplete(normalizedId);
+        }
+        if (cancelled) {
+          return;
+        }
+        setHealthSpanLockedNoFitprint(true);
+        setHealthSpanScores(null);
+        setHealthSpanGapBasicProAssessmentId(normalizedId);
+        setFitprintGapQCompleteFromServer(Boolean(gapQuestionnaireComplete));
+        return;
+      }
+
+      clearFitprintGapQuestionnaireSubmittedFlag();
+      setFitprintGapQCompleteFromServer(false);
+      setHealthSpanLockedNoFitprint(false);
+      setHealthSpanGapBasicProAssessmentId(null);
+
+      try {
+        const result = await fetchLatestHealthSpanIndex({ includeDetails: false, ttlMs });
+        if (!cancelled) {
+          setHealthSpanScores(result?.scores || null);
+        }
+      } catch {
+        if (!cancelled && !preloadedData?.healthSpanScores) {
+          setHealthSpanScores(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    forceRefreshFromProfile,
+    preloadedData?.healthSpanScores,
+    preloadedData?.fitprintGapLockPreloaded,
+    preloadedData?.healthSpanLockedNoFitprint,
+    preloadedData?.healthSpanGapBasicProAssessmentId,
+    preloadedData?.fitprintGapQCompleteFromServer,
+  ]);
+
   const metabolicAgeDetail = useMemo(() => {
     const chronologicalAge = Number(userAge);
     const metabolicAge = Number(metabolicAgeValue);
@@ -517,7 +680,10 @@ const HomePage = ({
 
       const hasOverviewFields = Object.prototype.hasOwnProperty.call(overview, 'metabolic_age')
         || Object.prototype.hasOwnProperty.call(overview, 'positive_wins')
-        || Object.prototype.hasOwnProperty.call(overview, 'risk_analysis');
+        || Object.prototype.hasOwnProperty.call(overview, 'risk_analysis')
+        || Object.prototype.hasOwnProperty.call(overview, 'healthy_habits')
+        || Object.prototype.hasOwnProperty.call(overview, 'healthy_profiles')
+        || Object.prototype.hasOwnProperty.call(overview, 'low_risk');
 
       if (!hasOverviewFields) {
         return null;
@@ -527,7 +693,7 @@ const HomePage = ({
       const metabolicAgeDisplay = Number.isFinite(metabolicAge) ? String(Math.round(metabolicAge)) : '-';
       return {
         metabolicAgeValue: metabolicAgeDisplay,
-        positiveWinsData: overview?.positive_wins && typeof overview.positive_wins === 'object' ? overview.positive_wins : null,
+        positiveWinsData: resolvePositiveWinsPayload(overview),
         riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
       };
     };
@@ -694,6 +860,7 @@ const HomePage = ({
 
   const handleNavigate = (itemId) => {
     console.log('Navigating to:', itemId);
+    setIsDownloadMenuOpen(false);
     if (itemId === 'packages' && onNavigateToPackages) {
       onNavigateToPackages();
       return;
@@ -728,6 +895,140 @@ const HomePage = ({
     }
   };
 
+  const handleDownloadMenuToggle = () => {
+    setIsDownloadMenuOpen((prev) => !prev);
+  };
+
+  const handleCloseDownloadMenu = () => {
+    setIsDownloadMenuOpen(false);
+  };
+
+  const handleDownloadBioAiReport = async () => {
+    if (downloadingReportKind !== null) {
+      return;
+    }
+
+    setDownloadingReportKind('bio-ai');
+
+    try {
+      const assessmentId = await getLatestMetsightsBasicOrProAssessmentIdCached();
+      if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
+        throw new Error('No Metsights Basic or Pro report available yet.');
+      }
+
+      if (!BACKEND_ENABLED) {
+        throw new Error('Backend base URL is not configured.');
+      }
+
+      const accessToken = getAccessToken();
+      if (!accessToken) {
+        throw new Error('You are not logged in.');
+      }
+
+      const response = await fetch(`${BACKEND_BASE_URL}/reports/${assessmentId}/bio-ai/pdf`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const body = await parseResponseBody(response);
+
+      if (!response.ok) {
+        throw new Error(body?.message || body?.detail || 'Failed to download report.');
+      }
+
+      const reportUrl = body?.data?.report_url || body?.report_url;
+      if (!reportUrl || typeof reportUrl !== 'string') {
+        throw new Error('Report URL is missing from API response.');
+      }
+
+      const link = document.createElement('a');
+      link.href = reportUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      setIsDownloadMenuOpen(false);
+    } catch (error) {
+      console.error('Failed to download Bio-AI report PDF:', error);
+      window.alert(error?.message || 'Failed to download report. Please try again.');
+    } finally {
+      setDownloadingReportKind(null);
+    }
+  };
+
+  const handleDownloadBloodReport = async () => {
+    if (downloadingReportKind !== null) {
+      return;
+    }
+
+    setDownloadingReportKind('blood');
+
+    try {
+      const assessmentId = await getLatestMetsightsBasicOrProAssessmentIdCached();
+      if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
+        throw new Error('No Metsights Basic or Pro report available yet.');
+      }
+
+      const accessToken = getAccessToken();
+      if (!accessToken) {
+        throw new Error('You are not logged in.');
+      }
+
+      if (assessmentId === ASSESSMENT_ID_FIXED_BLOOD_REPORT_PDF) {
+        const link = document.createElement('a');
+        link.href = ASSESSMENT_FIXED_BLOOD_REPORT_PDF_URL;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setIsDownloadMenuOpen(false);
+        return;
+      }
+
+      if (!BACKEND_ENABLED) {
+        throw new Error('Backend base URL is not configured.');
+      }
+
+      const response = await fetch(`${BACKEND_BASE_URL}/reports/${assessmentId}/blood-parameters/pdf`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const body = await parseResponseBody(response);
+
+      if (!response.ok) {
+        throw new Error(body?.message || body?.detail || 'Failed to download report.');
+      }
+
+      const reportUrl = body?.data?.report_url || body?.report_url;
+      if (!reportUrl || typeof reportUrl !== 'string') {
+        throw new Error('Report URL is missing from API response.');
+      }
+
+      const link = document.createElement('a');
+      link.href = reportUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      setIsDownloadMenuOpen(false);
+    } catch (error) {
+      console.error('Failed to download Blood Parameters report PDF:', error);
+      window.alert(error?.message || 'Failed to download report. Please try again.');
+    } finally {
+      setDownloadingReportKind(null);
+    }
+  };
+
   const handleHealthScanCircleClick = (item) => {
     const tabByLabel = {
       'Fitness score': 0,
@@ -756,6 +1057,12 @@ const HomePage = ({
   const handleBloodMarkersSeeMore = () => {
     if (onNavigateToBloodMarkers) {
       onNavigateToBloodMarkers();
+    }
+  };
+
+  const handleHomeBloodMarkerCardSelect = (markerRow) => {
+    if (onNavigateToBloodMarkerDetail) {
+      onNavigateToBloodMarkerDetail(markerRow);
     }
   };
 
@@ -842,26 +1149,10 @@ const HomePage = ({
             </div>
           </div>
 
-          <section className="home-page-no-data__health-box" aria-label="Health Span Index locked until test completion">
-            <div className="home-page-no-data__health-top">
-              <p className="home-page-no-data__health-title">Health Span Index</p>
-              <button type="button" className="home-page-no-data__see-more" aria-disabled="true">See more</button>
-            </div>
-            <p className="home-page-no-data__health-subtitle">Tap the card to know more</p>
-
-            <div className="home-page-no-data__health-blurred">
-              <div className="home-page-no-data__locked-circles" aria-hidden="true">
-                <span className="home-page-no-data__locked-circle home-page-no-data__locked-circle--red" />
-                <span className="home-page-no-data__locked-circle home-page-no-data__locked-circle--yellow" />
-                <span className="home-page-no-data__locked-circle home-page-no-data__locked-circle--green" />
-              </div>
-            </div>
-
-            <div className="home-page-no-data__unlock-center">
-              <LockIcon />
-              <p>Unlock your Health Scores after the Test</p>
-            </div>
-          </section>
+          <HomeHealthSpanIndexLockedStack
+            onCompleteAssessment={openQuestionnaireFromFitprintLock}
+            ariaLabel="Health Span Index locked until test completion"
+          />
 
           <NavBar defaultActive="home" onNavigate={handleNavigate} />
         </div>
@@ -890,7 +1181,7 @@ const HomePage = ({
             <div className="home-page-analyzing__copy">
               <h2>Analyzing your Bio-Markers</h2>
               <p className="home-page-analyzing__subtitle">
-                We&rsquo;re preparing your Health Playbook. Report ready in 24-48 hours.
+                We&rsquo;re preparing your Health Playbook. Report ready in 48-72 hours.
               </p>
             </div>
           </section>
@@ -1081,6 +1372,15 @@ const HomePage = ({
 
   return (
     <div className="home-page">
+      {isDownloadMenuOpen ? (
+        <button
+          type="button"
+          className="home-page__download-overlay-backdrop"
+          onClick={handleCloseDownloadMenu}
+          aria-label="Close reports panel"
+        />
+      ) : null}
+
       {/* Header */}
       <Header 
         name={userName} 
@@ -1095,16 +1395,28 @@ const HomePage = ({
         absoluteMetabolicAge={metabolicOrbProps.absoluteMetabolicAge}
       />
 
-      {/* Health Parameters Section */}
-      <HealthParametersSection 
-        data={[
-          { percentage: 20, label: 'Fitness score' },
-          { percentage: 45, label: 'Nutrition score' },
-          { percentage: 75, label: 'Lifestyle score' }
-        ]}
-        onSeeMore={handleHealthScanSeeMore}
-        onCardClick={handleHealthScanCircleClick}
-      />
+      {/* Health Span Index: scores, or locked when Basic/Pro exists without matching FitPrint */}
+      {healthSpanLockedNoFitprint ? (
+        <div className="health-parameters">
+          <HomeHealthSpanIndexLockedStack
+            onCompleteAssessment={openQuestionnaireFromFitprintLock}
+            ariaLabel="Health Span Index locked until FitPrint assessment is completed"
+            postSubmitAwaitingReports={
+              isFitprintGapQuestionnaireSubmittedFlagSet() || fitprintGapQCompleteFromServer
+            }
+          />
+        </div>
+      ) : (
+        <HealthParametersSection
+          data={[
+            { percentage: healthSpanScores?.fitnessScore ?? null, label: 'Fitness score' },
+            { percentage: healthSpanScores?.nutritionScore ?? null, label: 'Nutrition score' },
+            { percentage: healthSpanScores?.lifestyleScore ?? null, label: 'Lifestyle score' },
+          ]}
+          onSeeMore={handleHealthScanSeeMore}
+          onCardClick={handleHealthScanCircleClick}
+        />
+      )}
 
       <PositiveWinsSection apiPositiveWins={positiveWinsData} />
 
@@ -1114,8 +1426,44 @@ const HomePage = ({
         onSeeMore={handleRiskAnalysisSeeMore}
         onDiseaseSelect={onNavigateToDiseaseDetail}
         onBloodMarkersSeeMore={handleBloodMarkersSeeMore}
+        onHomeBloodMarkerSelect={handleHomeBloodMarkerCardSelect}
         prefetchedHomeBloodMarkers={homeBloodMarkersForSection}
       />
+
+      {isDownloadMenuOpen ? (
+        <div className="home-page__download-panel" role="dialog" aria-label="Reports">
+          <button
+            type="button"
+            className="home-page__download-panel-item"
+            onClick={handleDownloadBioAiReport}
+            disabled={downloadingReportKind !== null}
+            aria-busy={downloadingReportKind === 'bio-ai'}
+          >
+            <span>{downloadingReportKind === 'bio-ai' ? 'Downloading report...' : 'Bio-AI Health Report'}</span>
+            <HomeReportEyeIcon />
+          </button>
+          <button
+            type="button"
+            className="home-page__download-panel-item"
+            onClick={handleDownloadBloodReport}
+            disabled={downloadingReportKind !== null}
+            aria-busy={downloadingReportKind === 'blood'}
+          >
+            <span>{downloadingReportKind === 'blood' ? 'Downloading report...' : 'Blood Report'}</span>
+            <HomeReportEyeIcon />
+          </button>
+        </div>
+      ) : null}
+
+      <button
+        type="button"
+        className="home-page__floating-download-btn"
+        onClick={handleDownloadMenuToggle}
+        aria-label={isDownloadMenuOpen ? 'Close report options' : 'Open report options'}
+        aria-expanded={isDownloadMenuOpen}
+      >
+        <HomeDownloadIcon />
+      </button>
 
       <NavBar defaultActive="home" onNavigate={handleNavigate} />
     </div>

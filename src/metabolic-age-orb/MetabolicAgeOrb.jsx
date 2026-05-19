@@ -62,6 +62,11 @@ const formatYearsForDetail = (yearsAbs) => {
   return rounded.toFixed(1).replace(/\.?0+$/, '');
 };
 
+const yearsWordForDetail = (displayNumberStr) => {
+  const v = Number.parseFloat(displayNumberStr);
+  return v === 1 ? 'year' : 'years';
+};
+
 /*
 const bandToRgb = (band) => {
   if (band === 0) return [144, 223, 158];
@@ -101,7 +106,8 @@ export default function MetabolicAgeOrb({
     if (metabolicDelta !== null) {
       if (ageGap === 0) return 'Same as chronological age';
       const n = formatYearsForDetail(Math.abs(ageGap));
-      return ageGap > 0 ? `${n} years older` : `${n} years younger`;
+      const yw = yearsWordForDetail(n);
+      return ageGap > 0 ? `${n} ${yw} older` : `${n} ${yw} younger`;
     }
     return detail;
   }, [absMeta, metabolicDelta, ageGap, detail]);

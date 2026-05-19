@@ -13,14 +13,17 @@
   max-width: var(--pc-frame);
   margin: 0 auto;
   box-sizing: border-box;
-  min-height: 100%;
+  /* Single screen: no page scroll; flex stack between header and fixed NavBar */
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
   min-height: 100dvh;
   padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior-x: none;
-  overscroll-behavior-y: contain;
-  touch-action: pan-y;
+  overflow-y: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
   color: #fff;
   background: transparent;
 }
@@ -29,6 +32,7 @@
   position: relative;
   z-index: 2;
   width: 100%;
+  flex-shrink: 0;
 }
 
 .superclub-pc__back {
@@ -93,6 +97,11 @@
   z-index: 1;
   width: 100%;
   box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .superclub-pc__col {
@@ -103,6 +112,11 @@
   margin: 0 auto;
   padding-top: 4px;
   box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .superclub-pc__kicker {
@@ -122,16 +136,22 @@
 }
 
 .superclub-pc__block {
-  padding: 27px 0 0;
+  padding: 14px 0 0;
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .superclub-pc__copy {
-  padding: 38.895px 24px 0;
+  padding: 18px 24px 0;
   width: 410.6px;
   max-width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .superclub-pc__headline {
@@ -149,8 +169,8 @@
 }
 
 .superclub-pc__lede {
-  margin: 12px auto 0;
-  padding-bottom: 12px;
+  margin: 8px auto 0;
+  padding-bottom: 4px;
   width: 326px;
   max-width: 100%;
   text-align: center;
@@ -165,14 +185,17 @@
 .superclub-pc__fan-wrap {
   position: relative;
   width: 100%;
-  min-height: calc(var(--pc-fan-h) + 40px);
-  margin-top: 26px;
-  overflow: visible;
+  min-height: 0;
+  flex: 1;
+  margin-top: 10px;
+  overflow: hidden;
 }
 
 .superclub-pc__fan-wrap--collapsed {
   min-height: 0;
   margin-top: 0;
+  flex: 0 0 auto;
+  overflow: visible;
 }
 
 /* Full-bleed decorative arcs (viewport width) behind the fan */
@@ -205,8 +228,10 @@
   z-index: 1;
   box-sizing: border-box;
   width: 100%;
-  height: calc(var(--pc-fan-h) + 40px);
-  padding: 20px 0;
+  height: 100%;
+  max-height: calc(var(--pc-fan-h) + 28px);
+  min-height: 160px;
+  padding: 10px 0;
   margin-left: auto;
   margin-right: auto;
   overflow: hidden;
@@ -314,7 +339,7 @@
 }
 
 .superclub-pc__tile--t5 .superclub-pc__tile-body {
-  padding: 16px 12px 12px;
+  padding: 16px;
 }
 
 .superclub-pc__tile--t5 .superclub-pc__tile-cat {
@@ -558,28 +583,83 @@
   left: 0;
   right: 0;
   bottom: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   text-align: left;
   z-index: 4;
+  padding: 16px;
+  pointer-events: none;
 }
 
-.superclub-pc__tile-cat {
+/* Same copy hierarchy on every fan card (shells only change border / tint). */
+.superclub-pc__tile .superclub-pc__tile-cat {
   margin: 0 0 4px;
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
 }
 
-.superclub-pc__tile-title {
+.superclub-pc__tile .superclub-pc__tile-title {
   margin: 0 0 4px;
   max-width: 100%;
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+  color: #f8fafc;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.superclub-pc__tile .superclub-pc__tile-sub {
+  margin: 0;
+  max-width: 100%;
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: #cbd5e1;
+  opacity: 0.92;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.superclub-pc__tile-sub {
-  margin: 0;
+/* Stronger bottom scrim so labels stay readable on every image (incl. meditation / Other). */
+.superclub-pc__tile .superclub-pc__tile-grad-b {
+  top: 22%;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(
+    to top,
+    rgba(9, 14, 23, 0.98) 0%,
+    rgba(9, 14, 23, 0.72) 38%,
+    rgba(9, 14, 23, 0.2) 68%,
+    rgba(9, 14, 23, 0) 100%
+  ) !important;
+}
+
+.superclub-pc__tile--custom .superclub-pc__tile-grad-b {
+  top: 18%;
+  background: linear-gradient(
+    to top,
+    rgba(9, 14, 23, 0.99) 0%,
+    rgba(9, 14, 23, 0.85) 42%,
+    rgba(9, 14, 23, 0.35) 72%,
+    rgba(9, 14, 23, 0) 100%
+  ) !important;
 }
 
 .superclub-pc__tile-bookmark {
@@ -607,15 +687,17 @@
   box-shadow: inset 0 1px 0 1px rgba(255, 255, 255, 0.08);
 }
 
-/* Figma Margin + CTA — 4558:17350 */
+/* Figma Margin + CTA — 4558:17350 (pulled up vs NavBar; no page scroll) */
 .superclub-pc__cta-margin {
   width: 300px;
   max-width: 100%;
-  margin: 26px auto 0;
-  padding-top: 12px;
+  margin: 10px auto 0;
+  padding-top: 0;
+  padding-bottom: 4px;
   display: flex;
   justify-content: center;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .superclub-pc__cta {
@@ -636,7 +718,6 @@
   font-weight: 600;
   line-height: normal;
   cursor: pointer;
-  filter: drop-shadow(0 12px 10px rgba(255, 255, 255, 0.15));
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -647,6 +728,62 @@
 
 .superclub-pc__cta:active {
   transform: scale(0.99);
+}
+
+@media (max-height: 700px) {
+  .superclub-pc__copy {
+    padding-top: 10px;
+  }
+
+  .superclub-pc__headline {
+    font-size: 22px;
+    line-height: 30px;
+  }
+
+  .superclub-pc__fan.superclub-pc__fan--marquee {
+    max-height: calc(var(--pc-fan-h) * 0.88 + 20px);
+    padding: 6px 0;
+    transform: scale(0.94);
+    transform-origin: 50% 50%;
+  }
+}
+
+/* Phone / mobile frame: arc peaks clip without extra top inset */
+@media (max-width: 480px) {
+  .superclub-pc__fan-wrap {
+    margin-top: 18px;
+    padding-top: 20px;
+    box-sizing: border-box;
+  }
+
+  .superclub-pc__lines {
+    top: 20px;
+    height: calc(100% - 20px);
+    min-height: calc(var(--pc-fan-h) + 14px);
+  }
+
+  .superclub-pc__fan.superclub-pc__fan--marquee {
+    margin-top: 6px;
+  }
+}
+
+/* Wider than phone frame (PC / desktop browser): room for arc peaks above the card fan */
+@media (min-width: 481px) {
+  .superclub-pc__fan-wrap {
+    margin-top: 20px;
+    padding-top: 22px;
+    box-sizing: border-box;
+  }
+
+  .superclub-pc__lines {
+    top: 22px;
+    height: calc(100% - 22px);
+    min-height: calc(var(--pc-fan-h) + 16px);
+  }
+
+  .superclub-pc__fan.superclub-pc__fan--marquee {
+    margin-top: 8px;
+  }
 }
 
 @media (max-width: 359px) {

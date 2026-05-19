@@ -4,7 +4,8 @@ import personsIcon from '../../images/PFWIC.svg';
 import purposeIcon from '../../images/POC.svg';
 import typesIcon from '../../images/TOPI.svg';
 import tickIcon from '../../images/tickpp.svg';
-import grievanceIcon from '../../images/GO.svg';
+import grievanceIcon from '../../images/grievance-officer-pp.svg';
+import dataProtectionIcon from '../../images/data-protection-pp.svg';
 import './PrivacyPolicyPage.css';
 
 const purposeItems = [
@@ -146,6 +147,19 @@ const PrivacyPolicyPage = ({ onBack }) => {
                 <span>Fitnastic Health Private Limited</span>
               </div>
             </div>
+          </section>
+
+          <section className="privacy-page__card privacy-page__card--last">
+            <div className="privacy-page__card-header">
+              <img src={dataProtectionIcon} alt="" aria-hidden="true" className="privacy-page__icon" />
+              <h2>Data Protection, Security &amp; User Rights</h2>
+            </div>
+
+            <p className="privacy-page__body-text">
+              SuperShyft takes reasonable technical, administrative, and organizational measures to protect personal and health-related information from unauthorized access, misuse, loss, or disclosure, in accordance with applicable laws including the Information Technology Act, 2000, SPDI Rules, and Digital Personal Data Protection Act, 2023 where applicable.
+              <br />
+              Users may request access, correction, or updates to their personal information, withdraw certain consents where legally applicable, or raise concerns regarding data handling practices through official support channels, subject to operational and legal requirements.
+            </p>
           </section>
         </div>
       </div>

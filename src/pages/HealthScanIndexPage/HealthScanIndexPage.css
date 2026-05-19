@@ -94,7 +94,7 @@
 .health-scan-page__tab-content {
   flex: 1;
   width: 100%;
-  padding: 0 16px 24px 16px;
+  padding: 0 16px calc(120px + env(safe-area-inset-bottom, 0px)) 16px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -293,6 +293,8 @@
   text-align: left;
   align-self: flex-start;
   padding-left: var(--metric-icon-offset);
+  min-width: 0;
+  max-width: 100%;
   font-family: "DM Sans", sans-serif;
   font-size: 14px;
   font-style: normal;
@@ -350,8 +352,8 @@
 }
 
 .health-scan-page__metric-range-container--sleep {
-  width: 100%;
-  margin-left: 0;
+  width: calc(100% - var(--metric-icon-offset));
+  margin-left: var(--metric-icon-offset);
   background: rgba(255, 255, 255, 0.08);
   border: 0.4px solid rgba(255, 255, 255, 0.18);
   box-sizing: border-box;
@@ -386,7 +388,7 @@
 
 .health-scan-page__metric-value--mixed {
   gap: 8px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .health-scan-page__metric-value-neutral {
@@ -394,6 +396,34 @@
   font-size: 11px;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.health-scan-page__metric-value-text {
+  font-size: 14px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  flex-shrink: 1;
+}
+
+.health-scan-page__metric-value-text--plain {
+  color: var(--hs-neutral-text);
+}
+
+.health-scan-page__metric-value-tone--neutral {
+  color: var(--hs-neutral-text);
+}
+
+.health-scan-page__metric-value-tone--positive {
+  color: var(--hs-highlight-positive);
+}
+
+.health-scan-page__metric-value-tone--warning {
+  color: var(--hs-highlight-warning);
+}
+
+.health-scan-page__metric-value-tone--critical {
+  color: var(--hs-highlight-critical);
 }
 
 .health-scan-page__metric-value-highlight-warning {

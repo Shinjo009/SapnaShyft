@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './DiseaseDetailPage.css';
 import lifestyleTick from '../../images/tick(lifestyle).svg';
-import trendsImage from '../../images/trends.svg';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
+import { formatOrdinal } from '../../utils/formatOrdinal';
 
 const RISK_ZONES = [
   {
@@ -154,7 +154,6 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   const scoreLabel = hasScore ? String(score) : '-';
   const hasHealthRank = apiDetail?.disease_percentile !== null && apiDetail?.disease_percentile !== undefined;
   const healthRankScore = hasHealthRank ? toClampedScore(apiDetail?.disease_percentile, 0) : 0;
-  const trendSummary = '-';
   const scoreZoneIndex = getZoneIndexForScore(score);
   const healthRankZoneIndex = getZoneIndexForScore(healthRankScore);
   const [animatedMarkerLeftPercent, setAnimatedMarkerLeftPercent] = useState(0);
@@ -259,7 +258,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   const hasLifestyle = apiDetail?.lifestyle_contribution !== null && apiDetail?.lifestyle_contribution !== undefined;
   const lifestyleTargetPercent = hasLifestyle ? toClampedScore(apiDetail?.lifestyle_contribution, 0) : 0;
   const lifestyleBand = hasLifestyle ? lifestyleBandFromPercent(lifestyleTargetPercent) : '-';
-  const healthRankLabel = hasHealthRank ? `${healthRankScore}th` : '-';
+  const healthRankLabel = hasHealthRank ? formatOrdinal(healthRankScore) : '-';
   const currentZoneDisplayColor = hasScore ? currentZoneColor : '#C4C4C4';
   const currentZoneLabel = hasScore ? currentZone.label : '-';
   const healthRankDisplayColor = hasHealthRank ? healthRankColor : '#C4C4C4';
@@ -333,7 +332,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
     },
     rank: {
       title: 'Health Rank',
-      description: 'Your health score is compared with people in similar age group. Higher rank means better health compared to others.',
+      description: 'Your health score is compared with people in similar age group. Lower rank means better health compared to others.',
       Icon: HealthRankInfoIcon
     }
   };
@@ -481,18 +480,6 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
 
           <h1 className="disease-detail-title">{title}</h1>
         </div>
-
-        <button
-          type="button"
-          className="disease-detail-description-toggle"
-          onClick={() => setIsDescriptionExpanded((prev) => !prev)}
-          aria-expanded={isDescriptionExpanded}
-          aria-label="Toggle full description"
-        >
-          <p className={`disease-detail-description ${isDescriptionExpanded ? 'expanded' : ''}`}>
-            {detailTopLine}
-          </p>
-        </button>
       </div>
 
       <div className={`disease-detail-content${activeInfoPopup ? ' disease-detail-content--blurred' : ''}`}>
@@ -658,6 +645,20 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
         </div>
       </section>
 
+      <section className="disease-detail-description-section">
+        <button
+          type="button"
+          className="disease-detail-description-toggle"
+          onClick={() => setIsDescriptionExpanded((prev) => !prev)}
+          aria-expanded={isDescriptionExpanded}
+          aria-label="Toggle full description"
+        >
+          <p className={`disease-detail-description ${isDescriptionExpanded ? 'expanded' : ''}`}>
+            {detailTopLine}
+          </p>
+        </button>
+      </section>
+
       <section className="disease-detail-info-section">
         {[
           { key: 'causes', label: 'Causes', items: causes, accentClass: 'disease-detail-pill-accent--causes' },
@@ -694,14 +695,6 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
           </button>
         ))}
 
-        <section className="disease-detail-trends-section" aria-label="Trends">
-          <h3 className="disease-detail-trends-title">Trends</h3>
-          <p className="disease-detail-trends-description">We recommend testing every 16 weeks</p>
-          <div className="disease-detail-trends-chart-shell">
-            <img src={trendsImage} alt="Trends chart" className="disease-detail-trends-chart-image" />
-          </div>
-          <p className="disease-detail-trend-summary">{trendSummary}</p>
-        </section>
       </section>
       </div>
 

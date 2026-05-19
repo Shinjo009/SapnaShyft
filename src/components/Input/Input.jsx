@@ -94,21 +94,19 @@ const Input = ({
     py-[10px]
     rounded-lg
     border
-    border-transparent
     bg-input-bg
     font-lato
     text-white
     text-label
     placeholder:text-label-gray
-    focus:outline-none
-    focus:border-white/20
-    focus:shadow-[0_0_10px_0_rgba(144,223,158,0.30)]
     transition-all
   `.trim().replace(/\s+/g, ' ');
 
+  const stateClasses = error
+    ? 'border border-red-500 shadow-[0_0_10px_0_rgba(255,0,0,0.30)] focus:outline-none focus:border-red-500 focus:shadow-[0_0_10px_0_rgba(255,0,0,0.30)]'
+    : 'border border-transparent focus:outline-none focus:border-white/20 focus:shadow-[0_0_10px_0_rgba(144,223,158,0.30)]';
+
   const typeClasses = isPhoneInput ? 'text-[13px] placeholder:text-[13px] placeholder:leading-4' : '';
-  
-  const errorClasses = error ? 'border border-red-500' : '';
   
   const paddingClasses = hasLeadingIcon ? 'pr-[15px] pl-[37px]' : 'px-[15px]';
 
@@ -131,12 +129,12 @@ const Input = ({
           placeholder={placeholder}
           value={value}
           onChange={onChange}
-          className={`${baseClasses} ${paddingClasses} ${typeClasses} ${errorClasses} ${className}`}
+          className={`${baseClasses} ${stateClasses} ${paddingClasses} ${typeClasses} ${className}`}
           {...props}
         />
       </div>
       {error && (
-        <Typography variant="label" className="text-red-500">
+        <Typography variant="label" className="!text-[10px] !leading-[14px] text-red-500">
           {error}
         </Typography>
       )}

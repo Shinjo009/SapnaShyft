@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './RiskAnalysisSection.css';
 import { fetchLatestAssessmentReport } from '../../../services/reportService';
+import { normalizeBloodParametersReportPayload, resolveBloodParameterNumericValue } from '../../../utils/bloodParametersReportNormalize';
 import ObesityIcon from '../../../images/Obesity-RA.svg';
+import { formatOrdinal } from '../../../utils/formatOrdinal';
 import ThyroidHealthIcon from '../../../images/Thyroid-RA.svg';
 import NAFLDIcon from '../../../images/NAFLD-RA.svg';
 import Type2Icon from '../../../images/Type2-RA.svg';
@@ -53,20 +55,50 @@ const DISEASES_DATA = [
   { id: 10, name: 'Thyroid Health', icon: ThyroidHealthIcon, score: 20 },
 ];
 
-const TOP_LINE_BY_DISEASE = {
-  obesity: 'Excess body fat accumulation that increases long-term metabolic and cardiovascular risk.',
-  'metabolic syndrome': 'Cluster of high blood pressure, blood sugar, fat around waist and abnormal lipids that together raise heart risk.',
-  dyslipidemia: 'Unhealthy blood fat levels that increase artery clogging risk.',
-  'pcos/pcod': 'Hormonal imbalance in women causing irregular periods, acne and ovarian cysts.',
-  'oxidative stress': 'When harmful molecules damage cells faster than antioxidants can repair them.',
-  nafld: 'Fat build-up in liver not due to alcohol, linked to overweight.',
-  hypertension: 'Persistently high blood pressure that strains the heart and vessels.',
-  'thyroid health': 'Thyroid hormones control metabolism, energy and temperature.',
-  'type 2 diabetes': 'Body resists insulin causing high blood sugar over time.',
-  'cardiac health': 'Overall state of heart and blood vessels influenced by lifestyle and genes.',
+/** Single action line per disease (home Risk Analysis cards); not varied by risk band. */
+const ACTION_COPY_BY_DISEASE = {
+  metabolic:
+    'Cut refined carbs and processed foods, exercise regularly, manage weight, improve sleep quality, and reduce stress consistently; noticeable improvements can be seen within 8 - 12 weeks.',
+  'metabolic syndrome':
+    'Cut refined carbs and processed foods, exercise regularly, manage weight, improve sleep quality, and reduce stress consistently; noticeable improvements can be seen within 8 - 12 weeks.',
+  'type 2 diabetes':
+    'Reduce refined carbs and sugars, stay physically active daily, maintain a healthy weight, improve sleep quality, manage stress, and consult a doctor for a comprehensive diabetes prevention plan.',
+  hypertension:
+    'Reduce salt and processed food intake, prioritize aerobic exercise, manage body weight, limit alcohol, quit smoking, improve sleep quality, and consult a doctor for blood pressure management.',
+  obesity:
+    'Create a sustainable calorie deficit using whole foods and regular exercise, improve sleep, manage stress effectively, and consult a doctor or nutritionist for structured weight management support.',
+  'pcos/pcod':
+    'Reduce refined carbs and sugars, exercise consistently, manage weight and stress levels, and consult a doctor for hormonal evaluation and personalized treatment guidance.',
+  pcos:
+    'Reduce refined carbs and sugars, exercise consistently, manage weight and stress levels, and consult a doctor for hormonal evaluation and personalized treatment guidance.',
+  pcod:
+    'Reduce refined carbs and sugars, exercise consistently, manage weight and stress levels, and consult a doctor for hormonal evaluation and personalized treatment guidance.',
+  nafld:
+    'Reduce refined carbs, sugars, fructose, and processed foods, stay physically active, focus on healthy weight management, and consult a doctor for liver health evaluation and guidance.',
+  'cardiac health':
+    'Reduce saturated fats, sodium, and refined carbs, perform regular aerobic exercise, quit smoking, limit alcohol intake, manage stress, and consult a doctor for cardiovascular risk assessment.',
+  'thyroid health':
+    'Consult a doctor for a comprehensive thyroid evaluation while improving sleep quality, reducing stress, and addressing potential nutritional deficiencies alongside prescribed treatment if needed.',
+  dyslipidemia:
+    'Reduce saturated fats, refined carbs, sugars, and processed foods, exercise regularly, quit smoking, and consult a doctor for a detailed lipid profile evaluation and management plan.',
+  'oxidative stress':
+    'Increase intake of antioxidant-rich whole foods, reduce processed foods and sugar, quit smoking, limit alcohol intake, engage in moderate exercise, and prioritize restorative sleep.',
+};
+
+const DISEASE_ACTION_ALIASES = {
+  'pcos / pcod': 'pcos/pcod',
+  'pcos-pcod': 'pcos/pcod',
+  'type ii diabetes': 'type 2 diabetes',
+  diabetes: 'type 2 diabetes',
 };
 
 const normalizeDiseaseKey = (name = '') => name.replace(/\s+/g, ' ').trim().toLowerCase();
+
+const toActionCopy = (diseaseName) => {
+  const diseaseKey = normalizeDiseaseKey(diseaseName);
+  const canonicalDiseaseKey = DISEASE_ACTION_ALIASES[diseaseKey] || diseaseKey;
+  return ACTION_COPY_BY_DISEASE[canonicalDiseaseKey] || '-';
+};
 
 const toClampedPercentile = (value) => {
   const numeric = Number(value);
@@ -84,7 +116,7 @@ const defaultCards = DISEASES_DATA
   .map((disease) => ({
     ...disease,
     code: normalizeDiseaseKey(disease.name).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''),
-    action: TOP_LINE_BY_DISEASE[normalizeDiseaseKey(disease.name)] || TOP_LINE_BY_DISEASE['oxidative stress'],
+    action: toActionCopy(disease.name),
     healthRankLabel: '-',
   }));
 
@@ -118,8 +150,6 @@ const toRiskAnalysisCardsFromApi = (riskAnalysis) => {
     // Disease detail screen computes health rank from disease_percentile.
     const percentile = toClampedPercentile(item?.disease_percentile ?? item?.healthy_percentile);
     const hasHealthRank = percentile !== null;
-    const keyFromName = normalizeDiseaseKey(name);
-
     return {
       id: `api-risk-${index}-${code || 'row'}`,
       code,
@@ -127,8 +157,8 @@ const toRiskAnalysisCardsFromApi = (riskAnalysis) => {
       icon: DISEASE_ICON_BY_CODE[code] || MetabolicIcon,
       score,
       scoreDisplay: hasScore ? String(score) : '-',
-      action: TOP_LINE_BY_DISEASE[keyFromName] || '-',
-      healthRankLabel: hasHealthRank ? `${percentile}th` : '-',
+      action: toActionCopy(name),
+      healthRankLabel: hasHealthRank ? formatOrdinal(percentile) : '-',
       isPlaceholder: false,
     };
   });
@@ -173,16 +203,6 @@ const BLOOD_MARKER_COLOR_BY_RISK = {
   optimal: '#4ADE80',
 };
 
-const extractArray = (payload) => {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.results)) return payload.results;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload?.data?.items)) return payload.data.items;
-  if (Array.isArray(payload?.data?.results)) return payload.data.results;
-  return [];
-};
-
 const getRiskTypeFromBounds = (value, lowerRange, upperRange) => {
   const numericValue = Number(value);
   const lower = Number(lowerRange);
@@ -214,6 +234,16 @@ const formatValue = (value) => {
   return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2).replace(/\.00$/, '');
 };
 
+const HOME_BLOOD_MARKER_NAME_MAX = 14;
+
+const truncateHomeBloodMarkerName = (name) => {
+  const s = String(name ?? '');
+  if (s.length <= HOME_BLOOD_MARKER_NAME_MAX) {
+    return s;
+  }
+  return `${s.slice(0, HOME_BLOOD_MARKER_NAME_MAX)}...`;
+};
+
 const toDiseaseName = (groupName = '') => {
   const raw = String(groupName).trim();
   return raw.replace(/\s*profile\s*$/i, '').trim() || 'General';
@@ -233,13 +263,15 @@ const buildBloodMarkersFromGroups = (groups) => {
     const tests = Array.isArray(group?.tests) ? group.tests : [];
 
     tests.forEach((test, testIndex) => {
-      if (test?.value === null || test?.value === undefined) {
+      const n = test && typeof test === 'object' ? test : {};
+      const resolvedNumeric = resolveBloodParameterNumericValue(n, test);
+      if (resolvedNumeric === undefined || resolvedNumeric === null) {
         return;
       }
 
-      const value = Number(test?.value);
-      const lower = Number(test?.lower_range);
-      const upper = Number(test?.higher_range);
+      const value = Number(resolvedNumeric);
+      const lower = Number(n.lower_range);
+      const upper = Number(n.higher_range);
       const hasClassifiableData = Number.isFinite(value) && Number.isFinite(lower) && Number.isFinite(upper);
 
       // Homepage list should only show actual report parameters with usable ranges.
@@ -247,13 +279,20 @@ const buildBloodMarkersFromGroups = (groups) => {
         return;
       }
 
-      const unit = String(test?.unit || '').trim();
+      const unit = String(n.unit || '').trim();
       const riskKey = getRiskTypeFromBounds(value, lower, upper);
+      const displayName = String(n.test_name || 'Test');
 
       rows.push({
         id: `api-bm-${groupIndex}-${testIndex}`,
-        name: String(test?.test_name || 'Test'),
+        displayName,
+        name: displayName,
         value: `${formatValue(value)}${unit ? ` ${unit}` : ''}`,
+        numericValue: value,
+        unit,
+        normalMin: n.lower_range,
+        normalMax: n.higher_range,
+        diagnosticTestId: n.diagnostic_test_id ?? null,
         profile: String(group?.group_name || 'Blood Marker'),
         disease,
         risk: toRiskLabel(riskKey),
@@ -266,17 +305,8 @@ const buildBloodMarkersFromGroups = (groups) => {
 };
 
 export const buildHomeBloodMarkersFromBloodParametersResponse = (response) => (
-  buildBloodMarkersFromGroups(extractArray(response))
+  buildBloodMarkersFromGroups(normalizeBloodParametersReportPayload(response))
 );
-
-const setStackDraggingAttr = (stackEl, isDragging) => {
-  if (!stackEl) return;
-  if (isDragging) {
-    stackEl.setAttribute('data-dragging', 'true');
-  } else {
-    stackEl.removeAttribute('data-dragging');
-  }
-};
 
 const orderByHierarchy = (markers) => {
   const source = Array.isArray(markers) ? markers : [];
@@ -330,6 +360,7 @@ const RiskAnalysisSection = ({
   onDiseaseSelect,
   onSeeMore,
   onBloodMarkersSeeMore,
+  onHomeBloodMarkerSelect,
   prefetchedHomeBloodMarkers,
 }) => {
   const stackCards = useMemo(() => {
@@ -357,10 +388,14 @@ const RiskAnalysisSection = ({
     return orderByHierarchy(normalized).slice(0, 3);
   }, [apiBloodMarkers]);
   const cardCount = stackCards.length;
-  const [activeIndex, setActiveIndex] = useState(Math.max(cardCount - 1, 0));
+  const [activeIndex, setActiveIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => (
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 481px)').matches : false
+  ));
   const stackRef = useRef(null);
   const touchStartXRef = useRef(null);
   const touchStartYRef = useRef(null);
@@ -403,24 +438,40 @@ const RiskAnalysisSection = ({
   };
 
   useEffect(() => {
-    const stackEl = stackRef.current;
     return () => {
       if (dragFrameRef.current !== null) {
         cancelAnimationFrame(dragFrameRef.current);
       }
       stackSwapAwaitingSettleRef.current = false;
-      setStackDraggingAttr(stackEl, false);
     };
   }, []);
 
   useEffect(() => {
-    setActiveIndex((prev) => Math.min(prev, Math.max(cardCount - 1, 0)));
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const media = window.matchMedia('(min-width: 481px)');
+    const handleChange = (event) => setIsDesktop(event.matches);
+    setIsDesktop(media.matches);
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', handleChange);
+      return () => media.removeEventListener('change', handleChange);
+    }
+
+    media.addListener(handleChange);
+    return () => media.removeListener(handleChange);
+  }, []);
+
+  useEffect(() => {
+    setActiveIndex(0);
   }, [cardCount]);
 
   const startAnimation = (direction) => {
     if (cardCount <= 1) return;
     stackSwapAwaitingSettleRef.current = true;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
     setSwipeDirection(direction);
     setIsAnimating(true);
@@ -445,7 +496,7 @@ const RiskAnalysisSection = ({
     touchStartYRef.current = event.touches[0].clientY;
     isHorizontalSwipeRef.current = false;
     didMoveRef.current = false;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
   };
 
@@ -468,7 +519,7 @@ const RiskAnalysisSection = ({
         return;
       }
 
-      setStackDraggingAttr(stackRef.current, true);
+      setIsDragging(true);
     }
 
     didMoveRef.current = true;
@@ -495,7 +546,7 @@ const RiskAnalysisSection = ({
     if (!isHorizontalSwipeRef.current) {
       touchStartXRef.current = null;
       touchStartYRef.current = null;
-      setStackDraggingAttr(stackRef.current, false);
+      setIsDragging(false);
       resetDragOffset();
       didMoveRef.current = false;
       return;
@@ -511,7 +562,7 @@ const RiskAnalysisSection = ({
         goPrev();
       }
     } else {
-      setStackDraggingAttr(stackRef.current, false);
+      setIsDragging(false);
       resetDragOffset();
     }
 
@@ -519,13 +570,14 @@ const RiskAnalysisSection = ({
     touchStartYRef.current = null;
     isHorizontalSwipeRef.current = false;
     didMoveRef.current = false;
+    setIsDragging(false);
   };
 
   const handleTouchCancel = () => {
     touchStartXRef.current = null;
     touchStartYRef.current = null;
     isHorizontalSwipeRef.current = false;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
     didMoveRef.current = false;
   };
@@ -544,7 +596,7 @@ const RiskAnalysisSection = ({
     pointerIsHorizontalSwipeRef.current = false;
     activePointerIdRef.current = event.pointerId;
     didMoveRef.current = false;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
 
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -574,7 +626,7 @@ const RiskAnalysisSection = ({
         return;
       }
 
-      setStackDraggingAttr(stackRef.current, true);
+      setIsDragging(true);
     }
 
     didMoveRef.current = true;
@@ -601,7 +653,7 @@ const RiskAnalysisSection = ({
       pointerStartYRef.current = null;
       pointerIsHorizontalSwipeRef.current = false;
       activePointerIdRef.current = null;
-      setStackDraggingAttr(stackRef.current, false);
+      setIsDragging(false);
       resetDragOffset();
       didMoveRef.current = false;
       return;
@@ -618,7 +670,7 @@ const RiskAnalysisSection = ({
         goPrev();
       }
     } else {
-      setStackDraggingAttr(stackRef.current, false);
+      setIsDragging(false);
       resetDragOffset();
     }
 
@@ -627,6 +679,7 @@ const RiskAnalysisSection = ({
     pointerIsHorizontalSwipeRef.current = false;
     activePointerIdRef.current = null;
     didMoveRef.current = false;
+    setIsDragging(false);
 
     if (event.currentTarget?.hasPointerCapture?.(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -642,7 +695,7 @@ const RiskAnalysisSection = ({
     pointerStartYRef.current = null;
     pointerIsHorizontalSwipeRef.current = false;
     activePointerIdRef.current = null;
-    setStackDraggingAttr(stackRef.current, false);
+    setIsDragging(false);
     resetDragOffset();
     didMoveRef.current = false;
 
@@ -654,7 +707,7 @@ const RiskAnalysisSection = ({
   const handleStackTransitionEnd = (event) => {
     if (!stackSwapAwaitingSettleRef.current) return;
     if (!event.target.classList.contains('risk-analysis-wins__stack-card--front')) return;
-    if (event.propertyName !== 'left' && event.propertyName !== 'transform') return;
+    if (event.propertyName !== 'left') return;
 
     stackSwapAwaitingSettleRef.current = false;
 
@@ -703,10 +756,8 @@ const RiskAnalysisSection = ({
         const { response } = await fetchLatestAssessmentReport(
           (assessmentId) => `/reports/${assessmentId}/blood-parameters`,
         );
-        const groups = extractArray(response);
-
         if (isActive) {
-          setApiBloodMarkers(buildBloodMarkersFromGroups(groups));
+          setApiBloodMarkers(buildBloodMarkersFromGroups(normalizeBloodParametersReportPayload(response)));
         }
       } catch (error) {
         console.error('Failed to load homepage blood markers:', error);
@@ -761,6 +812,7 @@ const RiskAnalysisSection = ({
         onPointerCancel={handlePointerCancel}
         onLostPointerCapture={handlePointerCancel}
         onTransitionEnd={handleStackTransitionEnd}
+        data-dragging={isDragging ? 'true' : 'false'}
         data-resetting={isResetting ? 'true' : 'false'}
         data-card-count={cardCount}
       >
@@ -824,9 +876,31 @@ const RiskAnalysisSection = ({
       </div>
 
       <div className="risk-analysis-wins__swipe-hint" aria-hidden="true">
-        <span className="risk-analysis-wins__swipe-arrow risk-analysis-wins__swipe-arrow--left"><SwipeArrow /></span>
+        <button
+          type="button"
+          className="risk-analysis-wins__swipe-arrow-btn"
+          onClick={() => {
+            if (isDesktop) {
+              goPrev();
+            }
+          }}
+          aria-label="Show previous risk card"
+        >
+          <span className="risk-analysis-wins__swipe-arrow risk-analysis-wins__swipe-arrow--left"><SwipeArrow /></span>
+        </button>
         <span className="risk-analysis-wins__swipe-text">Swipe to explore</span>
-        <span className="risk-analysis-wins__swipe-arrow"><SwipeArrow /></span>
+        <button
+          type="button"
+          className="risk-analysis-wins__swipe-arrow-btn"
+          onClick={() => {
+            if (isDesktop) {
+              goNext();
+            }
+          }}
+          aria-label="Show next risk card"
+        >
+          <span className="risk-analysis-wins__swipe-arrow"><SwipeArrow /></span>
+        </button>
       </div>
 
       <section className="risk-analysis-wins__blood-markers" aria-label="Blood Markers">
@@ -847,10 +921,27 @@ const RiskAnalysisSection = ({
 
         <div className="risk-analysis-wins__blood-markers-list">
           {bloodMarkers.map((marker) => (
-            <article className={`risk-analysis-wins__blood-marker-card risk-analysis-wins__blood-marker-card--${marker.riskKey}`} key={marker.id}>
+            <article
+              className={`risk-analysis-wins__blood-marker-card risk-analysis-wins__blood-marker-card--${marker.riskKey}`}
+              key={marker.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onHomeBloodMarkerSelect?.(marker)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onHomeBloodMarkerSelect?.(marker);
+                }
+              }}
+            >
               <div className="risk-analysis-wins__blood-marker-left">
                 <div className="risk-analysis-wins__blood-marker-main-row">
-                  <span className="risk-analysis-wins__blood-marker-name">{marker.name}</span>
+                  <span
+                    className="risk-analysis-wins__blood-marker-name"
+                    title={String(marker.name ?? '').length > HOME_BLOOD_MARKER_NAME_MAX ? String(marker.name) : undefined}
+                  >
+                    {truncateHomeBloodMarkerName(marker.name)}
+                  </span>
                   <span className={`risk-analysis-wins__blood-marker-divider risk-analysis-wins__blood-marker-divider--${marker.riskKey}`} aria-hidden="true" />
                   <span className="risk-analysis-wins__blood-marker-value">{marker.value}</span>
                   <span className="risk-analysis-wins__blood-marker-trend" aria-hidden="true"><MarkerTrendIcon color={BLOOD_MARKER_COLOR_BY_RISK[marker.riskKey] || '#EF4444'} /></span>

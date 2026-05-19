@@ -324,7 +324,7 @@ const parseInitialAnthropometryWeight = (raw) => {
   return Number.isFinite(n) ? n : null;
 };
 
-const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initialValues = {} }) => {
+const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initialValues = {}, categoryHeading = 'Anthropometry' }) => {
   const [height, setHeight] = useState(roundToWholeNumber(initialValues?.height, DEFAULT_HEIGHT_CM));
   const [weight, setWeight] = useState(() => parseInitialAnthropometryWeight(initialValues?.weight));
   const [waist, setWaist] = useState(roundToWholeNumber(initialValues?.waist, DEFAULT_CIRCUMFERENCE_INCHES));
@@ -645,7 +645,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
             <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <h1 className="anthropometry-page__title">Anthropometry</h1>
+        <h1 className="anthropometry-page__title">{categoryHeading}</h1>
         <img src={ques1Icon} alt="" aria-hidden="true" className="anthropometry-page__header-icon" />
       </div>
 
@@ -883,7 +883,7 @@ const FollowupUnitDropdown = ({ value, options, onChange }) => {
   );
 };
 
-const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], initialValues = {} }) => {
+const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], initialValues = {}, categoryHeading = 'Anthropometry' }) => {
   const [hipSize, setHipSize] = useState(roundToWholeNumber(initialValues?.hipSize, DEFAULT_CIRCUMFERENCE_INCHES));
   const [bodyFat, setBodyFat] = useState(initialValues?.bodyFat ?? 20);
   const [hipUnit, setHipUnit] = useState(initialValues?.hipUnit || 'in');
@@ -959,7 +959,7 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
             <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <h1 className="anthropometry-followup-page__title">Anthropometry</h1>
+        <h1 className="anthropometry-followup-page__title">{categoryHeading}</h1>
         <img src={ques1Icon} alt="" aria-hidden="true" className="anthropometry-followup-page__header-icon" />
       </div>
 
@@ -1079,7 +1079,7 @@ const familyCards = [
   {
     key: 'family-blood',
     title: 'Do any of your close blood relatives (i.e., parents or siblings) have the following health conditions?',
-    helper: '(Select multiple or None that apply)',
+    helper: '(Select all that apply)',
     infoLines: [
       'Fatty Liver : Non alcoholic fatty liver disorder',
       'Heart ailments : Heart disease, heart attack, stroke',
@@ -1096,7 +1096,7 @@ const familyCards = [
   {
     key: 'diagnosed',
     title: 'Are you diagnosed with the following diseases?',
-    helper: '(Select multiple or None that apply)',
+    helper: '(Select all that apply)',
     infoLines: [
       'Fatty Liver : Non alcoholic fatty liver disorder',
       'Heart ailments : Heart disease, heart attack, stroke',
@@ -1120,9 +1120,57 @@ const familyCards = [
   },
 ];
 
+/** Instruction line below the question (matches product copy); title match is normalized. */
+const getHardcodedQuestionnaireSubline = (title) => {
+  const t = String(title || '').trim().toLowerCase();
+  if (!t) {
+    return '';
+  }
+  if (t.includes('close blood relatives') && t.includes('health conditions')) {
+    return '(Select all that apply)';
+  }
+  if (t.includes('taking medications') && t.includes('following diseases')) {
+    return '(Select all that apply)';
+  }
+  if (t.includes('diagnosed with the following diseases')) {
+    return '(Select all that apply)';
+  }
+  if (t.includes('which of the following food groups') && t.includes('consume')) {
+    return '(Select all that apply)';
+  }
+  if (t.includes('sugary drinks') && t.includes('desserts')) {
+    return '(Soft Drinks, Ice Cream, Chocolate, Cakes, Pastries, Candies or Sweets)';
+  }
+  if (t.includes('what type of coffee or tea')) {
+    return '(Select all that apply)';
+  }
+  if (t.includes('glasses of water') && t.includes('day')) {
+    return '(1 glass of water is ~250 ml)';
+  }
+  if (t.includes('fall sick') && t.includes('year')) {
+    return '(Required at least a day of bed rest)';
+  }
+  if (t.includes('physical activity') && t.includes('exercise') && t.includes('daily')) {
+    return '(Brisk Walking or Bicycling or Heavy Lifting or Games or Yoga or Meditation or Cleaning)';
+  }
+  if (t.includes('actively walking') && (t.includes('each day') || t.includes('every day'))) {
+    return '(Includes commuting to work, breaks at work and household chores)';
+  }
+  if (t.includes('alcohol consumption')) {
+    return '(1 serving = 125 ml wine or 330 ml of beer or 40 ml of hard liquor)';
+  }
+  if (t.includes('what sports') && t.includes('play')) {
+    return '(Select all that apply)';
+  }
+  if (t.includes('primary health and wellness priorities')) {
+    return '(Choose your top two priority)';
+  }
+  return '';
+};
+
 const familyHelperByQuestionKey = {
-  family_health_conditions: '(Select multiple or None that apply)',
-  diagnosed_diseases: '(Select multiple or None that apply)',
+  family_health_conditions: '(Select all that apply)',
+  diagnosed_diseases: '(Select all that apply)',
 };
 
 const toFamilyApiCards = (questions = []) => {
@@ -1142,8 +1190,8 @@ const toFamilyApiCards = (questions = []) => {
 
     const normalizedTitle = String(question?.question_text || '').toLowerCase();
     const helper = familyHelperByQuestionKey[key]
-      || (normalizedTitle.includes('close blood relatives') ? '(Select multiple or None that apply)' : '')
-      || (normalizedTitle.includes('diagnosed with the following') ? '(Select multiple or None that apply)' : '');
+      || (normalizedTitle.includes('close blood relatives') ? '(Select all that apply)' : '')
+      || (normalizedTitle.includes('diagnosed with the following') ? '(Select all that apply)' : '');
 
     return {
       key,
@@ -1612,6 +1660,19 @@ const buildSelectionStateFromResponses = (questions = [], responses = []) => {
     }
   });
 
+  questions.forEach((question) => {
+    const questionId = question?.question_id || question?.id;
+    const key = question?.question_key || `question-${questionId}`;
+    if (!key || !isWalkingDurationLifestyleQuestion(question)) {
+      return;
+    }
+    const answer = getResponseAnswerForQuestion(question, normalizedResponses);
+    const wheel = hydrateWalkingWheelFromAnswer(question, answer);
+    if (wheel) {
+      baseSelections[lifestyleWalkingWheelStorageKey(key)] = wheel;
+    }
+  });
+
   return baseSelections;
 };
 
@@ -1885,6 +1946,13 @@ const buildResponsesFromSelections = (questions = [], selections = {}) => {
     .map((question) => {
       const questionId = question?.question_id || question?.id;
       const key = question?.question_key || `question-${questionId}`;
+      if (isWalkingDurationLifestyleQuestion(question)) {
+        const wheel = readWalkingWheelFromSelections(selections, key);
+        if (wheel && Number.isFinite(Number(wheel.value)) && String(wheel.unitLabel || '').trim()) {
+          return buildScaleResponseItem(question, Number(wheel.value), String(wheel.unitLabel || '').trim());
+        }
+        return null;
+      }
       return buildResponseItem(question, getSelectionsValueForKey(selections, key));
     })
     .filter(Boolean);
@@ -2101,6 +2169,10 @@ const buildSelectionStateFromCards = (cardsData = [], initialSelections = {}) =>
       : card.defaultSelected;
 
     acc[key] = Array.isArray(nextValue) ? [...nextValue] : [];
+    const wheelKey = lifestyleWalkingWheelStorageKey(key);
+    if (initialSelections && Object.prototype.hasOwnProperty.call(initialSelections, wheelKey)) {
+      acc[wheelKey] = initialSelections[wheelKey];
+    }
     return acc;
   }, {});
 };
@@ -2146,9 +2218,24 @@ const findFamilyHistoryCardKeys = (cardsData = []) => {
   return { familyBloodKey, diagnosedKey, medicationKey };
 };
 
-const hasCardAnswer = (card = {}, selectionValue = []) => {
+const hasCardAnswer = (card = {}, selectionValue = [], walkingContext) => {
   if (!card || card.key === 'empty') {
     return true;
+  }
+
+  if (
+    walkingContext
+    && walkingContext.selections
+    && Array.isArray(walkingContext.questions)
+  ) {
+    const sourceQuestion = findLifestyleSourceQuestion(walkingContext.questions, card.key);
+    if (isWalkingDurationLifestyleCard(card, sourceQuestion)) {
+      const w = readWalkingWheelFromSelections(walkingContext.selections, card.key);
+      if (!w || !String(w.unitLabel || '').trim()) {
+        return false;
+      }
+      return Number.isFinite(Number(w.value));
+    }
   }
 
   if (card.isTextInput) {
@@ -2205,6 +2292,126 @@ const findQuestionByKeys = (questions = [], keys = [], textHints = []) => {
   });
 
   return byTextHint || null;
+};
+
+const LIFESTYLE_WALKING_WHEEL_KEY_SUFFIX = '__walkingWheel';
+
+const lifestyleWalkingWheelStorageKey = (cardKey) => `${String(cardKey || '')}${LIFESTYLE_WALKING_WHEEL_KEY_SUFFIX}`;
+
+const findLifestyleSourceQuestion = (questions, cardKey) => {
+  if (!Array.isArray(questions) || !cardKey) {
+    return null;
+  }
+  const want = normalizeLookupText(String(cardKey));
+  return questions.find((q) => {
+    const k = String(q?.question_key || `question-${q?.question_id || q?.id || ''}`);
+    if (k === cardKey) {
+      return true;
+    }
+    if (normalizeLookupText(k) === want) {
+      return true;
+    }
+    if (k.replace(/_/g, '-') === cardKey || k.replace(/-/g, '_') === cardKey) {
+      return true;
+    }
+    return false;
+  }) || null;
+};
+
+const isWalkingDurationLifestyleQuestion = (question) => {
+  if (!question || typeof question !== 'object') {
+    return false;
+  }
+  const title = normalizeLookupText(question?.question_text || '');
+  const walkingTitle = title.includes('activelywalking') && title.includes('eachday');
+  const opts = Array.isArray(question.options) ? question.options : [];
+  if (opts.length !== 2) {
+    return walkingTitle && normalizeQuestionType(question.question_type) === 'scale';
+  }
+  const labs = opts.map((o) => normalizeLookupText(getOptionDisplayText(o)));
+  const hasMinute = labs.some((l) => l.includes('minute'));
+  const hasHour = labs.some((l) => l.includes('hour'));
+  return (hasMinute && hasHour && opts.length === 2) || walkingTitle;
+};
+
+const isWalkingDurationLifestyleCard = (card, sourceQuestion) => {
+  if (!card || typeof card !== 'object') {
+    return false;
+  }
+  if (sourceQuestion && isWalkingDurationLifestyleQuestion(sourceQuestion)) {
+    return true;
+  }
+  const title = normalizeLookupText(card.title || '');
+  const keyNorm = normalizeLookupText(String(card.key || ''));
+  if (keyNorm === 'activewalking') {
+    return true;
+  }
+  if (title.includes('activelywalking') && title.includes('eachday')) {
+    const opts = card.options || [];
+    if (opts.length === 2) {
+      const labs = opts.map((o) => normalizeLookupText(getOptionLabel(o)));
+      return labs.some((l) => l.includes('minute')) && labs.some((l) => l.includes('hour'));
+    }
+  }
+  return false;
+};
+
+const getWalkingDurationUnitLabelsOrdered = (sourceQuestion, card) => {
+  const opts = Array.isArray(sourceQuestion?.options) && sourceQuestion.options.length >= 2
+    ? sourceQuestion.options
+    : (Array.isArray(card?.options) ? card.options : []);
+  if (!Array.isArray(opts) || opts.length < 2) {
+    return ['minutes daily', 'hours daily'];
+  }
+  const labels = opts.slice(0, 2).map((o) => getOptionDisplayText(o)).filter(Boolean);
+  if (labels.length < 2) {
+    return ['minutes daily', 'hours daily'];
+  }
+  return [...labels].sort((a, b) => {
+    const ma = /minute/i.test(a);
+    const mb = /minute/i.test(b);
+    if (ma && !mb) return -1;
+    if (!ma && mb) return 1;
+    return 0;
+  });
+};
+
+const hydrateWalkingWheelFromAnswer = (question, answer) => {
+  if (!isWalkingDurationLifestyleQuestion(question) || isEmptyAnswer(answer)) {
+    return null;
+  }
+  const qType = normalizeQuestionType(question.question_type);
+  if (qType === 'scale' && answer && typeof answer === 'object' && !Array.isArray(answer)) {
+    const valRaw = answer.value ?? answer.answer ?? answer.response;
+    const n = Number(valRaw);
+    if (!Number.isFinite(n)) {
+      return null;
+    }
+    const unitRaw = String(answer.unit ?? answer.units ?? '').trim();
+    const unitLabel = mapOptionValueToLabel(question, unitRaw) || unitRaw;
+    const max = /hour/i.test(unitLabel) ? 10 : 60;
+    const value = Math.round(Math.min(max, Math.max(0, n)));
+    return { value, unitLabel };
+  }
+  return null;
+};
+
+const readWalkingWheelFromSelections = (selections, questionKey) => {
+  if (!selections || typeof selections !== 'object' || !questionKey) {
+    return null;
+  }
+  const keys = [
+    lifestyleWalkingWheelStorageKey(questionKey),
+    lifestyleWalkingWheelStorageKey(String(questionKey).replace(/_/g, '-')),
+    lifestyleWalkingWheelStorageKey(String(questionKey).replace(/-/g, '_')),
+  ];
+  for (const k of keys) {
+    const w = selections[k];
+    if (w && typeof w === 'object' && Number.isFinite(Number(w.value)) && String(w.unitLabel || '').trim()) {
+      return w;
+    }
+  }
+  return null;
 };
 
 const buildAnthropometryResponses = (questions = [], primaryValues = {}, followupValues = {}) => {
@@ -2300,7 +2507,7 @@ const buildVitalsResponses = (questions = [], values = {}) => {
     .filter(Boolean);
 };
 
-const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {} }) => {
+const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {}, categoryHeading = 'Family History' }) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const cardsData = useMemo(() => {
@@ -2421,6 +2628,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
     setCardIndex((prev) => (prev > maxIdx ? maxIdx : prev));
   }, [visibleCardsData]);
 
+  const hasVisibleCards = visibleCardsData.length > 0;
   const totalCards = Math.max(visibleCardsData.length, 1);
   const activeCard = visibleCardsData[cardIndex] || {
     key: 'empty',
@@ -2477,6 +2685,9 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
   };
 
   const attemptGoNext = () => {
+    if (!hasVisibleCards || activeCard.key === 'empty') {
+      return;
+    }
     if (!hasCardAnswer(activeCard, activeSelections)) {
       triggerCardShake();
       return;
@@ -2570,6 +2781,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
   };
 
   const textInputValue = activeSelections[0] || '';
+  const questionSubline = getHardcodedQuestionnaireSubline(activeCard.title) || activeCard.helper;
 
   return (
     <div className="family-history-page">
@@ -2579,7 +2791,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
             <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <h1 className="family-history-page__title">Family History</h1>
+        <h1 className="family-history-page__title">{categoryHeading}</h1>
         <img src={ques2Icon} alt="" aria-hidden="true" className="family-history-page__header-icon" />
       </div>
 
@@ -2616,7 +2828,7 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
               </button>
             ) : null}
           </div>
-          {activeCard.helper ? <p className="family-history-page__helper">{activeCard.helper}</p> : null}
+          {questionSubline ? <p className="family-history-page__helper">{questionSubline}</p> : null}
 
           {activeCard.isTextInput ? (
             <div className="family-history-page__text-input-wrap">
@@ -2676,6 +2888,10 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
           type="button"
           className="family-history-page__done"
           onClick={() => {
+            if (!hasVisibleCards) {
+              onDone?.(selectionsRef.current);
+              return;
+            }
             if (!hasCardAnswer(activeCard, activeSelections)) {
               triggerCardShake();
               return;
@@ -2910,7 +3126,16 @@ const toLifestyleApiCards = (questions = []) => {
     });
 };
 
-const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {} }) => {
+const EMPTY_LIFESTYLE_ACTIVE_CARD = {
+  key: 'empty',
+  title: 'No questions available for this category yet.',
+  helper: '',
+  options: [],
+  defaultSelected: [],
+  multi: false,
+};
+
+const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {}, categoryHeading = 'Lifestyle & Habits' }) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const cardsData = useMemo(() => {
@@ -2931,15 +3156,126 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
   }, [cardsData, initialSelections]);
 
   const totalCards = Math.max(cardsData.length, 1);
-  const activeCard = cardsData[cardIndex] || {
-    key: 'empty',
-    title: 'No questions available for this category yet.',
-    helper: '',
-    options: [],
-    defaultSelected: [],
-    multi: false,
-  };
+  const activeCard = useMemo(
+    () => cardsData[cardIndex] || EMPTY_LIFESTYLE_ACTIVE_CARD,
+    [cardsData, cardIndex],
+  );
   const activeSelections = selections[activeCard.key] || [];
+  const sourceQuestion = useMemo(
+    () => findLifestyleSourceQuestion(questions, activeCard.key),
+    [questions, activeCard.key],
+  );
+  const walkingMode = isWalkingDurationLifestyleCard(activeCard, sourceQuestion);
+  const unitLabels = useMemo(
+    () => getWalkingDurationUnitLabelsOrdered(sourceQuestion, activeCard),
+    [sourceQuestion, activeCard],
+  );
+  const walkingWheel = readWalkingWheelFromSelections(selections, activeCard.key);
+  const walkingTouchLastXRef = useRef(null);
+  const walkingCurLabel = walkingWheel?.unitLabel || unitLabels[0];
+  const walkingMax = /hour/i.test(String(walkingCurLabel || '')) ? 10 : 60;
+  const walkingVal = Math.min(walkingMax, Math.max(0, Number(walkingWheel?.value ?? 0)));
+
+  useEffect(() => {
+    if (!walkingMode || !activeCard?.key) {
+      return;
+    }
+    const cardKey = activeCard.key;
+    const card = cardsData[cardIndex];
+    if (!card || card.key !== cardKey) {
+      return;
+    }
+    const sq = findLifestyleSourceQuestion(questions, cardKey);
+    setSelections((prev) => {
+      if (readWalkingWheelFromSelections(prev, cardKey)) {
+        return prev;
+      }
+      const wk = lifestyleWalkingWheelStorageKey(cardKey);
+      const labels = getWalkingDurationUnitLabelsOrdered(sq, card);
+      return {
+        ...prev,
+        [cardKey]: [],
+        [wk]: { value: 0, unitLabel: labels[0] },
+      };
+    });
+  }, [walkingMode, activeCard.key, cardIndex, cardsData, questions]);
+
+  const bumpWalkingValue = (delta) => {
+    if (!walkingMode || !activeCard?.key) {
+      return;
+    }
+    const wk = lifestyleWalkingWheelStorageKey(activeCard.key);
+    setSelections((prev) => {
+      const labels = getWalkingDurationUnitLabelsOrdered(sourceQuestion, activeCard);
+      const cur = readWalkingWheelFromSelections(prev, activeCard.key) || { value: 0, unitLabel: labels[0] };
+      const idx = Math.max(0, labels.findIndex((l) => String(l).toLowerCase() === String(cur.unitLabel).toLowerCase()));
+      const unitLabel = labels[idx >= 0 ? idx : 0];
+      const max = /hour/i.test(unitLabel) ? 10 : 60;
+      const next = Math.min(max, Math.max(0, Number(cur.value) + delta));
+      return {
+        ...prev,
+        [activeCard.key]: [],
+        [wk]: { value: next, unitLabel },
+      };
+    });
+  };
+
+  const handleWalkingWheel = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const raw = e.deltaX !== 0 ? e.deltaX : e.deltaY;
+    const delta = raw > 0 ? 1 : -1;
+    bumpWalkingValue(delta);
+  };
+
+  const handleWalkingTouchStart = (e) => {
+    e.stopPropagation();
+    walkingTouchLastXRef.current = e.touches[0].clientX;
+  };
+
+  const handleWalkingTouchMove = (e) => {
+    e.stopPropagation();
+    if (walkingTouchLastXRef.current == null) return;
+    const x = e.touches[0].clientX;
+    const delta = walkingTouchLastXRef.current - x;
+    if (Math.abs(delta) >= 8) {
+      bumpWalkingValue(Math.sign(delta));
+      walkingTouchLastXRef.current = x;
+    }
+  };
+
+  const handleWalkingTouchEnd = (e) => {
+    e.stopPropagation();
+    walkingTouchLastXRef.current = null;
+  };
+
+  const handleWalkingUnitChange = (nextLabel) => {
+    if (!walkingMode || !activeCard?.key) {
+      return;
+    }
+    const wk = lifestyleWalkingWheelStorageKey(activeCard.key);
+    setSelections((prev) => {
+      const max = /hour/i.test(nextLabel) ? 10 : 60;
+      const cur = readWalkingWheelFromSelections(prev, activeCard.key) || { value: 0, unitLabel: unitLabels[0] };
+      const nextVal = Math.min(max, Math.max(0, Number(cur.value)));
+      return {
+        ...prev,
+        [activeCard.key]: [],
+        [wk]: { value: nextVal, unitLabel: nextLabel },
+      };
+    });
+  };
+
+  const walkingAnswerContext = useMemo(
+    () => ({ selections, questions }),
+    [selections, questions],
+  );
+
+  const walkingLeftFar = Math.max(0, walkingVal - 2);
+  const walkingLeftNear = Math.max(0, walkingVal - 1);
+  const walkingRightNear = Math.min(walkingMax, walkingVal + 1);
+  const walkingRightFar = Math.min(walkingMax, walkingVal + 2);
+
   const hasOtherOption = !activeCard.isTextInput
     && Array.isArray(activeCard.options)
     && activeCard.options.some((option) => isOtherOptionLabel(getOptionLabel(option)));
@@ -2956,7 +3292,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
     stackSpace,
     activeCard.title,
     activeCard.helper,
-    activeCard.options?.length || 0,
+    walkingMode ? 5 : (activeCard.options?.length || 0),
   ]);
 
   const chipClass = (option) => {
@@ -2987,7 +3323,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
   };
 
   const attemptGoNext = () => {
-    if (!hasCardAnswer(activeCard, activeSelections)) {
+    if (!hasCardAnswer(activeCard, activeSelections, walkingAnswerContext)) {
       triggerCardShake();
       return;
     }
@@ -3082,6 +3418,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
   };
 
   const textInputValue = activeSelections[0] || '';
+  const questionSubline = getHardcodedQuestionnaireSubline(activeCard.title) || activeCard.helper;
 
   return (
     <div className="lifestyle-habits-page">
@@ -3091,7 +3428,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
             <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <h1 className="lifestyle-habits-page__title">Lifestyle &amp; Habits</h1>
+        <h1 className="lifestyle-habits-page__title">{categoryHeading}</h1>
         <img src={ques3Icon} alt="" aria-hidden="true" className="lifestyle-habits-page__header-icon" />
       </div>
 
@@ -3129,7 +3466,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
             ) : null}
           </div>
 
-          {activeCard.helper ? <p className="lifestyle-habits-page__helper">{activeCard.helper}</p> : null}
+          {questionSubline ? <p className="lifestyle-habits-page__helper">{questionSubline}</p> : null}
 
           {activeCard.isTextInput ? (
             <div className="lifestyle-habits-page__text-input-wrap">
@@ -3142,6 +3479,37 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
                 aria-label={activeCard.title || 'Answer'}
                 onWheel={(event) => event.stopPropagation()}
               />
+            </div>
+          ) : walkingMode ? (
+            <div
+              className="lifestyle-habits-page__walking-box"
+              onWheel={handleWalkingWheel}
+              onTouchStart={handleWalkingTouchStart}
+              onTouchMove={handleWalkingTouchMove}
+              onTouchEnd={handleWalkingTouchEnd}
+              role="group"
+              aria-label="Walking duration"
+            >
+              <FollowupUnitDropdown
+                value={walkingCurLabel}
+                options={unitLabels}
+                onChange={handleWalkingUnitChange}
+              />
+              <div className="lifestyle-habits-page__walking-arrow-wrap">
+                <AnthropometryTriangleArrow direction="down" />
+              </div>
+              <div className="lifestyle-habits-page__walking-h-row">
+                <span className="lifestyle-habits-page__walking-faded lifestyle-habits-page__walking-faded--far">{walkingLeftFar}</span>
+                <span className="lifestyle-habits-page__walking-faded lifestyle-habits-page__walking-faded--near">{walkingLeftNear}</span>
+                <div className="lifestyle-habits-page__walking-selected-box">
+                  <span className="lifestyle-habits-page__walking-selected-value">{walkingVal}</span>
+                </div>
+                <span className="lifestyle-habits-page__walking-faded lifestyle-habits-page__walking-faded--near">{walkingRightNear}</span>
+                <span className="lifestyle-habits-page__walking-faded lifestyle-habits-page__walking-faded--far">{walkingRightFar}</span>
+              </div>
+              <div className="lifestyle-habits-page__walking-arrow-wrap">
+                <AnthropometryTriangleArrow direction="up" />
+              </div>
             </div>
           ) : (
             <div className={`lifestyle-habits-page__chips ${activeCard.multi ? 'lifestyle-habits-page__chips--multi' : ''}`}>
@@ -3190,7 +3558,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
           type="button"
           className="lifestyle-habits-page__done"
           onClick={() => {
-            if (!hasCardAnswer(activeCard, activeSelections)) {
+            if (!hasCardAnswer(activeCard, activeSelections, walkingAnswerContext)) {
               triggerCardShake();
               return;
             }
@@ -3626,7 +3994,7 @@ const NUTRITION_LOG_EMPTY_CARD = {
 
 const NUTRITION_EMPTY_SELECTIONS = [];
 
-const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {} }) => {
+const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {}, categoryHeading = 'Nutrition Log' }) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const cardsData = useMemo(() => {
@@ -3832,6 +4200,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
   };
 
   const textInputValue = activeSelections[0] || '';
+  const questionSubline = getHardcodedQuestionnaireSubline(activeCard.title) || activeCard.helper;
 
   return (
     <div className="nutrition-log-page">
@@ -3841,7 +4210,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
             <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <h1 className="nutrition-log-page__title">Nutrition Log</h1>
+        <h1 className="nutrition-log-page__title">{categoryHeading}</h1>
         <img src={ques4Icon} alt="" aria-hidden="true" className="nutrition-log-page__header-icon" />
       </div>
 
@@ -3879,7 +4248,7 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
             ) : null}
           </div>
 
-          {activeCard.helper ? <p className="nutrition-log-page__helper">{activeCard.helper}</p> : null}
+          {questionSubline ? <p className="nutrition-log-page__helper">{questionSubline}</p> : null}
 
           {activeCard.isTextInput ? (
             <div className="nutrition-log-page__text-input-wrap">
@@ -3986,7 +4355,7 @@ const VITALS_DEFAULTS = {
   diastolic: 0,
 };
 
-const EmbeddedVitalsPage = ({ onBack, onDone, questions = [], initialValues = {} }) => {
+const EmbeddedVitalsPage = ({ onBack, onDone, questions = [], initialValues = {}, categoryHeading = 'Vitals' }) => {
   const [systolic, setSystolic] = useState(() => normalizeStoredVitalReading(initialValues?.systolic));
   const [diastolic, setDiastolic] = useState(() => normalizeStoredVitalReading(initialValues?.diastolic));
   const [showSubmitPopup, setShowSubmitPopup] = useState(false);
@@ -4026,7 +4395,7 @@ const EmbeddedVitalsPage = ({ onBack, onDone, questions = [], initialValues = {}
             <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <h1 className="vitals-page__title">Vitals</h1>
+        <h1 className="vitals-page__title">{categoryHeading}</h1>
         <img src={ques5Icon} alt="" aria-hidden="true" className="vitals-page__header-icon" />
       </div>
 
@@ -4703,6 +5072,29 @@ const HealthAssessmentPage = ({
       </div>
     </div>
   );
+};
+
+export {
+  EmbeddedAnthropometryPage,
+  EmbeddedAnthropometryFollowupPage,
+  EmbeddedFamilyHistoryPage,
+  EmbeddedLifestyleHabitsPage,
+  EmbeddedNutritionLogPage,
+  EmbeddedVitalsPage,
+  buildAnthropometryInitialValuesFromResponses,
+  buildAnthropometryResponses,
+  buildSelectionStateFromResponses,
+  buildResponsesFromSelections,
+  buildVitalsInitialValuesFromResponses,
+  buildVitalsResponses,
+  buildNutritionLogResponsesForSave,
+  normalizeStoredVitalReading,
+  toNutritionApiCards,
+  toFamilyApiCards,
+  findFamilyHistoryCardKeys,
+  isNoneOptionLabel,
+  findMappedOtherTextQuestion,
+  isLikelyOtherTextQuestion,
 };
 
 export default HealthAssessmentPage;

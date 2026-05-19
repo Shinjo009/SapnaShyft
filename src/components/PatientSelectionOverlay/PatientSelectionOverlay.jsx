@@ -4,7 +4,7 @@ import maleAvatar from '../../images/male-avatar.png';
 import femaleAvatar from '../../images/female-avatar.png';
 import { getMyProfiles, createMySubProfile } from '../../services/usersService';
 import { getMyProfile } from '../../services/profileService';
-import { listDiagnosticPackages } from '../../services/diagnosticPackagesService';
+import { listDiagnosticPackages, listPublicDiagnosticPackageFilterChips } from '../../services/diagnosticPackagesService';
 import {
   loadRazorpayScript,
   createPackageRazorpayOrder,
@@ -13,7 +13,13 @@ import {
   getPackageBookingStatus,
   getDefaultRazorpayKeyId,
 } from '../../services/paymentService';
+import {
+  bookBioAiBatch,
+  buildBookBioAiPayload,
+  formatBloodCollectionTimeSlot,
+} from '../../services/bookingService';
 import { PAYMENT_DEMO_MODE, BACKEND_ENABLED } from '../../config/appConfig';
+import PackageDetailsPage from '../../pages/PackageDetailsPage/PackageDetailsPage';
 
 const PATIENTS = [];
 
@@ -94,8 +100,106 @@ const PACKAGE_OPTIONS = [
 ];
 
 const MISSING_VALUE = '-';
+const OVERLAY_ALL_FILTER = {
+  filter_chip_id: 'all',
+  chip_key: 'all',
+  display_name: 'All',
+};
 
 const normalizePackageId = (value) => String(value ?? '').trim();
+const normalizeFilterChipValue = (value) => {
+  if (value == null) {
+    return '';
+  }
+  return String(value).trim();
+};
+
+const getPackageFilterChips = (pkg) => {
+  const values = [];
+  const pushValue = (value) => {
+    const normalized = normalizeFilterChipValue(value);
+    if (normalized) {
+      values.push(normalized);
+    }
+  };
+
+  const rawFilterChip = pkg?.filter_chip ?? pkg?.filter_chips;
+  if (typeof rawFilterChip === 'string') {
+    rawFilterChip.split(',').map((item) => item.trim()).filter(Boolean).forEach(pushValue);
+  } else if (Array.isArray(rawFilterChip)) {
+    rawFilterChip.forEach((item) => {
+      if (typeof item === 'string' || typeof item === 'number') {
+        pushValue(item);
+        return;
+      }
+      if (item && typeof item === 'object') {
+        pushValue(item?.display_name || item?.filter_chip || item?.chip_key || item?.name);
+      }
+    });
+  } else if (rawFilterChip && typeof rawFilterChip === 'object') {
+    pushValue(rawFilterChip?.display_name || rawFilterChip?.filter_chip || rawFilterChip?.chip_key || rawFilterChip?.name);
+  }
+
+  return Array.from(new Map(values.map((value) => [value.toLowerCase(), value])).values());
+};
+
+const normalizeFilterChipRows = (rows) => {
+  const source = Array.isArray(rows) ? rows : [];
+  const normalized = source
+    .map((row, index) => {
+      const chipKey = String(row?.chip_key || row?.key || '').trim();
+      const displayName = String(row?.display_name || row?.name || chipKey).trim();
+      if (!chipKey || !displayName) {
+        return null;
+      }
+      return {
+        filter_chip_id: row?.filter_chip_id ?? row?.id ?? `${chipKey}-${index}`,
+        chip_key: chipKey,
+        display_name: displayName,
+      };
+    })
+    .filter(Boolean);
+
+  const uniqueByKey = Array.from(new Map(normalized.map((chip) => [String(chip.chip_key).toLowerCase(), chip])).values());
+  return [OVERLAY_ALL_FILTER, ...uniqueByKey.filter((chip) => String(chip.chip_key).toLowerCase() !== 'all')];
+};
+
+const toNormalizedPackageTagValues = (pkg) => {
+  const values = new Set();
+  getPackageFilterChips(pkg?.apiData || {}).forEach((value) => {
+    const normalized = String(value).trim().toLowerCase();
+    if (normalized) {
+      values.add(normalized);
+    }
+  });
+
+  const rawTags = Array.isArray(pkg?.apiData?.tags) ? pkg.apiData.tags : [];
+  rawTags.forEach((tag) => {
+    if (typeof tag === 'string' || typeof tag === 'number') {
+      const value = String(tag).trim().toLowerCase();
+      if (value) {
+        values.add(value);
+      }
+      return;
+    }
+    if (tag && typeof tag === 'object') {
+      [tag?.tag_name, tag?.name, tag?.filter_chip, tag?.chip_key, tag?.display_name]
+        .map((item) => String(item || '').trim().toLowerCase())
+        .filter(Boolean)
+        .forEach((item) => values.add(item));
+    }
+  });
+
+  const genderSuitability = String(pkg?.apiData?.gender_suitability || '').trim().toLowerCase();
+  if (genderSuitability === 'male' || genderSuitability === 'both') {
+    values.add('male');
+  }
+  if (genderSuitability === 'female' || genderSuitability === 'both') {
+    values.add('female');
+  }
+
+  return values;
+};
 
 const mapDiagnosticPackageToOverlayCard = (pkg, index) => {
   const id = String(pkg?.diagnostic_package_id || pkg?.id || `pkg-${index}`).trim();
@@ -236,18 +340,6 @@ const PackageSearchIcon = () => (
   </svg>
 );
 
-const PackageTickIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="8" viewBox="0 0 11 8" fill="none" aria-hidden="true">
-    <path d="M9.91536 0.583496L3.4987 7.00016L0.582031 4.0835" stroke="#8B9496" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const PackageStarIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-    <path d="M6.13934 0.755517C6.19149 0.650163 6.29887 0.583496 6.41642 0.583496C6.53398 0.583496 6.64136 0.650163 6.69351 0.755517L8.04101 3.48493C8.22096 3.8498 8.56886 4.10282 8.97142 4.1616L11.9849 4.6026C12.1014 4.61948 12.1982 4.70103 12.2346 4.81295C12.271 4.92488 12.2407 5.04777 12.1564 5.12993L9.97709 7.2521C9.68507 7.53625 9.55175 7.94602 9.62067 8.3476L10.1352 11.3459C10.1557 11.4624 10.1081 11.5804 10.0124 11.6498C9.91673 11.7193 9.7898 11.7282 9.68542 11.6726L6.99159 10.2563C6.63133 10.0669 6.20094 10.0669 5.84067 10.2563L3.14742 11.6726C3.04309 11.7278 2.9164 11.7188 2.82093 11.6494C2.72545 11.58 2.67786 11.4622 2.69826 11.3459L3.21217 8.34818C3.2813 7.94641 3.14797 7.53638 2.85576 7.2521L0.676424 5.13052C0.591439 5.04843 0.560668 4.92509 0.597136 4.81271C0.633605 4.70033 0.730936 4.61856 0.847924 4.60202L3.86084 4.1616C4.26384 4.10318 4.61224 3.85011 4.79242 3.48493L6.13934 0.755517" stroke="#8B9496" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
 const PackageDoctorIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
     <path d="M5.83203 0.583496V1.75016M2.33203 0.583496V1.75016M2.33203 1.16683H1.7487C1.1048 1.16683 0.582031 1.6896 0.582031 2.3335V4.66683C0.582031 6.59853 2.15033 8.16683 4.08203 8.16683C6.01373 8.16683 7.58203 6.59853 7.58203 4.66683V2.3335C7.58203 1.6896 7.05927 1.16683 6.41536 1.16683H5.83203" stroke="#8B9496" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round"/>
@@ -332,12 +424,8 @@ const ConfirmCrossIcon = () => (
   </svg>
 );
 
-const SCHEDULE_DATES = [
-  { id: 'mon-12', day: 'Mon', date: '12' },
-  { id: 'tue-13', day: 'Tue', date: '13' },
-  { id: 'wed-14', day: 'Wed', date: '14' },
-  { id: 'thu-15', day: 'Thu', date: '15' },
-];
+const SCHEDULE_DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const SCHEDULE_MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const SCHEDULE_TIME_SLOTS = [
   ['06:00 AM', '06:30 AM', '07:00 AM'],
@@ -348,14 +436,17 @@ const SCHEDULE_TIME_SLOTS = [
 ];
 
 const DEFAULT_FORM_DATA = {
-  firstName: 'Ramesh',
-  lastName: 'Ramesh',
-  relation: 'Spouse',
-  age: '23',
-  gender: 'Male',
-  phone: '9987254209',
-  email: 'abc.de@example.com',
+  firstName: '',
+  lastName: '',
+  relation: '',
+  age: '',
+  gender: '',
+  phone: '',
+  email: '',
 };
+
+const RELATION_OPTIONS = ['Parent', 'Child', 'Sibling', 'Spouse', 'Friend', 'Self', 'Other'];
+const GENDER_OPTIONS = ['Male', 'Female'];
 
 const DEFAULT_ADDRESS_DATA = {
   house: '',
@@ -363,6 +454,26 @@ const DEFAULT_ADDRESS_DATA = {
   landmark: '',
   city: '',
   pincode: '',
+};
+
+const ADDRESS_REQUIRED_MSG = 'Required Field';
+const ADDRESS_PIN_INVALID_MSG = 'Invalid Format';
+const RE_PACKAGE_ADDRESS_PINCODE = /^\d{6}$/;
+
+const validatePackageAddressForm = (data) => {
+  const errors = {};
+  ['house', 'area', 'landmark', 'city'].forEach((key) => {
+    if (!String(data[key] || '').trim()) {
+      errors[key] = ADDRESS_REQUIRED_MSG;
+    }
+  });
+  const pin = String(data.pincode || '').trim();
+  if (!pin) {
+    errors.pincode = ADDRESS_REQUIRED_MSG;
+  } else if (!RE_PACKAGE_ADDRESS_PINCODE.test(pin)) {
+    errors.pincode = ADDRESS_PIN_INVALID_MSG;
+  }
+  return errors;
 };
 
 const getAgeFromProfile = (profile) => {
@@ -460,7 +571,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   const [view, setView] = useState('select');
   const [patients, setPatients] = useState(PATIENTS);
   const [profileData, setProfileData] = useState(null);
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilterKey, setActiveFilterKey] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [selectedPackageId, setSelectedPackageId] = useState('advanced');
@@ -469,14 +580,15 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   const [packageViewReturn, setPackageViewReturn] = useState('select');
   const [packageTargetName, setPackageTargetName] = useState('User');
   const [packageTargetPatientId, setPackageTargetPatientId] = useState(null);
-  const [phoneSame, setPhoneSame] = useState(true);
-  const [emailSame, setEmailSame] = useState(true);
+  const [phoneSame, setPhoneSame] = useState(false);
+  const [emailSame, setEmailSame] = useState(false);
   const [activeField, setActiveField] = useState('firstName');
   const [activeAddressField, setActiveAddressField] = useState('house');
   const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
   const [addressData, setAddressData] = useState(DEFAULT_ADDRESS_DATA);
+  const [addressFieldErrors, setAddressFieldErrors] = useState({});
   const [savingPatient, setSavingPatient] = useState(false);
-  const [selectedDateId, setSelectedDateId] = useState('mon-12');
+  const [selectedDateId, setSelectedDateId] = useState('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('06:00 AM');
   const [customActiveFilter, setCustomActiveFilter] = useState('General Health');
   const [customSearchQuery, setCustomSearchQuery] = useState('');
@@ -484,26 +596,95 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   const [customSelectedIds, setCustomSelectedIds] = useState(() => new Set(['thyroid-tests', 'liver-function']));
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
+  const [bioBookingError, setBioBookingError] = useState('');
+  const [bioBookingSubmitting, setBioBookingSubmitting] = useState(false);
   const [confirmedBookingId, setConfirmedBookingId] = useState(null);
   const [paymentOutcome, setPaymentOutcome] = useState('success');
   const [packageCardsFromApi, setPackageCardsFromApi] = useState([]);
+  const [packageFilterChips, setPackageFilterChips] = useState([OVERLAY_ALL_FILTER]);
+  const [packageDetailsCard, setPackageDetailsCard] = useState(null);
   const paymentSuccessRef = useRef(false);
   const packageManuallyChangedRef = useRef(false);
+  const dropdownRefs = useRef({});
+  const scheduleDates = useMemo(() => {
+    const baseDate = new Date();
+    baseDate.setHours(0, 0, 0, 0);
+
+    return Array.from({ length: 4 }, (_, index) => {
+      const date = new Date(baseDate);
+      date.setDate(baseDate.getDate() + 2 + index);
+
+      const day = SCHEDULE_DAY_LABELS[date.getDay()];
+      const dayOfMonth = String(date.getDate()).padStart(2, '0');
+      const month = SCHEDULE_MONTH_LABELS[date.getMonth()];
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      const isoDate = `${y}-${m}-${d}`;
+
+      return {
+        id: `${day.toLowerCase()}-${dayOfMonth}-${month.toLowerCase()}`,
+        day,
+        date: dayOfMonth,
+        month,
+        isoDate,
+      };
+    });
+  }, []);
 
   useEffect(() => {
     if (!open) {
       setView('select');
       setSelectedIds([]);
       setSelectedPackageByPatientId({});
+      setSelectedDateId(scheduleDates[0]?.id || '');
+      setPackageDetailsCard(null);
+      setFormData(DEFAULT_FORM_DATA);
+      setPhoneSame(false);
+      setEmailSame(false);
       setPaymentError(null);
       setPaymentSubmitting(false);
+      setBioBookingError('');
+      setBioBookingSubmitting(false);
       setConfirmedBookingId(null);
       setPaymentOutcome('success');
       setPackageTargetPatientId(null);
       packageManuallyChangedRef.current = false;
       paymentSuccessRef.current = false;
     }
+  }, [open, scheduleDates]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    let mounted = true;
+    const loadFilterChips = async () => {
+      try {
+        const rows = await listPublicDiagnosticPackageFilterChips({});
+        if (!mounted) {
+          return;
+        }
+        const normalized = normalizeFilterChipRows(rows);
+        setPackageFilterChips(normalized.length > 0 ? normalized : [OVERLAY_ALL_FILTER]);
+      } catch {
+        if (mounted) {
+          setPackageFilterChips([OVERLAY_ALL_FILTER]);
+        }
+      }
+    };
+    loadFilterChips();
+    return () => {
+      mounted = false;
+    };
   }, [open]);
+
+  useEffect(() => {
+    if (!scheduleDates.some((item) => item.id === selectedDateId)) {
+      setSelectedDateId(scheduleDates[0]?.id || '');
+    }
+  }, [scheduleDates, selectedDateId]);
 
   useEffect(() => {
     if (view === 'payment') {
@@ -580,13 +761,6 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
           ...defaultAddress,
         }));
 
-        const phone = String(profile?.phone || '').trim();
-        const email = String(profile?.email || '').trim();
-        setFormData((prev) => ({
-          ...prev,
-          phone: phone || prev.phone,
-          email: email || prev.email,
-        }));
       } catch (error) {
         if (mounted) {
           setPatients([]);
@@ -760,24 +934,15 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   ]);
 
   const filteredPackages = useMemo(() => {
-    const normalizedFilter = String(activeFilter || 'All').trim().toLowerCase();
+    const selectedChip = packageFilterChips.find((chip) => String(chip?.chip_key || '').toLowerCase() === activeFilterKey);
+    const selectedKey = String(selectedChip?.chip_key || activeFilterKey || 'all').trim().toLowerCase();
+    const selectedLabel = String(selectedChip?.display_name || '').trim().toLowerCase();
     const q = searchQuery.trim().toLowerCase();
     return sourcePackages.filter((item) => {
-      const genderSuitability = String(item?.apiData?.gender_suitability || '').trim().toLowerCase();
-      const packageTags = Array.isArray(item?.apiData?.tags)
-        ? item.apiData.tags.map((tag) => {
-          if (typeof tag === 'string') {
-            return tag.trim().toLowerCase();
-          }
-          return String(tag?.tag_name || tag?.name || '').trim().toLowerCase();
-        }).filter(Boolean)
-        : [];
-
-      const matchesFilter = normalizedFilter === 'all'
-        || (normalizedFilter === 'male' && (genderSuitability === 'male' || genderSuitability === 'both'))
-        || (normalizedFilter === 'female' && (genderSuitability === 'female' || genderSuitability === 'both'))
-        || packageTags.includes(normalizedFilter)
-        || item.searchTags.some((tag) => tag.toLowerCase() === normalizedFilter);
+      const packageValues = toNormalizedPackageTagValues(item);
+      const matchesFilter = selectedKey === 'all'
+        || packageValues.has(selectedKey)
+        || (selectedLabel ? packageValues.has(selectedLabel) : false);
 
       if (!matchesFilter) {
         return false;
@@ -791,29 +956,22 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       const inTags = item.searchTags.some((tag) => tag.toLowerCase().includes(q));
       return inName || inTags;
     });
-  }, [activeFilter, searchQuery, sourcePackages]);
+  }, [activeFilterKey, packageFilterChips, searchQuery, sourcePackages]);
 
   const packageFilterTabs = useMemo(() => {
-    const tags = new Set(['All']);
-
-    sourcePackages.forEach((item) => {
-      const genderSuitability = String(item?.apiData?.gender_suitability || '').trim().toLowerCase();
-      if (genderSuitability === 'male' || genderSuitability === 'both') {
-        tags.add('Male');
-      }
-      if (genderSuitability === 'female' || genderSuitability === 'both') {
-        tags.add('Female');
-      }
-    });
-
-    return Array.from(tags);
-  }, [sourcePackages]);
+    return packageFilterChips;
+  }, [packageFilterChips]);
 
   useEffect(() => {
-    if (!packageFilterTabs.includes(activeFilter)) {
-      setActiveFilter(packageFilterTabs[0] || 'All');
+    const availableKeys = new Set(
+      packageFilterTabs
+        .map((chip) => String(chip?.chip_key || '').trim().toLowerCase())
+        .filter(Boolean)
+    );
+    if (!availableKeys.has(activeFilterKey)) {
+      setActiveFilterKey('all');
     }
-  }, [activeFilter, packageFilterTabs]);
+  }, [activeFilterKey, packageFilterTabs]);
 
   const selectedCount = selectedIds.length;
   const canContinue = selectedCount > 0;
@@ -949,15 +1107,15 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   };
 
   const getAppointmentDate = () => {
-    const selectedDate = SCHEDULE_DATES.find((item) => item.id === selectedDateId);
+    const selectedDate = scheduleDates.find((item) => item.id === selectedDateId);
     if (!selectedDate) {
       return '';
     }
-    return `${selectedDate.day}, ${selectedDate.date}th Feb`;
+    return `${selectedDate.day}, ${selectedDate.date} ${selectedDate.month}`;
   };
 
   const formatScheduleSummary = () => {
-    const selectedDate = SCHEDULE_DATES.find((item) => item.id === selectedDateId);
+    const selectedDate = scheduleDates.find((item) => item.id === selectedDateId);
     if (!selectedDate || !selectedTimeSlot) {
       return '';
     }
@@ -986,8 +1144,39 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       return `${h}:${m}`;
     };
 
-    const dayWithSuffix = `${selectedDate.date}th`;
-    return `${dayWithSuffix} Feb | ${format12(startDate)} - ${format12(endDate)} ${endDate.getHours() >= 12 ? 'PM' : 'AM'}`;
+    return `${selectedDate.date} ${selectedDate.month} | ${format12(startDate)} - ${format12(endDate)} ${endDate.getHours() >= 12 ? 'PM' : 'AM'}`;
+  };
+
+  const handleDetailsContinueToPayment = async () => {
+    setBioBookingError('');
+    if (!BACKEND_ENABLED || customFlow) {
+      setView('payment');
+      return;
+    }
+
+    setBioBookingSubmitting(true);
+    try {
+      const selectedScheduleDate = scheduleDates.find((item) => item.id === selectedDateId);
+      const bloodCollectionDate = selectedScheduleDate?.isoDate || '';
+      const bloodCollectionTimeSlot = formatBloodCollectionTimeSlot(selectedTimeSlot);
+      if (!bloodCollectionDate || !bloodCollectionTimeSlot) {
+        throw new Error('Select a collection date and time slot.');
+      }
+      const bioPayload = buildBookBioAiPayload({
+        selectedPatients,
+        addressData,
+        bloodCollectionDate,
+        bloodCollectionTimeSlot,
+        getPackageForPatient,
+        getNumericPatientUserId,
+      });
+      await bookBioAiBatch(bioPayload);
+      setView('payment');
+    } catch (err) {
+      setBioBookingError(err?.message || 'Booking could not be saved. Please try again.');
+    } finally {
+      setBioBookingSubmitting(false);
+    }
   };
 
   const handlePayWithRazorpay = async () => {
@@ -1218,23 +1407,58 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   const renderInputField = (key, label, options = {}) => {
     const fieldClass = `patient-add__field${activeField === key ? ' is-focused' : ''}${options.half ? ' patient-add__field--half' : ''}`;
     const isDropdown = options.dropdown;
+    const dropdownOptions = key === 'relation' ? RELATION_OPTIONS : key === 'gender' ? GENDER_OPTIONS : [];
 
     return (
       <label className={fieldClass} htmlFor={`patient-${key}`}>
         <span className="patient-add__label-chip">{label}</span>
 
         <div className="patient-add__field-inner">
-          <input
-            id={`patient-${key}`}
-            value={formData[key]}
-            onFocus={() => setActiveField(key)}
-            onChange={(event) => setFormData((prev) => ({ ...prev, [key]: event.target.value }))}
-            className="patient-add__input"
-            readOnly={isDropdown}
-          />
+          {isDropdown ? (
+            <select
+              id={`patient-${key}`}
+              ref={(node) => {
+                dropdownRefs.current[key] = node;
+              }}
+              value={formData[key]}
+              onFocus={() => setActiveField(key)}
+              onChange={(event) => setFormData((prev) => ({ ...prev, [key]: event.target.value }))}
+              className="patient-add__input patient-add__select"
+            >
+              <option value="" disabled>Select</option>
+              {dropdownOptions.map((item) => (
+                <option key={`${key}-${item}`} value={item}>{item}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              id={`patient-${key}`}
+              value={formData[key]}
+              onFocus={() => setActiveField(key)}
+              onChange={(event) => setFormData((prev) => ({ ...prev, [key]: event.target.value }))}
+              className="patient-add__input"
+            />
+          )}
 
           {isDropdown ? (
-            <button type="button" className="patient-add__dropdown-btn" aria-label={`Open ${label} dropdown`}>
+            <button
+              type="button"
+              className="patient-add__dropdown-btn"
+              aria-label={`Open ${label} dropdown`}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                const selectNode = dropdownRefs.current[key];
+                if (!selectNode) {
+                  return;
+                }
+                if (typeof selectNode.showPicker === 'function') {
+                  selectNode.showPicker();
+                  return;
+                }
+                selectNode.focus();
+                selectNode.click();
+              }}
+            >
               <DownIcon />
             </button>
           ) : null}
@@ -1243,21 +1467,72 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
     );
   };
 
+  const handleTogglePhoneSame = () => {
+    setPhoneSame((prev) => {
+      const next = !prev;
+      if (next) {
+        const profilePhone = String(profileData?.phone || '').trim();
+        setFormData((current) => ({ ...current, phone: profilePhone }));
+      } else {
+        setFormData((current) => ({ ...current, phone: '' }));
+      }
+      return next;
+    });
+  };
+
+  const handleToggleEmailSame = () => {
+    setEmailSame((prev) => {
+      const next = !prev;
+      if (next) {
+        const profileEmail = String(profileData?.email || '').trim();
+        setFormData((current) => ({ ...current, email: profileEmail }));
+      } else {
+        setFormData((current) => ({ ...current, email: '' }));
+      }
+      return next;
+    });
+  };
+
+  const handleAddressContinue = () => {
+    const nextErrors = validatePackageAddressForm(addressData);
+    setAddressFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+    setAddressFieldErrors({});
+    setView('schedule');
+  };
+
   const renderAddressField = (key, label, options = {}) => {
-    const fieldClass = `patient-address__field${activeAddressField === key ? ' is-focused' : ''}${options.half ? ' patient-address__field--half' : ''}`;
+    const errMsg = addressFieldErrors[key];
+    const fieldClass = `patient-address__field${activeAddressField === key ? ' is-focused' : ''}${errMsg ? ' is-error' : ''}${options.half ? ' patient-address__field--half' : ''}`;
     return (
-      <label className={fieldClass} htmlFor={`address-${key}`}>
-        <span className="patient-add__label-chip">{label}</span>
-        <div className="patient-address__field-inner">
-          <input
-            id={`address-${key}`}
-            value={addressData[key]}
-            onFocus={() => setActiveAddressField(key)}
-            onChange={(event) => setAddressData((prev) => ({ ...prev, [key]: event.target.value }))}
-            className="patient-address__input"
-          />
-        </div>
-      </label>
+      <div className={`patient-address__field-wrap${options.half ? ' patient-address__field-wrap--half' : ''}`}>
+        <label className={fieldClass} htmlFor={`address-${key}`}>
+          <span className="patient-add__label-chip">{label}</span>
+          <div className="patient-address__field-inner">
+            <input
+              id={`address-${key}`}
+              value={addressData[key]}
+              onFocus={() => setActiveAddressField(key)}
+              onChange={(event) => {
+                const raw = key === 'pincode' ? event.target.value.replace(/\D/g, '').slice(0, 6) : event.target.value;
+                setAddressData((prev) => ({ ...prev, [key]: raw }));
+                setAddressFieldErrors((prev) => {
+                  if (!prev[key]) return prev;
+                  const next = { ...prev };
+                  delete next[key];
+                  return next;
+                });
+              }}
+              className="patient-address__input"
+              inputMode={key === 'pincode' ? 'numeric' : undefined}
+              maxLength={key === 'pincode' ? 6 : undefined}
+            />
+          </div>
+        </label>
+        {errMsg ? <p className="patient-address__field-error">{errMsg}</p> : null}
+      </div>
     );
   };
 
@@ -1350,7 +1625,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
         </svg>
       </button>
 
-      <div className={`patient-select-overlay__sheet${view === 'add' ? ' is-add' : ''}${view === 'package' ? ' is-package' : ''}${view === 'address' ? ' is-address' : ''}${view === 'schedule' ? ' is-schedule' : ''}${view === 'details' ? ' is-details' : ''}${view === 'payment' ? ' is-payment' : ''}${view === 'confirmed' ? ' is-confirmed' : ''}${view === 'package' && customFlow ? ' is-custom-package' : ''}`}>
+      <div className={`patient-select-overlay__sheet${view === 'add' ? ' is-add' : ''}${view === 'package' ? ' is-package' : ''}${view === 'package-details' ? ' is-package-details' : ''}${view === 'address' ? ' is-address' : ''}${view === 'schedule' ? ' is-schedule' : ''}${view === 'details' ? ' is-details' : ''}${view === 'payment' ? ' is-payment' : ''}${view === 'confirmed' ? ' is-confirmed' : ''}${view === 'package' && customFlow ? ' is-custom-package' : ''}`}>
         {view === 'select' ? (
           <>
             <h3 className="patient-select-overlay__title">Select members</h3>
@@ -1458,7 +1733,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
 
               <div className="patient-add__same-row">
                 <span>Use same</span>
-                <button type="button" className="patient-add__same-checkbox" onClick={() => setPhoneSame((prev) => !prev)}>
+                <button type="button" className="patient-add__same-checkbox" onClick={handleTogglePhoneSame}>
                   {phoneSame ? <UseSameCheckboxIcon /> : <span className="patient-add__same-checkbox-empty" />}
                 </button>
               </div>
@@ -1466,7 +1741,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
 
               <div className="patient-add__same-row">
                 <span>Use same</span>
-                <button type="button" className="patient-add__same-checkbox" onClick={() => setEmailSame((prev) => !prev)}>
+                <button type="button" className="patient-add__same-checkbox" onClick={handleToggleEmailSame}>
                   {emailSame ? <UseSameCheckboxIcon /> : <span className="patient-add__same-checkbox-empty" />}
                 </button>
               </div>
@@ -1610,12 +1885,12 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                 <div className="patient-package__tabs" aria-label="Package tags">
                   {packageFilterTabs.map((tab) => (
                     <button
-                      key={tab}
+                      key={String(tab?.filter_chip_id || tab?.chip_key)}
                       type="button"
-                      className={`patient-package__tab${activeFilter === tab ? ' is-active' : ''}`}
-                      onClick={() => setActiveFilter(tab)}
+                      className={`patient-package__tab${activeFilterKey === String(tab?.chip_key || '').toLowerCase() ? ' is-active' : ''}`}
+                      onClick={() => setActiveFilterKey(String(tab?.chip_key || '').toLowerCase())}
                     >
-                      {tab}
+                      {String(tab?.display_name || tab?.chip_key || 'All')}
                     </button>
                   ))}
                 </div>
@@ -1630,6 +1905,11 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                         className={`patient-package__card${selectedCard ? ' is-selected' : ''}`}
                         onClick={() => {
                           packageManuallyChangedRef.current = true;
+                          if (selectedCard) {
+                            setPackageDetailsCard(item);
+                            setView('package-details');
+                            return;
+                          }
                           setDraftPackageId(item.id);
                         }}
                       >
@@ -1640,11 +1920,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                             <span className="patient-package__price-now">{formatPrice(item.currentPrice)}</span>
                             <span className="patient-package__price-old">{formatPrice(item.oldPrice)}</span>
                             <span className="patient-package__off-pill">{item.offPercent}% OFF</span>
-                          </div>
-
-                          <div className="patient-package__meta-row">
-                            <span className="patient-package__meta-item"><PackageTickIcon />{item.parameters}</span>
-                            <span className="patient-package__meta-item"><PackageStarIcon />{item.rating}</span>
+                            <span className="patient-package__open-icon"><PackageOpenIcon /></span>
                           </div>
 
                           {item.recommended ? (
@@ -1655,7 +1931,6 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                           ) : null}
                         </div>
 
-                        <span className="patient-package__open-icon"><PackageOpenIcon /></span>
                       </button>
                     );
                   })}
@@ -1673,6 +1948,13 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
               </div>
             )}
           </>
+        ) : view === 'package-details' ? (
+          <PackageDetailsPage
+            onBack={() => setView('package')}
+            packageId={Number(packageDetailsCard?.apiData?.diagnostic_package_id || packageDetailsCard?.apiData?.id || packageDetailsCard?.id || 0) || null}
+            packageCard={packageDetailsCard}
+            hideBookBar
+          />
         ) : view === 'address' ? (
           <>
             <div className="patient-add__header-row">
@@ -1692,7 +1974,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                 {renderAddressField('pincode', 'Pincode', { half: true })}
               </div>
 
-              <button type="button" className="patient-address__continue-btn" onClick={() => setView('schedule')}>Continue</button>
+              <button type="button" className="patient-address__continue-btn" onClick={handleAddressContinue}>Continue</button>
             </div>
           </>
         ) : view === 'schedule' ? (
@@ -1711,7 +1993,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
               </div>
 
               <div className="patient-schedule__dates">
-                {SCHEDULE_DATES.map((item) => {
+                {scheduleDates.map((item) => {
                   const isSelected = item.id === selectedDateId;
                   return (
                     <button
@@ -1874,7 +2156,20 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                 </div>
               </div>
 
-              <button type="button" className="patient-confirm__continue" onClick={() => setView('payment')}>Continue</button>
+              {bioBookingError ? (
+                <p className="patient-payment__error" role="alert">
+                  {bioBookingError}
+                </p>
+              ) : null}
+
+              <button
+                type="button"
+                className="patient-confirm__continue"
+                onClick={handleDetailsContinueToPayment}
+                disabled={bioBookingSubmitting}
+              >
+                {bioBookingSubmitting ? 'Please wait…' : 'Continue'}
+              </button>
             </div>
           </>
         ) : view === 'payment' ? (

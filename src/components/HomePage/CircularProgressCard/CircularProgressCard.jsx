@@ -8,24 +8,32 @@ import './CircularProgressCard.css';
  * - percentage: The percentage value to display (e.g., 75)
  * - label: Label text below the card (e.g., "Lifestyle score")
  */
-const CircularProgressCard = ({ percentage = 75, label = 'Score', onClick }) => {
+const CircularProgressCard = ({ percentage = null, label = 'Score', onClick }) => {
   // SVG circle properties - stroke-based progress ring
   const RADIUS = 40; // Circle radius for 82px outer diameter with 2px stroke
   const CIRCUMFERENCE = useMemo(() => 2 * Math.PI * RADIUS, []);
+  const normalizedPercentage = useMemo(() => {
+    const parsed = Number(percentage);
+    if (!Number.isFinite(parsed)) {
+      return null;
+    }
+    return Math.max(0, Math.min(100, Math.round(parsed)));
+  }, [percentage]);
   
   // Calculate stroke dasharray for progress
   const strokeDasharray = useMemo(() => {
-    const filledLength = (percentage / 100) * CIRCUMFERENCE;
+    const filledLength = ((normalizedPercentage ?? 0) / 100) * CIRCUMFERENCE;
     return filledLength;
-  }, [percentage, CIRCUMFERENCE]);
+  }, [normalizedPercentage, CIRCUMFERENCE]);
 
   const progressStyle = useMemo(() => {
-    if (percentage >= 0 && percentage <= 25) return { color: '#90DF9E', rgb: '144 223 158' };
-    if (percentage >= 26 && percentage <= 50) return { color: '#DAC15A', rgb: '218 193 90' };
-    if (percentage >= 51 && percentage <= 75) return { color: '#EE8B48', rgb: '238 139 72' };
-    if (percentage >= 76 && percentage <= 100) return { color: '#E95D5C', rgb: '233 93 92' };
+    if (normalizedPercentage === null) return { color: '#9A9A9A', rgb: '154 154 154' };
+    if (normalizedPercentage >= 0 && normalizedPercentage <= 25) return { color: '#90DF9E', rgb: '144 223 158' };
+    if (normalizedPercentage >= 26 && normalizedPercentage <= 50) return { color: '#DAC15A', rgb: '218 193 90' };
+    if (normalizedPercentage >= 51 && normalizedPercentage <= 75) return { color: '#EE8B48', rgb: '238 139 72' };
+    if (normalizedPercentage >= 76 && normalizedPercentage <= 100) return { color: '#E95D5C', rgb: '233 93 92' };
     return { color: '#E95D5C', rgb: '233 93 92' };
-  }, [percentage]);
+  }, [normalizedPercentage]);
 
   const handleKeyDown = (event) => {
     if (!onClick) return;
@@ -87,7 +95,7 @@ const CircularProgressCard = ({ percentage = 75, label = 'Score', onClick }) => 
       
       {/* Content - percentage inside circle */}
       <div className="circular-progress-card__content">
-        <span className="circular-progress-card__percentage">{percentage}</span>
+        <span className="circular-progress-card__percentage">{normalizedPercentage ?? '-'}</span>
       </div>
 
       {/* Card label */}
@@ -99,7 +107,7 @@ const CircularProgressCard = ({ percentage = 75, label = 'Score', onClick }) => 
           className="circular-progress-card__fraction-value"
           style={{ color: progressStyle.color }}
         >
-          {percentage}
+          {normalizedPercentage ?? '-'}
         </span>
         <span className="circular-progress-card__fraction-separator">/100</span>
       </div>

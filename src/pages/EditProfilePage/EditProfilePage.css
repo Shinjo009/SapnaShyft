@@ -1,6 +1,6 @@
 .edit-profile-page {
   min-height: 100vh;
-  padding: 20px 0 24px 0;
+  padding: 20px 0 calc(120px + env(safe-area-inset-bottom, 0px)) 0;
   box-sizing: border-box;
 }
 
@@ -68,6 +68,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
 }
 
 .edit-profile-page__name-row {

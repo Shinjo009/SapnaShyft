@@ -7,13 +7,12 @@ import doctorsIcon from '../../images/Cube/doctors.svg';
 import sportsIcon from '../../images/Cube/sports.svg';
 
 const CUBE_FACES = [
-  { className: 'front', icon: bioAiIcon, label: 'Bio Ai', labelIcon: bioAiIcon },
+  { className: 'front', icon: bioAiIcon, label: 'Bio ai', labelIcon: bioAiIcon },
   { className: 'back', icon: longevityIcon, label: 'Longevity', labelIcon: longevityIcon },
   { className: 'right', icon: nutritionIcon, label: 'Nutrition', labelIcon: nutritionIcon },
-  { className: 'left', icon: preventionIcon, label: 'Prevention', labelIcon: preventionIcon },
-  /** Holistic / Age Reversal: add `labelIcon` when assets are ready */
-  { className: 'top', icon: doctorsIcon, label: 'Holistic', labelIcon: null },
-  { className: 'bottom', icon: sportsIcon, label: 'Age Reversal', labelIcon: null },
+  { className: 'left', icon: preventionIcon, label: 'prevention', labelIcon: preventionIcon },
+  { className: 'top', icon: doctorsIcon, label: 'Longevity', labelIcon: longevityIcon },
+  { className: 'bottom', icon: sportsIcon, label: 'Age reversal', labelIcon: null },
 ];
 
 /**
@@ -49,7 +48,7 @@ export default function RotatingCube3({ variant = 'icons', showLabelIcons = true
                       <span className="cube-face-label-icon-spacer" aria-hidden />
                     )
                   ) : null}
-                  <span className="cube-face-label">{label}</span>
+                  {label ? <span className="cube-face-label">{label}</span> : null}
                 </div>
               ) : (
                 <img src={icon} alt="" width={160} height={160} decoding="async" />

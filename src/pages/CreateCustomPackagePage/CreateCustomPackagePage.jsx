@@ -6,6 +6,81 @@ import {
   listDiagnosticTestGroups,
 } from '../../services/diagnosticPackagesService';
 import { getAccessToken } from '../../utils/authStorage';
+import liverIcon from '../../images/Liver_HAC.svg';
+import haematologyIcon from '../../images/Haemotology_HAC.svg';
+import kidneyIcon from '../../images/Kidney_HAC.svg';
+import vitaminsIcon from '../../images/Vitamins.svg';
+import lipidIcon from '../../images/Lipid_Flow.svg';
+import ironIcon from '../../images/Iron_HAC.svg';
+import thyroidIcon from '../../images/Thyroid.svg';
+import diabetesIcon from '../../images/Diabetes_HAC.svg';
+import inflammationIcon from '../../images/Inflammation.svg';
+import sleepIcon from '../../images/Sleep.svg';
+import hormonesIcon from '../../images/Hormones_Outline.svg';
+import allergiesIcon from '../../images/Allergies_HAC.svg';
+import cardiacIcon from '../../images/Cardiac-RA.svg';
+import ferritinIcon from '../../images/Ferritin.svg';
+import homaIcon from '../../images/HOMA.svg';
+import insulinIcon from '../../images/Insulin.svg';
+import urineIcon from '../../images/Urine.svg';
+import breastIcon from '../../images/Breast_HAC.svg';
+import ovarianIcon from '../../images/Ovarian_HAC.svg';
+import prostateIcon from '../../images/Prostate_HAC.svg';
+import colorectalIcon from '../../images/Colorectal_HAC.svg';
+import pancreaticIcon from '../../images/Pancreatic_HAC.svg';
+import stomatchIcon from '../../images/Stomach_HAC.svg';
+import afpIcon from '../../images/AFP_HAC.svg';
+
+const ORGAN_ICON_KEYWORDS = [
+  ['haematology', haematologyIcon],
+  ['hematology', haematologyIcon],
+  ['hemogram', haematologyIcon],
+  ['cbc', haematologyIcon],
+  ['liver', liverIcon],
+  ['kidney', kidneyIcon],
+  ['renal', kidneyIcon],
+  ['vitamin', vitaminsIcon],
+  ['lipid', lipidIcon],
+  ['cholesterol', lipidIcon],
+  ['iron', ironIcon],
+  ['ferritin', ferritinIcon],
+  ['thyroid', thyroidIcon],
+  ['diabetes', diabetesIcon],
+  ['hba1c', diabetesIcon],
+  ['glucose', diabetesIcon],
+  ['sugar', diabetesIcon],
+  ['inflammation', inflammationIcon],
+  ['sleep', sleepIcon],
+  ['hormone', hormonesIcon],
+  ['testosterone', hormonesIcon],
+  ['estrogen', hormonesIcon],
+  ['allerg', allergiesIcon],
+  ['cardiac', cardiacIcon],
+  ['heart', cardiacIcon],
+  ['homa', homaIcon],
+  ['insulin', insulinIcon],
+  ['urine', urineIcon],
+  ['breast', breastIcon],
+  ['ovarian', ovarianIcon],
+  ['prostate', prostateIcon],
+  ['colorectal', colorectalIcon],
+  ['pancreatic', pancreaticIcon],
+  ['stomach', stomatchIcon],
+  ['afp', afpIcon],
+];
+
+const getCategoryIcon = (name) => {
+  const key = String(name || '').trim().toLowerCase();
+  if (!key) {
+    return liverIcon;
+  }
+  for (const [keyword, icon] of ORGAN_ICON_KEYWORDS) {
+    if (key.includes(keyword)) {
+      return icon;
+    }
+  }
+  return liverIcon;
+};
 
 const ALL_CHIP = {
   filter_chip_id: 'all',
@@ -111,6 +186,17 @@ const normalizeGroupRow = (row, index) => {
     ?? []
   );
 
+  const rawCount = Number(
+    row?.test_count
+    ?? row?.tests_count
+    ?? row?.parameter_count
+    ?? row?.parameters_count
+    ?? row?.num_tests
+  );
+  const parameterCount = Number.isFinite(rawCount) && rawCount > 0
+    ? Math.round(rawCount)
+    : tests.length;
+
   return {
     id,
     groupId: safeGroupId,
@@ -119,6 +205,7 @@ const normalizeGroupRow = (row, index) => {
     oldPrice,
     tags,
     tests,
+    parameterCount,
     /** Skip expand-time fetch when the list endpoint already included parameters. */
     testsLoaded: tests.length > 0,
   };
@@ -156,8 +243,8 @@ const ChevronUpIcon = ({ color = 'white' }) => (
 );
 
 const CheckIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="11" viewBox="0 0 15 11" fill="none" aria-hidden="true">
-    <path d="M13.9154 0.583374L4.7487 9.75004L0.582031 5.58337" stroke="#90DF9E" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round" />
+  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+    <path d="M8.33268 2.5L3.74935 7.08333L1.66602 5" stroke="#90DF9E" strokeWidth="1.16667" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -277,8 +364,9 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
           return;
         }
 
-        // Paint groups as soon as the list loads; tests load on expand (fetchTestsForCategoryIds).
-        // Up-front Promise.all(N) detail calls blocked first render for large catalogs.
+        // Paint groups immediately, then kick off a parallel pre-fetch of every group's
+        // parameters so the "X parameters" count and the pills inside each card are
+        // accurate from the moment the user lands on the page (no need to expand first).
         setCategoryData(normalizedRows);
 
         setExpandedIds((prev) => {
@@ -292,11 +380,16 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
           const next = new Set(
             Array.from(prev).filter((id) => normalizedRows.some((row) => row.id === id))
           );
-          if (next.size === 0 && normalizedRows[0]?.id) {
-            next.add(normalizedRows[0].id);
-          }
           return next;
         });
+
+        const idsToPrefetch = normalizedRows
+          .filter((row) => row.groupId && !row.testsLoaded)
+          .map((row) => row.id);
+
+        if (idsToPrefetch.length > 0) {
+          void fetchTestsForCategoryIds(idsToPrefetch, normalizedRows);
+        }
       } catch (error) {
         if (!isActive) {
           return;
@@ -316,6 +409,9 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
     return () => {
       isActive = false;
     };
+    // `fetchTestsForCategoryIds` is stable for the duration of this effect; we only
+    // want this to re-run when the active filter chip changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChipKey]);
 
   const visibleCategories = useMemo(() => {
@@ -336,7 +432,10 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
   const selectedCount = selectedCategories.length;
   const totalSale = selectedCategories.reduce((sum, item) => sum + item.salePrice, 0);
   const totalOld = selectedCategories.reduce((sum, item) => sum + item.oldPrice, 0);
-  const selectedParameters = selectedCategories.reduce((sum, item) => sum + item.tests.length, 0);
+  const selectedParameters = selectedCategories.reduce(
+    (sum, item) => sum + (item.parameterCount || item.tests.length),
+    0,
+  );
 
   const selectedTokens = selectedCategories.map((item) => ({
     id: item.id,
@@ -344,13 +443,18 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
   }));
   const visibleTokens = selectedTokens;
 
-  const fetchTestsForCategoryIds = async (categoryIds) => {
+  const fetchTestsForCategoryIds = async (categoryIds, sourceCategories) => {
     const uniqueIds = Array.from(new Set((Array.isArray(categoryIds) ? categoryIds : []).filter(Boolean)));
     if (uniqueIds.length === 0) {
       return;
     }
 
-    const categoriesToFetch = categoryData.filter(
+    // `sourceCategories` lets the caller pass freshly-loaded rows (e.g. right after the
+    // list endpoint resolves) so we don't have to wait for `categoryData` state to commit.
+    const source = Array.isArray(sourceCategories) && sourceCategories.length > 0
+      ? sourceCategories
+      : categoryData;
+    const categoriesToFetch = source.filter(
       (category) => uniqueIds.includes(category.id) && category.groupId && !category.testsLoaded && !testLoadingById[category.id]
     );
 
@@ -432,6 +536,8 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
         next.delete(id);
       } else {
         next.add(id);
+        // Pre-fetch parameters so the selected list / totals can show pills without expanding the card.
+        void fetchTestsForCategoryIds([id]);
       }
       return next;
     });
@@ -475,19 +581,17 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
           </div>
         </header>
 
-        {isSearchOpen ? (
-          <div className="create-custom-page__search-row">
-            <SearchIcon stroke="rgba(255, 255, 255, 0.72)" />
-            <input
-              type="text"
-              className="create-custom-page__search-input"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search"
-              aria-label="Search tests"
-            />
-          </div>
-        ) : null}
+        <div className={`create-custom-page__search-row create-custom-page__search-row--animated ${isSearchOpen ? 'is-open' : ''}`} aria-hidden={!isSearchOpen}>
+          <SearchIcon stroke="rgba(255, 255, 255, 0.72)" />
+          <input
+            type="text"
+            className="create-custom-page__search-input"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search"
+            aria-label="Search tests"
+          />
+        </div>
 
         <div className="create-custom-page__pills" role="tablist" aria-label="Category filters">
           {filterChips.map((chip) => {
@@ -547,6 +651,8 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
             const discount = category.oldPrice > 0
               ? Math.max(0, Math.round(((category.oldPrice - category.salePrice) / category.oldPrice) * 100))
               : 0;
+            const parameterCount = category.parameterCount || category.tests.length;
+            const categoryIcon = getCategoryIcon(category.title);
 
             return (
               <article
@@ -554,17 +660,48 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
                 className={`create-custom-page__card ${isSelected ? 'is-selected' : ''}`}
               >
                 <div className="create-custom-page__card-top">
+                  <div className="create-custom-page__card-heading">
+                    <span className="create-custom-page__card-icon" aria-hidden="true">
+                      <span
+                        className="create-custom-page__card-icon-img"
+                        style={{ '--card-icon-url': `url(${categoryIcon})` }}
+                      />
+                    </span>
+                    <p className="create-custom-page__card-title">{category.title}</p>
+                  </div>
+
                   <button
                     type="button"
-                    className={`create-custom-page__checkbox ${isSelected ? 'is-selected' : ''}`}
-                    aria-label={`Select ${category.title}`}
-                    onClick={() => toggleSelected(category.id)}
+                    className="create-custom-page__expand-btn"
+                    aria-label={`Toggle details for ${category.title}`}
+                    aria-expanded={isExpanded}
+                    onClick={() => toggleExpanded(category.id)}
                   >
-                    {isSelected ? <CheckIcon /> : null}
+                    {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
                   </button>
+                </div>
 
+                {isExpanded ? (
+                  <div className="create-custom-page__tests-grid">
+                    {isTestsLoading ? (
+                      <span className="create-custom-page__test-item">Loading tests...</span>
+                    ) : null}
+                    {!isTestsLoading && category.tests.length === 0 ? (
+                      <span className="create-custom-page__test-item">No tests available</span>
+                    ) : null}
+                    {category.tests.map((test) => (
+                      <span key={`${category.id}-${test}`} className="create-custom-page__test-item">
+                        {test}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
+                <div className="create-custom-page__card-bottom">
                   <div className="create-custom-page__card-info">
-                    <p className="create-custom-page__card-title">{category.title}</p>
+                    <span className="create-custom-page__card-parameters">
+                      {parameterCount} parameter{parameterCount === 1 ? '' : 's'}
+                    </span>
                     <div className="create-custom-page__price-row">
                       <span className="create-custom-page__price-now">Rs. {category.salePrice}</span>
                       <span className="create-custom-page__price-old">Rs. {category.oldPrice}</span>
@@ -574,37 +711,22 @@ const CreateCustomPackagePage = ({ onBack, onCreatePackage }) => {
 
                   <button
                     type="button"
-                    className="create-custom-page__expand-btn"
-                    aria-label={`Toggle details for ${category.title}`}
-                    onClick={() => toggleExpanded(category.id)}
+                    className={`create-custom-page__add-btn ${isSelected ? 'is-added' : ''}`}
+                    aria-pressed={isSelected}
+                    onClick={() => toggleSelected(category.id)}
                   >
-                    {isExpanded ? (
-                      <ChevronUpIcon color={isSelected ? '#90DF9E' : 'white'} />
+                    {isSelected ? (
+                      <>
+                        <span className="create-custom-page__add-btn-circle" aria-hidden="true">
+                          <CheckIcon />
+                        </span>
+                        Added
+                      </>
                     ) : (
-                      <ChevronDownIcon color={isSelected ? '#90DF9E' : 'white'} />
+                      'Add'
                     )}
                   </button>
                 </div>
-
-                {isExpanded ? (
-                  <>
-                    <div className="create-custom-page__divider" aria-hidden="true" />
-                    <div className="create-custom-page__tests-grid">
-                      {isTestsLoading ? (
-                        <span className="create-custom-page__test-item">Loading tests...</span>
-                      ) : null}
-                      {!isTestsLoading && category.tests.length === 0 ? (
-                        <span className="create-custom-page__test-item">No tests available</span>
-                      ) : null}
-                      {category.tests.map((test) => (
-                        <span key={`${category.id}-${test}`} className="create-custom-page__test-item">
-                          {isSelected ? <DotIcon /> : null}
-                          {test}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                ) : null}
               </article>
             );
           })}

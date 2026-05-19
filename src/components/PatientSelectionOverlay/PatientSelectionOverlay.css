@@ -53,6 +53,27 @@
   overflow: visible;
 }
 
+.patient-select-overlay__sheet.is-package-details {
+  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  padding: 0;
+  border-radius: 0;
+  border-top: none;
+  background: #06141b;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.patient-select-overlay__sheet.is-package-details::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.patient-select-overlay__sheet.is-package-details {
+  scrollbar-width: none;
+}
+
 .patient-select-overlay__sheet.is-payment {
   min-height: 4vh;
 }
@@ -654,6 +675,18 @@
   outline: none;
 }
 
+.patient-add__select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 4px;
+  cursor: pointer;
+}
+
+.patient-add__select option {
+  color: #111;
+}
+
 .patient-add__dropdown-btn {
   border: none;
   background: none;
@@ -1039,9 +1072,10 @@
 }
 
 .patient-package__open-icon {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .patient-package__bottom-bar {
@@ -1308,6 +1342,33 @@
   justify-content: flex-end;
 }
 
+.patient-address__field-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  flex: 0 0 auto;
+  align-self: stretch;
+  box-sizing: border-box;
+}
+
+.patient-address__field-wrap--half {
+  flex: 1;
+  min-width: 0;
+}
+
+.patient-address__field-error {
+  margin: 0;
+  padding: 0 2px;
+  color: #ef4444;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 14px;
+  letter-spacing: 0.02em;
+}
+
 .patient-address__field {
   position: relative;
   width: 100%;
@@ -1329,6 +1390,20 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.05);
   box-shadow: 0 0 10px 0 rgba(144, 223, 158, 0.3);
+}
+
+.patient-address__field.is-error {
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.85);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 10px 0 rgba(255, 0, 0, 0.3);
+}
+
+.patient-address__field.is-focused.is-error {
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.85);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 10px 0 rgba(255, 0, 0, 0.3);
 }
 
 .patient-address__field--half {

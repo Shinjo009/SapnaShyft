@@ -1,5 +1,5 @@
 import './App.css';
-import { useState, useEffect, useRef, Suspense, lazy, useCallback } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy, useCallback, useMemo } from 'react';
 import SplashScreen from './pages/SplashScreen';
 import LoginPage from './pages/LoginPage';
 // Previous Super Club v1 (swipe + results + storage) — retired; Superclub2 only.
@@ -17,9 +17,12 @@ import {
   invalidateNutritionLogQuestionnaireDraftCache,
   hasNutritionLogQuestionnaireDraft,
   hasFamilyHistoryQuestionnaireDraft,
+  markFitprintGapQuestionnaireSubmitted,
 } from './services/questionnaireService';
 import {
   fetchLatestAssessmentReport,
+  fetchLatestHealthSpanIndex,
+  getHealthSpanIndexSourceStatus,
   getLatestAssessmentIdsCached,
   clearReportRequestCache,
   clearStoredLatestAssessmentId,
@@ -44,6 +47,7 @@ import {
   hasRenderableOverviewData,
   HOME_PRELOAD_COMPLETE_KEY,
 } from './utils/homeOverviewPreload';
+import { isFitprintGapQuestionnaireFullyComplete } from './utils/fitprintGapCatchupCompletion';
 import {
   clearSuperclubPlaylistLock,
   persistSuperclubPlaylistLock,
@@ -74,6 +78,7 @@ const FAQPage = lazy(() => import('./pages/FAQPage'));
 const TermsConditionsPage = lazy(() => import('./pages/TermsConditionsPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const HealthAssessmentPage = lazy(() => import('./pages/HealthAssessmentPage'));
+const QuestionnaireNullCatchupPage = lazy(() => import('./pages/QuestionnaireNullCatchupPage/QuestionnaireNullCatchupPage'));
 const QuestionnaireBlankPage = lazy(() => import('./pages/QuestionnaireBlankPage'));
 const BloodMarkersPage = lazy(() => import('./pages/BloodMarkersPage/BloodMarkersPage'));
 const PackagesPage = lazy(() => import('./pages/PackagesPage'));
@@ -163,6 +168,30 @@ const resolveOverviewPayload = (payload) => {
   return payload;
 };
 
+const resolvePositiveWinsPayload = (overview) => {
+  if (!overview || typeof overview !== 'object') {
+    return null;
+  }
+
+  if (overview.positive_wins && typeof overview.positive_wins === 'object') {
+    return overview.positive_wins;
+  }
+
+  const hasTopLevelPositiveWinsFields = Object.prototype.hasOwnProperty.call(overview, 'healthy_habits')
+    || Object.prototype.hasOwnProperty.call(overview, 'healthy_profiles')
+    || Object.prototype.hasOwnProperty.call(overview, 'low_risk');
+
+  if (!hasTopLevelPositiveWinsFields) {
+    return null;
+  }
+
+  return {
+    healthy_habits: Array.isArray(overview.healthy_habits) ? overview.healthy_habits : [],
+    healthy_profiles: Array.isArray(overview.healthy_profiles) ? overview.healthy_profiles : [],
+    low_risk: Array.isArray(overview.low_risk) ? overview.low_risk : [],
+  };
+};
+
 const deriveEmployerOrganizerName = (profile) => {
   const raw = profile?.referred_by
     || profile?.organization_name
@@ -198,6 +227,7 @@ function App() {
   const [customPackageCard, setCustomPackageCard] = useState(null);
   const [pendingCustomPackagePayload, setPendingCustomPackagePayload] = useState(null);
   const [selectedPackageCard, setSelectedPackageCard] = useState(null);
+  const [bloodMarkerDetailFromHome, setBloodMarkerDetailFromHome] = useState(null);
   const [canSwipeBack, setCanSwipeBack] = useState(false);
   const [preloadedHomeData, setPreloadedHomeData] = useState(null);
   const [forceHomeApiRefresh, setForceHomeApiRefresh] = useState(false);
@@ -206,8 +236,20 @@ function App() {
   //   setSuperClubLikedSportIds(Array.isArray(likedIds) ? likedIds : []);
   //   setCurrentPage('super-club-2');
   // }, []);
+  const handleNavigateToBloodMarkerDetail = useCallback((row) => {
+    setBloodMarkerDetailFromHome(row);
+    setCurrentPage('blood-markers');
+  }, []);
+  const bloodMarkersPageDetailProps = useMemo(
+    () => ({
+      initialDetailMarker: bloodMarkerDetailFromHome,
+      onInitialDetailConsumed: () => setBloodMarkerDetailFromHome(null),
+    }),
+    [bloodMarkerDetailFromHome],
+  );
   const [, setIsB2bQuestionnaireFlow] = useState(false);
   const [healthAssessmentBackPage, setHealthAssessmentBackPage] = useState('home');
+  const [nullCatchupAssessmentInstanceId, setNullCatchupAssessmentInstanceId] = useState(null);
   const [superclubPlaylistPayload, setSuperclubPlaylistPayload] = useState(null);
   // const [superClubOnboardingDone, setSuperClubOnboardingDone] = useState(() =>
   //   isSuperClubOnboardingComplete(),
@@ -224,6 +266,8 @@ function App() {
     lastX: 0,
     lastY: 0,
   });
+  const hasInitializedBrowserHistoryRef = useRef(false);
+  const skipBrowserHistoryPushRef = useRef(false);
 
   const applyLockedLanding = useCallback((targetPage, mode = 'default-auth') => {
     const next = resolvePageWithSuperclubLock(targetPage, mode);
@@ -248,7 +292,7 @@ function App() {
     setCurrentPage('super-club-early-access');
   }, []);
 
-  const isSwipeBackAllowedPage = (page) => !SWIPE_BACK_BLOCKED_PAGES.has(page);
+  const isSwipeBackAllowedPage = useCallback((page) => !SWIPE_BACK_BLOCKED_PAGES.has(page), []);
 
   useEffect(() => {
     if (appScrollRef.current) {
@@ -258,6 +302,28 @@ function App() {
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.history) {
+      return;
+    }
+
+    const state = { appPage: currentPage };
+
+    if (!hasInitializedBrowserHistoryRef.current) {
+      window.history.replaceState(state, '', window.location.href);
+      hasInitializedBrowserHistoryRef.current = true;
+      return;
+    }
+
+    if (skipBrowserHistoryPushRef.current) {
+      skipBrowserHistoryPushRef.current = false;
+      window.history.replaceState(state, '', window.location.href);
+      return;
+    }
+
+    window.history.pushState(state, '', window.location.href);
   }, [currentPage]);
 
   useEffect(() => {
@@ -273,7 +339,7 @@ function App() {
     previousPageRef.current = currentPage;
 
     setCanSwipeBack(isSwipeBackAllowedPage(currentPage) && pageHistoryRef.current.length > 0);
-  }, [currentPage]);
+  }, [currentPage, isSwipeBackAllowedPage]);
 
   useEffect(() => {
     if (currentPage !== 'home' || !forceHomeApiRefresh) {
@@ -289,7 +355,7 @@ function App() {
     };
   }, [currentPage, forceHomeApiRefresh]);
 
-  const goBackBySwipe = () => {
+  const goBackBySwipe = useCallback(() => {
     if (!isSwipeBackAllowedPage(currentPage)) {
       return false;
     }
@@ -306,7 +372,7 @@ function App() {
     }
 
     return false;
-  };
+  }, [currentPage, isSwipeBackAllowedPage]);
 
   const handleEdgeSwipeStart = (event) => {
     if (!canSwipeBack) {
@@ -376,6 +442,25 @@ function App() {
   const handleEdgeSwipeCancel = () => {
     edgeSwipeStateRef.current.tracking = false;
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleBrowserBack = () => {
+      const handledInApp = goBackBySwipe();
+
+      if (handledInApp) {
+        skipBrowserHistoryPushRef.current = true;
+      }
+    };
+
+    window.addEventListener('popstate', handleBrowserBack);
+    return () => {
+      window.removeEventListener('popstate', handleBrowserBack);
+    };
+  }, [goBackBySwipe]);
 
   const getProgressFromCategories = (categories) => {
     let completedCount = 0;
@@ -592,6 +677,15 @@ function App() {
     setIsB2bQuestionnaireFlow(true);
     initializeQuestionnaire();
   };
+
+  const handleOpenFitprintGapQuestionnaire = useCallback((assessmentInstanceId) => {
+    const id = Number(assessmentInstanceId);
+    if (!Number.isFinite(id) || id <= 0) {
+      return;
+    }
+    setNullCatchupAssessmentInstanceId(id);
+    setCurrentPage('questionnaire-null-catchup');
+  }, []);
 
   useEffect(() => {
     const trySessionRestore = async () => {
@@ -873,30 +967,81 @@ function App() {
   const preloadHomeScreenData = async () => {
     prefetchRouteChunk('home');
     void peekMyAssessmentsRowsCached(0).catch(() => {});
+    const healthSpanPromise = fetchLatestHealthSpanIndex({ includeDetails: false, ttlMs: 45000 })
+      .then((result) => result?.scores || null)
+      .catch(() => null);
+
+    const fitprintPreloadPromise = (async () => {
+      try {
+        const sourceStatus = await getHealthSpanIndexSourceStatus({ ttlMs: 45000 });
+        if (sourceStatus.status !== 'missing_fitprint') {
+          return {};
+        }
+        const basicProId = Number(sourceStatus.basicOrProAssessmentId);
+        const normalizedId = Number.isFinite(basicProId) && basicProId > 0 ? basicProId : null;
+        let gapQuestionnaireComplete = false;
+        if (normalizedId != null) {
+          gapQuestionnaireComplete = await isFitprintGapQuestionnaireFullyComplete(normalizedId);
+        }
+        return {
+          fitprintGapLockPreloaded: true,
+          healthSpanLockedNoFitprint: true,
+          healthSpanGapBasicProAssessmentId: normalizedId,
+          fitprintGapQCompleteFromServer: Boolean(gapQuestionnaireComplete),
+        };
+      } catch {
+        return {};
+      }
+    })();
+
+    const mergePreloadedHomePayload = (partial, healthSpanScores, fitprintExtras) => {
+      const spanScores = fitprintExtras.fitprintGapLockPreloaded ? null : (partial.healthSpanScores ?? healthSpanScores);
+      return {
+        ...partial,
+        ...fitprintExtras,
+        healthSpanScores: spanScores,
+      };
+    };
+
     try {
       const { response } = await fetchLatestAssessmentReport(
         (assessmentId) => `/reports/${assessmentId}/overview`
       );
       const overview = resolveOverviewPayload(response);
+      const [healthSpanScores, fitprintExtras] = await Promise.all([
+        healthSpanPromise,
+        fitprintPreloadPromise,
+      ]);
 
       if (overview && typeof overview === 'object') {
         const metabolicAge = Number(overview?.metabolic_age);
         const metabolicAgeDisplay = Number.isFinite(metabolicAge) ? String(Math.round(metabolicAge)) : '-';
 
-        setPreloadedHomeData({
+        setPreloadedHomeData(mergePreloadedHomePayload({
           [HOME_PRELOAD_COMPLETE_KEY]: true,
           metabolicAgeValue: metabolicAgeDisplay,
-          positiveWinsData: overview?.positive_wins && typeof overview.positive_wins === 'object' ? overview.positive_wins : null,
+          positiveWinsData: resolvePositiveWinsPayload(overview),
           riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
-        });
+          healthSpanScores,
+        }, healthSpanScores, fitprintExtras));
         return true;
       }
 
-      setPreloadedHomeData(createEmptyPreloadedHome());
+      setPreloadedHomeData(mergePreloadedHomePayload({
+        ...createEmptyPreloadedHome(),
+        healthSpanScores,
+      }, healthSpanScores, fitprintExtras));
       return false;
     } catch (err) {
       console.error('Failed to preload home screen data:', err);
-      setPreloadedHomeData(createEmptyPreloadedHome());
+      const [healthSpanScores, fitprintExtras] = await Promise.all([
+        healthSpanPromise,
+        fitprintPreloadPromise,
+      ]);
+      setPreloadedHomeData(mergePreloadedHomePayload({
+        ...createEmptyPreloadedHome(),
+        healthSpanScores,
+      }, healthSpanScores, fitprintExtras));
       return false;
     }
   };
@@ -1152,7 +1297,7 @@ function App() {
       chips: selectedTests.length > 0 ? selectedTests.slice(0, 4) : ['General health', 'Progressive tests'],
       metrics: {
         parameters: String(Math.max(1, Number(payload.selectedParameters || 0))),
-        reportsIn: '24-48 hrs',
+        reportsIn: '48-72 hrs',
         fasting: '10-12 hrs',
       },
       pricing: {
@@ -1174,7 +1319,6 @@ function App() {
   const isTooltipEligibleHome = Boolean(tooltipTourAccountId != null)
     && hasRenderableOverviewData(preloadedHomeData);
   const canDirectInstallPwa = Boolean(deferredPrompt) && !isIosInstallFlow;
-
   const superclubPlaylistFlowLocked = readSuperclubPlaylistLock().locked;
 
   if (isBootstrappingSession) {
@@ -1343,10 +1487,12 @@ function App() {
             initializeQuestionnaire();
           }}
           onOpenB2bHealthAssessment={handleOpenB2bHealthAssessment}
+          onOpenFitprintGapQuestionnaire={handleOpenFitprintGapQuestionnaire}
           onNavigateToBloodMarkers={() => {
             console.log('Navigate to Blood Markers');
             setCurrentPage('blood-markers');
           }}
+          onNavigateToBloodMarkerDetail={handleNavigateToBloodMarkerDetail}
           onNavigateToPackages={() => {
             console.log('Navigate to Packages');
             setCurrentPage('packages');
@@ -1381,6 +1527,7 @@ function App() {
       {currentPage === 'super-club-early-access' && (
         <SuperclubEarlyAccessPage
           userName={userName}
+          initialPayload={superclubPlaylistPayload}
           onMenuClick={() => {
             setCurrentPage('profile');
           }}
@@ -1436,7 +1583,7 @@ function App() {
       {/* ===== Previous Super Club screens (retired — only Superclub2Page is active at `super-club`) =====
       Playlist (was same route id `super-club`):
       {currentPage === 'super-club' && (
-        <SuperClubPlaylistPage
+        <Superclub2Page
           userName={userName}
           onMenuClick={() => {
             setCurrentPage('profile');
@@ -1450,7 +1597,7 @@ function App() {
           onNavigateToPackages={() => {
             setCurrentPage('packages');
           }}
-          onJoinEarly={() => {
+          onJoinEarlyAccess={() => {
             setCurrentPage('super-club-swipe');
           }}
         />
@@ -1614,8 +1761,29 @@ function App() {
 
       {currentPage === 'blood-markers' && (
         <BloodMarkersPage
+          {...bloodMarkersPageDetailProps}
           onBack={() => {
             console.log('Back to Home');
+            setCurrentPage('home');
+          }}
+        />
+      )}
+
+      {currentPage === 'questionnaire-null-catchup' && Number(nullCatchupAssessmentInstanceId) > 0 && (
+        <QuestionnaireNullCatchupPage
+          assessmentInstanceId={nullCatchupAssessmentInstanceId}
+          onBack={() => {
+            setNullCatchupAssessmentInstanceId(null);
+            setForceHomeApiRefresh(true);
+            setCurrentPage('home');
+          }}
+          onDone={() => {
+            setNullCatchupAssessmentInstanceId(null);
+            markFitprintGapQuestionnaireSubmitted();
+            invalidateFamilyHistoryQuestionnaireDraftCache();
+            invalidateNutritionLogQuestionnaireDraftCache();
+            clearReportRequestCache();
+            setForceHomeApiRefresh(true);
             setCurrentPage('home');
           }}
         />

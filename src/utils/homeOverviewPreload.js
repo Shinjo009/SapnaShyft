@@ -20,5 +20,6 @@ export function createEmptyPreloadedHome() {
     metabolicAgeValue: '-',
     positiveWinsData: null,
     riskAnalysisData: [],
+    healthSpanScores: null,
   };
 }

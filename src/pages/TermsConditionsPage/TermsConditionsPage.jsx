@@ -2,6 +2,8 @@ import React from 'react';
 import infoIcon from '../../images/info-terms.svg';
 import eligibilityIcon from '../../images/Eligibility-terms.svg';
 import servicesIcon from '../../images/Services-terms.svg';
+import healthDisclaimerIcon from '../../images/health-disclaimer-terms.svg';
+import bookingsThirdPartyIcon from '../../images/bookings-third-party-terms.svg';
 import './TermsConditionsPage.css';
 
 const TermsConditionsPage = ({ onBack }) => {
@@ -82,6 +84,38 @@ const TermsConditionsPage = ({ onBack }) => {
               • Access to healthcare professionals when applicable
               <br />
               Super Shyft does not operate its own diagnostic laboratory and acts as a technology platform connecting users with certified healthcare service providers.
+            </p>
+          </section>
+
+          <section className="terms-page__card">
+            <div className="terms-page__card-header">
+              <img src={healthDisclaimerIcon} alt="" aria-hidden="true" className="terms-page__icon" />
+              <h2>Health Disclaimer &amp; User Responsibility</h2>
+            </div>
+
+            <p className="terms-page__body-text">
+              Supershyft provides health insights, reports, and recommendations for awareness, prevention, and wellness support only.
+              <br />
+              Our services do not replace professional medical advice, diagnosis, or treatment, and users should always consult qualified healthcare professionals for medical concerns or emergencies.
+              <br />
+              By using Supershyft, you agree to use the platform only for lawful personal purposes, maintain the security of your account credentials, and not misuse, disrupt, copy, or attempt unauthorized access to the platform or its services.
+            </p>
+          </section>
+
+          <section className="terms-page__card">
+            <div className="terms-page__card-header">
+              <img src={bookingsThirdPartyIcon} alt="" aria-hidden="true" className="terms-page__icon" />
+              <h2>Bookings, Third-Party Services &amp; Updates</h2>
+            </div>
+
+            <p className="terms-page__body-text">
+              Appointments, diagnostic bookings, and related services may be booked, rescheduled, or cancelled through approved Supershyft channels subject to availability and partner conditions.
+              <br />
+              Refunds, where applicable, will be processed according to the terms shown at the time of booking.
+              <br />
+              Supershyft works with trusted third-party providers such as laboratories, doctors, and service partners, and while we strive for quality, we are not liable for delays or issues caused by independent third parties.
+              <br />
+              We may update these Terms from time to time, and continued use of the platform means you accept the updated Terms.
             </p>
           </section>
         </div>

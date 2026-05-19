@@ -1,7 +1,11 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import Header from '../../components/HomePage/Header';
 import NavBar from '../../components/NavBar';
-import { buildPlaylistCardsFromSelection } from './superclubPlaylistFromSelection';
+import {
+  buildPlaylistCardsFromSelection,
+  pickPlaylistCardsForFan,
+} from './superclubPlaylistFromSelection';
+import { readSuperclubPlaylistLock } from '../../utils/superclubPlaylistLock';
 import line365 from '../../images/Superclub2/Line 365.svg';
 import line368 from '../../images/Superclub2/Line 368.svg';
 import line363 from '../../images/Superclub2/Line 363.svg';
@@ -48,7 +52,8 @@ function playlistFanTiles(cards, idSuffix, listItem) {
         key={`${slot}-${idSuffix}`}
         data-pc-slot={slot}
         data-pc-slab={idSuffix}
-        className={`superclub-pc__tile superclub-pc__tile--${shell}`}
+        data-pc-card={card.id}
+        className={`superclub-pc__tile superclub-pc__tile--${shell}${card.id === 'other' ? ' superclub-pc__tile--custom' : ''}`}
         style={{ left, top, zIndex: z }}
         role={listItem ? 'listitem' : undefined}
       >
@@ -62,7 +67,7 @@ function playlistFanTiles(cards, idSuffix, listItem) {
           <div className="superclub-pc__tile-grad-a" aria-hidden />
           <div className="superclub-pc__tile-grad-b" aria-hidden />
           <div className="superclub-pc__tile-body">
-            <p className="superclub-pc__tile-cat">{shell === 't5' ? 'Sport' : card.category}</p>
+            <p className="superclub-pc__tile-cat">{card.category}</p>
             <p className="superclub-pc__tile-title">{card.title}</p>
             <p className="superclub-pc__tile-sub">{card.subtitle}</p>
           </div>
@@ -92,7 +97,13 @@ export default function SuperclubPlaylistConfirmPage({
   onNavigateToSuperClub,
   onStayUpdated,
 }) {
-  const cards = useMemo(() => buildPlaylistCardsFromSelection(playlistPayload || {}), [playlistPayload]);
+  const cards = useMemo(() => {
+    const payload =
+      playlistPayload ||
+      (typeof window !== 'undefined' ? readSuperclubPlaylistLock().payload : null) ||
+      {};
+    return pickPlaylistCardsForFan(buildPlaylistCardsFromSelection(payload));
+  }, [playlistPayload]);
   const fanMarqueeRef = useRef(null);
   const fanTrackRef = useRef(null);
 
@@ -269,7 +280,7 @@ export default function SuperclubPlaylistConfirmPage({
 
             <div className="superclub-pc__cta-margin">
               <button type="button" className="superclub-pc__cta" onClick={handleStay}>
-                Stay Updated
+                Spot Reserved
               </button>
             </div>
           </div>
