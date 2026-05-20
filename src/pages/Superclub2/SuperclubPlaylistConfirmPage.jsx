@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Header from '../../components/HomePage/Header';
 import NavBar from '../../components/NavBar';
 import {
@@ -35,6 +35,11 @@ const SLOT_ORDER = FAN_SLOTS.map((s) => s.slot);
 
 const SLOT_LEFT_PX = Object.fromEntries(FAN_SLOTS.map((s) => [s.slot, s.left]));
 
+function buildScaledSlotLeftPx(lanePx) {
+  const scale = lanePx / FAN_MARQUEE_PERIOD_PX;
+  return Object.fromEntries(FAN_SLOTS.map(({ slot, left }) => [slot, left * scale]));
+}
+
 function cardForSlot(slotId, cards) {
   const idx = SLOT_ORDER.indexOf(slotId);
   if (idx < 0 || idx >= cards.length) return null;
@@ -50,9 +55,10 @@ function parseMarqueeDurationMs(cssValue) {
   return n * 1000;
 }
 
-function playlistFanTiles(cards, idSuffix, listItem) {
-  return FAN_SLOTS.map(({ slot, left, top, z, shell }) => {
+function playlistFanTiles(cards, idSuffix, listItem, slotLeftPx) {
+  return FAN_SLOTS.map(({ slot, top, z, shell }) => {
     const card = cardForSlot(slot, cards);
+    const left = slotLeftPx[slot] ?? 0;
     if (!card) return null;
     return (
       <article
@@ -112,6 +118,8 @@ export default function SuperclubPlaylistConfirmPage({
   }, [playlistPayload]);
   const fanMarqueeRef = useRef(null);
   const fanTrackRef = useRef(null);
+  const slotLeftPxRef = useRef(SLOT_LEFT_PX);
+  const [slotLeftPx, setSlotLeftPx] = useState(SLOT_LEFT_PX);
 
   useLayoutEffect(() => {
     const root = fanMarqueeRef.current;
@@ -123,20 +131,19 @@ export default function SuperclubPlaylistConfirmPage({
     track.getAnimations?.().forEach((a) => a.cancel());
     track.classList.remove('superclub-pc__fan-marquee-inner--css-fallback');
 
-    const lanePxFromCss = () => {
-      const raw = getComputedStyle(root).getPropertyValue('--pc-fan-w').trim();
-      const n = parseFloat(raw);
-      return Number.isFinite(n) && n > 0 ? n : FAN_MARQUEE_PERIOD_PX;
-    };
-
     let rafId = 0;
     let alive = true;
-    let lanePx = lanePxFromCss();
+    let lanePx = FAN_MARQUEE_PERIOD_PX;
     let durationMs = parseMarqueeDurationMs(getComputedStyle(root).getPropertyValue('--pc-marquee-duration'));
     const t0 = performance.now();
 
     const syncMetrics = () => {
-      lanePx = lanePxFromCss();
+      const viewW = root.clientWidth;
+      lanePx = viewW > 0 ? viewW : FAN_MARQUEE_PERIOD_PX;
+      root.style.setProperty('--pc-fan-w', `${lanePx}px`);
+      const scaled = buildScaledSlotLeftPx(lanePx);
+      slotLeftPxRef.current = scaled;
+      setSlotLeftPx(scaled);
       durationMs = parseMarqueeDurationMs(getComputedStyle(root).getPropertyValue('--pc-marquee-duration'));
     };
 
@@ -163,7 +170,7 @@ export default function SuperclubPlaylistConfirmPage({
         const slot = art.getAttribute('data-pc-slot');
         const slab = art.getAttribute('data-pc-slab');
         const slabOffset = slab === 'b' ? lanePx : 0;
-        const leftPx = slot ? SLOT_LEFT_PX[slot] ?? 0 : 0;
+        const leftPx = slot ? slotLeftPxRef.current[slot] ?? 0 : 0;
         const sAlong = leftPx + slabOffset + xTrack;
         const phase = k * sAlong + TWO_PI * WAVE_TIME_HZ * tSec;
         const dy = WAVE_AMP_PX * Math.sin(phase);
@@ -246,17 +253,14 @@ export default function SuperclubPlaylistConfirmPage({
                   <div
                     ref={fanMarqueeRef}
                     className="superclub-pc__fan superclub-pc__fan--marquee"
-                    style={{
-                      '--pc-fan-w': `${FAN_MARQUEE_PERIOD_PX}px`,
-                      '--pc-fan-strip': `${FAN_VISIBLE_STRIP_PX}px`,
-                    }}
+                    style={{ '--pc-fan-strip': `${FAN_VISIBLE_STRIP_PX}px` }}
                   >
                     <div ref={fanTrackRef} className="superclub-pc__fan-marquee-inner">
                       <div className="superclub-pc__fan-slab" role="list" aria-label="Your selected sports">
-                        {playlistFanTiles(cards, 'a', true)}
+                        {playlistFanTiles(cards, 'a', true, slotLeftPx)}
                       </div>
                       <div className="superclub-pc__fan-slab" aria-hidden="true">
-                        {playlistFanTiles(cards, 'b', false)}
+                        {playlistFanTiles(cards, 'b', false, slotLeftPx)}
                       </div>
                     </div>
                   </div>
