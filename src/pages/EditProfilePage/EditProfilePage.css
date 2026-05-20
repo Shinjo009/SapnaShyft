@@ -38,7 +38,7 @@
   margin: 0;
   color: #fff;
   text-align: center;
-  font-family: Lato;
+  font-family: Lato, sans-serif;
   font-size: 20px;
   font-style: normal;
   font-weight: 700;
@@ -55,12 +55,50 @@
   width: 110px;
   height: 110px;
   margin: 0 auto;
+  position: relative;
+}
+
+.edit-profile-page__avatar-ring {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid rgba(65, 171, 153, 0.8);
+  box-shadow: 0 0 24px rgba(65, 171, 153, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .edit-profile-page__avatar {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+}
+
+.edit-profile-page__avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.edit-profile-page__avatar-edit {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #296359 0%, #41ab99 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
 }
 
 .edit-profile-page__form {
@@ -90,13 +128,15 @@
 
 .edit-profile-page__section-label {
   margin: 0;
-  color: #ccc;
-  font-family: Lato;
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #999;
+  font-family: Lato, sans-serif;
+  font-size: 12px;
   font-style: normal;
   font-weight: 400;
-  line-height: normal;
-  letter-spacing: 0.07px;
+  line-height: 16px;
 }
 
 .edit-profile-page__gender-grid {
@@ -110,12 +150,12 @@
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
   color: #9a9a9a;
-  font-family: Lato;
+  font-family: Lato, sans-serif;
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: 20px;
-  height: 40px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -129,9 +169,33 @@
   color: #fff;
 }
 
+.edit-profile-page__choice:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .edit-profile-page__gender-icon {
-  font-size: 13px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-profile-page__divider {
+  width: 100%;
+  height: 0;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin: 4px 0 0;
+}
+
+.edit-profile-page__address-title {
+  margin: 0;
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
 }
 
 .edit-profile-page__submit {
@@ -149,7 +213,7 @@
   box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
   color: #fff;
   text-align: center;
-  font-family: Lato;
+  font-family: Lato, sans-serif;
   font-size: 14px;
   font-style: normal;
   font-weight: 600;
@@ -170,7 +234,7 @@
 
 .edit-profile-page__status {
   margin: -6px 0 0;
-  font-family: Lato;
+  font-family: Lato, sans-serif;
   font-size: 12px;
   line-height: 1.4;
 }

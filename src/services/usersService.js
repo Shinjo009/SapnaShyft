@@ -120,7 +120,8 @@ export const buildCreateSubProfilePayload = (formData) => ({
   gender: formData.gender.trim().toLowerCase(),
   relationship: formData.relation.trim().toLowerCase(),
   phone: formData.phone.trim() || null,
-  city: formData.city.trim() || null,
+  email: formData.email?.trim() || null,
+  city: formData.city?.trim() || null,
 });
 
 export const createMySubProfile = (formData) => {
