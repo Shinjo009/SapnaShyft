@@ -58,9 +58,6 @@ import {
   readSuperclubPlaylistLock,
   resolvePageWithSuperclubLock,
 } from './utils/superclubPlaylistLock';
-import { setBootstrapLoading } from './loading/globalLoading';
-import { GlobalPageLoader } from './components/PageLoader';
-
 // Same asset as Profile logout modal (`/public/BG-1.png`).
 const questionnaireSuccessModalBg = `${process.env.PUBLIC_URL || ''}/BG-1.png`;
 
@@ -433,10 +430,6 @@ function App() {
 
     window.history.pushState(state, '', url);
   }, [currentPage]);
-
-  useEffect(() => {
-    setBootstrapLoading(isBootstrappingSession);
-  }, [isBootstrappingSession]);
 
   useEffect(() => {
     trackAppScreen(currentPage);
@@ -1664,9 +1657,7 @@ function App() {
   const canDirectInstallPwa = Boolean(deferredPrompt) && !isIosInstallFlow;
   if (isBootstrappingSession) {
     return (
-      <div className="app-root app-root--bootstrapping" aria-busy="true" aria-label="Loading application">
-        <GlobalPageLoader />
-      </div>
+      <div className="app-root app-root--bootstrapping" aria-busy="true" aria-label="Loading application" />
     );
   }
 
