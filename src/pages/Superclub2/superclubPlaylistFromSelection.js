@@ -71,7 +71,7 @@ function sportCardFromId(id, skinIndex, userSelected) {
 export function buildPlaylistCardsFromSelection(payload) {
   const selectedSportIds = Array.isArray(payload?.sportIds) ? payload.sportIds : [];
   const otherNote = String(payload?.otherNote || '').trim();
-  const includeOther = Boolean(payload?.otherSelected) || otherNote.length > 0;
+  const includeOther = otherNote.length > 0;
 
   const userSportIds = SPORT_CHIPS.map((c) => c.id).filter((id) => selectedSportIds.includes(id));
   const userPickCount = userSportIds.length + (includeOther ? 1 : 0);

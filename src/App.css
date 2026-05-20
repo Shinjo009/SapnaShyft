@@ -15,7 +15,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  overscroll-behavior-x: none;
+  overscroll-behavior: none;
   isolation: isolate;
 }
 
@@ -44,12 +44,37 @@
   }
 }
 
-html.ss-pwa-home-guard,
-html.ss-pwa-home-guard body {
-  overscroll-behavior-x: none;
-  touch-action: pan-y pinch-zoom;
+.app-root--swipe-back-locked,
+.app-root--swipe-back-locked .app-scroll {
+  overscroll-behavior: none;
 }
 
+html.ss-pwa-home-guard,
+html.ss-pwa-home-guard body {
+  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  touch-action: pan-y pinch-zoom;
+  -webkit-overflow-scrolling: auto;
+}
+
+html.app-swipe-back-locked,
+html.app-swipe-back-locked body {
+  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  touch-action: pan-y pinch-zoom;
+  -webkit-overflow-scrolling: auto;
+}
+
+@media (display-mode: standalone) {
+  html.app-swipe-back-locked,
+  html.app-swipe-back-locked body,
+  .app-root--swipe-back-locked,
+  .app-root--swipe-back-locked .app-scroll {
+    overscroll-behavior: none;
+    overscroll-behavior-x: none;
+    touch-action: pan-y pinch-zoom;
+  }
+}
 .app-root--bootstrapping {
   background: #000;
 }

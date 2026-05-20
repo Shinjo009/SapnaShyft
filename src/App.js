@@ -49,7 +49,6 @@ import {
 import {
   installPwaHomeBackGuard,
   isStandalonePwa,
-  seedPwaHomeHistoryTrap,
 } from './utils/pwaHomeBackGuard';
 import {
   createEmptyPreloadedHome,
@@ -63,9 +62,6 @@ import {
   readSuperclubPlaylistLock,
   resolvePageWithSuperclubLock,
 } from './utils/superclubPlaylistLock';
-import { setBootstrapLoading } from './loading/globalLoading';
-import { GlobalPageLoader } from './components/PageLoader';
-
 // Same asset as Profile logout modal (`/public/BG-1.png`).
 const questionnaireSuccessModalBg = `${process.env.PUBLIC_URL || ''}/BG-1.png`;
 
@@ -132,8 +128,55 @@ const getInitialAppPage = () => {
 const EDGE_SWIPE_TRIGGER_PX = 70;
 const EDGE_SWIPE_VERTICAL_TOLERANCE_PX = 80;
 const EDGE_SWIPE_START_ZONE_PX = 28;
-/** Wider left-edge zone on blocked pages (e.g. home) to intercept native back-swipe. */
-const EDGE_SWIPE_BLOCK_ZONE_PX = 80;
+/** Wider zone used to block the native OS/browser back-swipe peek on locked screens (e.g. home). */
+const EDGE_SWIPE_BLOCK_ZONE_PX = 48;
+/** Bottom-nav roots: switch via replaceState so iOS PWA never keeps a back stack entry to peek. */
+const TAB_ROOT_PAGES = new Set(['home', 'packages', 'doctors', 'super-club']);
+
+const buildPageHistoryState = (page) => ({
+  appPage: page,
+  ...(page === 'home' ? { homeTrap: true } : {}),
+});
+
+const buildPageHistoryUrl = (page) => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const { origin, pathname, search } = window.location;
+  const base = `${origin}${pathname || '/'}${search || ''}`;
+
+  if (page === 'home') {
+    return base;
+  }
+
+  return `${base}#${encodeURIComponent(page)}`;
+};
+
+const isTabRootPage = (page) => TAB_ROOT_PAGES.has(page);
+
+const getEdgeSwipeBlockZonePx = (page) => {
+  if (typeof window === 'undefined' || page !== 'home') {
+    return EDGE_SWIPE_BLOCK_ZONE_PX;
+  }
+
+  return Math.min(
+    Math.max(EDGE_SWIPE_BLOCK_ZONE_PX, Math.round(window.innerWidth * 0.28)),
+    140,
+  );
+};
+
+const replaceBrowserHistoryForPage = (page) => {
+  if (typeof window === 'undefined' || !window.history) {
+    return;
+  }
+
+  window.history.replaceState(
+    buildPageHistoryState(page),
+    '',
+    buildPageHistoryUrl(page),
+  );
+};
 const normalizeRedirectTarget = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
   if (!normalized) {
@@ -226,6 +269,8 @@ const deriveEmployerOrganizerName = (profile) => {
 
 function App() {
   const [currentPage, setCurrentPage] = useState(getInitialAppPage);
+  const currentPageRef = useRef(currentPage);
+  currentPageRef.current = currentPage;
   const [isBootstrappingSession, setIsBootstrappingSession] = useState(
     () => getInitialAppPage() === SESSION_RESTORE_PAGE,
   );
@@ -336,19 +381,10 @@ function App() {
   const isSwipeBackAllowedPage = useCallback((page) => !SWIPE_BACK_BLOCKED_PAGES.has(page), []);
 
   const pinHomeBrowserHistory = useCallback(() => {
-    if (typeof window === 'undefined' || !window.history) {
-      return;
-    }
-
-    if (isStandalonePwa()) {
-      seedPwaHomeHistoryTrap();
-      return;
-    }
-
-    const state = { appPage: 'home' };
-    const url = window.location.href;
-    window.history.replaceState(state, '', url);
-    window.history.pushState(state, '', url);
+    replaceBrowserHistoryForPage('home');
+  }, []);
+  const navigateToHome = useCallback(() => {
+    setCurrentPage('home');
   }, []);
 
   useEffect(() => {
@@ -366,104 +402,37 @@ function App() {
       return;
     }
 
-    const state = { appPage: currentPage };
+    const fromPage = previousPageRef.current;
+    const state = buildPageHistoryState(currentPage);
+    const url = buildPageHistoryUrl(currentPage);
 
     if (!hasInitializedBrowserHistoryRef.current) {
-      window.history.replaceState(state, '', window.location.href);
+      window.history.replaceState(state, '', url);
       hasInitializedBrowserHistoryRef.current = true;
       return;
     }
 
     if (skipBrowserHistoryPushRef.current) {
       skipBrowserHistoryPushRef.current = false;
-      window.history.replaceState(state, '', window.location.href);
+      window.history.replaceState(state, '', url);
+      return;
+    }
+
+    // Bottom-nav tabs replace in place — never push packages/home onto a back stack.
+    if (isTabRootPage(currentPage) && fromPage && isTabRootPage(fromPage)) {
+      window.history.replaceState(state, '', url);
       return;
     }
 
     // Root/auth screens replace the current history entry instead of pushing,
     // so iOS edge-swipe cannot walk back through splash → login → health-insights.
     if (SWIPE_BACK_BLOCKED_PAGES.has(currentPage)) {
-      window.history.replaceState(state, '', window.location.href);
-      if (currentPage === 'home') {
-        window.history.pushState(state, '', window.location.href);
-      }
+      window.history.replaceState(state, '', url);
       return;
     }
 
-    window.history.pushState(state, '', window.location.href);
+    window.history.pushState(state, '', url);
   }, [currentPage]);
-
-  useEffect(() => {
-    setBootstrapLoading(isBootstrappingSession);
-  }, [isBootstrappingSession]);
-
-  useEffect(() => {
-    if (currentPage !== 'home') {
-      return undefined;
-    }
-
-    pinHomeBrowserHistory();
-
-    if (isStandalonePwa()) {
-      return installPwaHomeBackGuard();
-    }
-
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
-
-    const edgeState = {
-      tracking: false,
-      startX: 0,
-      startY: 0,
-    };
-
-    const onTouchStart = (event) => {
-      const touch = event.touches?.[0];
-      if (!touch || touch.clientX > EDGE_SWIPE_BLOCK_ZONE_PX) {
-        edgeState.tracking = false;
-        return;
-      }
-      edgeState.tracking = true;
-      edgeState.startX = touch.clientX;
-      edgeState.startY = touch.clientY;
-    };
-
-    const onTouchMove = (event) => {
-      if (!edgeState.tracking) {
-        return;
-      }
-      const touch = event.touches?.[0];
-      if (!touch) {
-        return;
-      }
-      const deltaX = touch.clientX - edgeState.startX;
-      const deltaY = touch.clientY - edgeState.startY;
-      if (Math.abs(deltaY) > EDGE_SWIPE_VERTICAL_TOLERANCE_PX || deltaX < -10) {
-        edgeState.tracking = false;
-        return;
-      }
-      if (deltaX > 0) {
-        event.preventDefault();
-      }
-    };
-
-    const onTouchEnd = () => {
-      edgeState.tracking = false;
-    };
-
-    document.addEventListener('touchstart', onTouchStart, { passive: true });
-    document.addEventListener('touchmove', onTouchMove, { passive: false });
-    document.addEventListener('touchend', onTouchEnd, { passive: true });
-    document.addEventListener('touchcancel', onTouchEnd, { passive: true });
-
-    return () => {
-      document.removeEventListener('touchstart', onTouchStart);
-      document.removeEventListener('touchmove', onTouchMove);
-      document.removeEventListener('touchend', onTouchEnd);
-      document.removeEventListener('touchcancel', onTouchEnd);
-    };
-  }, [currentPage, pinHomeBrowserHistory]);
 
   useEffect(() => {
     trackAppScreen(currentPage);
@@ -528,7 +497,10 @@ function App() {
       return;
     }
 
-    if (!isSwipeBackAllowedPage(currentPage) && touch.clientX <= EDGE_SWIPE_BLOCK_ZONE_PX) {
+    if (
+      currentPage === 'home'
+      || (!isSwipeBackAllowedPage(currentPage) && touch.clientX <= getEdgeSwipeBlockZonePx(currentPage))
+    ) {
       edgeSwipeStateRef.current = {
         tracking: false,
         blockNativeBackGesture: true,
@@ -636,19 +608,17 @@ function App() {
     }
 
     const handleBrowserBack = () => {
-      if (currentPage === 'home') {
+      const page = currentPageRef.current;
+
+      if (page === 'home') {
         skipBrowserHistoryPushRef.current = true;
-        if (isStandalonePwa()) {
-          seedPwaHomeHistoryTrap();
-        } else {
-          pinHomeBrowserHistory();
-        }
+        replaceBrowserHistoryForPage('home');
         return;
       }
 
-      if (!isSwipeBackAllowedPage(currentPage)) {
+      if (!isSwipeBackAllowedPage(page)) {
         skipBrowserHistoryPushRef.current = true;
-        window.history.replaceState({ appPage: currentPage }, '', window.location.href);
+        replaceBrowserHistoryForPage(page);
         return;
       }
 
@@ -660,14 +630,168 @@ function App() {
       }
 
       skipBrowserHistoryPushRef.current = true;
-      window.history.replaceState({ appPage: currentPage }, '', window.location.href);
+      replaceBrowserHistoryForPage(page);
     };
 
-    window.addEventListener('popstate', handleBrowserBack);
+    window.addEventListener('popstate', handleBrowserBack, true);
     return () => {
-      window.removeEventListener('popstate', handleBrowserBack);
+      window.removeEventListener('popstate', handleBrowserBack, true);
     };
-  }, [goBackBySwipe, currentPage, isSwipeBackAllowedPage, pinHomeBrowserHistory]);
+  }, [goBackBySwipe, isSwipeBackAllowedPage]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handlePageShow = (event) => {
+      if (!event.persisted || currentPageRef.current !== 'home') {
+        return;
+      }
+
+      skipBrowserHistoryPushRef.current = true;
+      replaceBrowserHistoryForPage('home');
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (currentPage !== 'home') {
+      document.documentElement.classList.remove('app-swipe-back-locked');
+      return undefined;
+    }
+
+    document.documentElement.classList.add('app-swipe-back-locked');
+    pinHomeBrowserHistory();
+
+    if (typeof window !== 'undefined' && window.location.hash) {
+      replaceBrowserHistoryForPage('home');
+    }
+
+    const removePwaGuard = isStandalonePwa() ? installPwaHomeBackGuard() : null;
+
+    return () => {
+      document.documentElement.classList.remove('app-swipe-back-locked');
+      if (removePwaGuard) {
+        removePwaGuard();
+      }
+    };
+  }, [currentPage, pinHomeBrowserHistory]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleHashChange = () => {
+      if (currentPageRef.current !== 'home') {
+        return;
+      }
+
+      replaceBrowserHistoryForPage('home');
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return undefined;
+    }
+
+    const onTouchStartCapture = (event) => {
+      const touch = event.touches?.[0];
+      if (!touch) {
+        return;
+      }
+
+      const page = currentPageRef.current;
+      const swipeState = edgeSwipeStateRef.current;
+
+      swipeState.startX = touch.clientX;
+      swipeState.startY = touch.clientY;
+      swipeState.lastX = touch.clientX;
+      swipeState.lastY = touch.clientY;
+
+      if (page === 'home') {
+        swipeState.blockNativeBackGesture = true;
+        swipeState.tracking = false;
+        return;
+      }
+
+      if (!SWIPE_BACK_BLOCKED_PAGES.has(page)) {
+        return;
+      }
+
+      const blockZonePx = getEdgeSwipeBlockZonePx(page);
+
+      if (touch.clientX <= blockZonePx) {
+        swipeState.blockNativeBackGesture = true;
+        swipeState.tracking = false;
+      }
+    };
+
+    const onTouchMoveCapture = (event) => {
+      const page = currentPageRef.current;
+      const swipeState = edgeSwipeStateRef.current;
+      const touch = event.touches?.[0];
+
+      if (!touch) {
+        return;
+      }
+
+      if (page === 'home') {
+        swipeState.blockNativeBackGesture = true;
+      } else {
+        const blockZonePx = getEdgeSwipeBlockZonePx(page);
+
+        if (SWIPE_BACK_BLOCKED_PAGES.has(page) && touch.clientX <= blockZonePx) {
+          swipeState.blockNativeBackGesture = true;
+          swipeState.tracking = false;
+        }
+      }
+
+      if (!swipeState.blockNativeBackGesture) {
+        return;
+      }
+
+      swipeState.lastX = touch.clientX;
+      swipeState.lastY = touch.clientY;
+
+      const deltaX = swipeState.lastX - swipeState.startX;
+      const deltaY = swipeState.lastY - swipeState.startY;
+
+      if (deltaX >= 0 && Math.abs(deltaY) <= EDGE_SWIPE_VERTICAL_TOLERANCE_PX) {
+        event.preventDefault();
+      }
+    };
+
+    const onTouchEndCapture = () => {
+      edgeSwipeStateRef.current.blockNativeBackGesture = false;
+      edgeSwipeStateRef.current.tracking = false;
+    };
+
+    document.addEventListener('touchstart', onTouchStartCapture, { capture: true, passive: true });
+    document.addEventListener('touchmove', onTouchMoveCapture, { capture: true, passive: false });
+    document.addEventListener('touchend', onTouchEndCapture, { capture: true, passive: true });
+    document.addEventListener('touchcancel', onTouchEndCapture, { capture: true, passive: true });
+
+    return () => {
+      document.removeEventListener('touchstart', onTouchStartCapture, { capture: true });
+      document.removeEventListener('touchmove', onTouchMoveCapture, { capture: true });
+      document.removeEventListener('touchend', onTouchEndCapture, { capture: true });
+      document.removeEventListener('touchcancel', onTouchEndCapture, { capture: true });
+    };
+  }, []);
+
+  const isSwipeBackLockedPage = SWIPE_BACK_BLOCKED_PAGES.has(currentPage);
 
   const getProgressFromCategories = (categories) => {
     let completedCount = 0;
@@ -1162,7 +1286,7 @@ function App() {
 
   const handleHealthInsightsGetStarted = async () => {
     await preloadHomeScreenData();
-    setCurrentPage('home');
+    navigateToHome();
   };
 
   const handleQuestionnaireSuccessOk = () => {
@@ -1175,8 +1299,8 @@ function App() {
     setQuestionnaireSuccessMessage(null);
     invalidateNutritionLogQuestionnaireDraftCache();
     invalidateFamilyHistoryQuestionnaireDraftCache();
-    setCurrentPage('home');
     setForceHomeApiRefresh(true);
+    navigateToHome();
   };
 
   const preloadHomeScreenData = async () => {
@@ -1533,15 +1657,13 @@ function App() {
   const canDirectInstallPwa = Boolean(deferredPrompt) && !isIosInstallFlow;
   if (isBootstrappingSession) {
     return (
-      <div className="app-root app-root--bootstrapping" aria-busy="true" aria-label="Loading application">
-        <GlobalPageLoader />
-      </div>
+      <div className="app-root app-root--bootstrapping" aria-busy="true" aria-label="Loading application" />
     );
   }
 
   return (
-    <div
-      className={`app-root${currentPage === 'home' ? ' app-root--home' : ''}`}
+        <div
+      className={`app-root${isSwipeBackLockedPage ? ' app-root--swipe-back-locked' : ''}${currentPage === 'home' ? ' app-root--home' : ''}`}
       onTouchStart={handleEdgeSwipeStart}
       onTouchMove={handleEdgeSwipeMove}
       onTouchEnd={handleEdgeSwipeEnd}
@@ -1720,9 +1842,7 @@ function App() {
           onMenuClick={() => {
             setCurrentPage('profile');
           }}
-          onNavigateHome={() => {
-            setCurrentPage('home');
-          }}
+          onNavigateHome={navigateToHome}
           onNavigateToDoctors={() => {
             setCurrentPage('doctors');
           }}
@@ -1740,9 +1860,7 @@ function App() {
           onMenuClick={() => {
             setCurrentPage('profile');
           }}
-          onNavigateHome={() => {
-            setCurrentPage('home');
-          }}
+          onNavigateHome={navigateToHome}
           onNavigateToDoctors={() => {
             setCurrentPage('doctors');
           }}
@@ -1766,9 +1884,7 @@ function App() {
           onMenuClick={() => {
             setCurrentPage('profile');
           }}
-          onNavigateHome={() => {
-            setCurrentPage('home');
-          }}
+          onNavigateHome={navigateToHome}
           onNavigateToDoctors={() => {
             setCurrentPage('doctors');
           }}
@@ -1776,9 +1892,7 @@ function App() {
             setCurrentPage('packages');
           }}
           onNavigateToSuperClub={navigateToSuperClubFlow}
-          onStayUpdated={() => {
-            setCurrentPage('home');
-          }}
+          onStayUpdated={navigateToHome}
         />
       )}
 
@@ -1788,9 +1902,7 @@ function App() {
           onMenuClick={() => {
             setCurrentPage('profile');
           }}
-          onNavigateHome={() => {
-            setCurrentPage('home');
-          }}
+          onNavigateHome={navigateToHome}
           onNavigateToDoctors={() => {
             setCurrentPage('doctors');
           }}
@@ -1807,9 +1919,7 @@ function App() {
           onMenuClick={() => {
             setCurrentPage('profile');
           }}
-          onNavigateHome={() => {
-            setCurrentPage('home');
-          }}
+          onNavigateHome={navigateToHome}
           onNavigateToDoctors={() => {
             setCurrentPage('doctors');
           }}
@@ -1829,9 +1939,7 @@ function App() {
           onMenuClick={() => {
             setCurrentPage('profile');
           }}
-          onNavigateHome={() => {
-            setCurrentPage('home');
-          }}
+          onNavigateHome={navigateToHome}
           onNavigateToDoctors={() => {
             setCurrentPage('doctors');
           }}
@@ -1839,9 +1947,7 @@ function App() {
             setCurrentPage('packages');
           }}
           onNavigateToSuperClub={navigateToSuperClubFlow}
-          onStayUpdated={() => {
-            setCurrentPage('home');
-          }}
+          onStayUpdated={navigateToHome}
           onSelectSport={() => {}}
         />
       )}
@@ -1849,10 +1955,7 @@ function App() {
       {currentPage === 'packages' && (
         <PackagesPage
           customPackageCard={customPackageCard}
-          onNavigateHome={() => {
-            console.log('Back to Home');
-            setCurrentPage('home');
-          }}
+          onNavigateHome={navigateToHome}
           onNavigateToSuperClub={navigateToSuperClubFlow}
           onNavigateToDoctors={() => {
             console.log('Navigate to Doctors');
@@ -1872,10 +1975,7 @@ function App() {
 
       {currentPage === 'doctors' && (
         <DoctorsPage
-          onBack={() => {
-            console.log('Back to Home');
-            setCurrentPage('home');
-          }}
+          onBack={navigateToHome}
           onNavigateToSuperClub={navigateToSuperClubFlow}
           onOpenPackages={() => {
             console.log('Navigate to Packages');
@@ -1961,10 +2061,7 @@ function App() {
       {currentPage === 'blood-markers' && (
         <BloodMarkersPage
           {...bloodMarkersPageDetailProps}
-          onBack={() => {
-            console.log('Back to Home');
-            setCurrentPage('home');
-          }}
+          onBack={navigateToHome}
         />
       )}
 
@@ -1974,7 +2071,7 @@ function App() {
           onBack={() => {
             setNullCatchupAssessmentInstanceId(null);
             setForceHomeApiRefresh(true);
-            setCurrentPage('home');
+            navigateToHome();
           }}
           onDone={() => {
             setNullCatchupAssessmentInstanceId(null);
@@ -1983,7 +2080,7 @@ function App() {
             invalidateNutritionLogQuestionnaireDraftCache();
             clearReportRequestCache();
             setForceHomeApiRefresh(true);
-            setCurrentPage('home');
+            navigateToHome();
           }}
         />
       )}
@@ -2039,7 +2136,7 @@ function App() {
             invalidateNutritionLogQuestionnaireDraftCache();
             invalidateFamilyHistoryQuestionnaireDraftCache();
             setForceHomeApiRefresh(true);
-            setCurrentPage('home');
+            navigateToHome();
           }}
           onBack={() => {
             const next = healthAssessmentBackPage || 'home';
@@ -2047,6 +2144,8 @@ function App() {
               invalidateNutritionLogQuestionnaireDraftCache();
               invalidateFamilyHistoryQuestionnaireDraftCache();
               setForceHomeApiRefresh(true);
+              navigateToHome();
+              return;
             }
             setCurrentPage(next);
           }}
@@ -2065,10 +2164,7 @@ function App() {
       {currentPage === 'health-scan-index' && (
         <HealthScanIndexPage 
           initialTab={selectedHealthScanTab}
-          onBack={() => {
-            console.log('Back to Home');
-            setCurrentPage('home');
-          }}
+          onBack={navigateToHome}
           onNavigateToRiskAnalysis={() => {
             console.log('Navigate to Disease Risk Analysis');
             setCurrentPage('disease-risk-analysis');
@@ -2078,10 +2174,7 @@ function App() {
 
       {currentPage === 'disease-risk-analysis' && (
         <DiseaseRiskAnalysisPage 
-          onBack={() => {
-            console.log('Back to Home');
-            setCurrentPage('home');
-          }}
+          onBack={navigateToHome}
           onDiseaseSelect={(disease) => {
             setSelectedDisease(disease);
             setCurrentPage('disease-detail');
@@ -2150,11 +2243,10 @@ function App() {
             void preloadHomeScreenData();
           }}
           onBack={() => {
-            console.log('Back to Home');
             clearReportRequestCache();
             clearStoredLatestAssessmentId();
             setForceHomeApiRefresh(true);
-            setCurrentPage('home');
+            navigateToHome();
           }}
           onOpenReports={() => {
             console.log('Navigate to Reports');

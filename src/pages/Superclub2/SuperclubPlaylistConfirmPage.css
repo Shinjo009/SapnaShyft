@@ -3,6 +3,9 @@
 .superclub-pc {
   /* Match app shell (e.g. 480px); fan row can use full width — no 360px phone gutter on desktop */
   --pc-frame: min(480px, 100%);
+  --pc-gutter: 16px;
+  --pc-header-top: 56px;
+  --pc-header-row-h: 28px;
   --pc-col: 100%;
   --pc-col-shift: 0px;
   --pc-tile: 159.5px;
@@ -35,6 +38,10 @@
   flex-shrink: 0;
 }
 
+.superclub-pc__top .header {
+  padding-bottom: 16px;
+}
+
 /* Figma Frame 1984078958: full-bleed column offset left */
 .superclub-pc__main {
   position: relative;
@@ -54,7 +61,7 @@
   width: var(--pc-col);
   max-width: 100%;
   margin: 0 auto;
-  padding-top: 4px;
+  padding-top: 0;
   box-sizing: border-box;
   flex: 1;
   min-height: 0;
@@ -64,11 +71,21 @@
 }
 
 .superclub-pc__kicker {
-  margin: 0 auto 4px;
-  width: auto;
-  max-width: 100%;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--pc-header-top);
+  height: var(--pc-header-row-h);
+  margin: 0;
+  padding: 0 calc(var(--pc-gutter) + 28px);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   white-space: nowrap;
   text-align: center;
+  pointer-events: none;
+  z-index: 1;
   font-family: 'DM Sans', 'Lato', sans-serif;
   font-size: 18px;
   font-weight: 600;
