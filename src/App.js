@@ -47,6 +47,11 @@ import {
   prefetchLikelyNextRoutes,
 } from './utils/routePrefetch';
 import {
+  installPwaHomeBackGuard,
+  isStandalonePwa,
+  seedPwaHomeHistoryTrap,
+} from './utils/pwaHomeBackGuard';
+import {
   createEmptyPreloadedHome,
   hasRenderableOverviewData,
   HOME_PRELOAD_COMPLETE_KEY,
@@ -127,6 +132,8 @@ const getInitialAppPage = () => {
 const EDGE_SWIPE_TRIGGER_PX = 70;
 const EDGE_SWIPE_VERTICAL_TOLERANCE_PX = 80;
 const EDGE_SWIPE_START_ZONE_PX = 28;
+/** Wider left-edge zone on blocked pages (e.g. home) to intercept native back-swipe. */
+const EDGE_SWIPE_BLOCK_ZONE_PX = 80;
 const normalizeRedirectTarget = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
   if (!normalized) {
@@ -333,6 +340,11 @@ function App() {
       return;
     }
 
+    if (isStandalonePwa()) {
+      seedPwaHomeHistoryTrap();
+      return;
+    }
+
     const state = { appPage: 'home' };
     const url = window.location.href;
     window.history.replaceState(state, '', url);
@@ -386,6 +398,74 @@ function App() {
   }, [isBootstrappingSession]);
 
   useEffect(() => {
+    if (currentPage !== 'home') {
+      return undefined;
+    }
+
+    pinHomeBrowserHistory();
+
+    if (isStandalonePwa()) {
+      return installPwaHomeBackGuard();
+    }
+
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const edgeState = {
+      tracking: false,
+      startX: 0,
+      startY: 0,
+    };
+
+    const onTouchStart = (event) => {
+      const touch = event.touches?.[0];
+      if (!touch || touch.clientX > EDGE_SWIPE_BLOCK_ZONE_PX) {
+        edgeState.tracking = false;
+        return;
+      }
+      edgeState.tracking = true;
+      edgeState.startX = touch.clientX;
+      edgeState.startY = touch.clientY;
+    };
+
+    const onTouchMove = (event) => {
+      if (!edgeState.tracking) {
+        return;
+      }
+      const touch = event.touches?.[0];
+      if (!touch) {
+        return;
+      }
+      const deltaX = touch.clientX - edgeState.startX;
+      const deltaY = touch.clientY - edgeState.startY;
+      if (Math.abs(deltaY) > EDGE_SWIPE_VERTICAL_TOLERANCE_PX || deltaX < -10) {
+        edgeState.tracking = false;
+        return;
+      }
+      if (deltaX > 0) {
+        event.preventDefault();
+      }
+    };
+
+    const onTouchEnd = () => {
+      edgeState.tracking = false;
+    };
+
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onTouchEnd, { passive: true });
+    document.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    return () => {
+      document.removeEventListener('touchstart', onTouchStart);
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+      document.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [currentPage, pinHomeBrowserHistory]);
+
+  useEffect(() => {
     trackAppScreen(currentPage);
 
     const previousPage = previousPageRef.current;
@@ -403,18 +483,13 @@ function App() {
   }, [currentPage, isSwipeBackAllowedPage]);
 
   useEffect(() => {
-    if (currentPage !== 'home' || !forceHomeApiRefresh) {
-      return;
+    if (currentPage !== 'home' || !forceHomeApiRefresh || preloadedHomeData == null) {
+      return undefined;
     }
 
-    const timer = window.setTimeout(() => {
-      setForceHomeApiRefresh(false);
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [currentPage, forceHomeApiRefresh]);
+    setForceHomeApiRefresh(false);
+    return undefined;
+  }, [currentPage, forceHomeApiRefresh, preloadedHomeData]);
 
   const goBackBySwipe = useCallback(() => {
     if (!isSwipeBackAllowedPage(currentPage)) {
@@ -453,7 +528,7 @@ function App() {
       return;
     }
 
-    if (!isSwipeBackAllowedPage(currentPage) && touch.clientX <= EDGE_SWIPE_START_ZONE_PX) {
+    if (!isSwipeBackAllowedPage(currentPage) && touch.clientX <= EDGE_SWIPE_BLOCK_ZONE_PX) {
       edgeSwipeStateRef.current = {
         tracking: false,
         blockNativeBackGesture: true,
@@ -563,7 +638,11 @@ function App() {
     const handleBrowserBack = () => {
       if (currentPage === 'home') {
         skipBrowserHistoryPushRef.current = true;
-        pinHomeBrowserHistory();
+        if (isStandalonePwa()) {
+          seedPwaHomeHistoryTrap();
+        } else {
+          pinHomeBrowserHistory();
+        }
         return;
       }
 
@@ -1183,15 +1262,12 @@ function App() {
   };
 
   useEffect(() => {
-    if (currentPage !== 'home') {
-      return undefined;
-    }
     if (preloadedHomeData != null) {
       return undefined;
     }
     void preloadHomeScreenData();
     return undefined;
-  }, [currentPage, preloadedHomeData]);
+  }, [preloadedHomeData]);
 
   const handleSendOtp = async (phone) => {
     await sendOtp(phone);
@@ -1465,13 +1541,16 @@ function App() {
 
   return (
     <div
-      className="app-root"
+      className={`app-root${currentPage === 'home' ? ' app-root--home' : ''}`}
       onTouchStart={handleEdgeSwipeStart}
       onTouchMove={handleEdgeSwipeMove}
       onTouchEnd={handleEdgeSwipeEnd}
       onTouchCancel={handleEdgeSwipeCancel}
     >
       <div className="app-background" aria-hidden="true" />
+      {currentPage === 'home' && isStandalonePwa() ? (
+        <div className="app-home-edge-shield" aria-hidden="true" />
+      ) : null}
       {/* PWA Install Prompt Banner - Fixed outside scroll container */}
       {showInstallPrompt && (
         <div className="app-install-popup-wrap" role="dialog" aria-live="polite" aria-label="Install app">
@@ -1536,7 +1615,7 @@ function App() {
         scopeKey={tooltipTourScopeKey}
       />
       <div
-        className={`app-scroll${currentPage === 'super-club' || currentPage === 'super-club-playlist-confirm' ? ' app-scroll--superclub2-lock' : ''}`}
+        className={`app-scroll${currentPage === 'home' ? ' app-scroll--home-lock' : ''}${currentPage === 'super-club' || currentPage === 'super-club-playlist-confirm' ? ' app-scroll--superclub2-lock' : ''}`}
         ref={appScrollRef}
       >
       <Suspense fallback={null}>
@@ -1581,7 +1660,8 @@ function App() {
       )}
 
       {currentPage === 'home' && (
-        <HomePage 
+        <HomePage
+          key={`home-${selectedAccountId ?? currentUserId ?? 'guest'}`}
           userName={userName}
           userAge={userAge}
           employerOrganizerFallback={employerOrganizerName}
@@ -2067,6 +2147,7 @@ function App() {
             clearStoredLatestAssessmentId();
             setPreloadedHomeData(null);
             setForceHomeApiRefresh(true);
+            void preloadHomeScreenData();
           }}
           onBack={() => {
             console.log('Back to Home');

@@ -106,8 +106,11 @@
 }
 
 .home-page-no-data__icon-btn {
-  width: 24px;
-  height: 24px;
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  min-height: 52px;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -117,9 +120,19 @@
   cursor: pointer;
 }
 
+.home-page-no-data__icon-btn:focus {
+  outline: none;
+}
+
+.home-page-no-data__icon-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 .home-page-no-data__topbar-spacer {
-  width: 24px;
-  height: 24px;
+  width: 52px;
+  height: 52px;
   flex-shrink: 0;
 }
 
