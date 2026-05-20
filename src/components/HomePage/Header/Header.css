@@ -17,8 +17,10 @@
 }
 
 .header__menu-btn {
-  width: 24px;
-  height: 24px;
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  min-height: 52px;
   flex-shrink: 0;
   background: none;
   border: none;
@@ -49,8 +51,8 @@
 }
 
 .header__side-spacer {
-  width: 24px;
-  height: 24px;
+  width: 52px;
+  height: 52px;
   flex-shrink: 0;
 }
 

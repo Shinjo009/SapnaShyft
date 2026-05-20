@@ -3,6 +3,7 @@ import './DiseaseDetailPage.css';
 import lifestyleTick from '../../images/tick(lifestyle).svg';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
 import { formatOrdinal } from '../../utils/formatOrdinal';
+import { formatApiContentDisplay } from '../../utils/formatApiContentDisplay';
 
 const RISK_ZONES = [
   {
@@ -64,31 +65,26 @@ const diseaseCodeFromName = (name = '') => {
 };
 
 const toStringArray = (value) => {
-  const splitCommaSeparated = (text) => String(text)
-    .split(',')
-    .map((part) => part.trim())
-    .filter(Boolean);
-
   if (Array.isArray(value)) {
     return value
       .map((item) => {
         if (typeof item === 'string') {
-          return splitCommaSeparated(item);
+          return item.trim();
         }
 
         if (item && typeof item === 'object') {
           const text = item.text || item.label || item.title || item.description || item.value;
-          return typeof text === 'string' ? splitCommaSeparated(text) : [];
+          return typeof text === 'string' ? text.trim() : '';
         }
 
-        return [];
+        return '';
       })
-      .flat()
       .filter(Boolean);
   }
 
   if (typeof value === 'string') {
-    return splitCommaSeparated(value);
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
   }
 
   return [];
@@ -689,7 +685,7 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
             </div>
             {expandedPill === key && (
               <p className="disease-detail-pill-body">
-                {items.join('. ')}{items.length > 0 && items[items.length - 1] !== '-' ? '.' : ''}
+                {formatApiContentDisplay(items)}
               </p>
             )}
           </button>

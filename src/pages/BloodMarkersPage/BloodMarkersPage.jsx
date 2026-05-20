@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import './BloodMarkersPage.css';
 import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
 import { getAccessToken } from '../../utils/authStorage';
+import { formatApiContentDisplay } from '../../utils/formatApiContentDisplay';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
 import {
   extractBloodParameterGroupsArray,
@@ -277,6 +278,22 @@ const formatValue = (value) => {
   }
 
   return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2).replace(/\.00$/, '');
+};
+
+const formatOptimalPillValueLabel = (test) => {
+  const value = String(test?.value ?? '').trim();
+  const unit = String(test?.unit ?? '').trim();
+  const hasValue = value && value !== '--';
+  if (hasValue && unit) {
+    return `${value} ${unit}`;
+  }
+  if (hasValue) {
+    return value;
+  }
+  if (unit) {
+    return unit;
+  }
+  return '';
 };
 
 /** Row from homepage `RiskAnalysisSection` blood markers → `BloodMarkerDetailView` marker shape */
@@ -713,11 +730,20 @@ const BloodMarkersParameterRows = ({ rows, keyPrefix = '' }) => {
           role="list"
           aria-label="Parameters in optimal range"
         >
-          {row.tests.map((test, pillIndex) => (
-            <span key={`${compositeKey}-${test.id}-${pillIndex}`} className="blood-markers-page__optimal-pill" role="listitem">
-              {test.title}
-            </span>
-          ))}
+          {row.tests.map((test, pillIndex) => {
+            const valueLabel = formatOptimalPillValueLabel(test);
+            return (
+              <span key={`${compositeKey}-${test.id}-${pillIndex}`} className="blood-markers-page__optimal-pill" role="listitem">
+                <span className="blood-markers-page__optimal-pill-name">{test.title}</span>
+                {valueLabel ? (
+                  <>
+                    <span className="blood-markers-page__optimal-pill-divider" aria-hidden="true" />
+                    <span className="blood-markers-page__optimal-pill-value">{valueLabel}</span>
+                  </>
+                ) : null}
+              </span>
+            );
+          })}
           {morePillCount > 0 ? (
             <span
               key={`${compositeKey}-more`}
@@ -772,6 +798,8 @@ const buildAggregateOptimalRows = (tests) => {
       tests: list.map((t) => ({
         id: t.id,
         title: t.title,
+        value: t.value,
+        unit: t.unit,
       })),
     },
   ];
@@ -1267,7 +1295,7 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
           const bodyText = loading
             ? `Loading ${key}...`
             : items && items.length > 0
-              ? items.join('. ') + '.'
+              ? formatApiContentDisplay(items)
               : emptyText;
           return (
             <button
@@ -1783,17 +1811,38 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                   frontStackCardRef.current = node;
                 }
               }}
-              className={`blood-markers-page__stack-card blood-markers-page__stack-card--${role} blood-markers-page__stack-card--theme-${card.riskType}${isOptimalPeerCard ? ' blood-markers-page__stack-card--optimal-peer' : ''}${isAggregateOptimalCard && isLowCardExpanded && role === 'front' ? ' blood-markers-page__stack-card--optimal-expanded' : ''}`}
-              onClick={(event) => {
-                if (isOptimalPeerCard) {
+              className={`blood-markers-page__stack-card blood-markers-page__stack-card--${role} blood-markers-page__stack-card--theme-${card.riskType}${isOptimalPeerCard ? ' blood-markers-page__stack-card--optimal-peer' : ''}${isAggregateOptimalCard ? ' blood-markers-page__stack-card--optimal-aggregate' : ''}${isAggregateOptimalCard && isLowCardExpanded && role === 'front' ? ' blood-markers-page__stack-card--optimal-expanded' : ''}`}
+              onClick={() => {
+                if (isAggregateOptimalCard) {
+                  setExpandedLowCardIds((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
+                  return;
+                }
+                if (isSingleOptimalPeerCard) {
                   return;
                 }
                 onOpenDetail({ ...card, organ: section.organ, parameters: section.parameters });
               }}
-              role={isOptimalPeerCard ? 'group' : 'button'}
-              tabIndex={isOptimalPeerCard ? -1 : 0}
+              role={isAggregateOptimalCard ? 'button' : isSingleOptimalPeerCard ? 'group' : 'button'}
+              tabIndex={isSingleOptimalPeerCard ? -1 : 0}
+              aria-expanded={isAggregateOptimalCard ? isLowCardExpanded : undefined}
+              aria-label={
+                isAggregateOptimalCard
+                  ? (
+                    isLowCardExpanded
+                      ? `Hide ${formatOptimalAggregatePrefix(getOptimalAggregateParameterCount(card))} ${OPTIMAL_AGGREGATE_RANGE_TITLE}`
+                      : `Show ${formatOptimalAggregatePrefix(getOptimalAggregateParameterCount(card))} ${OPTIMAL_AGGREGATE_RANGE_TITLE}`
+                  )
+                  : undefined
+              }
               onKeyDown={(event) => {
-                if (isOptimalPeerCard) {
+                if (isAggregateOptimalCard) {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setExpandedLowCardIds((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
+                  }
+                  return;
+                }
+                if (isSingleOptimalPeerCard) {
                   return;
                 }
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -1853,21 +1902,12 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                   ))}
                 </div>
                 {isAggregateOptimalCard ? (
-                  <button
-                    type="button"
+                  <span
                     className={`blood-markers-page__optimal-chevron ${isLowCardExpanded ? 'blood-markers-page__optimal-chevron--expanded' : ''}`}
-                    aria-label={
-                      isLowCardExpanded
-                        ? `Hide ${formatOptimalAggregatePrefix(getOptimalAggregateParameterCount(card))} ${OPTIMAL_AGGREGATE_RANGE_TITLE}`
-                        : `Show ${formatOptimalAggregatePrefix(getOptimalAggregateParameterCount(card))} ${OPTIMAL_AGGREGATE_RANGE_TITLE}`
-                    }
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setExpandedLowCardIds((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
-                    }}
+                    aria-hidden="true"
                   >
                     <DownChevron />
-                  </button>
+                  </span>
                 ) : isSingleOptimalPeerCard ? null : (
                   <span className="blood-markers-page__card-chevron" aria-hidden="true">
                     <CardChevron />

@@ -19,11 +19,42 @@
   isolation: isolate;
 }
 
+/* Home: block OS/browser edge back-swipe (horizontal pan) while keeping vertical scroll. */
+.app-root--home {
+  touch-action: pan-y pinch-zoom;
+}
+
+/* PWA standalone: invisible strip intercepts iOS edge-back gesture before WebKit navigation. */
+.app-home-edge-shield {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 44px;
+  z-index: 200;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: auto;
+}
+
+@media (min-width: 481px) {
+  .app-home-edge-shield {
+    left: calc(50% - 240px);
+  }
+}
+
 .app-root--swipe-back-locked,
 .app-root--swipe-back-locked .app-scroll {
   overscroll-behavior: none;
+}
+
+html.ss-pwa-home-guard,
+html.ss-pwa-home-guard body {
+  overscroll-behavior: none;
   overscroll-behavior-x: none;
   touch-action: pan-y pinch-zoom;
+  -webkit-overflow-scrolling: auto;
 }
 
 html.app-swipe-back-locked,
@@ -44,7 +75,6 @@ html.app-swipe-back-locked body {
     touch-action: pan-y pinch-zoom;
   }
 }
-
 .app-root--bootstrapping {
   background: #000;
 }
@@ -132,6 +162,12 @@ html.app-swipe-back-locked body {
   width: 0;
   height: 0;
   display: none;
+}
+
+/* Home: contain horizontal overscroll so edge back-swipe does not chain to browser history. */
+.app-scroll.app-scroll--home-lock {
+  overscroll-behavior: none;
+  touch-action: pan-y pinch-zoom;
 }
 
 /* Superclub2: no outer scroll — only the in-page sport grid animates */

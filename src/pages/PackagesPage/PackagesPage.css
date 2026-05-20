@@ -230,7 +230,7 @@
 }
 
 .packages-page__cards {
-  margin-top: 22px;
+  margin-top: 1px;
   display: flex;
   flex-direction: column;
   gap: 14px;

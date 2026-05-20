@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import './HomePage.css';
 import Header from '../../components/HomePage/Header';
 import MetabolicAgeOrb from '../../metabolic-age-orb/MetabolicAgeOrb.jsx';
@@ -825,10 +825,43 @@ const HomePage = ({
     };
   }, [metabolicAgeValue, userAge, metabolicAgeDetail]);
 
+  const applyPreloadedSnapshot = useCallback((data) => {
+    if (!data?.[HOME_PRELOAD_COMPLETE_KEY]) {
+      return;
+    }
+
+    setMetabolicAgeValue(data.metabolicAgeValue || '-');
+    setPositiveWinsData(data.positiveWinsData || null);
+    setRiskAnalysisData(Array.isArray(data.riskAnalysisData) ? data.riskAnalysisData : []);
+
+    if (data.fitprintGapLockPreloaded) {
+      setHealthSpanLockedNoFitprint(Boolean(data.healthSpanLockedNoFitprint));
+      setHealthSpanGapBasicProAssessmentId(data.healthSpanGapBasicProAssessmentId ?? null);
+      setFitprintGapQCompleteFromServer(Boolean(data.fitprintGapQCompleteFromServer));
+      setHealthSpanScores(data.healthSpanLockedNoFitprint ? null : (data.healthSpanScores || null));
+    } else {
+      setHealthSpanScores(data.healthSpanScores || null);
+    }
+
+    const renderable = hasRenderableOverviewData(data);
+    setHasStableOverviewData(renderable);
+    setIsNoDataHome(!renderable);
+    setIsOverviewResolved(true);
+    setNoDataStage('welcome');
+  }, []);
+
+  useEffect(() => {
+    if (!homePreloadComplete || forceRefreshFromProfile) {
+      return;
+    }
+    applyPreloadedSnapshot(preloadedData);
+  }, [preloadedData, homePreloadComplete, forceRefreshFromProfile, applyPreloadedSnapshot]);
+
   useLayoutEffect(() => {
     let isActive = true;
 
     if (homePreloadComplete && !forceRefreshFromProfile) {
+      applyPreloadedSnapshot(preloadedData);
       return () => {
         isActive = false;
       };
@@ -971,7 +1004,13 @@ const HomePage = ({
     return () => {
       isActive = false;
     };
-  }, [forceRefreshFromProfile, hasStableOverviewData, homePreloadComplete]);
+  }, [
+    forceRefreshFromProfile,
+    hasStableOverviewData,
+    homePreloadComplete,
+    preloadedData,
+    applyPreloadedSnapshot,
+  ]);
 
   useEffect(() => {
     let cancelled = false;

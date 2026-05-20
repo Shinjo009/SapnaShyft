@@ -47,6 +47,10 @@ import {
   prefetchLikelyNextRoutes,
 } from './utils/routePrefetch';
 import {
+  installPwaHomeBackGuard,
+  isStandalonePwa,
+} from './utils/pwaHomeBackGuard';
+import {
   createEmptyPreloadedHome,
   hasRenderableOverviewData,
   HOME_PRELOAD_COMPLETE_KEY,
@@ -379,7 +383,6 @@ function App() {
   const pinHomeBrowserHistory = useCallback(() => {
     replaceBrowserHistoryForPage('home');
   }, []);
-
   const navigateToHome = useCallback(() => {
     setCurrentPage('home');
   }, []);
@@ -449,18 +452,13 @@ function App() {
   }, [currentPage, isSwipeBackAllowedPage]);
 
   useEffect(() => {
-    if (currentPage !== 'home' || !forceHomeApiRefresh) {
-      return;
+    if (currentPage !== 'home' || !forceHomeApiRefresh || preloadedHomeData == null) {
+      return undefined;
     }
 
-    const timer = window.setTimeout(() => {
-      setForceHomeApiRefresh(false);
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [currentPage, forceHomeApiRefresh]);
+    setForceHomeApiRefresh(false);
+    return undefined;
+  }, [currentPage, forceHomeApiRefresh, preloadedHomeData]);
 
   const goBackBySwipe = useCallback(() => {
     if (!isSwipeBackAllowedPage(currentPage)) {
@@ -674,8 +672,13 @@ function App() {
       replaceBrowserHistoryForPage('home');
     }
 
+    const removePwaGuard = isStandalonePwa() ? installPwaHomeBackGuard() : null;
+
     return () => {
       document.documentElement.classList.remove('app-swipe-back-locked');
+      if (removePwaGuard) {
+        removePwaGuard();
+      }
     };
   }, [currentPage, pinHomeBrowserHistory]);
 
@@ -1383,15 +1386,12 @@ function App() {
   };
 
   useEffect(() => {
-    if (currentPage !== 'home') {
-      return undefined;
-    }
     if (preloadedHomeData != null) {
       return undefined;
     }
     void preloadHomeScreenData();
     return undefined;
-  }, [currentPage, preloadedHomeData]);
+  }, [preloadedHomeData]);
 
   const handleSendOtp = async (phone) => {
     await sendOtp(phone);
@@ -1662,14 +1662,17 @@ function App() {
   }
 
   return (
-    <div
-      className={`app-root${isSwipeBackLockedPage ? ' app-root--swipe-back-locked' : ''}`}
+        <div
+      className={`app-root${isSwipeBackLockedPage ? ' app-root--swipe-back-locked' : ''}${currentPage === 'home' ? ' app-root--home' : ''}`}
       onTouchStart={handleEdgeSwipeStart}
       onTouchMove={handleEdgeSwipeMove}
       onTouchEnd={handleEdgeSwipeEnd}
       onTouchCancel={handleEdgeSwipeCancel}
     >
       <div className="app-background" aria-hidden="true" />
+      {currentPage === 'home' && isStandalonePwa() ? (
+        <div className="app-home-edge-shield" aria-hidden="true" />
+      ) : null}
       {/* PWA Install Prompt Banner - Fixed outside scroll container */}
       {showInstallPrompt && (
         <div className="app-install-popup-wrap" role="dialog" aria-live="polite" aria-label="Install app">
@@ -1734,7 +1737,7 @@ function App() {
         scopeKey={tooltipTourScopeKey}
       />
       <div
-        className={`app-scroll${currentPage === 'super-club' || currentPage === 'super-club-playlist-confirm' ? ' app-scroll--superclub2-lock' : ''}`}
+        className={`app-scroll${currentPage === 'home' ? ' app-scroll--home-lock' : ''}${currentPage === 'super-club' || currentPage === 'super-club-playlist-confirm' ? ' app-scroll--superclub2-lock' : ''}`}
         ref={appScrollRef}
       >
       <Suspense fallback={null}>
@@ -1779,7 +1782,8 @@ function App() {
       )}
 
       {currentPage === 'home' && (
-        <HomePage 
+        <HomePage
+          key={`home-${selectedAccountId ?? currentUserId ?? 'guest'}`}
           userName={userName}
           userAge={userAge}
           employerOrganizerFallback={employerOrganizerName}
@@ -2236,6 +2240,7 @@ function App() {
             clearStoredLatestAssessmentId();
             setPreloadedHomeData(null);
             setForceHomeApiRefresh(true);
+            void preloadHomeScreenData();
           }}
           onBack={() => {
             clearReportRequestCache();
