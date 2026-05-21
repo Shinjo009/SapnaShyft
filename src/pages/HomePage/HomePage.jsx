@@ -491,8 +491,9 @@ const parseSlotBoundaryDate = (engagementDateRaw, timeRaw) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const isB2cSlotEnded = (slotNorm, now = new Date()) => {
-  if (!slotNorm?.isB2c || !slotNorm?.hasScheduledSlot) {
+/** True once the assigned testing window end (+ grace) has passed (B2B camp and B2C home collection). */
+const isScheduledSlotWindowEnded = (slotNorm, now = new Date()) => {
+  if (!slotNorm?.hasScheduledSlot) {
     return false;
   }
 
@@ -502,6 +503,13 @@ const isB2cSlotEnded = (slotNorm, now = new Date()) => {
   }
 
   return now.getTime() >= endAt.getTime() + B2C_SLOT_END_GRACE_MS;
+};
+
+const isB2cSlotEnded = (slotNorm, now = new Date()) => {
+  if (!slotNorm?.isB2c) {
+    return false;
+  }
+  return isScheduledSlotWindowEnded(slotNorm, now);
 };
 
 const parseResponseBody = async (response) => {
@@ -693,6 +701,15 @@ const HomePage = ({
       return;
     }
 
+    const scheduledSlotEnded = slotNorm.hasScheduledSlot && b2cSlotEnded;
+    const slotStillUpcoming = slotNorm.hasScheduledSlot && !scheduledSlotEnded;
+
+    // Upcoming slot (B2B or B2C): stay on scheduled even if questionnaire was filled early; hide CTA only.
+    if (slotStillUpcoming && campFlowActive) {
+      setNoDataStage('camp_scheduled');
+      return;
+    }
+
     // Blood collected + Metsights assigned, but /upcoming-slot no longer returns yesterday's slot.
     if (metsightsCycleAssigned && !slotNorm.hasScheduledSlot) {
       if (isQuestionnaireCompleted) {
@@ -709,16 +726,12 @@ const HomePage = ({
 
     const b2cFlowActive = slotNorm.isB2c || b2cSlotLapsedSession;
     if (b2cFlowActive) {
-      if (isQuestionnaireCompleted) {
-        setNoDataStage('analyzing');
-        return;
-      }
       if (b2cSlotEnded || b2cSlotLapsedSession) {
+        if (isQuestionnaireCompleted) {
+          setNoDataStage('analyzing');
+          return;
+        }
         setNoDataStage('b2c_sample_collected');
-        return;
-      }
-      if (slotNorm.isB2c && slotNorm.hasScheduledSlot) {
-        setNoDataStage('camp_scheduled');
         return;
       }
     }
@@ -750,7 +763,7 @@ const HomePage = ({
   ]);
 
   useEffect(() => {
-    if (!slotNorm.isB2c || !slotNorm.hasScheduledSlot) {
+    if (!slotNorm.hasScheduledSlot) {
       if (!b2cSlotLapsedSession) {
         setB2cSlotEnded(false);
       }
@@ -758,9 +771,9 @@ const HomePage = ({
     }
 
     const refreshSlotEnded = () => {
-      const ended = isB2cSlotEnded(slotNorm);
+      const ended = isScheduledSlotWindowEnded(slotNorm);
       setB2cSlotEnded(ended);
-      if (ended) {
+      if (ended && slotNorm.isB2c) {
         markB2cSlotLapsedInSession();
       }
     };
@@ -1876,7 +1889,7 @@ const HomePage = ({
             </div>
           </section>
 
-          {slotNorm.isB2b ? (
+          {slotNorm.isB2b && !isQuestionnaireCompleted ? (
             <div className="home-page-b2b__cta-wrap">
               <button type="button" className="home-page-b2b__cta" onClick={openB2bQuestionnaire}>
                 Complete your Health Assessment
