@@ -18,6 +18,7 @@ import {
   getLatestMetsightsBasicOrProAssessmentIdCached,
   peekMyAssessmentsRowsCached,
   resolveEngagementIdFromAssessmentId,
+  resolveHealthSpanIndexSourcesFromRows,
 } from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
 import { getMyProfileCached } from '../../services/profileService';
@@ -590,6 +591,10 @@ const HomePage = ({
   const [overviewAnchorEngagementId, setOverviewAnchorEngagementId] = useState(
     () => preloadedData?.anchorEngagementId ?? null,
   );
+  /** Basic/Pro (+ FitPrint) assigned on /assessments/me while overview report is not ready yet. */
+  const [metsightsCycleAssigned, setMetsightsCycleAssigned] = useState(
+    () => Boolean(preloadedData?.fitprintGapLockPreloaded),
+  );
 
   const slotNorm = upcomingSlotNormalized || EMPTY_UPCOMING_SLOT;
   const b2cSlotLapsedSession = isB2cSlotLapsedInSession();
@@ -648,11 +653,57 @@ const HomePage = ({
     }
   }, [preloadedData?.healthSpanScores]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isNoDataHome || !isOverviewResolved) {
+      setMetsightsCycleAssigned(false);
+      return undefined;
+    }
+
+    (async () => {
+      try {
+        const ttlMs = forceRefreshFromProfile ? 0 : 45000;
+        const rows = await peekMyAssessmentsRowsCached(ttlMs);
+        if (cancelled) {
+          return;
+        }
+        const resolved = resolveHealthSpanIndexSourcesFromRows(rows);
+        const assigned = resolved.status !== 'no_basic_or_pro'
+          && resolved.status !== 'invalid_basic_or_pro'
+          && resolved.status !== 'fetch_error';
+        setMetsightsCycleAssigned(assigned);
+      } catch {
+        if (!cancelled) {
+          setMetsightsCycleAssigned(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isNoDataHome, isOverviewResolved, forceRefreshFromProfile]);
+
   useLayoutEffect(() => {
-    if (!isNoDataHome || upcomingSlotStatus !== 'ready' || !campFlowActive) {
+    if (!isNoDataHome || upcomingSlotStatus !== 'ready') {
       return;
     }
     if (!isB2bCampNoDataGateResolved) {
+      return;
+    }
+
+    // Blood collected + Metsights assigned, but /upcoming-slot no longer returns yesterday's slot.
+    if (metsightsCycleAssigned && !slotNorm.hasScheduledSlot) {
+      if (isQuestionnaireCompleted) {
+        setNoDataStage('analyzing');
+        return;
+      }
+      setNoDataStage('b2c_sample_collected');
+      return;
+    }
+
+    if (!campFlowActive) {
       return;
     }
 
@@ -695,6 +746,7 @@ const HomePage = ({
     slotNorm.isB2c,
     b2cSlotEnded,
     b2cSlotLapsedSession,
+    metsightsCycleAssigned,
   ]);
 
   useEffect(() => {
@@ -748,7 +800,8 @@ const HomePage = ({
       return undefined;
     }
 
-    if (!campFlowActive || upcomingSlotStatus !== 'ready') {
+    const needsQuestionnaireGate = campFlowActive || metsightsCycleAssigned;
+    if (!needsQuestionnaireGate || upcomingSlotStatus !== 'ready') {
       setIsQuestionnaireCompleted(false);
       setIsB2bCampNoDataGateResolved(true);
       return undefined;
@@ -797,7 +850,7 @@ const HomePage = ({
     return () => {
       cancelled = true;
     };
-  }, [isNoDataHome, upcomingSlotStatus, campFlowActive, forceRefreshFromProfile]);
+  }, [isNoDataHome, upcomingSlotStatus, campFlowActive, metsightsCycleAssigned, forceRefreshFromProfile]);
 
   // Warm nutrition-log draft check in parallel with the upcoming-slot request so the camp gate often hits cache.
   useEffect(() => {
