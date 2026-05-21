@@ -12,6 +12,10 @@
   padding-bottom: 100px;
 }
 
+.home-page--reassessment-banner {
+  padding-bottom: 200px;
+}
+
 .home-page__download-overlay-backdrop {
   position: fixed;
   top: 0;

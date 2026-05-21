@@ -543,6 +543,75 @@ export const fetchLatestHealthSpanIndex = async ({
   };
 };
 
+/** Assessment instance id last used successfully for overview / report fetches. */
+export const getStoredLatestReportAssessmentId = () => readStoredLatestAssessmentId();
+
+const isActiveIncompleteAssessmentRow = (row) => {
+  const status = String(row?.status || '').trim().toLowerCase();
+  const completedAt = row?.completed_at || row?.completedAt || null;
+  const isCompleteFlag = Boolean(row?.is_completed ?? row?.isComplete ?? false);
+  const activeStatuses = new Set(['active', 'in_progress', 'in-progress', 'assigned', 'pending']);
+  return activeStatuses.has(status) && !completedAt && !isCompleteFlag;
+};
+
+/**
+ * User has an older report visible but a newer engagement with Basic/Pro + FitPrint still needs questionnaire.
+ */
+export const resolveReassessmentPromptFromRows = (rawRows, { reportAssessmentId } = {}) => {
+  const rows = sortAssessmentRowsLatestFirst(Array.isArray(rawRows) ? rawRows : []);
+
+  const latestBasicOrPro = rows.find((row) => normalizedAssessmentFamily(row) === 'basic_or_pro') || null;
+  if (!latestBasicOrPro) {
+    return { shouldPrompt: false };
+  }
+
+  const latestEngagementId = String(extractEngagementIdFromRow(latestBasicOrPro) || '').trim();
+  if (!latestEngagementId) {
+    return { shouldPrompt: false };
+  }
+
+  const hasFitprintOnEngagement = rows.some((row) => (
+    normalizedAssessmentFamily(row) === 'fitprint'
+    && String(extractEngagementIdFromRow(row) || '').trim() === latestEngagementId
+  ));
+
+  if (!hasFitprintOnEngagement) {
+    return { shouldPrompt: false };
+  }
+
+  const reportId = Number(reportAssessmentId);
+  if (!Number.isFinite(reportId) || reportId <= 0) {
+    return { shouldPrompt: false };
+  }
+
+  const reportRow = rows.find((row) => Number(extractAssessmentIdFromRow(row)) === reportId) || null;
+  const reportEngagementId = String(extractEngagementIdFromRow(reportRow) || '').trim();
+  if (!reportEngagementId || reportEngagementId === latestEngagementId) {
+    return { shouldPrompt: false };
+  }
+
+  const hasIncompleteOnLatestEngagement = rows.some((row) => (
+    String(extractEngagementIdFromRow(row) || '').trim() === latestEngagementId
+    && isActiveIncompleteAssessmentRow(row)
+  ));
+
+  if (!hasIncompleteOnLatestEngagement) {
+    return { shouldPrompt: false };
+  }
+
+  const latestBasicProAssessmentId = Number(extractAssessmentIdFromRow(latestBasicOrPro));
+
+  return {
+    shouldPrompt: true,
+    latestEngagementId,
+    latestBasicProAssessmentId: Number.isFinite(latestBasicProAssessmentId) && latestBasicProAssessmentId > 0
+      ? latestBasicProAssessmentId
+      : null,
+    reportEngagementId,
+    reportAssessmentId: reportId,
+  };
+};
+
 export const clearReportRequestCache = () => {
   cacheStore.clear();
   inFlightStore.clear();

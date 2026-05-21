@@ -4,6 +4,7 @@ import Header from '../../components/HomePage/Header';
 import MetabolicAgeOrb from '../../metabolic-age-orb/MetabolicAgeOrb.jsx';
 import HealthParametersSection from '../../components/HomePage/HealthParametersSection';
 import HomeHealthSpanIndexLockedStack from '../../components/HomePage/HomeHealthSpanIndexLockedStack';
+import HomeReassessmentBottomSheet from '../../components/HomePage/HomeReassessmentBottomSheet/HomeReassessmentBottomSheet';
 import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/PositiveWinsSection';
 import RiskAnalysisSection, {
   buildHomeBloodMarkersFromBloodParametersResponse,
@@ -30,6 +31,7 @@ import {
 } from '../../services/questionnaireService';
 import { hasRenderableOverviewData, HOME_PRELOAD_COMPLETE_KEY } from '../../utils/homeOverviewPreload';
 import { loadFitprintGapLockState } from '../../utils/fitprintGapLock';
+import { loadReassessmentBannerState } from '../../utils/reassessmentBanner';
 import clockCircleSrc from '../../images/clock_circle.svg';
 import clockHandsSrc from '../../images/clock_hands.svg';
 
@@ -416,6 +418,34 @@ const unwrapProfileResponse = (response) => (
   response?.data && typeof response.data === 'object' ? response.data : response
 );
 
+/** Show sample-collected UI 1 minute after the published slot end (e.g. 10–11 → at 11:01). */
+const B2C_SLOT_END_GRACE_MS = 60 * 1000;
+const B2C_SLOT_LAPSED_SESSION_KEY = 'ss_b2c_slot_lapsed';
+
+const markB2cSlotLapsedInSession = () => {
+  try {
+    sessionStorage.setItem(B2C_SLOT_LAPSED_SESSION_KEY, '1');
+  } catch {
+    // ignore
+  }
+};
+
+const isB2cSlotLapsedInSession = () => {
+  try {
+    return sessionStorage.getItem(B2C_SLOT_LAPSED_SESSION_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const clearB2cSlotLapsedInSession = () => {
+  try {
+    sessionStorage.removeItem(B2C_SLOT_LAPSED_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+};
+
 const parseSlotBoundaryDate = (engagementDateRaw, timeRaw) => {
   const ymd = String(engagementDateRaw || '').slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
@@ -423,6 +453,28 @@ const parseSlotBoundaryDate = (engagementDateRaw, timeRaw) => {
   }
 
   const time = String(timeRaw || '').trim();
+  if (!time) {
+    return null;
+  }
+
+  const ampmMatch = time.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])$/);
+  if (ampmMatch) {
+    let hours = Number(ampmMatch[1]);
+    const minutes = ampmMatch[2];
+    const seconds = String(Number(ampmMatch[3] || 0)).padStart(2, '0');
+    const meridiem = ampmMatch[4].toUpperCase();
+    if (meridiem === 'AM') {
+      if (hours === 12) {
+        hours = 0;
+      }
+    } else if (hours !== 12) {
+      hours += 12;
+    }
+    const hh = String(hours).padStart(2, '0');
+    const parsed = new Date(`${ymd}T${hh}:${minutes}:${seconds}`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
   const timeMatch = time.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
   if (timeMatch) {
     const hours = String(Number(timeMatch[1])).padStart(2, '0');
@@ -432,16 +484,12 @@ const parseSlotBoundaryDate = (engagementDateRaw, timeRaw) => {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
-  if (!time) {
-    return null;
-  }
-
   const parsed = new Date(`${ymd}T${time}`);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
 const isB2cSlotEnded = (slotNorm, now = new Date()) => {
-  if (!slotNorm?.isB2c) {
+  if (!slotNorm?.isB2c || !slotNorm?.hasScheduledSlot) {
     return false;
   }
 
@@ -450,7 +498,7 @@ const isB2cSlotEnded = (slotNorm, now = new Date()) => {
     return false;
   }
 
-  return now.getTime() > endAt.getTime();
+  return now.getTime() >= endAt.getTime() + B2C_SLOT_END_GRACE_MS;
 };
 
 const parseResponseBody = async (response) => {
@@ -533,10 +581,13 @@ const HomePage = ({
   const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
   /** null | 'bio-ai' | 'blood' — only the active row shows "Downloading..." */
   const [downloadingReportKind, setDownloadingReportKind] = useState(null);
+  const [showReassessmentBanner, setShowReassessmentBanner] = useState(false);
 
   const slotNorm = upcomingSlotNormalized || EMPTY_UPCOMING_SLOT;
+  const b2cSlotLapsedSession = isB2cSlotLapsedInSession();
   const campFlowActive = Boolean(slotNorm.hasScheduledSlot)
-    || process.env.REACT_APP_B2B_CAMP_FLOW === 'true';
+    || process.env.REACT_APP_B2B_CAMP_FLOW === 'true'
+    || b2cSlotLapsedSession;
 
   const organizerDisplayName = String(
     slotNorm.organizationName || employerOrganizerFallback || '',
@@ -597,17 +648,20 @@ const HomePage = ({
       return;
     }
 
-    if (slotNorm.isB2c) {
+    const b2cFlowActive = slotNorm.isB2c || b2cSlotLapsedSession;
+    if (b2cFlowActive) {
       if (isQuestionnaireCompleted) {
         setNoDataStage('analyzing');
         return;
       }
-      if (b2cSlotEnded) {
+      if (b2cSlotEnded || b2cSlotLapsedSession) {
         setNoDataStage('b2c_sample_collected');
         return;
       }
-      setNoDataStage('camp_scheduled');
-      return;
+      if (slotNorm.isB2c && slotNorm.hasScheduledSlot) {
+        setNoDataStage('camp_scheduled');
+        return;
+      }
     }
 
     try {
@@ -632,24 +686,50 @@ const HomePage = ({
     forceRefreshFromProfile,
     slotNorm.isB2c,
     b2cSlotEnded,
+    b2cSlotLapsedSession,
   ]);
 
   useEffect(() => {
     if (!slotNorm.isB2c || !slotNorm.hasScheduledSlot) {
-      setB2cSlotEnded(false);
+      if (!b2cSlotLapsedSession) {
+        setB2cSlotEnded(false);
+      }
       return undefined;
     }
 
     const refreshSlotEnded = () => {
-      setB2cSlotEnded(isB2cSlotEnded(slotNorm));
+      const ended = isB2cSlotEnded(slotNorm);
+      setB2cSlotEnded(ended);
+      if (ended) {
+        markB2cSlotLapsedInSession();
+      }
     };
 
     refreshSlotEnded();
-    const intervalId = window.setInterval(refreshSlotEnded, 30000);
+
+    const endAt = parseSlotBoundaryDate(slotNorm.engagementDateRaw, slotNorm.slotEnd);
+    let timeoutId;
+    if (endAt) {
+      const msUntilLapsed = endAt.getTime() + B2C_SLOT_END_GRACE_MS - Date.now();
+      if (msUntilLapsed > 0 && msUntilLapsed < 48 * 60 * 60 * 1000) {
+        timeoutId = window.setTimeout(refreshSlotEnded, msUntilLapsed);
+      }
+    }
+
+    const intervalId = window.setInterval(refreshSlotEnded, 60000);
     return () => {
       window.clearInterval(intervalId);
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
     };
-  }, [slotNorm]);
+  }, [slotNorm, b2cSlotLapsedSession]);
+
+  useEffect(() => {
+    if (isQuestionnaireCompleted) {
+      clearB2cSlotLapsedInSession();
+    }
+  }, [isQuestionnaireCompleted]);
 
   useEffect(() => {
     let cancelled = false;
@@ -762,6 +842,27 @@ const HomePage = ({
     isOverviewResolved,
     preloadedData?.fitprintGapLockPreloaded,
   ]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!hasStableOverviewData || isNoDataHome || !isOverviewResolved) {
+      setShowReassessmentBanner(false);
+      return undefined;
+    }
+
+    (async () => {
+      const ttlMs = forceRefreshFromProfile ? 0 : 45000;
+      const state = await loadReassessmentBannerState({ ttlMs });
+      if (!cancelled) {
+        setShowReassessmentBanner(Boolean(state.shouldShow));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasStableOverviewData, isNoDataHome, isOverviewResolved, forceRefreshFromProfile]);
 
   const metabolicAgeDetail = useMemo(() => {
     const chronologicalAge = Number(userAge);
@@ -1583,7 +1684,7 @@ const HomePage = ({
               </div>
               <div className="home-page-scheduled__hero-copy">
                 <h2>{campHeroTitle}</h2>
-                {organizerDisplayName ? (
+                {slotNorm.isB2b && organizerDisplayName ? (
                   <div className="home-page-b2b__organizer-pill">
                     <p className="home-page-b2b__organizer">Organized for {organizerDisplayName}</p>
                   </div>
@@ -1685,7 +1786,7 @@ const HomePage = ({
   }
 
   return (
-    <div className="home-page">
+    <div className={`home-page${showReassessmentBanner ? ' home-page--reassessment-banner' : ''}`}>
       {isDownloadMenuOpen ? (
         <button
           type="button"
@@ -1778,6 +1879,11 @@ const HomePage = ({
       >
         <HomeDownloadIcon />
       </button>
+
+      <HomeReassessmentBottomSheet
+        visible={showReassessmentBanner}
+        onUpdateAssessment={openB2bQuestionnaire}
+      />
 
       <NavBar defaultActive="home" onNavigate={handleNavigate} />
     </div>
