@@ -172,9 +172,16 @@ const normalizedAssessmentFamily = (row) => {
   ).trim().toLowerCase();
 
   const compact = text.replace(/[\s_-]+/g, '');
+  const packageCode = String(row?.package_code || row?.packageCode || row?.assessment?.package_code || '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '_');
 
   if (
-    text.includes('fitprint')
+    packageCode === 'MY_FITNESS_PRINT'
+    || packageCode.includes('FITPRINT')
+    || packageCode.includes('FITNESS_PRINT')
+    || text.includes('fitprint')
     || text.includes('fit print')
     || text.includes('fitness print')
     || compact.includes('fitprint')

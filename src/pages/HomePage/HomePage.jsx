@@ -508,8 +508,9 @@ const HomePage = ({
   const [fitprintGapQCompleteFromServer, setFitprintGapQCompleteFromServer] = useState(
     () => Boolean(preloadedData?.fitprintGapLockPreloaded && preloadedData?.fitprintGapQCompleteFromServer),
   );
+  /** False until gap lock is verified — avoids flashing 0/0/0 scores before lock state is known. */
   const [fitprintGapCheckDone, setFitprintGapCheckDone] = useState(
-    () => Boolean(preloadedData?.fitprintGapLockPreloaded),
+    () => Boolean(preloadedData?.fitprintGapLockPreloaded && preloadedData?.healthSpanLockedNoFitprint),
   );
   const [isNoDataHome, setIsNoDataHome] = useState(
     () => homePreloadComplete && !hasRenderableOverviewData(preloadedData),
@@ -744,11 +745,6 @@ const HomePage = ({
     (async () => {
       const ttlMs = forceRefreshFromProfile ? 0 : 45000;
 
-      if (preloadedData?.fitprintGapLockPreloaded === true && !forceRefreshFromProfile) {
-        setFitprintGapCheckDone(true);
-        return;
-      }
-
       const lockState = await loadFitprintGapLockState({ ttlMs });
       if (cancelled) {
         return;
@@ -832,13 +828,15 @@ const HomePage = ({
     setRiskAnalysisData(Array.isArray(data.riskAnalysisData) ? data.riskAnalysisData : []);
 
     if (data.fitprintGapLockPreloaded) {
-      setHealthSpanLockedNoFitprint(Boolean(data.healthSpanLockedNoFitprint));
+      const locked = Boolean(data.healthSpanLockedNoFitprint);
+      setHealthSpanLockedNoFitprint(locked);
       setHealthSpanGapBasicProAssessmentId(data.healthSpanGapBasicProAssessmentId ?? null);
       setFitprintGapQCompleteFromServer(Boolean(data.fitprintGapQCompleteFromServer));
-      setHealthSpanScores(data.healthSpanLockedNoFitprint ? null : (data.healthSpanScores || null));
-      setFitprintGapCheckDone(true);
+      setHealthSpanScores(locked ? null : (data.healthSpanScores || null));
+      setFitprintGapCheckDone(locked);
     } else {
       setHealthSpanScores(data.healthSpanScores || null);
+      setFitprintGapCheckDone(false);
     }
 
     const renderable = hasRenderableOverviewData(data);

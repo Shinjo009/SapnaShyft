@@ -1305,10 +1305,6 @@ function App() {
   const preloadHomeScreenData = async () => {
     prefetchRouteChunk('home');
     void peekMyAssessmentsRowsCached(0).catch(() => {});
-    const healthSpanPromise = fetchLatestHealthSpanIndex({ includeDetails: false, ttlMs: 45000 })
-      .then((result) => result?.scores || null)
-      .catch(() => null);
-
     const fitprintPreloadPromise = loadFitprintGapLockState({ ttlMs: 45000 })
       .then((lockState) => ({
         fitprintGapLockPreloaded: true,
@@ -1317,6 +1313,18 @@ function App() {
         fitprintGapQCompleteFromServer: lockState.gapQuestionnaireComplete,
       }))
       .catch(() => ({}));
+
+    const resolveHealthSpanScoresForPreload = async (fitprintExtras) => {
+      if (fitprintExtras?.healthSpanLockedNoFitprint) {
+        return null;
+      }
+      try {
+        const result = await fetchLatestHealthSpanIndex({ includeDetails: false, ttlMs: 45000 });
+        return result?.scores || null;
+      } catch {
+        return null;
+      }
+    };
 
     const mergePreloadedHomePayload = (partial, healthSpanScores, fitprintExtras) => {
       const spanScores = fitprintExtras.healthSpanLockedNoFitprint ? null : (partial.healthSpanScores ?? healthSpanScores);
@@ -1332,10 +1340,8 @@ function App() {
         (assessmentId) => `/reports/${assessmentId}/overview`
       );
       const overview = resolveOverviewPayload(response);
-      const [healthSpanScores, fitprintExtras] = await Promise.all([
-        healthSpanPromise,
-        fitprintPreloadPromise,
-      ]);
+      const fitprintExtras = await fitprintPreloadPromise;
+      const healthSpanScores = await resolveHealthSpanScoresForPreload(fitprintExtras);
 
       if (overview && typeof overview === 'object') {
         const metabolicAge = Number(overview?.metabolic_age);
@@ -1358,10 +1364,8 @@ function App() {
       return false;
     } catch (err) {
       console.error('Failed to preload home screen data:', err);
-      const [healthSpanScores, fitprintExtras] = await Promise.all([
-        healthSpanPromise,
-        fitprintPreloadPromise,
-      ]);
+      const fitprintExtras = await fitprintPreloadPromise;
+      const healthSpanScores = await resolveHealthSpanScoresForPreload(fitprintExtras);
       setPreloadedHomeData(mergePreloadedHomePayload({
         ...createEmptyPreloadedHome(),
         healthSpanScores,
