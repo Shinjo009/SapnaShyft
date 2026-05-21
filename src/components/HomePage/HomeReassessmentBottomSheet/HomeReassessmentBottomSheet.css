@@ -2,11 +2,12 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 65px;
-  z-index: 1001;
+  bottom: 0;
+  /* Sit behind the navbar (z-index 1000); content is lifted with bottom padding. */
+  z-index: 999;
   display: flex;
-  min-height: 123px;
-  padding: 16px 24px;
+  min-height: calc(123px + 65px);
+  padding: 16px 24px calc(65px + 16px);
   flex-direction: column;
   align-items: center;
   gap: 12px;
