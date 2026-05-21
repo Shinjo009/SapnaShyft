@@ -16,6 +16,8 @@ import {
   fetchLatestAssessmentReport,
   fetchLatestHealthSpanIndex,
   getLatestMetsightsBasicOrProAssessmentIdCached,
+  peekMyAssessmentsRowsCached,
+  resolveEngagementIdFromAssessmentId,
 } from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
 import { getMyProfileCached } from '../../services/profileService';
@@ -582,6 +584,12 @@ const HomePage = ({
   /** null | 'bio-ai' | 'blood' — only the active row shows "Downloading..." */
   const [downloadingReportKind, setDownloadingReportKind] = useState(null);
   const [showReassessmentBanner, setShowReassessmentBanner] = useState(false);
+  const [overviewAnchorAssessmentId, setOverviewAnchorAssessmentId] = useState(
+    () => preloadedData?.anchorAssessmentId ?? null,
+  );
+  const [overviewAnchorEngagementId, setOverviewAnchorEngagementId] = useState(
+    () => preloadedData?.anchorEngagementId ?? null,
+  );
 
   const slotNorm = upcomingSlotNormalized || EMPTY_UPCOMING_SLOT;
   const b2cSlotLapsedSession = isB2cSlotLapsedInSession();
@@ -853,7 +861,11 @@ const HomePage = ({
 
     (async () => {
       const ttlMs = forceRefreshFromProfile ? 0 : 45000;
-      const state = await loadReassessmentBannerState({ ttlMs });
+      const state = await loadReassessmentBannerState({
+        ttlMs,
+        reportAssessmentId: overviewAnchorAssessmentId,
+        reportEngagementId: overviewAnchorEngagementId,
+      });
       if (!cancelled) {
         setShowReassessmentBanner(Boolean(state.shouldShow));
       }
@@ -862,7 +874,14 @@ const HomePage = ({
     return () => {
       cancelled = true;
     };
-  }, [hasStableOverviewData, isNoDataHome, isOverviewResolved, forceRefreshFromProfile]);
+  }, [
+    hasStableOverviewData,
+    isNoDataHome,
+    isOverviewResolved,
+    forceRefreshFromProfile,
+    overviewAnchorAssessmentId,
+    overviewAnchorEngagementId,
+  ]);
 
   const metabolicAgeDetail = useMemo(() => {
     const chronologicalAge = Number(userAge);
@@ -940,6 +959,13 @@ const HomePage = ({
       setFitprintGapCheckDone(false);
     }
 
+    if (data.anchorAssessmentId) {
+      setOverviewAnchorAssessmentId(data.anchorAssessmentId);
+    }
+    if (data.anchorEngagementId) {
+      setOverviewAnchorEngagementId(data.anchorEngagementId);
+    }
+
     const renderable = hasRenderableOverviewData(data);
     setHasStableOverviewData(renderable);
     setIsNoDataHome(!renderable);
@@ -1001,11 +1027,15 @@ const HomePage = ({
 
     const fetchOverviewParsed = async (ttlMs) => {
       try {
-        const { response } = await fetchLatestAssessmentReport(
+        const { assessmentId, response } = await fetchLatestAssessmentReport(
           (assessmentId) => `/reports/${assessmentId}/overview`,
           ttlMs,
         );
-        return parseOverviewResponse(response);
+        const parsed = parseOverviewResponse(response);
+        if (!parsed) {
+          return null;
+        }
+        return { ...parsed, anchorAssessmentId: Number(assessmentId) > 0 ? Number(assessmentId) : null };
       } catch {
         return null;
       }
@@ -1035,6 +1065,18 @@ const HomePage = ({
           setIsNoDataHome(false);
           setHasStableOverviewData(true);
           setNoDataStage('welcome');
+          if (parsed.anchorAssessmentId) {
+            setOverviewAnchorAssessmentId(parsed.anchorAssessmentId);
+            void peekMyAssessmentsRowsCached(45000).then((rows) => {
+              if (!isActive) {
+                return;
+              }
+              const engagementId = resolveEngagementIdFromAssessmentId(rows, parsed.anchorAssessmentId);
+              if (engagementId) {
+                setOverviewAnchorEngagementId(engagementId);
+              }
+            }).catch(() => {});
+          }
           void bloodPromise.then((markers) => {
             if (isActive) {
               setHomeBloodMarkersForSection(markers);
@@ -1065,6 +1107,18 @@ const HomePage = ({
             setIsNoDataHome(false);
             setHasStableOverviewData(true);
             setNoDataStage('welcome');
+            if (parsed.anchorAssessmentId) {
+              setOverviewAnchorAssessmentId(parsed.anchorAssessmentId);
+              void peekMyAssessmentsRowsCached(primaryTtl).then((rows) => {
+                if (!isActive) {
+                  return;
+                }
+                const engagementId = resolveEngagementIdFromAssessmentId(rows, parsed.anchorAssessmentId);
+                if (engagementId) {
+                  setOverviewAnchorEngagementId(engagementId);
+                }
+              }).catch(() => {});
+            }
           } else if (!hasStableOverviewData) {
             setMetabolicAgeValue('-');
             setPositiveWinsData(null);

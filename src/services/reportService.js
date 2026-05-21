@@ -318,12 +318,7 @@ export const getLatestMetsightsBasicOrProAssessmentIdCached = async (ttlMs = 450
 
 export const getLatestAssessmentIdsCached = async (ttlMs = 45000) => {
   const response = await fetchMyAssessmentsPageCached(ttlMs, DEFAULT_ASSESSMENTS_ME_QUERY);
-  const ids = getSortedAssessmentIds(extractArray(response));
-  if (ids.length > 0) {
-    writeStoredLatestAssessmentId(ids[0]);
-  }
-
-  return ids;
+  return getSortedAssessmentIds(extractArray(response));
 };
 
 export const fetchLatestAssessmentReport = async (buildPath, ttlMs = 45000) => {
@@ -550,14 +545,48 @@ const isActiveIncompleteAssessmentRow = (row) => {
   const status = String(row?.status || '').trim().toLowerCase();
   const completedAt = row?.completed_at || row?.completedAt || null;
   const isCompleteFlag = Boolean(row?.is_completed ?? row?.isComplete ?? false);
-  const activeStatuses = new Set(['active', 'in_progress', 'in-progress', 'assigned', 'pending']);
-  return activeStatuses.has(status) && !completedAt && !isCompleteFlag;
+  if (status === 'completed' || completedAt || isCompleteFlag) {
+    return false;
+  }
+  return status === 'active' || status === 'assigned' || status === 'pending'
+    || status === 'in_progress' || status === 'in-progress';
+};
+
+export const resolveEngagementIdFromAssessmentId = (rawRows, assessmentInstanceId) => {
+  const targetId = Number(assessmentInstanceId);
+  if (!Number.isFinite(targetId) || targetId <= 0) {
+    return '';
+  }
+  const row = (Array.isArray(rawRows) ? rawRows : []).find(
+    (item) => Number(extractAssessmentIdFromRow(item)) === targetId,
+  );
+  return String(extractEngagementIdFromRow(row) || '').trim();
+};
+
+const resolvePriorReportEngagementId = (rows, latestEngagementId) => {
+  const basicProRows = rows.filter((row) => normalizedAssessmentFamily(row) === 'basic_or_pro');
+  const engagementOrder = [];
+  basicProRows.forEach((row) => {
+    const engagementId = String(extractEngagementIdFromRow(row) || '').trim();
+    if (engagementId && !engagementOrder.includes(engagementId)) {
+      engagementOrder.push(engagementId);
+    }
+  });
+
+  if (engagementOrder.length < 2) {
+    return '';
+  }
+
+  return engagementOrder.find((id) => id !== latestEngagementId) || '';
 };
 
 /**
- * User has an older report visible but a newer engagement with Basic/Pro + FitPrint still needs questionnaire.
+ * User has an older report visible but a newer Basic/Pro + FitPrint cycle still needs questionnaire.
  */
-export const resolveReassessmentPromptFromRows = (rawRows, { reportAssessmentId } = {}) => {
+export const resolveReassessmentPromptFromRows = (rawRows, {
+  reportAssessmentId = null,
+  reportEngagementId: explicitReportEngagementId = null,
+} = {}) => {
   const rows = sortAssessmentRowsLatestFirst(Array.isArray(rawRows) ? rawRows : []);
 
   const latestBasicOrPro = rows.find((row) => normalizedAssessmentFamily(row) === 'basic_or_pro') || null;
@@ -566,7 +595,8 @@ export const resolveReassessmentPromptFromRows = (rawRows, { reportAssessmentId 
   }
 
   const latestEngagementId = String(extractEngagementIdFromRow(latestBasicOrPro) || '').trim();
-  if (!latestEngagementId) {
+  const latestBasicProAssessmentId = Number(extractAssessmentIdFromRow(latestBasicOrPro));
+  if (!latestEngagementId || !Number.isFinite(latestBasicProAssessmentId) || latestBasicProAssessmentId <= 0) {
     return { shouldPrompt: false };
   }
 
@@ -580,35 +610,41 @@ export const resolveReassessmentPromptFromRows = (rawRows, { reportAssessmentId 
   }
 
   const reportId = Number(reportAssessmentId);
-  if (!Number.isFinite(reportId) || reportId <= 0) {
+  let reportEngagementId = String(explicitReportEngagementId || '').trim();
+
+  if (!reportEngagementId && Number.isFinite(reportId) && reportId > 0) {
+    reportEngagementId = resolveEngagementIdFromAssessmentId(rows, reportId);
+  }
+
+  if (!reportEngagementId) {
+    reportEngagementId = resolvePriorReportEngagementId(rows, latestEngagementId);
+  }
+
+  if (!reportEngagementId) {
     return { shouldPrompt: false };
   }
 
-  const reportRow = rows.find((row) => Number(extractAssessmentIdFromRow(row)) === reportId) || null;
-  const reportEngagementId = String(extractEngagementIdFromRow(reportRow) || '').trim();
-  if (!reportEngagementId || reportEngagementId === latestEngagementId) {
+  const isDifferentEngagement = reportEngagementId !== latestEngagementId;
+  const isNewInstanceSameEngagement = !isDifferentEngagement
+    && Number.isFinite(reportId) && reportId > 0
+    && reportId !== latestBasicProAssessmentId;
+
+  if (!isDifferentEngagement && !isNewInstanceSameEngagement) {
     return { shouldPrompt: false };
   }
 
-  const hasIncompleteOnLatestEngagement = rows.some((row) => (
+  const hasOpenAssessmentOnLatestEngagement = rows.some((row) => (
     String(extractEngagementIdFromRow(row) || '').trim() === latestEngagementId
     && isActiveIncompleteAssessmentRow(row)
   ));
 
-  if (!hasIncompleteOnLatestEngagement) {
-    return { shouldPrompt: false };
-  }
-
-  const latestBasicProAssessmentId = Number(extractAssessmentIdFromRow(latestBasicOrPro));
-
   return {
     shouldPrompt: true,
     latestEngagementId,
-    latestBasicProAssessmentId: Number.isFinite(latestBasicProAssessmentId) && latestBasicProAssessmentId > 0
-      ? latestBasicProAssessmentId
-      : null,
+    latestBasicProAssessmentId,
     reportEngagementId,
-    reportAssessmentId: reportId,
+    reportAssessmentId: Number.isFinite(reportId) && reportId > 0 ? reportId : null,
+    hasOpenAssessmentOnLatestEngagement,
   };
 };
 

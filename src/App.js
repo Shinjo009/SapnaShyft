@@ -30,6 +30,7 @@ import {
   clearReportRequestCache,
   clearStoredLatestAssessmentId,
   peekMyAssessmentsRowsCached,
+  resolveEngagementIdFromAssessmentId,
 } from './services/reportService';
 import {
   saveAuthTokens,
@@ -1336,12 +1337,14 @@ function App() {
     };
 
     try {
-      const { response } = await fetchLatestAssessmentReport(
+      const { assessmentId, response } = await fetchLatestAssessmentReport(
         (assessmentId) => `/reports/${assessmentId}/overview`
       );
       const overview = resolveOverviewPayload(response);
       const fitprintExtras = await fitprintPreloadPromise;
       const healthSpanScores = await resolveHealthSpanScoresForPreload(fitprintExtras);
+      const assessmentRows = await peekMyAssessmentsRowsCached(0).catch(() => []);
+      const anchorEngagementId = resolveEngagementIdFromAssessmentId(assessmentRows, assessmentId);
 
       if (overview && typeof overview === 'object') {
         const metabolicAge = Number(overview?.metabolic_age);
@@ -1353,6 +1356,8 @@ function App() {
           positiveWinsData: resolvePositiveWinsPayload(overview),
           riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
           healthSpanScores,
+          anchorAssessmentId: Number(assessmentId) > 0 ? Number(assessmentId) : null,
+          anchorEngagementId: anchorEngagementId || null,
         }, healthSpanScores, fitprintExtras));
         return true;
       }

@@ -1,19 +1,36 @@
 import {
   getStoredLatestReportAssessmentId,
   peekMyAssessmentsRowsCached,
+  resolveEngagementIdFromAssessmentId,
   resolveReassessmentPromptFromRows,
 } from '../services/reportService';
+import { isFitprintGapQuestionnaireFullyComplete } from './fitprintGapCatchupCompletion';
 
 export async function loadReassessmentBannerState({
   ttlMs = 45000,
   reportAssessmentId = null,
+  reportEngagementId = null,
 } = {}) {
   try {
     const rows = await peekMyAssessmentsRowsCached(ttlMs);
     const reportId = reportAssessmentId ?? getStoredLatestReportAssessmentId();
-    const resolved = resolveReassessmentPromptFromRows(rows, { reportAssessmentId: reportId });
+    const reportEng = reportEngagementId
+      || resolveEngagementIdFromAssessmentId(rows, reportId);
 
-    if (!resolved.shouldPrompt) {
+    const resolved = resolveReassessmentPromptFromRows(rows, {
+      reportAssessmentId: reportId,
+      reportEngagementId: reportEng,
+    });
+
+    if (!resolved.shouldPrompt || !resolved.latestBasicProAssessmentId) {
+      return { shouldShow: false };
+    }
+
+    const gapQuestionnaireComplete = await isFitprintGapQuestionnaireFullyComplete(
+      resolved.latestBasicProAssessmentId,
+    );
+
+    if (gapQuestionnaireComplete) {
       return { shouldShow: false };
     }
 
