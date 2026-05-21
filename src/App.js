@@ -26,7 +26,6 @@ import {
 import {
   fetchLatestAssessmentReport,
   fetchLatestHealthSpanIndex,
-  getHealthSpanIndexSourceStatus,
   getLatestAssessmentIdsCached,
   clearReportRequestCache,
   clearStoredLatestAssessmentId,
@@ -55,7 +54,7 @@ import {
   hasRenderableOverviewData,
   HOME_PRELOAD_COMPLETE_KEY,
 } from './utils/homeOverviewPreload';
-import { isFitprintGapQuestionnaireFullyComplete } from './utils/fitprintGapCatchupCompletion';
+import { loadFitprintGapLockState } from './utils/fitprintGapLock';
 import {
   clearSuperclubPlaylistLock,
   persistSuperclubPlaylistLock,
@@ -1310,31 +1309,17 @@ function App() {
       .then((result) => result?.scores || null)
       .catch(() => null);
 
-    const fitprintPreloadPromise = (async () => {
-      try {
-        const sourceStatus = await getHealthSpanIndexSourceStatus({ ttlMs: 45000 });
-        if (sourceStatus.status !== 'missing_fitprint') {
-          return {};
-        }
-        const basicProId = Number(sourceStatus.basicOrProAssessmentId);
-        const normalizedId = Number.isFinite(basicProId) && basicProId > 0 ? basicProId : null;
-        let gapQuestionnaireComplete = false;
-        if (normalizedId != null) {
-          gapQuestionnaireComplete = await isFitprintGapQuestionnaireFullyComplete(normalizedId);
-        }
-        return {
-          fitprintGapLockPreloaded: true,
-          healthSpanLockedNoFitprint: true,
-          healthSpanGapBasicProAssessmentId: normalizedId,
-          fitprintGapQCompleteFromServer: Boolean(gapQuestionnaireComplete),
-        };
-      } catch {
-        return {};
-      }
-    })();
+    const fitprintPreloadPromise = loadFitprintGapLockState({ ttlMs: 45000 })
+      .then((lockState) => ({
+        fitprintGapLockPreloaded: true,
+        healthSpanLockedNoFitprint: Boolean(lockState.isLocked),
+        healthSpanGapBasicProAssessmentId: lockState.basicProAssessmentId,
+        fitprintGapQCompleteFromServer: lockState.gapQuestionnaireComplete,
+      }))
+      .catch(() => ({}));
 
     const mergePreloadedHomePayload = (partial, healthSpanScores, fitprintExtras) => {
-      const spanScores = fitprintExtras.fitprintGapLockPreloaded ? null : (partial.healthSpanScores ?? healthSpanScores);
+      const spanScores = fitprintExtras.healthSpanLockedNoFitprint ? null : (partial.healthSpanScores ?? healthSpanScores);
       return {
         ...partial,
         ...fitprintExtras,
