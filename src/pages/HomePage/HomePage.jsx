@@ -1593,7 +1593,7 @@ const HomePage = ({
             </div>
 
             <button type="button" className="home-page-no-data__bio-btn" onClick={handleBioMarkersClick}>
-              Check your Bio-AI tests
+              Check your Bio-markers Now
             </button>
           </section>
 
@@ -1612,7 +1612,15 @@ const HomePage = ({
             </div>
           </div>
 
-          {healthSpanLockedNoFitprint ? (
+          {!slotNorm.isB2b ? (
+            <HomeHealthSpanIndexLockedStack
+              onCompleteAssessment={openQuestionnaireFromFitprintLock}
+              ariaLabel="Health Span Index locked until after your test"
+              postSubmitAwaitingReports={false}
+              showCompleteAssessmentButton={false}
+              unlockMessage="Unlock your Health Scores after the Test"
+            />
+          ) : healthSpanLockedNoFitprint ? (
             <HomeHealthSpanIndexLockedStack
               onCompleteAssessment={openQuestionnaireFromFitprintLock}
               ariaLabel="Health Span Index locked until FitPrint assessment is completed"

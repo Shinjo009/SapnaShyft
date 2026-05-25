@@ -43,6 +43,7 @@ const HomeHealthSpanIndexLockedStack = ({
   ariaLabel = 'Health Span Index locked until FitPrint assessment is completed',
   postSubmitAwaitingReports = false,
   showCompleteAssessmentButton = true,
+  unlockMessage = 'Unlock your Health Scores after completing the health assessment',
 }) => {
   const lockMaskId = `hsi-lock-${useId().replace(/:/g, '')}`;
   const submittedAria = postSubmitAwaitingReports
@@ -79,7 +80,7 @@ const HomeHealthSpanIndexLockedStack = ({
           <div className="home-page-no-data__unlock-center">
             <LockIcon maskId={lockMaskId} />
             <p className="home-page-no-data__unlock-message">
-              Unlock your Health Scores after completing the health assessment
+              {unlockMessage}
             </p>
           </div>
         )}
