@@ -98,7 +98,7 @@ export default function SuperclubEarlyAccessPage({
   const handleDone = useCallback(() => {
     const resolvedOtherNote = otherNoteRef.current.trim();
     let sportIds = [...selected].filter((id) => id !== 'other');
-    const resolvedOtherSelected = resolvedOtherNote.length > 0;
+    let resolvedOtherSelected = resolvedOtherNote.length > 0;
 
     if (sportIds.length === 0 && !resolvedOtherSelected) {
       sportIds = defaultSportIdsIfEmpty;

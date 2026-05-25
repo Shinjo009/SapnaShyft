@@ -33,10 +33,24 @@ import {
   clearFitprintGapQuestionnaireSubmittedFlag,
 } from '../../services/questionnaireService';
 import { hasRenderableOverviewData, HOME_PRELOAD_COMPLETE_KEY } from '../../utils/homeOverviewPreload';
-import { loadFitprintGapLockState } from '../../utils/fitprintGapLock';
+import { areHealthSpanScoresPending, loadFitprintGapLockState } from '../../utils/fitprintGapLock';
 import { loadReassessmentBannerState } from '../../utils/reassessmentBanner';
 import clockCircleSrc from '../../images/clock_circle.svg';
 import clockHandsSrc from '../../images/clock_hands.svg';
+
+const hasDisplayableHealthSpanScores = (scores) => (
+  Boolean(scores) && !areHealthSpanScoresPending(scores)
+);
+
+const resolveFitprintGapCheckDoneFromPreload = (data) => {
+  if (!data?.fitprintGapLockPreloaded) {
+    return false;
+  }
+  if (data.healthSpanLockedNoFitprint) {
+    return true;
+  }
+  return hasDisplayableHealthSpanScores(data.healthSpanScores);
+};
 
 const ASSESSMENT_ID_FIXED_BLOOD_REPORT_PDF = 374;
 const ASSESSMENT_FIXED_BLOOD_REPORT_PDF_URL =
@@ -505,13 +519,6 @@ const isScheduledSlotWindowEnded = (slotNorm, now = new Date()) => {
   return now.getTime() >= endAt.getTime() + B2C_SLOT_END_GRACE_MS;
 };
 
-const isB2cSlotEnded = (slotNorm, now = new Date()) => {
-  if (!slotNorm?.isB2c) {
-    return false;
-  }
-  return isScheduledSlotWindowEnded(slotNorm, now);
-};
-
 const parseResponseBody = async (response) => {
   const contentType = response?.headers?.get?.('content-type') || '';
   if (contentType.toLowerCase().includes('application/json')) {
@@ -569,7 +576,7 @@ const HomePage = ({
   );
   /** False until gap lock is verified — avoids flashing 0/0/0 scores before lock state is known. */
   const [fitprintGapCheckDone, setFitprintGapCheckDone] = useState(
-    () => Boolean(preloadedData?.fitprintGapLockPreloaded && preloadedData?.healthSpanLockedNoFitprint),
+    () => resolveFitprintGapCheckDoneFromPreload(preloadedData),
   );
   const [isNoDataHome, setIsNoDataHome] = useState(
     () => homePreloadComplete && !hasRenderableOverviewData(preloadedData),
@@ -635,6 +642,13 @@ const HomePage = ({
 
   const fitprintGapAwaitingReports = isFitprintGapQuestionnaireSubmittedFlagSet() || fitprintGapQCompleteFromServer;
   const showFitprintGapQuestionnaireCta = healthSpanLockedNoFitprint && !fitprintGapAwaitingReports;
+  const showHealthSpanLocked = healthSpanLockedNoFitprint && fitprintGapCheckDone;
+  const showHealthSpanScores = !healthSpanLockedNoFitprint && (
+    fitprintGapCheckDone || hasDisplayableHealthSpanScores(healthSpanScores)
+  );
+  const showHealthSpanPending = !showHealthSpanLocked && !showHealthSpanScores
+    && hasStableOverviewData
+    && isOverviewResolved;
 
   const applyFitprintLockState = useCallback(async (lockState, { fetchScoresTtlMs = 45000 } = {}) => {
     if (lockState.isLocked) {
@@ -756,6 +770,7 @@ const HomePage = ({
     isB2bCampNoDataGateResolved,
     isQuestionnaireCompleted,
     forceRefreshFromProfile,
+    slotNorm.hasScheduledSlot,
     slotNorm.isB2c,
     b2cSlotEnded,
     b2cSlotLapsedSession,
@@ -1019,7 +1034,7 @@ const HomePage = ({
       setHealthSpanGapBasicProAssessmentId(data.healthSpanGapBasicProAssessmentId ?? null);
       setFitprintGapQCompleteFromServer(Boolean(data.fitprintGapQCompleteFromServer));
       setHealthSpanScores(locked ? null : (data.healthSpanScores || null));
-      setFitprintGapCheckDone(locked);
+      setFitprintGapCheckDone(resolveFitprintGapCheckDoneFromPreload(data));
     } else {
       setHealthSpanScores(data.healthSpanScores || null);
       setFitprintGapCheckDone(false);
@@ -1930,9 +1945,8 @@ const HomePage = ({
         absoluteMetabolicAge={metabolicOrbProps.absoluteMetabolicAge}
       />
 
-      {/* Health Span Index: scores, or locked when Basic/Pro exists without matching FitPrint */}
-      {healthSpanLockedNoFitprint
-        || (!fitprintGapCheckDone && hasStableOverviewData && isOverviewResolved) ? (
+      {/* Health Span Index: never flash locked while lock check is still in flight */}
+      {showHealthSpanLocked ? (
         <div className="health-parameters">
           <HomeHealthSpanIndexLockedStack
             onCompleteAssessment={openQuestionnaireFromFitprintLock}
@@ -1941,7 +1955,7 @@ const HomePage = ({
             showCompleteAssessmentButton={showFitprintGapQuestionnaireCta}
           />
         </div>
-      ) : (
+      ) : showHealthSpanScores ? (
         <HealthParametersSection
           data={[
             { percentage: healthSpanScores?.fitnessScore ?? null, label: 'Fitness score' },
@@ -1951,7 +1965,13 @@ const HomePage = ({
           onSeeMore={handleHealthScanSeeMore}
           onCardClick={handleHealthScanCircleClick}
         />
-      )}
+      ) : showHealthSpanPending ? (
+        <div
+          className="health-parameters health-parameters--pending"
+          aria-busy="true"
+          aria-label="Loading Health Span Index"
+        />
+      ) : null}
 
       <PositiveWinsSection apiPositiveWins={positiveWinsData} />
 

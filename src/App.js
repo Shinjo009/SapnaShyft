@@ -38,6 +38,7 @@ import {
   clearAuthTokens,
   extractTokensFromResponse,
 } from './utils/authStorage';
+import { SESSION_EXPIRED_EVENT, logAuthError } from './utils/sessionAuth';
 import { trackAppScreen } from './analytics/googleAnalytics';
 import AppTooltipTour from './components/AppTooltipTour/AppTooltipTour';
 import {
@@ -1562,11 +1563,7 @@ function App() {
     applyLockedLanding('health-insights');
   };
 
-  const handleLogout = async () => {
-    const refreshTokenValue = getRefreshToken();
-
-    await logout(refreshTokenValue);
-
+  const resetAppSession = useCallback(() => {
     clearAuthTokens();
     clearReportRequestCache();
     clearStoredLatestAssessmentId();
@@ -1589,7 +1586,34 @@ function App() {
     } catch {
       // ignore
     }
+    setIsBootstrappingSession(false);
     setCurrentPage('login');
+  }, []);
+
+  useEffect(() => {
+    const onSessionExpired = (event) => {
+      logAuthError('Session expired — redirecting to login', event?.detail ?? null);
+      resetAppSession();
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+  }, [resetAppSession]);
+
+  const handleLogout = async () => {
+    const refreshTokenValue = getRefreshToken();
+
+    if (refreshTokenValue) {
+      try {
+        await logout(refreshTokenValue);
+      } catch (error) {
+        logAuthError('Logout request failed', error);
+      }
+    } else {
+      logAuthError('Logout skipped — no refresh token in storage', null);
+    }
+
+    resetAppSession();
   };
 
   const getPossessiveLabel = (name) => {

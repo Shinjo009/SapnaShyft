@@ -1,5 +1,7 @@
 import {
+  fetchHealthSpanIndexForPair,
   fetchLatestHealthSpanIndex,
+  findLatestFitprintAssessmentIdFromRows,
   getHealthSpanIndexSourceStatus,
 } from '../services/reportService';
 import { isFitprintGapQuestionnaireFullyComplete } from './fitprintGapCatchupCompletion';
@@ -24,9 +26,24 @@ export const areHealthSpanScoresPending = (scores) => {
   return values.every((value) => value == null || (Number.isFinite(Number(value)) && Number(value) <= 0));
 };
 
+const tryUnlockFromReportScores = async (fetchScores) => {
+  try {
+    const result = await fetchScores();
+    if (!areHealthSpanScoresPending(result?.scores)) {
+      return UNLOCKED;
+    }
+  } catch {
+    // Report not ready or pair invalid — fall through to questionnaire / lock flow.
+  }
+  return null;
+};
+
 /**
  * Lock Health Span Index when FitPrint is missing, gap questionnaire is incomplete,
  * or FitPrint exists but scores are not ready yet.
+ *
+ * When the report endpoint already returns scores (as in Postman), unlock immediately —
+ * the API is the source of truth and must not be blocked by client-side questionnaire heuristics.
  */
 export async function loadFitprintGapLockState({ ttlMs = 45000 } = {}) {
   try {
@@ -40,6 +57,31 @@ export async function loadFitprintGapLockState({ ttlMs = 45000 } = {}) {
     const basicProId = normalizeBasicProId(sourceStatus);
     if (basicProId == null) {
       return UNLOCKED;
+    }
+
+    if (status === 'ready') {
+      const unlocked = await tryUnlockFromReportScores(
+        () => fetchLatestHealthSpanIndex({ includeDetails: false, ttlMs }),
+      );
+      if (unlocked) {
+        return unlocked;
+      }
+    }
+
+    if (status === 'missing_fitprint' || status === 'missing_engagement') {
+      const fitprintId = findLatestFitprintAssessmentIdFromRows(sourceStatus?.rows || []);
+      if (fitprintId) {
+        const unlocked = await tryUnlockFromReportScores(
+          () => fetchHealthSpanIndexForPair({
+            fitprintAssessmentId: fitprintId,
+            basicOrProAssessmentId: basicProId,
+            includeDetails: false,
+          }),
+        );
+        if (unlocked) {
+          return unlocked;
+        }
+      }
     }
 
     let gapQuestionnaireComplete = false;
@@ -60,15 +102,6 @@ export async function loadFitprintGapLockState({ ttlMs = 45000 } = {}) {
     }
 
     if (status === 'ready') {
-      try {
-        const result = await fetchLatestHealthSpanIndex({ includeDetails: false, ttlMs });
-        if (!areHealthSpanScoresPending(result?.scores)) {
-          return UNLOCKED;
-        }
-      } catch {
-        // FitPrint row exists but report/HSI not ready — keep locked with submitted state.
-      }
-
       return {
         isLocked: true,
         basicProAssessmentId: basicProId,

@@ -17,6 +17,7 @@ import { getMyProfile, invalidateMyProfileCache } from '../../services/profileSe
 import { getMyProfiles, invalidateMyProfilesCache, unlinkMyProfile } from '../../services/usersService';
 import { clearReportRequestCache, clearStoredLatestAssessmentId } from '../../services/reportService';
 import { clearAuthTokens, extractTokensFromResponse, saveAuthTokens } from '../../utils/authStorage';
+import { isSessionAuthError, logAuthError } from '../../utils/sessionAuth';
 
 // BG-1.png lives under /public/ (stable URL, no content hash) so index.html
 // can preload it for faster LCP on the very first paint. Reference it by
@@ -76,7 +77,11 @@ const ProfilePage = ({
         }
       } catch (loadError) {
         if (mounted) {
-          setProfileError(loadError?.message || 'Failed to load profile. Please try again.');
+          if (isSessionAuthError(loadError)) {
+            return;
+          }
+          logAuthError('Profile load failed', loadError);
+          setProfileError('Failed to load profile. Please try again.');
         }
       } finally {
         if (mounted) {
@@ -107,7 +112,11 @@ const ProfilePage = ({
         }
       } catch (loadError) {
         if (mounted) {
-          setLinkedProfilesError(loadError?.message || 'Failed to load linked accounts.');
+          if (isSessionAuthError(loadError)) {
+            return;
+          }
+          logAuthError('Linked profiles load failed', loadError);
+          setLinkedProfilesError('Failed to load linked accounts. Please try again.');
         }
       } finally {
         if (mounted) {
@@ -194,7 +203,11 @@ const ProfilePage = ({
 
         closeModal();
       } catch (unlinkError) {
-        setError(unlinkError?.message || 'Unlink failed. Please try again.');
+        if (isSessionAuthError(unlinkError)) {
+          return;
+        }
+        logAuthError('Unlink account failed', unlinkError);
+        setError('Unlink failed. Please try again.');
         setUnlinkLoading(false);
       }
       return;
@@ -206,7 +219,7 @@ const ProfilePage = ({
       await onLogout();
       closeModal();
     } catch (logoutError) {
-      setError(logoutError?.message || 'Logout failed. Please try again.');
+      logAuthError('Logout failed', logoutError);
       setLogoutLoading(false);
     }
   };
@@ -260,9 +273,11 @@ const ProfilePage = ({
         });
       }
     } catch (switchError) {
-      const message = switchError?.message || 'Failed to switch account. Please try again.';
-      setLinkedProfilesError(message);
-      window.alert(message);
+      if (isSessionAuthError(switchError)) {
+        return;
+      }
+      logAuthError('Switch account failed', switchError);
+      setLinkedProfilesError('Failed to switch account. Please try again.');
     } finally {
       setSwitchingUserId(null);
       setProfileLoading(false);

@@ -6,6 +6,11 @@ import {
   extractTokensFromResponse,
   clearAuthTokens,
 } from '../utils/authStorage';
+import {
+  SessionExpiredError,
+  dispatchSessionExpired,
+  logAuthError,
+} from '../utils/sessionAuth';
 
 let refreshInFlightPromise = null;
 
@@ -77,7 +82,11 @@ const refreshAccessToken = async () => {
   refreshInFlightPromise = (async () => {
     const refreshTokenValue = getRefreshToken();
     if (!refreshTokenValue) {
-      throw new Error('Missing refresh token. Please login again.');
+      const detail = { reason: 'missing_refresh_token' };
+      logAuthError('Token refresh skipped', detail);
+      clearAuthTokens();
+      dispatchSessionExpired(detail);
+      throw new SessionExpiredError(detail);
     }
 
     const response = await fetch(`${BACKEND_BASE_URL}/auth/refresh-token`, {
@@ -90,12 +99,20 @@ const refreshAccessToken = async () => {
 
     const parsedBody = await parseResponseBody(response);
     if (!response.ok) {
-      throw new Error(getErrorMessage(parsedBody));
+      const detail = { status: response.status, body: parsedBody };
+      logAuthError('Token refresh failed', getErrorMessage(parsedBody), detail);
+      clearAuthTokens();
+      dispatchSessionExpired(detail);
+      throw new SessionExpiredError(detail);
     }
 
     const tokens = extractTokensFromResponse(parsedBody, refreshTokenValue);
     if (!tokens.accessToken) {
-      throw new Error('Refresh response missing access token. Please login again.');
+      const detail = { reason: 'missing_access_token_in_refresh_response', body: parsedBody };
+      logAuthError('Token refresh response invalid', detail);
+      clearAuthTokens();
+      dispatchSessionExpired(detail);
+      throw new SessionExpiredError(detail);
     }
 
     saveAuthTokens(tokens);
@@ -146,7 +163,11 @@ export const authorizedRequest = async (
 
   const initialAccessToken = requireAuth ? getAccessToken() : '';
   if (requireAuth && !initialAccessToken) {
-    throw new Error(missingAuthMessage);
+    const detail = { reason: 'missing_access_token', path };
+    logAuthError('Authorized request blocked', missingAuthMessage, detail);
+    clearAuthTokens();
+    dispatchSessionExpired(detail);
+    throw new SessionExpiredError(detail);
   }
 
   let { response, parsedBody } = await runRequest({
@@ -170,12 +191,25 @@ export const authorizedRequest = async (
         accessToken: refreshedAccessToken,
       }));
     } catch (refreshError) {
+      if (refreshError instanceof SessionExpiredError) {
+        throw refreshError;
+      }
+      const detail = { path, cause: refreshError?.message || refreshError };
+      logAuthError('Token refresh retry failed', refreshError, detail);
       clearAuthTokens();
-      throw new Error(refreshError?.message || 'Session expired. Please login again.');
+      dispatchSessionExpired(detail);
+      throw new SessionExpiredError(detail);
     }
   }
 
   if (!response.ok) {
+    if (requireAuth && response.status === 401) {
+      const detail = { path, status: 401, body: parsedBody };
+      logAuthError('Unauthorized after token refresh', getErrorMessage(parsedBody), detail);
+      clearAuthTokens();
+      dispatchSessionExpired(detail);
+      throw new SessionExpiredError(detail);
+    }
     throw new Error(getErrorMessage(parsedBody));
   }
 

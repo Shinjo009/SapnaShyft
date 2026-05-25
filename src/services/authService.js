@@ -79,7 +79,7 @@ export const refreshToken = (refreshTokenValue) => {
 
 export const logout = (refreshTokenValue) => {
   if (!refreshTokenValue || !String(refreshTokenValue).trim()) {
-    throw new Error('Missing refresh token. Please login again.');
+    return Promise.resolve(null);
   }
 
   return post('/auth/logout', { refresh_token: refreshTokenValue });

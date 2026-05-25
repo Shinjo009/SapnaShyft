@@ -419,6 +419,50 @@ export const getHealthSpanIndexSourceStatus = async ({ ttlMs = 45000 } = {}) => 
   }
 };
 
+export const findLatestFitprintAssessmentIdFromRows = (rawRows) => {
+  const rows = sortAssessmentRowsLatestFirst(Array.isArray(rawRows) ? rawRows : []);
+  const latestFitprint = rows.find((row) => normalizedAssessmentFamily(row) === 'fitprint') || null;
+  const id = Number(extractAssessmentIdFromRow(latestFitprint));
+  return Number.isFinite(id) && id > 0 ? id : null;
+};
+
+export const fetchHealthSpanIndexForPair = async ({
+  fitprintAssessmentId,
+  basicOrProAssessmentId,
+  includeDetails = false,
+} = {}) => {
+  const fitprintId = Number(fitprintAssessmentId);
+  const basicProId = Number(basicOrProAssessmentId);
+  if (!Number.isFinite(fitprintId) || fitprintId <= 0 || !Number.isFinite(basicProId) || basicProId <= 0) {
+    throw new Error('Invalid FitPrint or Basic/Pro assessment id for Health Span Index.');
+  }
+
+  const payload = {
+    source_assessment_instance_ids: [fitprintId, basicProId],
+    include_details: Boolean(includeDetails),
+  };
+
+  let reportResponse;
+  try {
+    reportResponse = await authorizedRequest(
+      `/reports/${fitprintId}/health-span-index`,
+      { method: 'POST', payload },
+    );
+  } catch (primaryError) {
+    reportResponse = await authorizedRequest(
+      `/reports/${basicProId}/health-span-index`,
+      { method: 'POST', payload },
+    );
+  }
+
+  return {
+    fitprintAssessmentId: fitprintId,
+    basicOrProAssessmentId: basicProId,
+    response: reportResponse,
+    scores: normalizeHealthSpanScores(reportResponse),
+  };
+};
+
 export const fetchLatestHealthSpanIndex = async ({
   includeDetails = false,
   ttlMs = 45000,
@@ -495,46 +539,29 @@ export const fetchLatestHealthSpanIndex = async ({
     assessment_type_code: latestMatchingFitprint?.assessment_type_code || null,
   });
 
-  const payload = {
-    source_assessment_instance_ids: [fitprintAssessmentId, basicOrProAssessmentId],
-    include_details: Boolean(includeDetails),
-  };
   console.log(`${debugPrefix} requesting report`, {
     path: `/reports/${fitprintAssessmentId}/health-span-index`,
-    payload,
+    fitprintAssessmentId,
+    basicOrProAssessmentId,
   });
 
-  let reportResponse;
-  try {
-    reportResponse = await authorizedRequest(
-      `/reports/${fitprintAssessmentId}/health-span-index`,
-      { method: 'POST', payload },
-    );
-  } catch (primaryError) {
-    console.warn(`${debugPrefix} primary endpoint failed, trying fallback path id`, {
-      attempted_path: `/reports/${fitprintAssessmentId}/health-span-index`,
-      fallback_path: `/reports/${basicOrProAssessmentId}/health-span-index`,
-      error: primaryError?.message || String(primaryError),
-    });
-    reportResponse = await authorizedRequest(
-      `/reports/${basicOrProAssessmentId}/health-span-index`,
-      { method: 'POST', payload },
-    );
-  }
+  const result = await fetchHealthSpanIndexForPair({
+    fitprintAssessmentId,
+    basicOrProAssessmentId,
+    includeDetails,
+  });
+
   console.log(`${debugPrefix} report response`, {
     includeDetails: Boolean(includeDetails),
-    scores: normalizeHealthSpanScores(reportResponse),
-    hasFitness: Boolean(reportResponse?.data?.fitness),
-    hasNutrition: Boolean(reportResponse?.data?.nutrition),
-    hasLifestyle: Boolean(reportResponse?.data?.lifestyle),
+    scores: result.scores,
+    hasFitness: Boolean(result.response?.data?.fitness),
+    hasNutrition: Boolean(result.response?.data?.nutrition),
+    hasLifestyle: Boolean(result.response?.data?.lifestyle),
   });
 
   return {
-    fitprintAssessmentId,
-    basicOrProAssessmentId,
+    ...result,
     engagementId: basicOrProEngagementId,
-    response: reportResponse,
-    scores: normalizeHealthSpanScores(reportResponse),
   };
 };
 
