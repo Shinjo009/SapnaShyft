@@ -2,7 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import './RiskAnalysisSection.css';
 import { fetchLatestAssessmentReport } from '../../../services/reportService';
-import { normalizeBloodParametersReportPayload, resolveBloodParameterNumericValue } from '../../../utils/bloodParametersReportNormalize';
+import { buildBloodParametersGroupsForAssessment } from '../../../utils/assessmentBloodMarkerSupplements';
+import {
+  normalizeBloodParametersReportPayload,
+  resolveBloodParameterNumericValue,
+} from '../../../utils/bloodParametersReportNormalize';
 import ObesityIcon from '../../../images/Obesity-RA.svg';
 import { formatOrdinal } from '../../../utils/formatOrdinal';
 import ThyroidHealthIcon from '../../../images/Thyroid-RA.svg';
@@ -305,9 +309,13 @@ const buildBloodMarkersFromGroups = (groups) => {
   return rows;
 };
 
-export const buildHomeBloodMarkersFromBloodParametersResponse = (response) => (
-  buildBloodMarkersFromGroups(normalizeBloodParametersReportPayload(response))
-);
+export const buildHomeBloodMarkersFromBloodParametersResponse = (response, assessmentId = null) => {
+  const id = Number(assessmentId);
+  const groups = Number.isFinite(id) && id > 0
+    ? buildBloodParametersGroupsForAssessment(id, response)
+    : normalizeBloodParametersReportPayload(response);
+  return buildBloodMarkersFromGroups(groups);
+};
 
 const orderByHierarchy = (markers) => {
   const source = Array.isArray(markers) ? markers : [];
@@ -789,11 +797,11 @@ const RiskAnalysisSection = ({
 
     const loadHomepageBloodMarkers = async () => {
       try {
-        const { response } = await fetchLatestAssessmentReport(
+        const { assessmentId, response } = await fetchLatestAssessmentReport(
           (assessmentId) => `/reports/${assessmentId}/blood-parameters`,
         );
         if (isActive) {
-          setApiBloodMarkers(buildBloodMarkersFromGroups(normalizeBloodParametersReportPayload(response)));
+          setApiBloodMarkers(buildHomeBloodMarkersFromBloodParametersResponse(response, assessmentId));
         }
       } catch (error) {
         console.error('Failed to load homepage blood markers:', error);

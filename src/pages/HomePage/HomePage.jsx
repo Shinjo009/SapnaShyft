@@ -41,6 +41,10 @@ import {
   ensureFitprintAssignedForEngagement,
   loadFitprintHealthSpanIndexState,
 } from '../../utils/fitprintHealthSpanFlow';
+import {
+  getFixedBioAiReportPdfUrl,
+  getFixedBloodReportPdfUrl,
+} from '../../utils/assessmentBloodMarkerSupplements';
 import { loadReassessmentBannerState } from '../../utils/reassessmentBanner';
 import clockCircleSrc from '../../images/clock_circle.svg';
 import clockHandsSrc from '../../images/clock_hands.svg';
@@ -65,10 +69,6 @@ const resolveFitprintGapCheckDoneFromPreload = (data) => {
   }
   return hasDisplayableHealthSpanScores(data.healthSpanScores);
 };
-
-const ASSESSMENT_ID_FIXED_BLOOD_REPORT_PDF = 374;
-const ASSESSMENT_FIXED_BLOOD_REPORT_PDF_URL =
-  'https://api.supershyft.com/media/blood-parameters/32a483610b4844f88978b01db3ea3d15.pdf';
 
 const AvatarGlyph = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42" fill="none" aria-hidden="true">
@@ -1210,7 +1210,7 @@ const HomePage = ({
         (assessmentId) => `/reports/${assessmentId}/blood-parameters`,
         ttlMs,
       )
-        .then(({ response }) => buildHomeBloodMarkersFromBloodParametersResponse(response))
+        .then(({ assessmentId, response }) => buildHomeBloodMarkersFromBloodParametersResponse(response, assessmentId))
         .catch(() => [])
     );
 
@@ -1486,6 +1486,19 @@ const HomePage = ({
         throw new Error('No Metsights Basic or Pro report available yet.');
       }
 
+      const fixedBioAiPdfUrl = getFixedBioAiReportPdfUrl(assessmentId);
+      if (fixedBioAiPdfUrl) {
+        const link = document.createElement('a');
+        link.href = fixedBioAiPdfUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setIsDownloadMenuOpen(false);
+        return;
+      }
+
       if (!BACKEND_ENABLED) {
         throw new Error('Backend base URL is not configured.');
       }
@@ -1543,14 +1556,10 @@ const HomePage = ({
         throw new Error('No Metsights Basic or Pro report available yet.');
       }
 
-      const accessToken = getAccessToken();
-      if (!accessToken) {
-        throw new Error('You are not logged in.');
-      }
-
-      if (assessmentId === ASSESSMENT_ID_FIXED_BLOOD_REPORT_PDF) {
+      const fixedBloodPdfUrl = getFixedBloodReportPdfUrl(assessmentId);
+      if (fixedBloodPdfUrl) {
         const link = document.createElement('a');
-        link.href = ASSESSMENT_FIXED_BLOOD_REPORT_PDF_URL;
+        link.href = fixedBloodPdfUrl;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         document.body.appendChild(link);
@@ -1558,6 +1567,11 @@ const HomePage = ({
         link.remove();
         setIsDownloadMenuOpen(false);
         return;
+      }
+
+      const accessToken = getAccessToken();
+      if (!accessToken) {
+        throw new Error('You are not logged in.');
       }
 
       if (!BACKEND_ENABLED) {

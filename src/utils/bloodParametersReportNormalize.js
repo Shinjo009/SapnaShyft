@@ -41,6 +41,21 @@ export const coerceFiniteNumber = (raw) => {
   return Number.isFinite(n) ? n : undefined;
 };
 
+/** Parses backend `reference_range` strings such as `"0.00 - 7.32"`. */
+export const parseReferenceRangeBounds = (raw) => {
+  const s = String(raw ?? '').trim();
+  if (!s) {
+    return { lower: undefined, higher: undefined };
+  }
+  const parts = s.split(/\s*-\s*/).map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 2) {
+    return { lower: undefined, higher: undefined };
+  }
+  const lower = coerceFiniteNumber(parts[0]);
+  const higher = coerceFiniteNumber(parts[parts.length - 1]);
+  return { lower, higher };
+};
+
 export const extractBloodParameterGroupsArray = (payload) => {
   if (Array.isArray(payload)) {
     return payload;
@@ -155,7 +170,7 @@ export const normalizeBloodParameterTestRow = (test) => {
     t.reading,
   ));
 
-  const lower = coerceFiniteNumber(firstDefined(
+  let lower = coerceFiniteNumber(firstDefined(
     t.lower_range,
     t.lowerRange,
     t.min_range,
@@ -174,7 +189,7 @@ export const normalizeBloodParameterTestRow = (test) => {
     t.lowRiskLowerRangeFemale,
   ));
 
-  const higher = coerceFiniteNumber(firstDefined(
+  let higher = coerceFiniteNumber(firstDefined(
     t.higher_range,
     t.higherRange,
     t.upper_range,
@@ -194,6 +209,23 @@ export const normalizeBloodParameterTestRow = (test) => {
     t.low_risk_higher_range_female,
     t.lowRiskHigherRangeFemale,
   ));
+
+  if (lower === undefined || higher === undefined) {
+    const fromReferenceRange = parseReferenceRangeBounds(firstDefined(
+      t.reference_range,
+      t.referenceRange,
+      t.normal_range,
+      t.normalRange,
+      t.ref_range,
+      t.refRange,
+    ));
+    if (lower === undefined) {
+      lower = fromReferenceRange.lower;
+    }
+    if (higher === undefined) {
+      higher = fromReferenceRange.higher;
+    }
+  }
 
   const unitRaw = firstDefined(t.unit, t.units, t.unit_of_measure, t.unitOfMeasure);
   const unit = unitRaw !== undefined && unitRaw !== null ? String(unitRaw).trim() : '';

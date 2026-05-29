@@ -12,13 +12,18 @@ import metfluxLogo from '../../images/metflux_logo.svg';
  * - onSuccess: Called with phone number when Send OTP is clicked
  * - onSignup: Called when Signup link is clicked
  */
+const MIN_PHONE_DIGITS = 9;
+const MAX_PHONE_DIGITS = 12;
+
 const LoginPage = ({ onSuccess, onSignup }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const phoneDigitCount = phoneNumber.trim().length;
+  const canSendOtp = phoneDigitCount >= MIN_PHONE_DIGITS;
 
   const handleSendOTP = async () => {
-    if (phoneNumber.trim().length >= 10) {
+    if (canSendOtp) {
       try {
         setLoading(true);
         setError('');
@@ -44,10 +49,10 @@ const LoginPage = ({ onSuccess, onSignup }) => {
           <Input
             type="tel"
             placeholder="Phone Number"
-            maxLength={10}
+            maxLength={MAX_PHONE_DIGITS}
             value={phoneNumber}
             onChange={(e) => {
-              const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+              const value = e.target.value.replace(/[^0-9]/g, '').slice(0, MAX_PHONE_DIGITS);
               setPhoneNumber(value);
             }}
           />
@@ -56,7 +61,7 @@ const LoginPage = ({ onSuccess, onSignup }) => {
             <Button
               onClick={handleSendOTP}
               loading={loading}
-              disabled={phoneNumber.trim().length < 10}
+              disabled={!canSendOtp}
             >
               Send OTP
             </Button>

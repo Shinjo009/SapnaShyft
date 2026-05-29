@@ -36,7 +36,7 @@ const FIELD_REQUIRED = 'Field Required';
 
 const RE_NAME = /^(?=.*[a-zA-Z])[a-zA-Z\s'-]{1,60}$/;
 const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const RE_PHONE = /^\d{10}$/;
+const RE_PHONE = /^\d{9,12}$/;
 const RE_CITY = /^(?=.*[a-zA-Z])[a-zA-Z\s,.'-]{1,100}$/;
 /** Integers 1–99 only */
 const RE_AGE = /^([1-9]|[1-8][0-9]|9[0-9])$/;
@@ -106,7 +106,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
   };
 
   const handlePhoneChange = (e) => {
-    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 12);
     setFormData(prev => ({
       ...prev,
       phone: value
@@ -196,7 +196,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
                   name="phone"
                   type="tel"
                   inputMode="numeric"
-                  maxLength={10}
+                  maxLength={12}
                   placeholder="Phone Number"
                   value={formData.phone}
                   onChange={handlePhoneChange}

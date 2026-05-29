@@ -5,10 +5,12 @@ import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
 import { getAccessToken } from '../../utils/authStorage';
 import { formatApiContentDisplay } from '../../utils/formatApiContentDisplay';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
+import { buildBloodParametersGroupsForAssessment } from '../../utils/assessmentBloodMarkerSupplements';
 import {
   extractBloodParameterGroupsArray,
   getBloodParameterTestsFromGroup,
   normalizeBloodParameterTestRow,
+  normalizeBloodParametersReportPayload,
   pickBloodParameterGroupName,
   resolveBloodParameterNumericValue,
 } from '../../utils/bloodParametersReportNormalize';
@@ -259,6 +261,7 @@ const toOrganName = (groupName) => {
     ['inflammation', 'Inflammation'],
     ['sleep', 'Sleep'],
     ['hormone', 'Hormones'],
+    ['tumor', 'Tumor markers'],
   ];
 
   for (const [keyword, label] of byKeyword) {
@@ -1974,11 +1977,14 @@ const BloodMarkersPage = ({ onBack, initialDetailMarker = null, onInitialDetailC
 
     const loadBloodMarkers = async () => {
       try {
-        const { response } = await fetchLatestAssessmentReport(
+        const { assessmentId, response } = await fetchLatestAssessmentReport(
           (assessmentId) => `/reports/${assessmentId}/blood-parameters`
         );
         if (isActive) {
-          setApiSections(buildSectionsFromApi(response));
+          const groups = Number(assessmentId) > 0
+            ? buildBloodParametersGroupsForAssessment(assessmentId, response)
+            : normalizeBloodParametersReportPayload(response);
+          setApiSections(buildSectionsFromApi(groups));
           setHasLoadedReport(true);
         }
       } catch (error) {
