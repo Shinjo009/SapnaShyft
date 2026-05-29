@@ -29,8 +29,13 @@ import {
   markFamilyHistoryQuestionnaireDraftKnown,
   markNutritionLogQuestionnaireDraftKnown,
   submitQuestionnaireResponses,
+  submitFitprintGapQuestionnaire,
 } from '../../services/questionnaireService';
-import { evaluateFitprintCatchupLoadedContext } from '../../utils/fitprintGapCatchupCompletion';
+import { clearReportRequestCache } from '../../services/reportService';
+import {
+  anthropometryPrimaryHasUnfilled,
+  evaluateFitprintCatchupLoadedContext,
+} from '../../utils/fitprintGapCatchupCompletion';
 
 const SWIPE_ROUTE_ORDER = ['family-history', 'lifestyle-habits', 'nutrition-log', 'vitals'];
 
@@ -229,28 +234,12 @@ const questionsNullOnlyOrAll = (allQuestions, rawResponses) => {
   return filtered.length > 0 ? filtered : list;
 };
 
-const isAnthropometryPrimaryQuestion = (question) => {
-  const k = String(question?.question_key || '').toLowerCase();
-  const t = String(question?.question_text || '').toLowerCase();
-  if (k.includes('hip') || k.includes('body_fat') || k.includes('fat_percent')) {
-    return false;
-  }
-  if (t.includes('hip size') || t.includes('body fat') || t.includes('body-fat')) {
-    return false;
-  }
-  return k.includes('height') || k.includes('weight') || k.includes('waist') || t.includes('waist');
-};
-
 const isAnthropometryFollowupQuestion = (question) => {
   const k = String(question?.question_key || '').toLowerCase();
   const t = String(question?.question_text || '').toLowerCase();
   return k.includes('hip') || k.includes('body_fat') || k.includes('fat_percent')
     || t.includes('hip size') || t.includes('body fat') || t.includes('body-fat');
 };
-
-const anthropometryPrimaryHasUnfilled = (questions, rawResponses) => (
-  questions.some((q) => isAnthropometryPrimaryQuestion(q) && questionIsUnfilled(q, rawResponses))
-);
 
 const anthropometryFollowupHasUnfilled = (questions, rawResponses) => (
   questions.some((q) => isAnthropometryFollowupQuestion(q) && questionIsUnfilled(q, rawResponses))
@@ -259,6 +248,14 @@ const anthropometryFollowupHasUnfilled = (questions, rawResponses) => (
 const getCategoryForRoute = (categories, routeId) => (
   (Array.isArray(categories) ? categories : []).find((c) => mapCategoryToRouteId(c) === routeId) || null
 );
+
+const formatCatchupRequestError = (error) => {
+  const raw = String(error?.message || error || '').trim();
+  if (!raw || raw === 'Failed to fetch') {
+    return 'Could not reach the server. Check your connection and that the API is running.';
+  }
+  return raw;
+};
 
 const cardKeyForQuestion = (q) => String(q?.question_key || `question-${q?.question_id || q?.id || ''}`);
 
@@ -326,6 +323,8 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
   onDoneRef.current = onDone;
   const [loadState, setLoadState] = useState('loading');
   const [loadError, setLoadError] = useState(null);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const finalizeInFlightRef = useRef(false);
   const [categories, setCategories] = useState([]);
   const [questionsByCategoryId, setQuestionsByCategoryId] = useState({});
   const [responsesByCategoryId, setResponsesByCategoryId] = useState({});
@@ -360,6 +359,20 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
     if (!fallbackCat && incoming.length === 0) {
       return responsesMapRef.current;
     }
+
+    const resolveInstanceIdForCategoryId = (categoryId) => {
+      const targetCategoryId = Number(categoryId);
+      const match = (Array.isArray(categories) ? categories : []).find(
+        (cat) => Number(cat?.category_id || cat?.id || 0) === targetCategoryId,
+      );
+      const fromCategory = Number(
+        match?.assessment_instance_id
+        || match?.assessment_id
+        || 0,
+      );
+      return fromCategory > 0 ? fromCategory : instanceId;
+    };
+
     const routeQuestions = questionsByRoute[routeId] || [];
     const partition = new Map();
     incoming.forEach((row) => {
@@ -390,7 +403,8 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         const prev = nextMap[cid] || [];
         const merged = mergeResponsesByQuestionId(prev, rows);
         if (rows.length > 0) {
-          await submitQuestionnaireResponses(instanceId, catIdNum, merged);
+          const targetInstanceId = resolveInstanceIdForCategoryId(catIdNum);
+          await submitQuestionnaireResponses(targetInstanceId, catIdNum, merged);
         }
         nextMap = { ...nextMap, [cid]: merged };
       }
@@ -398,7 +412,9 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
       const cid = String(fallbackCat.category_id || '');
       const prev = nextMap[cid] || [];
       const merged = mergeResponsesByQuestionId(prev, incoming);
-      await submitQuestionnaireResponses(instanceId, Number(fallbackCat.category_id), merged);
+      const fallbackCategoryId = Number(fallbackCat.category_id);
+      const targetInstanceId = resolveInstanceIdForCategoryId(fallbackCategoryId);
+      await submitQuestionnaireResponses(targetInstanceId, fallbackCategoryId, merged);
       nextMap = { ...nextMap, [cid]: merged };
     } else {
       return responsesMapRef.current;
@@ -422,23 +438,70 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
     return next;
   }, [categories, questionsByCategoryId]);
 
-  const finishAll = useCallback(() => {
-    onDoneRef.current?.();
+  const finalizeAndExit = useCallback(async () => {
+    if (finalizeInFlightRef.current) {
+      return;
+    }
+    finalizeInFlightRef.current = true;
+    setIsFinalizing(true);
+    setLoadError(null);
+    try {
+      await submitFitprintGapQuestionnaire(instanceId);
+      clearReportRequestCache();
+      onDoneRef.current?.();
+    } catch (error) {
+      setLoadError(formatCatchupRequestError(error));
+      setLoadState('error');
+    } finally {
+      finalizeInFlightRef.current = false;
+      setIsFinalizing(false);
+    }
+  }, [instanceId]);
+
+  const reportCatchupError = useCallback((error) => {
+    setLoadError(formatCatchupRequestError(error));
+    setLoadState('error');
   }, []);
 
-  const saveAnthropometryAndContinue = useCallback(async (primaryVals, followupVals) => {
-    const responses = buildAnthropometryResponses(
-      anthroQuestions,
-      primaryVals || {},
-      followupVals || {},
-    );
-    const nextMap = await persistCategoryResponses('anthropometry', responses);
-    setAnthroPhase('done');
-    const nextSwipe = recomputeSwipeFromMap(nextMap);
-    if (nextSwipe.length === 0) {
-      finishAll();
+  const finishAll = useCallback(() => {
+    void finalizeAndExit();
+  }, [finalizeAndExit]);
+
+  const handleRouteDone = useCallback(async (routeId, responses) => {
+    try {
+      const nextMap = await persistCategoryResponses(routeId, responses);
+      const nextSwipe = recomputeSwipeFromMap(nextMap);
+      if (nextSwipe.length === 0) {
+        await finalizeAndExit();
+      }
+    } catch (error) {
+      reportCatchupError(error);
     }
-  }, [anthroQuestions, finishAll, persistCategoryResponses, recomputeSwipeFromMap]);
+  }, [persistCategoryResponses, recomputeSwipeFromMap, finalizeAndExit, reportCatchupError]);
+
+  const saveAnthropometryAndContinue = useCallback(async (primaryVals, followupVals) => {
+    try {
+      const responses = buildAnthropometryResponses(
+        anthroQuestions,
+        primaryVals || {},
+        followupVals || {},
+      );
+      const nextMap = await persistCategoryResponses('anthropometry', responses);
+      setAnthroPhase('done');
+      const nextSwipe = recomputeSwipeFromMap(nextMap);
+      if (nextSwipe.length === 0) {
+        await finalizeAndExit();
+      }
+    } catch (error) {
+      reportCatchupError(error);
+    }
+  }, [
+    anthroQuestions,
+    finalizeAndExit,
+    persistCategoryResponses,
+    recomputeSwipeFromMap,
+    reportCatchupError,
+  ]);
 
   /** Skip Family History when the embedded UI would show zero swipe cards (avoids spurious saves / PUTs). */
   useLayoutEffect(() => {
@@ -566,7 +629,27 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
           questionsByCategoryId: qBy,
           responsesByCategoryId: rBy,
         })) {
-          onDoneRef.current?.();
+          if (!cancelled) {
+            finalizeInFlightRef.current = true;
+            setIsFinalizing(true);
+            try {
+              await submitFitprintGapQuestionnaire(instanceId);
+              clearReportRequestCache();
+              if (!cancelled) {
+                onDoneRef.current?.();
+              }
+            } catch (error) {
+              if (!cancelled) {
+                setLoadError(formatCatchupRequestError(error));
+                setLoadState('error');
+              }
+            } finally {
+              if (!cancelled) {
+                finalizeInFlightRef.current = false;
+                setIsFinalizing(false);
+              }
+            }
+          }
           return;
         }
 
@@ -586,12 +669,14 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
     };
   }, [instanceId]);
 
-  if (loadState === 'loading' || loadState === 'error') {
+  if (loadState === 'loading' || loadState === 'error' || isFinalizing) {
     return (
       <div className="questionnaire-null-catchup questionnaire-null-catchup--center">
         <h1 className="questionnaire-null-catchup__brand">{FITPRINT_CATCHUP_HEADING}</h1>
-        {loadState === 'loading' ? (
-          <p className="questionnaire-null-catchup__text">Loading questionnaire…</p>
+        {loadState === 'loading' || isFinalizing ? (
+          <p className="questionnaire-null-catchup__text">
+            {isFinalizing ? 'Submitting questionnaire…' : 'Loading questionnaire…'}
+          </p>
         ) : (
           <>
             <p className="questionnaire-null-catchup__text">{loadError || 'Something went wrong.'}</p>
@@ -679,21 +764,21 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         onBack={onBack}
         onDone={(selections) => {
           void (async () => {
-            if (familyVisibleCardCount(nullQs, selections || {}) === 0) {
-              const nextRoutes = swipeRoutes[0] === 'family-history'
-                ? swipeRoutes.slice(1)
-                : swipeRoutes.filter((r) => r !== 'family-history');
-              setSwipeRoutes(nextRoutes);
-              if (nextRoutes.length === 0) {
-                finishAll();
+            try {
+              if (familyVisibleCardCount(nullQs, selections || {}) === 0) {
+                const nextRoutes = swipeRoutes[0] === 'family-history'
+                  ? swipeRoutes.slice(1)
+                  : swipeRoutes.filter((r) => r !== 'family-history');
+                setSwipeRoutes(nextRoutes);
+                if (nextRoutes.length === 0) {
+                  await finalizeAndExit();
+                }
+                return;
               }
-              return;
-            }
-            const responses = buildResponsesFromSelections(nullQs, selections || {});
-            const nextMap = await persistCategoryResponses('family-history', responses);
-            const nextSwipe = recomputeSwipeFromMap(nextMap);
-            if (nextSwipe.length === 0) {
-              finishAll();
+              const responses = buildResponsesFromSelections(nullQs, selections || {});
+              await handleRouteDone('family-history', responses);
+            } catch (error) {
+              reportCatchupError(error);
             }
           })();
         }}
@@ -720,13 +805,7 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         onBack={onBack}
         onDone={(selections) => {
           const responses = buildResponsesFromSelections(nullQs, selections || {});
-          void (async () => {
-            const nextMap = await persistCategoryResponses('lifestyle-habits', responses);
-            const nextSwipe = recomputeSwipeFromMap(nextMap);
-            if (nextSwipe.length === 0) {
-              finishAll();
-            }
-          })();
+          void handleRouteDone('lifestyle-habits', responses);
         }}
       />
     );
@@ -752,13 +831,7 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         onDone={(selections) => {
           const cardsForSave = nullQs.length > 0 ? toNutritionApiCards(nullQs) : [];
           const responses = buildNutritionLogResponsesForSave(nullQs, selections || {}, cardsForSave);
-          void (async () => {
-            const nextMap = await persistCategoryResponses('nutrition-log', responses);
-            const nextSwipe = recomputeSwipeFromMap(nextMap);
-            if (nextSwipe.length === 0) {
-              finishAll();
-            }
-          })();
+          void handleRouteDone('nutrition-log', responses);
         }}
       />
     );
@@ -787,10 +860,7 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
             diastolic: normalizeStoredVitalReading(values?.diastolic),
           };
           const responses = buildVitalsResponses(nullQs, sanitized);
-          void (async () => {
-            await persistCategoryResponses('vitals', responses);
-            finishAll();
-          })();
+          void handleRouteDone('vitals', responses);
         }}
       />
     );
@@ -801,8 +871,13 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
       <div className="questionnaire-null-catchup questionnaire-null-catchup--center">
         <h1 className="questionnaire-null-catchup__brand">{FITPRINT_CATCHUP_HEADING}</h1>
         <p className="questionnaire-null-catchup__text">You&apos;re all caught up.</p>
-        <button type="button" className="questionnaire-null-catchup__btn" onClick={finishAll}>
-          Continue
+        <button
+          type="button"
+          className="questionnaire-null-catchup__btn"
+          onClick={finishAll}
+          disabled={isFinalizing}
+        >
+          {isFinalizing ? 'Submitting…' : 'Continue'}
         </button>
       </div>
     );

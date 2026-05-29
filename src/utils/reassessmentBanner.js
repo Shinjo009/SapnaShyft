@@ -4,6 +4,7 @@ import {
   resolveEngagementIdFromAssessmentId,
   resolveReassessmentPromptFromRows,
 } from '../services/reportService';
+import { hasSubmittedHealthQuestionnaire } from '../services/questionnaireService';
 import { isFitprintGapQuestionnaireFullyComplete } from './fitprintGapCatchupCompletion';
 
 export async function loadReassessmentBannerState({
@@ -23,6 +24,10 @@ export async function loadReassessmentBannerState({
     });
 
     if (!resolved.shouldPrompt || !resolved.latestBasicProAssessmentId) {
+      return { shouldShow: false };
+    }
+
+    if (await hasSubmittedHealthQuestionnaire()) {
       return { shouldShow: false };
     }
 

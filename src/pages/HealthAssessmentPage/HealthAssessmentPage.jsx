@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { hasNutritionLogQuestionnaireDraft } from '../../services/questionnaireService';
+import {
+  hasNutritionLogQuestionnaireDraft,
+  hasSubmittedHealthQuestionnaire,
+} from '../../services/questionnaireService';
 import ques1Icon from '../../images/ques-1.svg';
 import ques2Icon from '../../images/ques-2.svg';
 import ques3Icon from '../../images/ques-3.svg';
@@ -324,6 +327,26 @@ const parseInitialAnthropometryWeight = (raw) => {
   return Number.isFinite(n) ? n : null;
 };
 
+const isProvidedAnthropometryNumber = (raw) => {
+  if (raw == null || raw === '') {
+    return false;
+  }
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0;
+};
+
+const AnthropometryQuestionLabel = ({ className = '', children, showRequired, id }) => (
+  <p className={className} id={id}>
+    {children}
+    {showRequired ? (
+      <>
+        <span className="question-required-mark" aria-hidden="true">*</span>
+        <span className="anthropometry-page__required-hint">required</span>
+      </>
+    ) : null}
+  </p>
+);
+
 const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initialValues = {}, categoryHeading = 'Anthropometry' }) => {
   const [height, setHeight] = useState(roundToWholeNumber(initialValues?.height, DEFAULT_HEIGHT_CM));
   const [weight, setWeight] = useState(() => parseInitialAnthropometryWeight(initialValues?.weight));
@@ -334,6 +357,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
   const [heightFeet, setHeightFeet] = useState(initialValues?.heightFeet ?? DEFAULT_HEIGHT_FEET);
   const [heightInches, setHeightInches] = useState(initialValues?.heightInches ?? DEFAULT_HEIGHT_INCHES);
   const [showWaistInfoPopup, setShowWaistInfoPopup] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const heightQuestionConfig = useMemo(
     () => findQuestionByAliasesAndHints(questions, ['height'], ['height']),
@@ -484,6 +508,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
     const raw = String(e.target.value || '').trim();
     if (raw === '') {
       setWeight(null);
+      setSubmitAttempted(false);
       return;
     }
     const digits = raw.replace(/[^0-9]/g, '').slice(0, 3);
@@ -496,7 +521,11 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
       setWeight(null);
       return;
     }
-    setWeight(clamp(next, 0, 250));
+    const nextWeight = clamp(next, 0, 250);
+    setWeight(nextWeight);
+    if (isProvidedAnthropometryNumber(nextWeight)) {
+      setSubmitAttempted(false);
+    }
   };
 
   const handleWeightBlur = () => {
@@ -637,6 +666,27 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
   const weightQuestion = getQuestionText(['weight'], ['weight', 'body weight'], 'What is your body weight?');
   const waistQuestion = getQuestionText(['waist_circumference', 'waist'], ['waist'], 'What is your waist size?');
 
+  const isWeightValid = isProvidedAnthropometryNumber(weight);
+  const showWeightRequired = submitAttempted && !isWeightValid;
+
+  const handleContinueClick = () => {
+    if (!isWeightValid) {
+      setSubmitAttempted(true);
+      return;
+    }
+
+    onContinue?.({
+      height,
+      weight,
+      waist: roundToWholeNumber(waist, DEFAULT_CIRCUMFERENCE_INCHES),
+      heightUnit,
+      weightUnit,
+      waistUnit,
+      heightFeet,
+      heightInches,
+    });
+  };
+
   return (
     <div className="anthropometry-page">
       <div className="anthropometry-page__header">
@@ -729,8 +779,14 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
         )}
       </div>
 
-      <p className="anthropometry-page__question anthropometry-page__question--mid">{weightQuestion}</p>
-      <div className="anthropometry-page__box anthropometry-page__weight-box">
+      <AnthropometryQuestionLabel
+        className={`anthropometry-page__question anthropometry-page__question--mid${showWeightRequired ? ' anthropometry-page__question--invalid' : ''}`}
+        showRequired={showWeightRequired}
+        id="anthropometry-weight-question"
+      >
+        {weightQuestion}
+      </AnthropometryQuestionLabel>
+      <div className={`anthropometry-page__box anthropometry-page__weight-box${showWeightRequired ? ' anthropometry-page__box--invalid' : ''}`}>
         <AnthropometryUnitDropdown value={weightUnit} options={weightUnitOptions} onChange={setWeightUnit} />
         <img src={AnthInd} alt="" aria-hidden="true" className="anthropometry-page__dial" />
         <div className="anthropometry-page__selected-box anthropometry-page__selected-box--weight">
@@ -750,6 +806,9 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
               onBlur={handleWeightBlur}
               maxLength={3}
               aria-label="Body weight"
+              aria-invalid={showWeightRequired}
+              aria-describedby={showWeightRequired ? 'anthropometry-weight-question' : undefined}
+              required
             />
           </div>
         </div>
@@ -797,18 +856,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
       <button
         type="button"
         className="anthropometry-page__continue"
-        onClick={() => {
-          onContinue?.({
-            height,
-            weight: weight != null && Number.isFinite(weight) ? weight : null,
-            waist: roundToWholeNumber(waist, DEFAULT_CIRCUMFERENCE_INCHES),
-            heightUnit,
-            weightUnit,
-            waistUnit,
-            heightFeet,
-            heightInches,
-          });
-        }}
+        onClick={handleContinueClick}
       >
         Continue
       </button>
@@ -1161,9 +1209,6 @@ const getHardcodedQuestionnaireSubline = (title) => {
   }
   if (t.includes('what sports') && t.includes('play')) {
     return '(Select all that apply)';
-  }
-  if (t.includes('primary health and wellness priorities')) {
-    return '(Choose your top two priority)';
   }
   return '';
 };
@@ -3048,7 +3093,7 @@ const lifestyleCards = [
   {
     key: 'wellness-priorities',
     title: 'What are your primary health and wellness priorities?',
-    helper: '(Choose your top two priority)',
+    helper: '',
     options: [
       { label: 'Weight Loss' },
       { label: 'Building Muscle Mass' },
@@ -4639,6 +4684,25 @@ const HealthAssessmentPage = ({
 
   const [nutritionLogDraftCheckResolved, setNutritionLogDraftCheckResolved] = useState(false);
   const [hasNutritionLogSubmittedDraft, setHasNutritionLogSubmittedDraft] = useState(false);
+  const [questionnaireSubmitLocked, setQuestionnaireSubmitLocked] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    hasSubmittedHealthQuestionnaire()
+      .then((submitted) => {
+        if (!cancelled) {
+          setQuestionnaireSubmitLocked(Boolean(submitted));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setQuestionnaireSubmitLocked(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -4667,7 +4731,8 @@ const HealthAssessmentPage = ({
     ? hasNutritionLogSubmittedDraft
     : optimisticNutritionLogDraft;
 
-  const canOpenAllSteps = allCategoriesCompleteFromApi || nutritionLogSubmittedUnlock;
+  const canOpenAllSteps = !questionnaireSubmitLocked
+    && (allCategoriesCompleteFromApi || nutritionLogSubmittedUnlock);
   const effectiveProgress = canOpenAllSteps ? resolvedSteps.length : progress;
   const activeIndex = effectiveProgress < resolvedSteps.length ? effectiveProgress : -1;
   const focusedIndex = expandedStep != null ? expandedStep : activeIndex;
@@ -4878,6 +4943,7 @@ const HealthAssessmentPage = ({
       try {
         await onStepComplete?.('vitals', responses);
         await onAssessmentSubmit?.();
+        setQuestionnaireSubmitLocked(true);
       } catch (error) {
         console.error('Failed to submit assessment:', error);
       }

@@ -1,5 +1,11 @@
 import { authorizedRequest } from './apiClient';
-import { authorizedGetCached } from './reportService';
+import {
+  authorizedGetCached,
+  resolveAssessmentSubmitTargetsForEngagementId,
+  resolveAssessmentSubmitTargetsFromRows,
+  resolveEngagementIdFromAssessmentId,
+} from './reportService';
+import { assertGapQuestionnaireReadyForMetsightsSubmit } from '../utils/fitprintGapCatchupCompletion';
 
 const authorizedGet = async (path, query) => {
   const parsedBody = await authorizedRequest(path, {
@@ -12,6 +18,14 @@ const authorizedGet = async (path, query) => {
 const authorizedPut = async (path, body) => {
   const parsedBody = await authorizedRequest(path, {
     method: 'PUT',
+    payload: body || {},
+  });
+  return parsedBody?.data ?? parsedBody;
+};
+
+const authorizedPost = async (path, body) => {
+  const parsedBody = await authorizedRequest(path, {
+    method: 'POST',
     payload: body || {},
   });
   return parsedBody?.data ?? parsedBody;
@@ -705,6 +719,182 @@ export const submitQuestionnaireResponses = (assessmentInstanceId, categoryId, r
   });
 };
 
+/**
+ * Finalize an assessment: push merged answers to Metsights (when applicable) and mark completed.
+ * @param {number} assessmentInstanceId Path parameter — active instance to finalize (usually FitPrint).
+ * @param {{ sourceAssessmentInstanceIds?: number[] }} options Latest engagement instance ids (1–2).
+ */
+export const submitAssessmentInstance = async (assessmentInstanceId, { sourceAssessmentInstanceIds } = {}) => {
+  const id = Number(assessmentInstanceId);
+  if (!Number.isFinite(id) || id <= 0) {
+    throw new Error('Invalid assessment instance id.');
+  }
+
+  const payload = {};
+  const sources = Array.isArray(sourceAssessmentInstanceIds)
+    ? sourceAssessmentInstanceIds
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0)
+    : [];
+
+  if (sources.length > 0) {
+    payload.source_assessment_instance_ids = sources;
+  }
+
+  return authorizedPost(`/assessments/${id}/submit`, payload);
+};
+
+const isAssessmentAlreadyCompletedError = (error) => {
+  const message = String(error?.message || error || '').toLowerCase();
+  return message.includes('already completed') || message.includes('assessment is already completed');
+};
+
+/** Resolve latest-engagement submit targets from `/assessments/me` and POST submit. */
+export const submitLatestEngagementAssessment = async () => {
+  const assessmentsPayload = await listMyAssessments(1, 50);
+  const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
+  const targets = resolveAssessmentSubmitTargetsFromRows(assessments);
+
+  if (!targets?.assessmentInstanceId) {
+    throw new Error('No active assessment is available to submit.');
+  }
+
+  const result = await submitAssessmentInstance(targets.assessmentInstanceId, {
+    sourceAssessmentInstanceIds: targets.sourceAssessmentInstanceIds,
+  });
+
+  const basicProId = Number(targets.basicOrProAssessmentId);
+  if (Number.isFinite(basicProId) && basicProId > 0) {
+    const engagementId = resolveEngagementIdFromAssessmentId(assessments, basicProId);
+    markHealthQuestionnaireSubmitted({
+      engagementId,
+      basicProAssessmentId: basicProId,
+    });
+  } else {
+    markHealthQuestionnaireSubmitted();
+  }
+
+  return result;
+};
+
+/**
+ * Finalize FitPrint gap / catch-up questionnaire (same POST submit as full health assessment).
+ * Prefers the active instance from the latest engagement; when the gap flow runs on Basic/Pro,
+ * that active row is used as the path id while still merging FitPrint + Basic/Pro source ids when present.
+ */
+export const submitFitprintGapQuestionnaire = async (gapAssessmentInstanceId) => {
+  const gapId = Number(gapAssessmentInstanceId);
+  const assessmentsPayload = await listMyAssessments(1, 50);
+  const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
+
+  const engagementId = resolveEngagementIdFromAssessmentId(assessments, gapId);
+  let targets = engagementId
+    ? resolveAssessmentSubmitTargetsForEngagementId(assessments, engagementId)
+    : null;
+
+  if (!targets?.assessmentInstanceId) {
+    targets = resolveAssessmentSubmitTargetsFromRows(assessments);
+  }
+
+  if (!targets?.assessmentInstanceId && Number.isFinite(gapId) && gapId > 0) {
+    targets = {
+      assessmentInstanceId: gapId,
+      sourceAssessmentInstanceIds: [gapId],
+      basicOrProAssessmentId: gapId,
+      fitprintAssessmentId: null,
+    };
+  }
+
+  if (!targets?.assessmentInstanceId) {
+    throw new Error('No active assessment is available to submit.');
+  }
+
+  const basicProIdForValidation = Number(
+    targets.basicOrProAssessmentId
+    || targets.sourceAssessmentInstanceIds?.[0]
+    || gapId,
+  );
+
+  if (Number.isFinite(basicProIdForValidation) && basicProIdForValidation > 0) {
+    await assertGapQuestionnaireReadyForMetsightsSubmit(basicProIdForValidation);
+  }
+
+  const sourceSet = new Set(
+    (Array.isArray(targets.sourceAssessmentInstanceIds) ? targets.sourceAssessmentInstanceIds : [])
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0),
+  );
+  if (Number.isFinite(gapId) && gapId > 0) {
+    sourceSet.add(gapId);
+  }
+  if (targets.fitprintAssessmentId) {
+    sourceSet.add(Number(targets.fitprintAssessmentId));
+  }
+  if (targets.basicOrProAssessmentId) {
+    sourceSet.add(Number(targets.basicOrProAssessmentId));
+  }
+
+  const orderedSources = [];
+  const basicId = Number(targets.basicOrProAssessmentId);
+  const fitprintId = Number(targets.fitprintAssessmentId);
+  if (Number.isFinite(basicId) && basicId > 0 && sourceSet.has(basicId)) {
+    orderedSources.push(basicId);
+  }
+  if (Number.isFinite(fitprintId) && fitprintId > 0 && sourceSet.has(fitprintId)) {
+    orderedSources.push(fitprintId);
+  }
+  sourceSet.forEach((id) => {
+    if (!orderedSources.includes(id)) {
+      orderedSources.push(id);
+    }
+  });
+
+  let pathId = Number(targets.assessmentInstanceId);
+  if (Number.isFinite(fitprintId) && fitprintId > 0) {
+    pathId = fitprintId;
+  }
+
+  try {
+    const result = await submitAssessmentInstance(pathId, {
+      sourceAssessmentInstanceIds: orderedSources.length > 0 ? orderedSources : [pathId],
+    });
+
+    const markBasicProId = Number(targets.basicOrProAssessmentId || basicProIdForValidation);
+    if (Number.isFinite(markBasicProId) && markBasicProId > 0) {
+      const markEngagementId = engagementId || resolveEngagementIdFromAssessmentId(assessments, markBasicProId);
+      markHealthQuestionnaireSubmitted({
+        engagementId: markEngagementId,
+        basicProAssessmentId: markBasicProId,
+      });
+    } else {
+      markHealthQuestionnaireSubmitted();
+    }
+
+    return result;
+  } catch (error) {
+    if (isAssessmentAlreadyCompletedError(error)) {
+      const markBasicProId = Number(targets.basicOrProAssessmentId || basicProIdForValidation);
+      if (Number.isFinite(markBasicProId) && markBasicProId > 0) {
+        const markEngagementId = engagementId || resolveEngagementIdFromAssessmentId(assessments, markBasicProId);
+        markHealthQuestionnaireSubmitted({
+          engagementId: markEngagementId,
+          basicProAssessmentId: markBasicProId,
+        });
+      } else {
+        markHealthQuestionnaireSubmitted();
+      }
+      return { message: 'Assessment already submitted' };
+    }
+    const message = String(error?.message || error || '');
+    if (message.includes('waist_circumference') && message.includes('required')) {
+      throw new Error(
+        'Waist size is required for FitPrint. Go back and complete Anthropometry (height, weight, and waist), then submit again.',
+      );
+    }
+    throw error;
+  }
+};
+
 /** True when the GET questionnaire payload shows no answer for this question (draft catch-up). */
 export const isQuestionnaireQuestionUnanswered = (question) => {
   if (!question || typeof question !== 'object') {
@@ -731,7 +921,8 @@ export const isQuestionnaireQuestionUnanswered = (question) => {
 export const loadQuestionnaireContext = async () => {
   const assessmentsPayload = await listMyAssessments(1, 50);
   const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
-  const latestAssessment = pickLatestIncompleteActiveAssessment(assessments);
+  const latestAssessment = pickAssessmentRowForCategoryDraftCheck(assessments);
+  const submitTargets = resolveAssessmentSubmitTargetsFromRows(assessments);
 
   const assessmentInstanceId = getAssessmentInstanceId(latestAssessment);
 
@@ -782,6 +973,7 @@ export const loadQuestionnaireContext = async () => {
   return {
     assessments,
     assessment: latestAssessment,
+    submitTargets,
     categories,
     questionsByCategoryId,
     responsesByCategoryId,
@@ -853,6 +1045,163 @@ export const loadQuestionnaireContextForAssessmentInstance = async (assessmentIn
     questionsByCategoryId,
     responsesByCategoryId,
   };
+};
+
+/** Session marker: full health questionnaire POST submit succeeded (scoped to Basic/Pro instance when known). */
+export const HEALTH_QUESTIONNAIRE_SUBMITTED_SESSION_KEY = 'ss_health_questionnaire_submitted';
+
+const parseHealthQuestionnaireSubmittedMarker = () => {
+  try {
+    const raw = sessionStorage.getItem(HEALTH_QUESTIONNAIRE_SUBMITTED_SESSION_KEY);
+    if (!raw || raw === '1') {
+      return raw === '1' ? { legacy: true } : null;
+    }
+    const parsed = JSON.parse(raw);
+    const basicProAssessmentId = Number(parsed?.basicProAssessmentId);
+    if (!Number.isFinite(basicProAssessmentId) || basicProAssessmentId <= 0) {
+      return null;
+    }
+    return {
+      engagementId: Number(parsed?.engagementId) || 0,
+      basicProAssessmentId,
+    };
+  } catch {
+    return null;
+  }
+};
+
+export function markHealthQuestionnaireSubmitted({ engagementId = null, basicProAssessmentId = null } = {}) {
+  try {
+    const id = Number(basicProAssessmentId);
+    const eng = Number(engagementId);
+    if (Number.isFinite(id) && id > 0) {
+      sessionStorage.setItem(
+        HEALTH_QUESTIONNAIRE_SUBMITTED_SESSION_KEY,
+        JSON.stringify({
+          basicProAssessmentId: id,
+          engagementId: Number.isFinite(eng) && eng > 0 ? eng : 0,
+        }),
+      );
+    } else {
+      sessionStorage.setItem(HEALTH_QUESTIONNAIRE_SUBMITTED_SESSION_KEY, '1');
+    }
+    invalidateHealthQuestionnaireSubmittedCache();
+  } catch {
+    // private mode / disabled storage
+  }
+}
+
+export function clearHealthQuestionnaireSubmittedFlag() {
+  try {
+    sessionStorage.removeItem(HEALTH_QUESTIONNAIRE_SUBMITTED_SESSION_KEY);
+    invalidateHealthQuestionnaireSubmittedCache();
+  } catch {
+    // ignore
+  }
+}
+
+const isAssessmentRowSubmitted = (row) => {
+  if (!row || typeof row !== 'object') {
+    return false;
+  }
+  const status = normalizeAssessmentStatus(row?.status);
+  if (status === 'completed' || status === 'submitted') {
+    return true;
+  }
+  if (row?.completed_at || row?.completedAt) {
+    return true;
+  }
+  return Boolean(row?.is_completed ?? row?.isComplete);
+};
+
+const pickLatestBasicOrProAssessmentRow = (assessments) => {
+  const rows = (Array.isArray(assessments) ? assessments : [])
+    .filter((row) => getPackagePriorityTier(row) >= 2);
+  if (rows.length === 0) {
+    return null;
+  }
+  return [...rows].sort((a, b) => {
+    const byAssigned = toTimestamp(b?.assigned_at) - toTimestamp(a?.assigned_at);
+    if (byAssigned !== 0) {
+      return byAssigned;
+    }
+    return getAssessmentInstanceId(b) - getAssessmentInstanceId(a);
+  })[0];
+};
+
+const HEALTH_SUBMITTED_CACHE_TTL_MS = 90_000;
+let healthSubmittedCache = { expiresAt: 0, value: null };
+let healthSubmittedInFlight = null;
+
+export const peekHealthQuestionnaireSubmittedCache = () => {
+  if (Date.now() < healthSubmittedCache.expiresAt) {
+    return healthSubmittedCache.value;
+  }
+  return null;
+};
+
+export const invalidateHealthQuestionnaireSubmittedCache = () => {
+  healthSubmittedCache = { expiresAt: 0, value: null };
+  healthSubmittedInFlight = null;
+};
+
+async function fetchHasSubmittedHealthQuestionnaireUncached() {
+  const assessmentsPayload = await listMyAssessments(1, 50);
+  const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
+  const latestBasicPro = pickLatestBasicOrProAssessmentRow(assessments);
+  if (!latestBasicPro) {
+    return false;
+  }
+
+  const basicProId = getAssessmentInstanceId(latestBasicPro);
+
+  if (isAssessmentRowSubmitted(latestBasicPro)) {
+    return true;
+  }
+
+  const marker = parseHealthQuestionnaireSubmittedMarker();
+  if (marker?.legacy) {
+    return true;
+  }
+  if (marker?.basicProAssessmentId === basicProId) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * True when the user has finalized the camp/B2B/B2C health questionnaire via POST submit
+ * (latest Metsights Basic/Pro on /assessments/me is completed, or a matching session marker exists).
+ */
+export const hasSubmittedHealthQuestionnaire = async (options = {}) => {
+  const { forceRefresh = false } = options;
+
+  if (!forceRefresh && Date.now() < healthSubmittedCache.expiresAt) {
+    return healthSubmittedCache.value;
+  }
+
+  if (!forceRefresh && healthSubmittedInFlight) {
+    return healthSubmittedInFlight;
+  }
+
+  const promise = fetchHasSubmittedHealthQuestionnaireUncached()
+    .then((result) => {
+      healthSubmittedCache = {
+        expiresAt: Date.now() + HEALTH_SUBMITTED_CACHE_TTL_MS,
+        value: result,
+      };
+      return result;
+    })
+    .finally(() => {
+      healthSubmittedInFlight = null;
+    });
+
+  if (!forceRefresh) {
+    healthSubmittedInFlight = promise;
+  }
+
+  return promise;
 };
 
 /** Session flag: FitPrint-gap questionnaire was submitted; home shows “reports preparing” until HSI unlocks. */

@@ -122,6 +122,19 @@ const getAnswerForQuestion = (question, rawResponses = []) => {
   return normalizeAnswerCandidate(ans);
 };
 
+/** Scale answers must include value + unit for Metsights fitness-parameters / physical-measurement. */
+export const isMetsightsScaleAnswerComplete = (answer) => {
+  if (answer == null || typeof answer !== 'object' || Array.isArray(answer)) {
+    return false;
+  }
+  const rawValue = answer.value ?? answer.numeric ?? answer.amount;
+  if (rawValue == null || rawValue === '') {
+    return false;
+  }
+  const unit = answer.unit ?? answer.unit_code ?? answer.unitCode;
+  return unit != null && String(unit).trim() !== '';
+};
+
 const questionIsUnfilled = (question, rawResponses) => {
   if (!question || typeof question !== 'object') {
     return false;
@@ -130,6 +143,28 @@ const questionIsUnfilled = (question, rawResponses) => {
     return false;
   }
   return isEmptyAnswer(getAnswerForQuestion(question, rawResponses));
+};
+
+/** Stricter than `questionIsUnfilled` — catches draft scale values missing a unit. */
+export const questionBlocksMetsightsSubmit = (question, rawResponses) => {
+  if (!question || typeof question !== 'object') {
+    return false;
+  }
+  if (question.is_read_only || question.is_visible === false) {
+    return false;
+  }
+
+  const answer = getAnswerForQuestion(question, rawResponses);
+  if (isEmptyAnswer(answer)) {
+    return true;
+  }
+
+  const qtype = String(question?.question_type || question?.type || '').trim().toLowerCase();
+  if (qtype === 'scale' || (typeof answer === 'object' && answer !== null && !Array.isArray(answer))) {
+    return !isMetsightsScaleAnswerComplete(answer);
+  }
+
+  return false;
 };
 
 const expandCatchupQuestionsForCardBundles = (fullQs, rawResponses, unfilledPredicate) => {
@@ -196,9 +231,50 @@ const isAnthropometryFollowupQuestion = (question) => {
     || t.includes('hip size') || t.includes('body fat') || t.includes('body-fat');
 };
 
-const anthropometryPrimaryHasUnfilled = (questions, rawResponses) => (
-  questions.some((q) => isAnthropometryPrimaryQuestion(q) && questionIsUnfilled(q, rawResponses))
+export const anthropometryPrimaryHasUnfilled = (questions, rawResponses) => (
+  questions.some((q) => isAnthropometryPrimaryQuestion(q) && questionBlocksMetsightsSubmit(q, rawResponses))
 );
+
+const findAnthropometryQuestionByKeyPart = (questions, keyPart) => (
+  (Array.isArray(questions) ? questions : []).find((q) => {
+    const key = String(q?.question_key || '').toLowerCase();
+    const text = String(q?.question_text || '').toLowerCase();
+    const part = String(keyPart || '').toLowerCase();
+    return key.includes(part) || text.includes(part);
+  }) || null
+);
+
+/** Metsights FitPrint submit requires height, weight, and waist_circumference with value + unit. */
+export const getMissingMetsightsPhysicalMeasurements = (questions, rawResponses) => {
+  const required = [
+    { part: 'height', label: 'height' },
+    { part: 'weight', label: 'body weight' },
+    { part: 'waist', label: 'waist size' },
+  ];
+  const missing = [];
+
+  required.forEach(({ part, label }) => {
+    const question = findAnthropometryQuestionByKeyPart(questions, part);
+    if (!question) {
+      return;
+    }
+    if (questionBlocksMetsightsSubmit(question, rawResponses)) {
+      missing.push(label);
+    }
+  });
+
+  return missing;
+};
+
+export const assertMetsightsPhysicalMeasurementsForSubmit = (questions, rawResponses) => {
+  const missing = getMissingMetsightsPhysicalMeasurements(questions, rawResponses);
+  if (missing.length === 0) {
+    return;
+  }
+  throw new Error(
+    `Please complete your measurements (${missing.join(', ')}) before submitting. Waist size is required for FitPrint.`,
+  );
+};
 
 const anthropometryFollowupHasUnfilled = (questions, rawResponses) => (
   questions.some((q) => isAnthropometryFollowupQuestion(q) && questionIsUnfilled(q, rawResponses))
@@ -294,6 +370,24 @@ export function evaluateFitprintCatchupLoadedContext(ctx) {
 /**
  * True when all FitPrint-gap questionnaire answers exist on this assessment (Basic/Pro instance).
  */
+/**
+ * Load Basic/Pro questionnaire and verify anthropometry is Metsights-ready before POST submit.
+ */
+export async function assertGapQuestionnaireReadyForMetsightsSubmit(basicProAssessmentInstanceId) {
+  const id = Number(basicProAssessmentInstanceId);
+  if (!Number.isFinite(id) || id <= 0) {
+    throw new Error('Invalid assessment for questionnaire submit.');
+  }
+
+  const ctx = await loadQuestionnaireContextForAssessmentInstance(id);
+  const categories = ctx?.categories || [];
+  const responsesByCategoryId = ctx?.responsesByCategoryId || {};
+  const qRoute = buildQuestionsByRoute(categories, ctx?.questionsByCategoryId || {});
+  const anthQ = qRoute.anthropometry || [];
+  const anthRaw = mergeResponsesForRoute(categories, responsesByCategoryId, 'anthropometry');
+  assertMetsightsPhysicalMeasurementsForSubmit(anthQ, anthRaw);
+}
+
 export async function isFitprintGapQuestionnaireFullyComplete(assessmentInstanceId) {
   const id = Number(assessmentInstanceId);
   if (!Number.isFinite(id) || id <= 0) {

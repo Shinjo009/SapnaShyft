@@ -15,6 +15,7 @@ import { getMyProfile, invalidateMyProfileCache } from './services/profileServic
 import {
   loadQuestionnaireContext,
   submitQuestionnaireResponses,
+  submitLatestEngagementAssessment,
   markFamilyHistoryQuestionnaireDraftKnown,
   invalidateFamilyHistoryQuestionnaireDraftCache,
   markNutritionLogQuestionnaireDraftKnown,
@@ -22,10 +23,11 @@ import {
   hasNutritionLogQuestionnaireDraft,
   hasFamilyHistoryQuestionnaireDraft,
   markFitprintGapQuestionnaireSubmitted,
+  hasSubmittedHealthQuestionnaire,
+  invalidateHealthQuestionnaireSubmittedCache,
 } from './services/questionnaireService';
 import {
   fetchLatestAssessmentReport,
-  fetchLatestHealthSpanIndex,
   getLatestAssessmentIdsCached,
   clearReportRequestCache,
   clearStoredLatestAssessmentId,
@@ -56,7 +58,10 @@ import {
   hasRenderableOverviewData,
   HOME_PRELOAD_COMPLETE_KEY,
 } from './utils/homeOverviewPreload';
-import { loadFitprintGapLockState } from './utils/fitprintGapLock';
+import {
+  loadFitprintHealthSpanIndexState,
+  fitprintHealthSpanPreloadExtras,
+} from './utils/fitprintHealthSpanFlow';
 import {
   clearSuperclubPlaylistLock,
   persistSuperclubPlaylistLock,
@@ -998,16 +1003,43 @@ function App() {
     }
   };
 
+  const handleOpenHealthAssessmentFromHome = () => {
+    void (async () => {
+      try {
+        if (await hasSubmittedHealthQuestionnaire()) {
+          return;
+        }
+      } catch {
+        // allow open when submit state cannot be resolved
+      }
+
+      setIsB2bQuestionnaireFlow(false);
+      setHealthAssessmentBackPage('home');
+      setCurrentPage('health-assessment');
+      initializeQuestionnaire();
+    })();
+  };
+
   const handleOpenB2bHealthAssessment = () => {
-    try {
-      sessionStorage.setItem('ss_b2b_opened_questionnaire', '1');
-    } catch {
-      // private mode / disabled storage
-    }
-    setHealthAssessmentBackPage('home');
-    setCurrentPage('health-assessment');
-    setIsB2bQuestionnaireFlow(true);
-    initializeQuestionnaire();
+    void (async () => {
+      try {
+        if (await hasSubmittedHealthQuestionnaire()) {
+          return;
+        }
+      } catch {
+        // allow open when submit state cannot be resolved
+      }
+
+      try {
+        sessionStorage.setItem('ss_b2b_opened_questionnaire', '1');
+      } catch {
+        // private mode / disabled storage
+      }
+      setHealthAssessmentBackPage('home');
+      setCurrentPage('health-assessment');
+      setIsB2bQuestionnaireFlow(true);
+      initializeQuestionnaire();
+    })();
   };
 
   const handleOpenFitprintGapQuestionnaire = useCallback((assessmentInstanceId) => {
@@ -1307,25 +1339,21 @@ function App() {
   const preloadHomeScreenData = async () => {
     prefetchRouteChunk('home');
     void peekMyAssessmentsRowsCached(0).catch(() => {});
-    const fitprintPreloadPromise = loadFitprintGapLockState({ ttlMs: 45000 })
-      .then((lockState) => ({
-        fitprintGapLockPreloaded: true,
-        healthSpanLockedNoFitprint: Boolean(lockState.isLocked),
-        healthSpanGapBasicProAssessmentId: lockState.basicProAssessmentId,
-        fitprintGapQCompleteFromServer: lockState.gapQuestionnaireComplete,
-      }))
+    const fitprintPreloadPromise = loadFitprintHealthSpanIndexState({
+      ttlMs: 45000,
+      assignFitprintIfMissing: true,
+    })
+      .then((flowState) => fitprintHealthSpanPreloadExtras(flowState))
       .catch(() => ({}));
 
-    const resolveHealthSpanScoresForPreload = async (fitprintExtras) => {
+    const resolveHealthSpanScoresForPreload = (fitprintExtras) => {
+      if (fitprintExtras?.healthSpanScores) {
+        return fitprintExtras.healthSpanScores;
+      }
       if (fitprintExtras?.healthSpanLockedNoFitprint) {
         return null;
       }
-      try {
-        const result = await fetchLatestHealthSpanIndex({ includeDetails: false, ttlMs: 45000 });
-        return result?.scores || null;
-      } catch {
-        return null;
-      }
+      return null;
     };
 
     const mergePreloadedHomePayload = (partial, healthSpanScores, fitprintExtras) => {
@@ -1343,7 +1371,7 @@ function App() {
       );
       const overview = resolveOverviewPayload(response);
       const fitprintExtras = await fitprintPreloadPromise;
-      const healthSpanScores = await resolveHealthSpanScoresForPreload(fitprintExtras);
+      const healthSpanScores = resolveHealthSpanScoresForPreload(fitprintExtras);
       const assessmentRows = await peekMyAssessmentsRowsCached(0).catch(() => []);
       const anchorEngagementId = resolveEngagementIdFromAssessmentId(assessmentRows, assessmentId);
 
@@ -1371,7 +1399,7 @@ function App() {
     } catch (err) {
       console.error('Failed to preload home screen data:', err);
       const fitprintExtras = await fitprintPreloadPromise;
-      const healthSpanScores = await resolveHealthSpanScoresForPreload(fitprintExtras);
+      const healthSpanScores = resolveHealthSpanScoresForPreload(fitprintExtras);
       setPreloadedHomeData(mergePreloadedHomePayload({
         ...createEmptyPreloadedHome(),
         healthSpanScores,
@@ -1829,12 +1857,7 @@ function App() {
             setSelectedDisease(disease);
             setCurrentPage('disease-detail');
           }}
-          onOpenHealthAssessment={() => {
-            setIsB2bQuestionnaireFlow(false);
-            setHealthAssessmentBackPage('home');
-            setCurrentPage('health-assessment');
-            initializeQuestionnaire();
-          }}
+          onOpenHealthAssessment={handleOpenHealthAssessmentFromHome}
           onOpenB2bHealthAssessment={handleOpenB2bHealthAssessment}
           onOpenFitprintGapQuestionnaire={handleOpenFitprintGapQuestionnaire}
           onNavigateToBloodMarkers={() => {
@@ -2122,19 +2145,19 @@ function App() {
           onStepComplete={handleStepComplete}
           onStepDraftSave={handleStepDraftSave}
           onAssessmentSubmit={async () => {
+            await submitLatestEngagementAssessment();
+
             try {
-              try {
-                sessionStorage.removeItem('ss_b2b_opened_questionnaire');
-              } catch {
-                // ignore
-              }
-              clearReportRequestCache();
-              clearStoredLatestAssessmentId();
-              invalidateNutritionLogQuestionnaireDraftCache();
-              invalidateFamilyHistoryQuestionnaireDraftCache();
+              sessionStorage.removeItem('ss_b2b_opened_questionnaire');
             } catch {
-              // still show completion feedback
+              // ignore
             }
+            clearReportRequestCache();
+            clearStoredLatestAssessmentId();
+            invalidateNutritionLogQuestionnaireDraftCache();
+            invalidateFamilyHistoryQuestionnaireDraftCache();
+            invalidateHealthQuestionnaireSubmittedCache();
+
             let successTitle = 'Submitted successfully!';
             try {
               const [nutritionSaved, familySaved] = await Promise.all([

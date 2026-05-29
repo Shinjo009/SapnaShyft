@@ -579,6 +579,186 @@ const isActiveIncompleteAssessmentRow = (row) => {
     || status === 'in_progress' || status === 'in-progress';
 };
 
+/**
+ * Resolve POST /assessments/{id}/submit targets for the latest engagement.
+ * Path instance is the active package to finalize (FitPrint when present, else Basic/Pro).
+ * Source ids aggregate questionnaire answers across 1–2 instances on that engagement.
+ */
+/**
+ * Submit targets for one engagement: merge Basic/Pro + FitPrint answers, finalize on FitPrint when present.
+ */
+export const resolveAssessmentSubmitTargetsForEngagementId = (rawRows, engagementId) => {
+  const engagementKey = String(engagementId || '').trim();
+  if (!engagementKey) {
+    return null;
+  }
+
+  const rows = sortAssessmentRowsLatestFirst(Array.isArray(rawRows) ? rawRows : []);
+  const onEngagement = rows.filter(
+    (row) => String(extractEngagementIdFromRow(row) || '').trim() === engagementKey,
+  );
+
+  if (onEngagement.length === 0) {
+    return null;
+  }
+
+  const basicOrProRow = onEngagement.find((row) => normalizedAssessmentFamily(row) === 'basic_or_pro') || null;
+  const fitprintRow = onEngagement.find((row) => normalizedAssessmentFamily(row) === 'fitprint') || null;
+
+  const basicOrProAssessmentId = Number(extractAssessmentIdFromRow(basicOrProRow));
+  const fitprintAssessmentId = Number(extractAssessmentIdFromRow(fitprintRow));
+
+  const sourceAssessmentInstanceIds = [];
+  if (Number.isFinite(basicOrProAssessmentId) && basicOrProAssessmentId > 0) {
+    sourceAssessmentInstanceIds.push(basicOrProAssessmentId);
+  }
+  if (
+    Number.isFinite(fitprintAssessmentId)
+    && fitprintAssessmentId > 0
+    && !sourceAssessmentInstanceIds.includes(fitprintAssessmentId)
+  ) {
+    sourceAssessmentInstanceIds.push(fitprintAssessmentId);
+  }
+
+  if (sourceAssessmentInstanceIds.length === 0) {
+    return null;
+  }
+
+  let assessmentInstanceId = null;
+  if (Number.isFinite(fitprintAssessmentId) && fitprintAssessmentId > 0) {
+    const fitprintActive = fitprintRow && isActiveIncompleteAssessmentRow(fitprintRow);
+    if (fitprintActive) {
+      assessmentInstanceId = fitprintAssessmentId;
+    }
+  }
+  if (!assessmentInstanceId && Number.isFinite(basicOrProAssessmentId) && basicOrProAssessmentId > 0) {
+    const basicActive = basicOrProRow && isActiveIncompleteAssessmentRow(basicOrProRow);
+    if (basicActive) {
+      assessmentInstanceId = basicOrProAssessmentId;
+    }
+  }
+  if (!assessmentInstanceId) {
+    assessmentInstanceId = fitprintAssessmentId > 0 ? fitprintAssessmentId : basicOrProAssessmentId;
+  }
+
+  if (!Number.isFinite(assessmentInstanceId) || assessmentInstanceId <= 0) {
+    return null;
+  }
+
+  return {
+    assessmentInstanceId,
+    sourceAssessmentInstanceIds,
+    engagementId: engagementKey,
+    basicOrProAssessmentId: Number.isFinite(basicOrProAssessmentId) && basicOrProAssessmentId > 0
+      ? basicOrProAssessmentId
+      : null,
+    fitprintAssessmentId: Number.isFinite(fitprintAssessmentId) && fitprintAssessmentId > 0
+      ? fitprintAssessmentId
+      : null,
+  };
+};
+
+export const resolveAssessmentSubmitTargetsFromRows = (rawRows) => {
+  const rows = sortAssessmentRowsLatestFirst(Array.isArray(rawRows) ? rawRows : []);
+
+  const findRowById = (instanceId) => {
+    const targetId = Number(instanceId);
+    if (!Number.isFinite(targetId) || targetId <= 0) {
+      return null;
+    }
+    return rows.find((row) => Number(extractAssessmentIdFromRow(row)) === targetId) || null;
+  };
+
+  const pickPathInstanceId = (basicOrProId, fitprintId) => {
+    const fitprintRow = fitprintId ? findRowById(fitprintId) : null;
+    const basicRow = basicOrProId ? findRowById(basicOrProId) : null;
+
+    if (fitprintRow && isActiveIncompleteAssessmentRow(fitprintRow)) {
+      return Number(fitprintId);
+    }
+    if (basicRow && isActiveIncompleteAssessmentRow(basicRow)) {
+      return Number(basicOrProId);
+    }
+
+    const fallbackId = fitprintId || basicOrProId;
+    const fallbackRow = fallbackId ? findRowById(fallbackId) : null;
+    if (fallbackRow && isActiveIncompleteAssessmentRow(fallbackRow)) {
+      return Number(fallbackId);
+    }
+
+    return null;
+  };
+
+  const resolved = resolveHealthSpanIndexSourcesFromRows(rows);
+
+  if (resolved.status === 'ready') {
+    const { basicOrProAssessmentId, fitprintAssessmentId, engagementId } = resolved;
+    const sourceAssessmentInstanceIds = [basicOrProAssessmentId, fitprintAssessmentId]
+      .map((id) => Number(id))
+      .filter((id, index, arr) => Number.isFinite(id) && id > 0 && arr.indexOf(id) === index);
+
+    const assessmentInstanceId = pickPathInstanceId(basicOrProAssessmentId, fitprintAssessmentId);
+    if (!assessmentInstanceId) {
+      return null;
+    }
+
+    return {
+      assessmentInstanceId,
+      sourceAssessmentInstanceIds,
+      engagementId,
+    };
+  }
+
+  if (resolved.status === 'missing_fitprint' && resolved.basicOrProAssessmentId) {
+    const assessmentInstanceId = pickPathInstanceId(resolved.basicOrProAssessmentId, null);
+    if (!assessmentInstanceId) {
+      return null;
+    }
+
+    return {
+      assessmentInstanceId,
+      sourceAssessmentInstanceIds: [assessmentInstanceId],
+      engagementId: resolved.engagementId || extractEngagementIdFromRow(findRowById(assessmentInstanceId)),
+    };
+  }
+
+  const activeIncomplete = rows.filter((row) => isActiveIncompleteAssessmentRow(row));
+  if (activeIncomplete.length === 0) {
+    return null;
+  }
+
+  const preferred = activeIncomplete.find((row) => normalizedAssessmentFamily(row) === 'fitprint')
+    || activeIncomplete.find((row) => normalizedAssessmentFamily(row) === 'basic_or_pro')
+    || activeIncomplete[0];
+  const assessmentInstanceId = Number(extractAssessmentIdFromRow(preferred));
+  if (!Number.isFinite(assessmentInstanceId) || assessmentInstanceId <= 0) {
+    return null;
+  }
+
+  const engagementId = String(extractEngagementIdFromRow(preferred) || '').trim();
+  const engagementInstances = engagementId
+    ? activeIncomplete.filter((row) => String(extractEngagementIdFromRow(row) || '').trim() === engagementId)
+    : activeIncomplete;
+
+  const sourceAssessmentInstanceIds = engagementInstances
+    .filter((row) => {
+      const family = normalizedAssessmentFamily(row);
+      return family === 'basic_or_pro' || family === 'fitprint';
+    })
+    .map((row) => Number(extractAssessmentIdFromRow(row)))
+    .filter((id, index, arr) => Number.isFinite(id) && id > 0 && arr.indexOf(id) === index);
+
+  const orderedSources = sourceAssessmentInstanceIds.length > 0
+    ? sourceAssessmentInstanceIds
+    : [assessmentInstanceId];
+
+  return {
+    assessmentInstanceId,
+    sourceAssessmentInstanceIds: orderedSources,
+    engagementId: engagementId || null,
+  };
+};
+
 export const resolveEngagementIdFromAssessmentId = (rawRows, assessmentInstanceId) => {
   const targetId = Number(assessmentInstanceId);
   if (!Number.isFinite(targetId) || targetId <= 0) {

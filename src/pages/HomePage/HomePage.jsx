@@ -14,7 +14,6 @@ import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
 import { getAccessToken } from '../../utils/authStorage';
 import {
   fetchLatestAssessmentReport,
-  fetchLatestHealthSpanIndex,
   getLatestMetsightsBasicOrProAssessmentIdCached,
   peekMyAssessmentsRowsCached,
   resolveEngagementIdFromAssessmentId,
@@ -29,11 +28,19 @@ import {
   peekFamilyHistoryQuestionnaireDraftCache,
   invalidateNutritionLogQuestionnaireDraftCache,
   invalidateFamilyHistoryQuestionnaireDraftCache,
+  invalidateHealthQuestionnaireSubmittedCache,
+  hasSubmittedHealthQuestionnaire,
+  peekHealthQuestionnaireSubmittedCache,
   isFitprintGapQuestionnaireSubmittedFlagSet,
   clearFitprintGapQuestionnaireSubmittedFlag,
 } from '../../services/questionnaireService';
 import { hasRenderableOverviewData, HOME_PRELOAD_COMPLETE_KEY } from '../../utils/homeOverviewPreload';
-import { areHealthSpanScoresPending, loadFitprintGapLockState } from '../../utils/fitprintGapLock';
+import {
+  areHealthSpanScoresPending,
+  HEALTH_SPAN_PHASE,
+  ensureFitprintAssignedForEngagement,
+  loadFitprintHealthSpanIndexState,
+} from '../../utils/fitprintHealthSpanFlow';
 import { loadReassessmentBannerState } from '../../utils/reassessmentBanner';
 import clockCircleSrc from '../../images/clock_circle.svg';
 import clockHandsSrc from '../../images/clock_hands.svg';
@@ -45,6 +52,13 @@ const hasDisplayableHealthSpanScores = (scores) => (
 const resolveFitprintGapCheckDoneFromPreload = (data) => {
   if (!data?.fitprintGapLockPreloaded) {
     return false;
+  }
+  if (data.healthSpanPhase === HEALTH_SPAN_PHASE.SHOW_SCORES) {
+    return true;
+  }
+  if (data.healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE
+    || data.healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_SUBMITTED) {
+    return true;
   }
   if (data.healthSpanLockedNoFitprint) {
     return true;
@@ -570,6 +584,12 @@ const HomePage = ({
   const [healthSpanGapBasicProAssessmentId, setHealthSpanGapBasicProAssessmentId] = useState(
     () => (preloadedData?.fitprintGapLockPreloaded ? preloadedData.healthSpanGapBasicProAssessmentId ?? null : null),
   );
+  const [healthSpanGapEngagementId, setHealthSpanGapEngagementId] = useState(
+    () => (preloadedData?.fitprintGapLockPreloaded ? preloadedData.healthSpanGapEngagementId ?? null : null),
+  );
+  const [healthSpanPhase, setHealthSpanPhase] = useState(
+    () => (preloadedData?.fitprintGapLockPreloaded ? preloadedData.healthSpanPhase ?? null : null),
+  );
   /** From server answers on Basic/Pro when FitPrint row is missing (reports not ready yet). */
   const [fitprintGapQCompleteFromServer, setFitprintGapQCompleteFromServer] = useState(
     () => Boolean(preloadedData?.fitprintGapLockPreloaded && preloadedData?.fitprintGapQCompleteFromServer),
@@ -591,6 +611,8 @@ const HomePage = ({
   const [b2cProfile, setB2cProfile] = useState(null);
   const [b2cSlotEnded, setB2cSlotEnded] = useState(false);
   const [isQuestionnaireCompleted, setIsQuestionnaireCompleted] = useState(false);
+  /** POST /assessments/.../submit finalized — hide edit / complete questionnaire CTAs (B2B + B2C). */
+  const [isQuestionnaireSubmitted, setIsQuestionnaireSubmitted] = useState(false);
   /** When camp B2B no-data UI needs nutrition-log draft check; false until that request finishes (avoids camp → analyzing flicker). */
   const [isB2bCampNoDataGateResolved, setIsB2bCampNoDataGateResolved] = useState(true);
   const [hasStableOverviewData, setHasStableOverviewData] = useState(() => hasRenderableOverviewData(preloadedData));
@@ -622,6 +644,9 @@ const HomePage = ({
   ).trim();
 
   const openB2bQuestionnaire = () => {
+    if (isQuestionnaireSubmitted) {
+      return;
+    }
     if (onOpenB2bHealthAssessment) {
       onOpenB2bHealthAssessment();
       return;
@@ -631,17 +656,32 @@ const HomePage = ({
     }
   };
 
+  const showHealthQuestionnaireCta = !isQuestionnaireSubmitted;
+
   const openQuestionnaireFromFitprintLock = () => {
-    const id = Number(healthSpanGapBasicProAssessmentId);
-    if (onOpenFitprintGapQuestionnaire && Number.isFinite(id) && id > 0) {
+    void (async () => {
+      const id = Number(healthSpanGapBasicProAssessmentId);
+      if (!onOpenFitprintGapQuestionnaire || !Number.isFinite(id) || id <= 0) {
+        openB2bQuestionnaire();
+        return;
+      }
+      const engagementId = Number(healthSpanGapEngagementId);
+      if (Number.isFinite(engagementId) && engagementId > 0) {
+        try {
+          await ensureFitprintAssignedForEngagement(engagementId);
+        } catch (error) {
+          console.warn('Could not assign FitPrint before questionnaire:', error?.message || error);
+        }
+      }
       onOpenFitprintGapQuestionnaire(id);
-      return;
-    }
-    openB2bQuestionnaire();
+    })();
   };
 
-  const fitprintGapAwaitingReports = isFitprintGapQuestionnaireSubmittedFlagSet() || fitprintGapQCompleteFromServer;
-  const showFitprintGapQuestionnaireCta = healthSpanLockedNoFitprint && !fitprintGapAwaitingReports;
+  const fitprintGapAwaitingReports = healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_SUBMITTED
+    || isFitprintGapQuestionnaireSubmittedFlagSet()
+    || fitprintGapQCompleteFromServer;
+  const showFitprintGapQuestionnaireCta = healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE
+    || (healthSpanLockedNoFitprint && !fitprintGapAwaitingReports && healthSpanPhase !== HEALTH_SPAN_PHASE.LOCKED_SUBMITTED);
   const showHealthSpanLocked = healthSpanLockedNoFitprint && fitprintGapCheckDone;
   const showHealthSpanScores = !healthSpanLockedNoFitprint && (
     fitprintGapCheckDone || hasDisplayableHealthSpanScores(healthSpanScores)
@@ -650,12 +690,35 @@ const HomePage = ({
     && hasStableOverviewData
     && isOverviewResolved;
 
-  const applyFitprintLockState = useCallback(async (lockState, { fetchScoresTtlMs = 45000 } = {}) => {
-    if (lockState.isLocked) {
+  const applyFitprintHealthSpanState = useCallback((flowState) => {
+    setHealthSpanPhase(flowState?.phase ?? null);
+    setHealthSpanGapEngagementId(flowState?.engagementId ?? null);
+
+    if (flowState?.phase === HEALTH_SPAN_PHASE.SHOW_SCORES) {
+      clearFitprintGapQuestionnaireSubmittedFlag();
+      setFitprintGapQCompleteFromServer(true);
+      setHealthSpanLockedNoFitprint(false);
+      setHealthSpanGapBasicProAssessmentId(flowState.basicProAssessmentId);
+      setHealthSpanScores(flowState.scores || null);
+      setFitprintGapCheckDone(true);
+      return;
+    }
+
+    if (flowState?.phase === HEALTH_SPAN_PHASE.LOCKED_SUBMITTED) {
       setHealthSpanLockedNoFitprint(true);
       setHealthSpanScores(null);
-      setHealthSpanGapBasicProAssessmentId(lockState.basicProAssessmentId);
-      setFitprintGapQCompleteFromServer(lockState.gapQuestionnaireComplete);
+      setHealthSpanGapBasicProAssessmentId(flowState.basicProAssessmentId);
+      setFitprintGapQCompleteFromServer(true);
+      setFitprintGapCheckDone(true);
+      return;
+    }
+
+    if (flowState?.phase === HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE) {
+      clearFitprintGapQuestionnaireSubmittedFlag();
+      setHealthSpanLockedNoFitprint(true);
+      setHealthSpanScores(null);
+      setHealthSpanGapBasicProAssessmentId(flowState.basicProAssessmentId);
+      setFitprintGapQCompleteFromServer(false);
       setFitprintGapCheckDone(true);
       return;
     }
@@ -664,15 +727,8 @@ const HomePage = ({
     setFitprintGapQCompleteFromServer(false);
     setHealthSpanLockedNoFitprint(false);
     setHealthSpanGapBasicProAssessmentId(null);
-
-    try {
-      const result = await fetchLatestHealthSpanIndex({ includeDetails: false, ttlMs: fetchScoresTtlMs });
-      setHealthSpanScores(result?.scores || null);
-    } catch {
-      setHealthSpanScores((prev) => prev ?? preloadedData?.healthSpanScores ?? null);
-    } finally {
-      setFitprintGapCheckDone(true);
-    }
+    setHealthSpanScores((prev) => prev ?? preloadedData?.healthSpanScores ?? null);
+    setFitprintGapCheckDone(true);
   }, [preloadedData?.healthSpanScores]);
 
   useEffect(() => {
@@ -838,6 +894,7 @@ const HomePage = ({
     if (forceRefreshFromProfile) {
       invalidateNutritionLogQuestionnaireDraftCache();
       invalidateFamilyHistoryQuestionnaireDraftCache();
+      invalidateHealthQuestionnaireSubmittedCache();
     }
 
     // After questionnaire submit, parent sets `forceRefreshFromProfile` — do not use stale
@@ -852,21 +909,29 @@ const HomePage = ({
       return undefined;
     }
 
+    const submittedCached = forceRefreshFromProfile ? null : peekHealthQuestionnaireSubmittedCache();
+    if (submittedCached !== null && !cancelled) {
+      setIsQuestionnaireSubmitted(Boolean(submittedCached));
+    }
+
     setIsB2bCampNoDataGateResolved(false);
 
     (async () => {
       try {
         const fr = Boolean(forceRefreshFromProfile);
-        const [hasNutritionDraft, hasFamilyDraft] = await Promise.all([
+        const [hasNutritionDraft, hasFamilyDraft, hasSubmitted] = await Promise.all([
           hasNutritionLogQuestionnaireDraft({ forceRefresh: fr }),
           hasFamilyHistoryQuestionnaireDraft({ forceRefresh: fr }),
+          hasSubmittedHealthQuestionnaire({ forceRefresh: fr }),
         ]);
         if (!cancelled) {
           setIsQuestionnaireCompleted(Boolean(hasNutritionDraft || hasFamilyDraft));
+          setIsQuestionnaireSubmitted(Boolean(hasSubmitted));
         }
       } catch {
         if (!cancelled) {
           setIsQuestionnaireCompleted(false);
+          setIsQuestionnaireSubmitted(false);
         }
       } finally {
         if (!cancelled) {
@@ -880,6 +945,35 @@ const HomePage = ({
     };
   }, [isNoDataHome, upcomingSlotStatus, campFlowActive, metsightsCycleAssigned, forceRefreshFromProfile]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const fr = Boolean(forceRefreshFromProfile);
+    if (fr) {
+      invalidateHealthQuestionnaireSubmittedCache();
+    }
+    const submittedCached = fr ? null : peekHealthQuestionnaireSubmittedCache();
+    if (submittedCached !== null && !cancelled) {
+      setIsQuestionnaireSubmitted(Boolean(submittedCached));
+    }
+
+    (async () => {
+      try {
+        const submitted = await hasSubmittedHealthQuestionnaire({ forceRefresh: fr });
+        if (!cancelled) {
+          setIsQuestionnaireSubmitted(Boolean(submitted));
+        }
+      } catch {
+        if (!cancelled) {
+          setIsQuestionnaireSubmitted(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [forceRefreshFromProfile]);
+
   // Warm nutrition-log draft check in parallel with the upcoming-slot request so the camp gate often hits cache.
   useEffect(() => {
     if (!isOverviewResolved || !isNoDataHome) {
@@ -887,6 +981,7 @@ const HomePage = ({
     }
     void hasNutritionLogQuestionnaireDraft().catch(() => {});
     void hasFamilyHistoryQuestionnaireDraft().catch(() => {});
+    void hasSubmittedHealthQuestionnaire().catch(() => {});
     return undefined;
   }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
 
@@ -896,39 +991,50 @@ const HomePage = ({
     }
     setHealthSpanLockedNoFitprint(Boolean(preloadedData.healthSpanLockedNoFitprint));
     setHealthSpanGapBasicProAssessmentId(preloadedData.healthSpanGapBasicProAssessmentId ?? null);
+    setHealthSpanGapEngagementId(preloadedData.healthSpanGapEngagementId ?? null);
+    setHealthSpanPhase(preloadedData.healthSpanPhase ?? null);
     setFitprintGapQCompleteFromServer(Boolean(preloadedData.fitprintGapQCompleteFromServer));
     if (preloadedData.healthSpanLockedNoFitprint) {
       setHealthSpanScores(null);
+    } else if (preloadedData.healthSpanScores) {
+      setHealthSpanScores(preloadedData.healthSpanScores);
     }
   }, [
     forceRefreshFromProfile,
     preloadedData?.fitprintGapLockPreloaded,
     preloadedData?.healthSpanLockedNoFitprint,
     preloadedData?.healthSpanGapBasicProAssessmentId,
+    preloadedData?.healthSpanGapEngagementId,
+    preloadedData?.healthSpanPhase,
     preloadedData?.fitprintGapQCompleteFromServer,
+    preloadedData?.healthSpanScores,
   ]);
 
   useEffect(() => {
+    if (preloadedData?.fitprintGapLockPreloaded && !forceRefreshFromProfile) {
+      return undefined;
+    }
+
     let cancelled = false;
 
     (async () => {
       const ttlMs = forceRefreshFromProfile ? 0 : 45000;
-
-      const lockState = await loadFitprintGapLockState({ ttlMs });
+      const flowState = await loadFitprintHealthSpanIndexState({
+        ttlMs,
+        assignFitprintIfMissing: !forceRefreshFromProfile,
+      });
       if (cancelled) {
         return;
       }
-
-      await applyFitprintLockState(lockState, { fetchScoresTtlMs: ttlMs });
+      applyFitprintHealthSpanState(flowState);
     })();
 
     return () => {
       cancelled = true;
     };
   }, [
-    applyFitprintLockState,
+    applyFitprintHealthSpanState,
     forceRefreshFromProfile,
-    isOverviewResolved,
     preloadedData?.fitprintGapLockPreloaded,
   ]);
 
@@ -1032,6 +1138,8 @@ const HomePage = ({
       const locked = Boolean(data.healthSpanLockedNoFitprint);
       setHealthSpanLockedNoFitprint(locked);
       setHealthSpanGapBasicProAssessmentId(data.healthSpanGapBasicProAssessmentId ?? null);
+      setHealthSpanGapEngagementId(data.healthSpanGapEngagementId ?? null);
+      setHealthSpanPhase(data.healthSpanPhase ?? null);
       setFitprintGapQCompleteFromServer(Boolean(data.fitprintGapQCompleteFromServer));
       setHealthSpanScores(locked ? null : (data.healthSpanScores || null));
       setFitprintGapCheckDone(resolveFitprintGapCheckDoneFromPreload(data));
@@ -1684,11 +1792,13 @@ const HomePage = ({
             </div>
           </section>
 
-          <div className="home-page-b2b__cta-wrap">
-            <button type="button" className="home-page-b2b__cta" onClick={openB2bQuestionnaire}>
-              Complete your Health Assessment
-            </button>
-          </div>
+          {showHealthQuestionnaireCta ? (
+            <div className="home-page-b2b__cta-wrap">
+              <button type="button" className="home-page-b2b__cta" onClick={openB2bQuestionnaire}>
+                Complete your Health Assessment
+              </button>
+            </div>
+          ) : null}
 
           <NavBar defaultActive="home" onNavigate={handleNavigate} />
         </div>
@@ -1700,7 +1810,8 @@ const HomePage = ({
         ? analyzingQuestionnairePendingTimeline
         : analyzingTimelineItems;
       const lineMutedAfterIndex = noDataStage === 'analyzing_questionnaire_pending' ? 1 : 2;
-      const showQuestionnaireCta = noDataStage === 'analyzing_questionnaire_pending';
+      const showQuestionnaireCta = noDataStage === 'analyzing_questionnaire_pending'
+        && showHealthQuestionnaireCta;
 
       return (
         <div className="home-page home-page--no-data-analyzing">
@@ -1912,7 +2023,7 @@ const HomePage = ({
             </div>
           </section>
 
-          {slotNorm.isB2b && !isQuestionnaireCompleted ? (
+          {slotNorm.isB2b && showHealthQuestionnaireCta && !isQuestionnaireCompleted ? (
             <div className="home-page-b2b__cta-wrap">
               <button type="button" className="home-page-b2b__cta" onClick={openB2bQuestionnaire}>
                 Complete your Health Assessment
@@ -2029,7 +2140,7 @@ const HomePage = ({
       </button>
 
       <HomeReassessmentBottomSheet
-        visible={showReassessmentBanner}
+        visible={showReassessmentBanner && showHealthQuestionnaireCta}
         onUpdateAssessment={openB2bQuestionnaire}
       />
 
