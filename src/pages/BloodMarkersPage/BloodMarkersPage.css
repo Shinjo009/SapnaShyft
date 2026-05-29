@@ -258,9 +258,151 @@
 
 .blood-markers-page__organ-copy {
   display: flex;
+  flex: 1;
   flex-direction: column;
   align-items: flex-start;
   gap: 0;
+  min-width: 0;
+}
+
+.blood-markers-page__organ-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.blood-markers-page__view-all-btn {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #9a9a9a;
+  font-family: Lato, sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 24px;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.blood-markers-page__view-all-btn:hover {
+  color: #c4c4c4;
+}
+
+.blood-markers-page__view-all-card {
+  margin-top: 16px;
+  width: 100%;
+  border-radius: 24px;
+  padding: 1px;
+  box-sizing: border-box;
+  box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.25);
+}
+
+.blood-markers-page__view-all-card--low {
+  background: linear-gradient(117deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(144, 223, 158, 0.05) 100%);
+}
+
+.blood-markers-page__view-all-card--moderate {
+  background: linear-gradient(117deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(218, 193, 90, 0.05) 100%);
+}
+
+.blood-markers-page__view-all-card--increased,
+.blood-markers-page__view-all-card--high {
+  background: linear-gradient(117deg, rgba(0, 0, 0, 0.05) 1.9%, rgba(233, 93, 92, 0.05) 100%);
+}
+
+.blood-markers-page__view-all-card-inner {
+  border-radius: 23px;
+  overflow: hidden;
+  backdrop-filter: blur(40px);
+}
+
+.blood-markers-page__view-all-card--low .blood-markers-page__view-all-card-inner {
+  border: 1px solid rgba(144, 223, 158, 0.35);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), 0 0 30px rgba(233, 93, 92, 0.15);
+}
+
+.blood-markers-page__view-all-card--moderate .blood-markers-page__view-all-card-inner {
+  border: 1px solid rgba(218, 193, 90, 0.35);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), 0 0 30px rgba(233, 93, 92, 0.15);
+}
+
+.blood-markers-page__view-all-card--increased .blood-markers-page__view-all-card-inner,
+.blood-markers-page__view-all-card--high .blood-markers-page__view-all-card-inner {
+  border: 1px solid rgba(233, 93, 92, 0.35);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), 0 0 30px rgba(233, 93, 92, 0.15);
+}
+
+.blood-markers-page__view-all-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.blood-markers-page__view-all-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.blood-markers-page__view-all-row-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.blood-markers-page__view-all-marker {
+  color: rgba(255, 255, 255, 0.95);
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: normal;
+}
+
+.blood-markers-page__view-all-value {
+  color: #9aa6a4;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.blood-markers-page__view-all-risk-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 11px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+}
+
+.blood-markers-page__view-all-risk-text {
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 15px;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.blood-markers-page__view-all-divider {
+  height: 1px;
+  margin: 0;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .blood-markers-page__organ-title {
@@ -1268,6 +1410,7 @@
 }
 
 .blood-marker-detail__value-row {
+  --blood-marker-detail-risk-label-color: #C4C4C4;
   margin-top: 35px;
   position: absolute;
   top: 54px;
@@ -1298,7 +1441,9 @@
 }
 
 .blood-marker-detail__value-unit {
-  color: #9A9A9A;
+  color: var(--blood-marker-detail-risk-label-color);
+  font-size: 11px;
+  font-weight: 400;
 }
 
 .blood-marker-detail__risk-main {
@@ -1306,7 +1451,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #C4C4C4;
+  color: var(--blood-marker-detail-risk-label-color);
   font-family: 'DM Sans', sans-serif;
   font-size: 11px;
   font-style: normal;

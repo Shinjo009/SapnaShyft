@@ -2,6 +2,8 @@
   min-height: 100vh;
   padding: 20px 0 140px 0;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 .nutrition-page__header {
@@ -51,87 +53,24 @@
   letter-spacing: 0.1px;
 }
 
-.nutrition-page__section {
-  margin-left: 26px;
-  margin-right: 21px;
+.nutrition-page__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 26px;
+  box-sizing: border-box;
 }
 
-.nutrition-page__section--first {
-  margin-top: 35px;
-}
-
-.nutrition-page__section--allergic {
-  margin-top: 25px;
-}
-
-.nutrition-page__section-title {
+.nutrition-page__empty-message {
   margin: 0;
-  color: #fff;
-  font-family: Lato;
+  color: #c4c4c4;
+  text-align: center;
+  font-family: Lato, sans-serif;
   font-size: 14px;
   font-style: normal;
-  font-weight: 600;
-  line-height: normal;
-}
-
-.nutrition-page__chip-grid {
-  margin-top: 14px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.nutrition-page__chip {
-  display: flex;
-  height: 32px;
-  padding: 4px 10px;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
-  color: #999;
-  font-family: Lato;
-  font-size: 12px;
-  font-style: normal;
   font-weight: 400;
-  line-height: 24px;
-  cursor: pointer;
-}
-
-.nutrition-page__chip--selected {
-  border-radius: 999px;
-  background: radial-gradient(50% 50% at 50% 50%, rgba(102, 186, 201, 0.75) 0%, rgba(32, 70, 97, 0.50) 100%);
-  color: #fff;
-}
-
-.nutrition-page__chip--full {
-  grid-column: 1 / -1;
-}
-
-.nutrition-page__other-wrap {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.nutrition-page__other-input {
-  height: 40px;
-  border: none;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 400;
-  padding: 0 14px;
-  outline: none;
-}
-
-.nutrition-page__other-input::placeholder {
-  color: #999;
+  line-height: 22px;
 }
 
 .nutrition-page__done-btn {

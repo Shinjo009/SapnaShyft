@@ -691,6 +691,104 @@ const markerCards = (section) => {
   return cards;
 };
 
+const flattenCardsForListView = (cards) => {
+  const rows = [];
+
+  cards.forEach((card) => {
+    if (card.cardRole === 'optimal-aggregate' && Array.isArray(card.aggregateTests) && card.aggregateTests.length > 0) {
+      card.aggregateTests.forEach((test, index) => {
+        rows.push({
+          id: `${card.id}-list-${index}`,
+          marker: test.marker,
+          value: test.value,
+          unit: test.unit,
+          riskType: test.riskType || 'low',
+          diagnosticTestId: test.diagnosticTestId,
+          normalMin: test.normalMin,
+          normalMax: test.normalMax,
+          title: test.title,
+          causes: test.causes,
+          effects: test.effects,
+        });
+      });
+      return;
+    }
+
+    if (card.cardRole === 'optimal-aggregate') {
+      return;
+    }
+
+    rows.push(card);
+  });
+
+  return rows;
+};
+
+const LIST_RISK_PILL_THEME = {
+  low: {
+    color: '#4ade80',
+    background: 'rgba(74, 222, 128, 0.1)',
+    border: 'rgba(74, 222, 128, 0.2)',
+  },
+  moderate: {
+    color: '#ee8b48',
+    background: 'rgba(255, 159, 67, 0.1)',
+    border: 'rgba(255, 159, 67, 0.2)',
+  },
+  increased: {
+    color: '#ff6b6b',
+    background: 'rgba(255, 107, 107, 0.1)',
+    border: 'rgba(255, 107, 107, 0.2)',
+  },
+  high: {
+    color: '#ff6b6b',
+    background: 'rgba(255, 107, 107, 0.1)',
+    border: 'rgba(255, 107, 107, 0.2)',
+  },
+};
+
+const BloodMarkersViewAllList = ({ rows, section, onOpenDetail }) => (
+  <div className={`blood-markers-page__view-all-card blood-markers-page__view-all-card--${section.theme}`}>
+    <div className="blood-markers-page__view-all-card-inner">
+      {rows.map((row, index) => {
+        const displayRisk = getDisplayRiskType(row.riskType);
+        const riskMeta = RISK_META[displayRisk] || RISK_META.low;
+        const pillTheme = LIST_RISK_PILL_THEME[row.riskType] || LIST_RISK_PILL_THEME[displayRisk] || LIST_RISK_PILL_THEME.low;
+        const valueText = [row.value, row.unit].filter(Boolean).join(' ').trim();
+
+        return (
+          <React.Fragment key={row.id}>
+            {index > 0 ? <div className="blood-markers-page__view-all-divider" aria-hidden="true" /> : null}
+            <button
+              type="button"
+              className="blood-markers-page__view-all-row"
+              onClick={() => onOpenDetail({ ...row, organ: section.organ, parameters: section.parameters })}
+            >
+              <div className="blood-markers-page__view-all-row-copy">
+                <span className="blood-markers-page__view-all-marker">{row.marker}</span>
+                {valueText ? (
+                  <span className="blood-markers-page__view-all-value">{valueText}</span>
+                ) : null}
+              </div>
+              <span
+                className={`blood-markers-page__view-all-risk-pill blood-markers-page__view-all-risk-pill--${displayRisk}`}
+                style={{
+                  color: pillTheme.color,
+                  background: pillTheme.background,
+                  borderColor: pillTheme.border,
+                }}
+              >
+                <span className="blood-markers-page__view-all-risk-text">{riskMeta.label}</span>
+                <RiskTrendIcon type={row.riskType} />
+              </span>
+            </button>
+          </React.Fragment>
+        );
+      })}
+    </div>
+  </div>
+);
+
 const BloodMarkersParameterRows = ({ rows, keyPrefix = '' }) => {
   const out = [];
   let detailQueue = [];
@@ -1336,9 +1434,12 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
 
 const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
   const [expandedLowCardIds, setExpandedLowCardIds] = useState({});
+  const [isViewAllOpen, setIsViewAllOpen] = useState(false);
   const cards = markerCards(section);
   const cardCount = cards.length;
   const isSingleCardStack = cardCount <= 1;
+  const showViewAllToggle = cardCount > 1;
+  const listRows = useMemo(() => flattenCardsForListView(cards), [cards]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState('next');
   const [isAnimating, setIsAnimating] = useState(false);
@@ -1699,6 +1800,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
     setIsDragging(false);
     setIsResetting(false);
     setIsSwappingFromExpanded(false);
+    setIsViewAllOpen(false);
     swappingExpandedCardIdRef.current = null;
     stackSwapAwaitingSettleRef.current = false;
     resetDragOffset();
@@ -1757,11 +1859,27 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
           />
         </div>
         <div className="blood-markers-page__organ-copy">
-          <h2 className="blood-markers-page__organ-title">{section.organ}</h2>
+          <div className="blood-markers-page__organ-title-row">
+            <h2 className="blood-markers-page__organ-title">{section.organ}</h2>
+            {showViewAllToggle ? (
+              <button
+                type="button"
+                className="blood-markers-page__view-all-btn"
+                onClick={() => setIsViewAllOpen((prev) => !prev)}
+                aria-expanded={isViewAllOpen}
+              >
+                {isViewAllOpen ? 'View less' : 'View All'}
+              </button>
+            ) : null}
+          </div>
           <p className="blood-markers-page__organ-subtitle">{section.parameters}</p>
         </div>
       </div>
 
+      {isViewAllOpen && showViewAllToggle ? (
+        <BloodMarkersViewAllList rows={listRows} section={section} onOpenDetail={onOpenDetail} />
+      ) : (
+      <>
       <div
         ref={stackRef}
         className={`blood-markers-page__stack${isSingleCardStack ? ' blood-markers-page__stack--single' : ''}${isAnimating ? ` blood-markers-page__stack--moving-${swipeDirection}` : ''}`}
@@ -1939,6 +2057,8 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
           <span className="blood-markers-page__swipe-arrow"><SwipeArrow /></span>
         </div>
       ) : null}
+      </>
+      )}
     </section>
   );
 };

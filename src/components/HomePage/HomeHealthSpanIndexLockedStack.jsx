@@ -55,11 +55,18 @@ const HomeHealthSpanIndexLockedStack = ({
     <section className="home-page-no-data__health-box" aria-label={submittedAria}>
       <div className="home-page-no-data__health-top">
         <p className="home-page-no-data__health-title">Health Span Index</p>
-        <button type="button" className="home-page-no-data__see-more" aria-disabled="true" tabIndex={-1}>
+        <button
+          type="button"
+          className="home-page-no-data__see-more home-page-no-data__see-more--locked"
+          aria-disabled="true"
+          tabIndex={-1}
+        >
           See more
         </button>
       </div>
-      <p className="home-page-no-data__health-subtitle">Tap the card to know more</p>
+      <p className="home-page-no-data__health-subtitle home-page-no-data__health-subtitle--locked">
+        Tap the card to know more
+      </p>
 
       <div className="home-page-no-data__health-body">
         <div className="home-page-no-data__health-blurred" aria-hidden="true">

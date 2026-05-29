@@ -5,7 +5,8 @@
   --pc-frame: min(480px, 100%);
   --pc-gutter: 16px;
   --pc-header-top: 56px;
-  --pc-header-row-h: 28px;
+  /* Match Header profile control (52×52) so kicker vertically centers on the same row */
+  --pc-header-row-h: 52px;
   --pc-col: 100%;
   --pc-col-shift: 0px;
   --pc-tile: 159.5px;

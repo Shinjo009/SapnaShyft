@@ -1316,6 +1316,13 @@
   flex-shrink: 0;
 }
 
+.package-details-page__test-icon-img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  display: block;
+}
+
 .package-details-page__test-head h4 {
   margin: 0 0 0 12px;
   color: #fff;
@@ -1353,6 +1360,14 @@
   border: 0.5px solid #c4c4c4;
   background: transparent;
   box-sizing: border-box;
+}
+
+.package-details-page__test-pill-icon {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
 }
 
 .package-details-page__test-pill span {
