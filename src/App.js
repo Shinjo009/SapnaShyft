@@ -503,9 +503,10 @@ function App() {
       return;
     }
 
+    const blockZonePx = getEdgeSwipeBlockZonePx(currentPage);
     if (
-      currentPage === 'home'
-      || (!isSwipeBackAllowedPage(currentPage) && touch.clientX <= getEdgeSwipeBlockZonePx(currentPage))
+      (currentPage === 'home' && touch.clientX <= blockZonePx)
+      || (!isSwipeBackAllowedPage(currentPage) && touch.clientX <= blockZonePx)
     ) {
       edgeSwipeStateRef.current = {
         tracking: false,
@@ -726,45 +727,21 @@ function App() {
       swipeState.lastX = touch.clientX;
       swipeState.lastY = touch.clientY;
 
-      if (page === 'home') {
-        swipeState.blockNativeBackGesture = true;
-        swipeState.tracking = false;
-        return;
-      }
-
-      if (!SWIPE_BACK_BLOCKED_PAGES.has(page)) {
-        return;
-      }
-
       const blockZonePx = getEdgeSwipeBlockZonePx(page);
 
-      if (touch.clientX <= blockZonePx) {
-        swipeState.blockNativeBackGesture = true;
-        swipeState.tracking = false;
-      }
-    };
-
-    const onTouchMoveCapture = (event) => {
-      const page = currentPageRef.current;
-      const swipeState = edgeSwipeStateRef.current;
-      const touch = event.touches?.[0];
-
-      if (!touch) {
-        return;
-      }
-
-      if (page === 'home') {
-        swipeState.blockNativeBackGesture = true;
-      } else {
-        const blockZonePx = getEdgeSwipeBlockZonePx(page);
-
-        if (SWIPE_BACK_BLOCKED_PAGES.has(page) && touch.clientX <= blockZonePx) {
+      if (page === 'home' || SWIPE_BACK_BLOCKED_PAGES.has(page)) {
+        if (touch.clientX <= blockZonePx) {
           swipeState.blockNativeBackGesture = true;
           swipeState.tracking = false;
         }
       }
+    };
 
-      if (!swipeState.blockNativeBackGesture) {
+    const onTouchMoveCapture = (event) => {
+      const swipeState = edgeSwipeStateRef.current;
+      const touch = event.touches?.[0];
+
+      if (!touch || !swipeState.blockNativeBackGesture) {
         return;
       }
 
@@ -774,7 +751,8 @@ function App() {
       const deltaX = swipeState.lastX - swipeState.startX;
       const deltaY = swipeState.lastY - swipeState.startY;
 
-      if (deltaX >= 0 && Math.abs(deltaY) <= EDGE_SWIPE_VERTICAL_TOLERANCE_PX) {
+      // Only suppress horizontal edge pans (back gesture), not vertical page scroll.
+      if (deltaX > 10 && Math.abs(deltaY) <= EDGE_SWIPE_VERTICAL_TOLERANCE_PX) {
         event.preventDefault();
       }
     };

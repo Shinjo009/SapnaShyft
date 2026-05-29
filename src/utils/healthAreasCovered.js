@@ -164,7 +164,96 @@ export const mapHealthAreasForDisplay = (raw) => (
     .map((area) => ({
       id: area.id,
       label: area.label,
+      iconKey: area.iconKey,
       iconSrc: getHacIconSrc(area.iconKey),
     }))
     .filter((area) => area.label && area.iconSrc)
 );
+
+const normalizeMatchText = (value) => (
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+);
+
+/** Map test-group titles (e.g. Liver Profile) to the same HAC icons as Health Areas Covered. */
+const GROUP_TITLE_KEYWORD_TO_ICON_KEY = [
+  ['liver', 'Liver_HAC'],
+  ['kidney', 'Kidney_HAC'],
+  ['renal', 'Kidney_HAC'],
+  ['lipid', 'Heart_HAC'],
+  ['cholesterol', 'Heart_HAC'],
+  ['cardiac', 'Heart_HAC'],
+  ['heart', 'Heart_HAC'],
+  ['iron', 'Iron_HAC'],
+  ['thyroid', 'thyroid_HAC'],
+  ['diabetes', 'Diabetes_HAC'],
+  ['glucose', 'Diabetes_HAC'],
+  ['hba1c', 'Diabetes_HAC'],
+  ['metabolism', 'Metabolism_HAC'],
+  ['haematology', 'Haemotology_HAC'],
+  ['hematology', 'Haemotology_HAC'],
+  ['hemogram', 'Haemotology_HAC'],
+  ['cbc', 'Haemotology_HAC'],
+  ['vitamin', 'Vitamins_HAC'],
+  ['inflammation', 'Inflammation_HAC'],
+  ['immunity', 'Immunity_HAC'],
+  ['hormone', 'Hormones_HAC'],
+  ['prostate', 'Prostate_HAC'],
+  ['pancreatic', 'Pancreatic_HAC'],
+  ['gut', 'Guthealth_HAC'],
+  ['stomach', 'Stomach_HAC'],
+  ['cancer', 'Cancer_HAC'],
+  ['breast', 'Breast_HAC'],
+  ['hypertension', 'HyperTension_HAC'],
+  ['sleep', 'Sleep_HAC'],
+  ['nutrition', 'Nutrition_HAC'],
+  ['muscle', 'Muscle_HAC'],
+  ['energy', 'Energy_HAC'],
+  ['allerg', 'Allergies_HAC'],
+  ['bone', 'BoneHealth_HAC'],
+  ['stress', 'Stress_HAC'],
+  ['recovery', 'Recovery_HAC'],
+];
+
+export const resolveParameterGroupIconSrc = ({ title, iconKey, healthAreas = [] } = {}) => {
+  const directSrc = iconKey ? getHacIconSrc(iconKey) : null;
+  if (directSrc) {
+    return directSrc;
+  }
+
+  const titleNorm = normalizeMatchText(title);
+  if (!titleNorm) {
+    return null;
+  }
+
+  for (const area of healthAreas) {
+    const labelNorm = normalizeMatchText(area.label);
+    if (labelNorm && (titleNorm.includes(labelNorm) || labelNorm.includes(titleNorm))) {
+      return area.iconSrc;
+    }
+
+    const labelWord = labelNorm.split(' ').find((word) => word.length >= 4);
+    if (labelWord && titleNorm.includes(labelWord)) {
+      return area.iconSrc;
+    }
+
+    const idToken = normalizeMatchText(String(area.id || area.iconKey || '').replace(/_hac$/i, ''));
+    if (idToken && titleNorm.includes(idToken)) {
+      return area.iconSrc;
+    }
+  }
+
+  for (const [keyword, candidateIconKey] of GROUP_TITLE_KEYWORD_TO_ICON_KEY) {
+    if (titleNorm.includes(keyword)) {
+      const src = getHacIconSrc(candidateIconKey);
+      if (src) {
+        return src;
+      }
+    }
+  }
+
+  return null;
+};

@@ -18,6 +18,149 @@ import smokeIcon from '../../images/Smoke.svg';
 import alcoholIcon from '../../images/Alcohol.svg';
 import sleepIcon from '../../images/Sleep.svg';
 import familyHistoryIcon from '../../images/FamilyHistory.svg';
+import {
+  buildBmrInterpretation,
+  buildBodyFatInterpretation,
+  buildCarbsInterpretation,
+  buildFatsInterpretation,
+  buildProteinInterpretation,
+  buildFibreInterpretation,
+  getMacroIdealRangeDisplay,
+  metricToneToStatusClass,
+} from '../../utils/macroClassificationInterpretation';
+import { getLifestyleValueToneClass } from '../../utils/lifestyleValueTone';
+
+const MetricInfoIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <circle cx="7" cy="7" r="6.125" stroke="#C4C4C4" strokeWidth="1.16667" />
+    <path d="M7 6.125V9.625M7 4.375H7.00625" stroke="#C4C4C4" strokeWidth="1.16667" strokeLinecap="round" />
+  </svg>
+);
+
+const FitnessMetricInsightOverlay = ({ interpretation, onClose }) => (
+  <div
+    className="health-scan-page__bmr-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="health-scan-metric-insight-title"
+  >
+    <button
+      type="button"
+      className="health-scan-page__bmr-overlay-dismiss"
+      aria-label={`Close ${interpretation.cardTitle}`}
+      onClick={onClose}
+    />
+    <div className={`health-scan-page__bmr-insight-card health-scan-page__bmr-insight-card--track health-scan-page__bmr-insight-card--${interpretation.tone}`}>
+      <div className="health-scan-page__bmr-insight-glow" aria-hidden="true" />
+      <div className="health-scan-page__bmr-insight-head">
+        <div className={`health-scan-page__bmr-insight-icon${interpretation.iconModifierClass ? ` ${interpretation.iconModifierClass}` : ''}`}>
+          <img src={interpretation.iconSrc} alt="" aria-hidden="true" />
+        </div>
+        <div className="health-scan-page__bmr-insight-titles">
+          <h3 id="health-scan-metric-insight-title">{interpretation.cardTitle}</h3>
+          <p>{interpretation.goalLabel}</p>
+        </div>
+      </div>
+      <p className="health-scan-page__bmr-insight-copy">
+        <span className="health-scan-page__bmr-insight-highlight">{interpretation.headline}</span>
+        {' '}
+        {interpretation.body}
+      </p>
+
+      <div className="health-scan-page__bmr-ranges">
+        <div className="health-scan-page__bmr-equation">
+          <p className="health-scan-page__bmr-equation-label">Values based on</p>
+          <p className="health-scan-page__bmr-equation-name">{interpretation.equationName}</p>
+        </div>
+        <div className="health-scan-page__bmr-ranges-body">
+          <div className="health-scan-page__bmr-ranges-track" aria-hidden="true" />
+          <div className="health-scan-page__bmr-ranges-list">
+            {interpretation.tiers.map((tier) => (
+              <div
+                key={tier.id}
+                className={`health-scan-page__bmr-ranges-row${tier.tone === interpretation.tone ? ' health-scan-page__bmr-ranges-row--active' : ''}`}
+              >
+                <span className="health-scan-page__bmr-ranges-value">
+                  <span className={`health-scan-page__bmr-ranges-range health-scan-page__bmr-ranges-range--${tier.tone}`}>
+                    {tier.range}
+                  </span>
+                  {tier.unit ? (
+                    <span className={`health-scan-page__bmr-ranges-unit health-scan-page__bmr-ranges-unit--${tier.tone}`}>
+                      {tier.unit}
+                    </span>
+                  ) : null}
+                </span>
+                <span className={`health-scan-page__bmr-ranges-label health-scan-page__bmr-ranges-label--${tier.tone}`}>
+                  {tier.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const MacroNutrientInsightOverlay = ({ interpretation, onClose }) => (
+  <div
+    className="health-scan-page__bmr-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="health-scan-macro-insight-title"
+  >
+    <button
+      type="button"
+      className="health-scan-page__bmr-overlay-dismiss"
+      aria-label={`Close ${interpretation.cardTitle}`}
+      onClick={onClose}
+    />
+    <div className={`health-scan-page__bmr-insight-card health-scan-page__carbs-insight-card health-scan-page__bmr-insight-card--track health-scan-page__bmr-insight-card--${interpretation.tone}`}>
+      <div className="health-scan-page__bmr-insight-glow" aria-hidden="true" />
+      <div className="health-scan-page__bmr-insight-head">
+        <div className={`health-scan-page__bmr-insight-icon${interpretation.iconModifierClass ? ` ${interpretation.iconModifierClass}` : ''}`}>
+          <img src={interpretation.iconSrc} alt="" aria-hidden="true" />
+        </div>
+        <div className="health-scan-page__bmr-insight-titles">
+          <h3 id="health-scan-macro-insight-title">{interpretation.cardTitle}</h3>
+          <p>{interpretation.goalLabel}</p>
+        </div>
+      </div>
+
+      <p className="health-scan-page__carbs-guideline">
+        Values based on <strong>{interpretation.guidelineName}</strong>
+      </p>
+
+      <div className="health-scan-page__carbs-zones">
+        <div className="health-scan-page__carbs-zones-body">
+          <div className="health-scan-page__carbs-zones-track" aria-hidden="true" />
+          <div className="health-scan-page__carbs-zones-list">
+            {interpretation.zones.map((zone) => (
+              <div
+                key={zone.id}
+                className={`health-scan-page__carbs-zone-row${zone.tone === interpretation.tone ? ' health-scan-page__carbs-zone-row--active' : ''}`}
+              >
+                <span className="health-scan-page__carbs-zone-value">
+                  <span className={`health-scan-page__carbs-zone-range health-scan-page__carbs-zone-range--${zone.tone}`}>
+                    {zone.range}
+                  </span>
+                  {zone.unit ? (
+                    <span className={`health-scan-page__carbs-zone-unit health-scan-page__carbs-zone-range--${zone.tone}`}>
+                      {zone.unit}
+                    </span>
+                  ) : null}
+                </span>
+                <span className={`health-scan-page__carbs-zone-label health-scan-page__carbs-zone-label--${zone.tone}`}>
+                  {zone.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 /**
  * HealthScanIndexPage - Detail page for Health Span Index with tab navigation
@@ -25,6 +168,8 @@ import familyHistoryIcon from '../../images/FamilyHistory.svg';
 const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
   const [activeTab, setActiveTab] = React.useState(initialTab);
   const [healthSpanDetails, setHealthSpanDetails] = React.useState(null);
+  const [fitnessInsightKey, setFitnessInsightKey] = React.useState(null);
+  const [nutritionInsightKey, setNutritionInsightKey] = React.useState(null);
 
   React.useEffect(() => {
     setActiveTab(initialTab);
@@ -53,6 +198,8 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
 
   const handleTabChange = (index) => {
     setActiveTab(index);
+    setFitnessInsightKey(null);
+    setNutritionInsightKey(null);
     console.log('Active tab:', index);
   };
 
@@ -68,6 +215,25 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     : (healthSpanDetails?.response && typeof healthSpanDetails.response === 'object' ? healthSpanDetails.response : {});
   const fitness = detailsRoot?.fitness && typeof detailsRoot.fitness === 'object' ? detailsRoot.fitness : {};
   const nutrition = detailsRoot?.nutrition && typeof detailsRoot.nutrition === 'object' ? detailsRoot.nutrition : {};
+  const patientGoal = (
+    fitness?.goal_label
+    ?? fitness?.goal
+    ?? nutrition?.goal_label
+    ?? nutrition?.goal
+    ?? detailsRoot?.goal_label
+    ?? detailsRoot?.user_goal
+    ?? ''
+  );
+  const genderSources = {
+    ...detailsRoot,
+    gender: detailsRoot?.gender ?? fitness?.gender ?? nutrition?.gender ?? detailsRoot?.user?.gender,
+    sex: detailsRoot?.sex ?? fitness?.sex,
+    fitness,
+    nutrition,
+    user: detailsRoot?.user,
+    patient: detailsRoot?.patient,
+    profile: detailsRoot?.profile,
+  };
   const lifestyle = detailsRoot?.lifestyle && typeof detailsRoot.lifestyle === 'object' ? detailsRoot.lifestyle : {};
 
   const toText = (value, fallback = '-') => {
@@ -131,51 +297,6 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     return raw;
   };
 
-  const parseNumbersFromText = (value) => {
-    const text = String(value ?? '');
-    const matches = text.match(/\d+(?:\.\d+)?/g);
-    if (!matches) return [];
-    return matches
-      .map((token) => Number(token))
-      .filter((num) => Number.isFinite(num));
-  };
-
-  const getLifestyleValueToneClass = (kind, value) => {
-    const text = String(value ?? '').trim().toLowerCase();
-    if (!text) return 'health-scan-page__metric-value-tone--neutral';
-
-    if (kind === 'physical_activity') {
-      const numbers = parseNumbersFromText(text);
-      const minutes = numbers.length > 0 ? numbers[0] : null;
-      if (!Number.isFinite(minutes)) return 'health-scan-page__metric-value-tone--neutral';
-      if (minutes >= 60) return 'health-scan-page__metric-value-tone--positive';
-      if (minutes >= 45) return 'health-scan-page__metric-value-tone--warning';
-      return 'health-scan-page__metric-value-tone--critical';
-    }
-
-    if (kind === 'smoke' || kind === 'alcohol') {
-      if (/(do not|don't|never|no\s+smok|non[\s-]?smok|teetotal|no\s+alcohol)/.test(text)) {
-        return 'health-scan-page__metric-value-tone--positive';
-      }
-      if (/(occasion|social|rare|sometimes)/.test(text)) {
-        return 'health-scan-page__metric-value-tone--warning';
-      }
-      return 'health-scan-page__metric-value-tone--critical';
-    }
-
-    if (kind === 'sleep') {
-      const numbers = parseNumbersFromText(text);
-      const minHours = numbers.length > 0 ? numbers[0] : null;
-      if (!Number.isFinite(minHours)) return 'health-scan-page__metric-value-tone--neutral';
-      const deficit = 6 - minHours;
-      if (deficit <= 0) return 'health-scan-page__metric-value-tone--positive';
-      if (deficit <= 1) return 'health-scan-page__metric-value-tone--warning';
-      return 'health-scan-page__metric-value-tone--critical';
-    }
-
-    return 'health-scan-page__metric-value-tone--neutral';
-  };
-
   const renderValueWithNumberHighlight = (kind, value) => {
     const text = toText(value);
     const toneClass = getLifestyleValueToneClass(kind, value);
@@ -202,12 +323,12 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     );
   };
 
-  const formatMacroRange = (macro) => {
+  const formatMacroRange = (macro, unit = '%') => {
     if (!macro || typeof macro !== 'object') return '-';
     const low = Number(macro.estimated_low);
     const high = Number(macro.estimated_high);
     if (!Number.isFinite(low) || !Number.isFinite(high)) return '-';
-    return `${low}-${high} %`;
+    return unit === 'g' ? `${low}-${high} g` : `${low}-${high} %`;
   };
 
   const formatMacroIdeal = (macro) => {
@@ -231,35 +352,6 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
       severity,
       className: classBySeverity[severity] || classBySeverity.within,
     };
-  };
-
-  const getMacroMetricStatus = (macro) => {
-    const estimatedLow = Number(macro?.estimated_low);
-    const estimatedHigh = Number(macro?.estimated_high);
-    const idealLow = Number(macro?.ideal_low);
-    const idealHigh = Number(macro?.ideal_high);
-
-    if (![estimatedLow, estimatedHigh, idealLow, idealHigh].every((value) => Number.isFinite(value))) {
-      return buildMetricStatus();
-    }
-
-    if (estimatedHigh < idealLow) {
-      const delta = idealLow - estimatedHigh;
-      if (delta >= 10) return buildMetricStatus({ direction: 'down', severity: 'red' });
-      if (delta >= 5) return buildMetricStatus({ direction: 'down', severity: 'orange' });
-      if (delta >= 2) return buildMetricStatus({ direction: 'down', severity: 'yellow' });
-      return buildMetricStatus();
-    }
-
-    if (estimatedLow > idealHigh) {
-      const delta = estimatedLow - idealHigh;
-      if (delta >= 10) return buildMetricStatus({ direction: 'up', severity: 'red' });
-      if (delta >= 5) return buildMetricStatus({ direction: 'up', severity: 'orange' });
-      if (delta >= 2) return buildMetricStatus({ direction: 'up', severity: 'yellow' });
-      return buildMetricStatus();
-    }
-
-    return buildMetricStatus();
   };
 
   const getWaterMetricStatus = (water) => {
@@ -346,30 +438,6 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     return buildMetricStatus({ direction: 'up', severity: 'yellow' });
   };
 
-  const renderMetricStatusIcon = (status) => {
-    if (status.direction === 'up') {
-      return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M8.66792 5.21802V13.3327H7.33459V5.21802L3.75858 8.79401L2.81592 7.85135L8.00125 2.66602L13.1866 7.85135L12.2439 8.79401L8.66792 5.21802Z" fill="currentColor" />
-        </svg>
-      );
-    }
-
-    if (status.direction === 'down') {
-      return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M7.33459 10.782V2.66732H8.66792V10.782L12.2439 7.20598L13.1866 8.14865L8.00125 13.334L2.81592 8.14865L3.75858 7.20598L7.33459 10.782Z" fill="currentColor" />
-        </svg>
-      );
-    }
-
-    return (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  };
-
   const waterIntakeText = (() => {
     const litres = Number(nutrition?.water?.estimated_litres);
     if (!Number.isFinite(litres)) return '-';
@@ -383,10 +451,6 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     return `${low}-${high} litres`;
   })();
 
-  const carbsStatus = getMacroMetricStatus(nutrition?.carbs);
-  const fatsStatus = getMacroMetricStatus(nutrition?.fats);
-  const proteinStatus = getMacroMetricStatus(nutrition?.protein);
-  const fibreStatus = getMacroMetricStatus(nutrition?.fibre);
   const waterStatus = getWaterMetricStatus(nutrition?.water);
 
   const fitnessBloodPressureDisplay = formatBloodPressureText(
@@ -397,18 +461,6 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
         : null
     ),
   );
-
-  const bmrIdealRangeDisplay = (() => {
-    const hr = String(fitness?.basal_metabolic_rate?.healthy_range ?? '').trim();
-    if (hr) return hr;
-    return formatIdealRangeBand(fitness?.ideal_bmr);
-  })();
-
-  const bodyFatIdealRangeDisplay = (() => {
-    const hr = String(fitness?.estimated_body_fat?.healthy_range ?? '').trim();
-    if (hr) return hr;
-    return formatIdealRangeBand(fitness?.ideal_body_fat);
-  })();
 
   const waistIdealRangeDisplay = (() => {
     const band = fitness?.ideal_waist;
@@ -430,15 +482,115 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
   })();
 
   const fitnessBpStatus = getFitnessBloodPressureStatus(fitness);
-  const fitnessBmrStatus = getFitnessIdealBandStatus(
-    fitness?.basal_metabolic_rate?.value,
-    fitness?.ideal_bmr,
-  );
   const fitnessWaistStatus = getFitnessIdealBandStatus(fitness?.waist, fitness?.ideal_waist);
-  const fitnessBodyFatStatus = getFitnessIdealBandStatus(
-    fitness?.estimated_body_fat?.value,
-    fitness?.ideal_body_fat,
-  );
+
+  const bmrInterpretation = {
+    ...buildBmrInterpretation({
+      bmr: fitness?.basal_metabolic_rate,
+      goal: patientGoal,
+      genderSources,
+    }),
+    iconSrc: bmrIcon,
+  };
+
+  const bodyFatInterpretation = {
+    ...buildBodyFatInterpretation({
+      bodyFat: fitness?.estimated_body_fat,
+      goal: patientGoal,
+      genderSources,
+    }),
+    iconSrc: bodyFatIcon,
+  };
+
+  const fitnessBmrStatus = {
+    className: metricToneToStatusClass(bmrInterpretation.tone),
+    severity: bmrInterpretation.tone,
+  };
+
+  const fitnessBodyFatStatus = {
+    className: metricToneToStatusClass(bodyFatInterpretation.tone),
+    severity: bodyFatInterpretation.tone,
+  };
+
+  const bmrIdealRangeDisplay = (() => {
+    const optimalTier = bmrInterpretation.tiers.find((tier) => tier.tone === 'optimal');
+    if (optimalTier?.range) {
+      const unit = optimalTier.unit ? ` ${optimalTier.unit}` : '';
+      return `${optimalTier.range}${unit}`;
+    }
+    const hr = String(fitness?.basal_metabolic_rate?.healthy_range ?? '').trim();
+    if (hr) return hr;
+    return formatIdealRangeBand(fitness?.ideal_bmr);
+  })();
+
+  const bodyFatIdealRangeDisplay = (() => {
+    const optimalTier = bodyFatInterpretation.tiers.find((tier) => tier.tone === 'optimal');
+    if (optimalTier?.range) {
+      const unit = optimalTier.unit ? ` ${optimalTier.unit}` : '';
+      return `${optimalTier.range}${unit}`;
+    }
+    const hr = String(fitness?.estimated_body_fat?.healthy_range ?? '').trim();
+    if (hr) return hr;
+    return formatIdealRangeBand(fitness?.ideal_body_fat);
+  })();
+
+  const activeFitnessInsight = fitnessInsightKey === 'body_fat'
+    ? bodyFatInterpretation
+    : fitnessInsightKey === 'bmr'
+      ? bmrInterpretation
+      : null;
+
+  const carbsInterpretation = {
+    ...buildCarbsInterpretation({ carbs: nutrition?.carbs, goal: patientGoal }),
+    iconSrc: carbsIcon,
+  };
+  const fatsInterpretation = {
+    ...buildFatsInterpretation({ fats: nutrition?.fats, goal: patientGoal }),
+    iconSrc: fatsIcon,
+  };
+  const proteinInterpretation = {
+    ...buildProteinInterpretation({ protein: nutrition?.protein, goal: patientGoal }),
+    iconSrc: proteinsIcon,
+  };
+  const fibreInterpretation = {
+    ...buildFibreInterpretation({ fibre: nutrition?.fibre, goal: patientGoal }),
+    iconSrc: fibreIcon,
+  };
+
+  const carbsMetricStatus = {
+    className: metricToneToStatusClass(carbsInterpretation.tone),
+    severity: carbsInterpretation.tone,
+  };
+  const fatsMetricStatus = {
+    className: metricToneToStatusClass(fatsInterpretation.tone),
+    severity: fatsInterpretation.tone,
+  };
+  const proteinMetricStatus = {
+    className: metricToneToStatusClass(proteinInterpretation.tone),
+    severity: proteinInterpretation.tone,
+  };
+  const fibreMetricStatus = {
+    className: metricToneToStatusClass(fibreInterpretation.tone),
+    severity: fibreInterpretation.tone,
+  };
+
+  const carbsIdealRangeDisplay = getMacroIdealRangeDisplay(carbsInterpretation) || formatMacroIdeal(nutrition?.carbs);
+  const fatsIdealRangeDisplay = getMacroIdealRangeDisplay(fatsInterpretation) || formatMacroIdeal(nutrition?.fats);
+  const proteinIdealRangeDisplay = getMacroIdealRangeDisplay(proteinInterpretation) || formatMacroIdeal(nutrition?.protein);
+  const fibreIdealRangeDisplay = getMacroIdealRangeDisplay(fibreInterpretation) || formatMacroIdeal(nutrition?.fibre);
+
+  const macroInterpretationByKey = {
+    carbs: carbsInterpretation,
+    fats: fatsInterpretation,
+    protein: proteinInterpretation,
+    fibre: fibreInterpretation,
+  };
+  const activeMacroInterpretation = macroInterpretationByKey[nutritionInsightKey] || null;
+
+  const showFitnessInsight = Boolean(activeFitnessInsight);
+  const showNutritionInsight = Boolean(activeMacroInterpretation);
+  const showInsightOverlay = showFitnessInsight || showNutritionInsight;
+  const fitnessGoalLabel = bmrInterpretation.goalLabel;
 
   return (
     <div className="health-scan-page">
@@ -466,6 +618,9 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
 
         {/* Tab Content */}
         <div className="health-scan-page__tab-content">
+          <div
+            className={`health-scan-page__tab-content-panel${showInsightOverlay ? ' health-scan-page__tab-content-panel--blurred' : ''}`}
+          >
           <div className="health-scan-page__circle-container">
             <div className="health-scan-page__progress-card">
               <CircularProgressCard
@@ -477,9 +632,18 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
 
           {activeTab === 0 && (
             <div className="health-scan-page__fitness-info">
-              <p className="health-scan-page__intro-text">
-                This score reflects how your metrics influence long-term risk.
-              </p>
+              {showFitnessInsight ? (
+                <div className="health-scan-page__goal-block">
+                  <h2 className="health-scan-page__goal-title">Your Goal</h2>
+                  <p className="health-scan-page__intro-text">
+                    This score reflects how your metrics influence long-term risk.
+                  </p>
+                </div>
+              ) : (
+                <p className="health-scan-page__intro-text">
+                  This score reflects how your metrics influence long-term risk.
+                </p>
+              )}
 
               <div className="health-scan-page__legend">
                 <div className="health-scan-page__legend-item">
@@ -515,7 +679,10 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
               <div className="health-scan-page__divider" />
 
               <div className="health-scan-page__metrics-header">
-                <h2 className="health-scan-page__metrics-title">Fitness Metrics</h2>
+                <div className="health-scan-page__metrics-heading">
+                  <h2 className="health-scan-page__metrics-title">Fitness Metrics</h2>
+                  <p className="health-scan-page__metrics-subtitle">{fitnessGoalLabel}</p>
+                </div>
               </div>
 
               <div className="health-scan-page__metric-card health-scan-page__metric-card--full">
@@ -525,9 +692,6 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                 </div>
                 <div className={`health-scan-page__metric-value ${fitnessBpStatus.className}`}>
                   <span>{fitnessBloodPressureDisplay}</span>
-                  <span className="health-scan-page__metric-icon" aria-hidden="true">
-                    {renderMetricStatusIcon(fitnessBpStatus)}
-                  </span>
                 </div>
                 <span className="health-scan-page__metric-range-container">
                   <span className="health-scan-page__metric-range-label">Ideal range</span>
@@ -535,21 +699,29 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                 </span>
               </div>
 
-              <div className="health-scan-page__metric-card health-scan-page__metric-card--full">
-                <div className="health-scan-page__metric-title">
-                  <img src={bmrIcon} alt="" aria-hidden="true" />
-                  <span>Basal Metabolic Rate</span>
-                </div>
-                <div className={`health-scan-page__metric-value ${fitnessBmrStatus.className}`}>
-                  <span>{toNumberText(fitness?.basal_metabolic_rate?.value, fitness?.basal_metabolic_rate?.unit)}</span>
-                  <span className="health-scan-page__metric-icon" aria-hidden="true">
-                    {renderMetricStatusIcon(fitnessBmrStatus)}
+              <div className="health-scan-page__metric-card health-scan-page__metric-card--full health-scan-page__metric-card--with-info health-scan-page__metric-card--bmr">
+                <div className="health-scan-page__metric-card-body">
+                  <div className="health-scan-page__metric-title">
+                    <img src={bmrIcon} alt="" aria-hidden="true" />
+                    <span>Basal Metabolic Rate</span>
+                  </div>
+                  <div className={`health-scan-page__metric-value ${fitnessBmrStatus.className}`}>
+                    <span>{toNumberText(fitness?.basal_metabolic_rate?.value, fitness?.basal_metabolic_rate?.unit)}</span>
+                  </div>
+                  <span className="health-scan-page__metric-range-container">
+                    <span className="health-scan-page__metric-range-label">Ideal range</span>
+                    <span className="health-scan-page__metric-range-value">{toText(bmrIdealRangeDisplay, '-')}</span>
                   </span>
                 </div>
-                <span className="health-scan-page__metric-range-container">
-                  <span className="health-scan-page__metric-range-label">Ideal range</span>
-                  <span className="health-scan-page__metric-range-value">{toText(bmrIdealRangeDisplay, '-')}</span>
-                </span>
+                <button
+                  type="button"
+                  className="health-scan-page__metric-info-btn"
+                  aria-label="View BMR interpretation"
+                  aria-expanded={fitnessInsightKey === 'bmr'}
+                  onClick={() => setFitnessInsightKey((prev) => (prev === 'bmr' ? null : 'bmr'))}
+                >
+                  <MetricInfoIcon />
+                </button>
               </div>
 
               <div className="health-scan-page__metrics-grid">
@@ -560,9 +732,6 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   </div>
                   <div className={`health-scan-page__metric-value ${fitnessWaistStatus.className}`}>
                     <span>{waistDisplayText}</span>
-                    <span className="health-scan-page__metric-icon" aria-hidden="true">
-                      {renderMetricStatusIcon(fitnessWaistStatus)}
-                    </span>
                   </div>
                   <span className="health-scan-page__metric-range-container">
                     <span className="health-scan-page__metric-range-label">Ideal</span>
@@ -570,23 +739,32 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   </span>
                 </div>
 
-                <div className="health-scan-page__metric-card">
-                  <div className="health-scan-page__metric-title">
-                    <img src={bodyFatIcon} alt="" aria-hidden="true" />
-                    <span>Body fat</span>
-                  </div>
-                  <div className={`health-scan-page__metric-value ${fitnessBodyFatStatus.className}`}>
-                    <span>{toNumberText(fitness?.estimated_body_fat?.value, fitness?.estimated_body_fat?.unit)}</span>
-                    <span className="health-scan-page__metric-icon" aria-hidden="true">
-                      {renderMetricStatusIcon(fitnessBodyFatStatus)}
+                <div className="health-scan-page__metric-card health-scan-page__metric-card--with-info health-scan-page__metric-card--body-fat">
+                  <div className="health-scan-page__metric-card-body">
+                    <div className="health-scan-page__metric-title">
+                      <img src={bodyFatIcon} alt="" aria-hidden="true" />
+                      <span>Body fat</span>
+                    </div>
+                    <div className={`health-scan-page__metric-value ${fitnessBodyFatStatus.className}`}>
+                      <span>{toNumberText(fitness?.estimated_body_fat?.value, fitness?.estimated_body_fat?.unit)}</span>
+                    </div>
+                    <span className="health-scan-page__metric-range-container">
+                      <span className="health-scan-page__metric-range-label">Ideal</span>
+                      <span className="health-scan-page__metric-range-value">{toText(bodyFatIdealRangeDisplay, '-')}</span>
                     </span>
                   </div>
-                  <span className="health-scan-page__metric-range-container">
-                    <span className="health-scan-page__metric-range-label">Ideal</span>
-                    <span className="health-scan-page__metric-range-value">{toText(bodyFatIdealRangeDisplay, '-')}</span>
-                  </span>
+                  <button
+                    type="button"
+                    className="health-scan-page__metric-info-btn"
+                    aria-label="View body fat interpretation"
+                    aria-expanded={fitnessInsightKey === 'body_fat'}
+                    onClick={() => setFitnessInsightKey((prev) => (prev === 'body_fat' ? null : 'body_fat'))}
+                  >
+                    <MetricInfoIcon />
+                  </button>
                 </div>
               </div>
+
             </div>
           )}
 
@@ -634,74 +812,106 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
               </div>
 
               <div className="health-scan-page__metrics-grid">
-                <div className="health-scan-page__metric-card">
-                  <div className="health-scan-page__metric-title">
-                    <img src={carbsIcon} alt="" aria-hidden="true" />
-                    <span>Carbohydrates</span>
-                  </div>
-                  <div className={`health-scan-page__metric-value ${carbsStatus.className}`}>
-                    <span>{formatMacroRange(nutrition?.carbs)}</span>
-                    <span className="health-scan-page__metric-icon" aria-hidden="true">
-                      {renderMetricStatusIcon(carbsStatus)}
+                <div className="health-scan-page__metric-card health-scan-page__metric-card--with-info">
+                  <div className="health-scan-page__metric-card-body">
+                    <div className="health-scan-page__metric-title">
+                      <img src={carbsIcon} alt="" aria-hidden="true" />
+                      <span>Carbohydrates</span>
+                    </div>
+                    <div className={`health-scan-page__metric-value ${carbsMetricStatus.className}`}>
+                      <span>{formatMacroRange(nutrition?.carbs)}</span>
+                    </div>
+                    <span className="health-scan-page__metric-range-container">
+                      <span className="health-scan-page__metric-range-label">Ideal range</span>
+                      <span className="health-scan-page__metric-range-value">{toText(carbsIdealRangeDisplay, '-')}</span>
                     </span>
                   </div>
-                  <span className="health-scan-page__metric-range-container">
-                    <span className="health-scan-page__metric-range-label">Ideal range</span>
-                    <span className="health-scan-page__metric-range-value">{formatMacroIdeal(nutrition?.carbs)}</span>
-                  </span>
+                  <button
+                    type="button"
+                    className="health-scan-page__metric-info-btn"
+                    aria-label="View carbs interpretation"
+                    aria-expanded={nutritionInsightKey === 'carbs'}
+                    onClick={() => setNutritionInsightKey((prev) => (prev === 'carbs' ? null : 'carbs'))}
+                  >
+                    <MetricInfoIcon />
+                  </button>
                 </div>
 
-                <div className="health-scan-page__metric-card">
-                  <div className="health-scan-page__metric-title">
-                    <img src={fatsIcon} alt="" aria-hidden="true" />
-                    <span>Fats</span>
-                  </div>
-                  <div className={`health-scan-page__metric-value ${fatsStatus.className}`}>
-                    <span>{formatMacroRange(nutrition?.fats)}</span>
-                    <span className="health-scan-page__metric-icon" aria-hidden="true">
-                      {renderMetricStatusIcon(fatsStatus)}
+                <div className="health-scan-page__metric-card health-scan-page__metric-card--with-info">
+                  <div className="health-scan-page__metric-card-body">
+                    <div className="health-scan-page__metric-title">
+                      <img src={fatsIcon} alt="" aria-hidden="true" />
+                      <span>Fats</span>
+                    </div>
+                    <div className={`health-scan-page__metric-value ${fatsMetricStatus.className}`}>
+                      <span>{formatMacroRange(nutrition?.fats)}</span>
+                    </div>
+                    <span className="health-scan-page__metric-range-container">
+                      <span className="health-scan-page__metric-range-label">Ideal range</span>
+                      <span className="health-scan-page__metric-range-value">{toText(fatsIdealRangeDisplay, '-')}</span>
                     </span>
                   </div>
-                  <span className="health-scan-page__metric-range-container">
-                    <span className="health-scan-page__metric-range-label">Ideal range</span>
-                    <span className="health-scan-page__metric-range-value">{formatMacroIdeal(nutrition?.fats)}</span>
-                  </span>
+                  <button
+                    type="button"
+                    className="health-scan-page__metric-info-btn"
+                    aria-label="View fats interpretation"
+                    aria-expanded={nutritionInsightKey === 'fats'}
+                    onClick={() => setNutritionInsightKey((prev) => (prev === 'fats' ? null : 'fats'))}
+                  >
+                    <MetricInfoIcon />
+                  </button>
                 </div>
               </div>
 
               <div className="health-scan-page__metrics-grid">
-                <div className="health-scan-page__metric-card">
-                  <div className="health-scan-page__metric-title">
-                    <img src={proteinsIcon} alt="" aria-hidden="true" />
-                    <span>Proteins</span>
-                  </div>
-                  <div className={`health-scan-page__metric-value ${proteinStatus.className}`}>
-                    <span>{formatMacroRange(nutrition?.protein)}</span>
-                    <span className="health-scan-page__metric-icon" aria-hidden="true">
-                      {renderMetricStatusIcon(proteinStatus)}
+                <div className="health-scan-page__metric-card health-scan-page__metric-card--with-info">
+                  <div className="health-scan-page__metric-card-body">
+                    <div className="health-scan-page__metric-title">
+                      <img src={proteinsIcon} alt="" aria-hidden="true" />
+                      <span>Proteins</span>
+                    </div>
+                    <div className={`health-scan-page__metric-value ${proteinMetricStatus.className}`}>
+                      <span>{formatMacroRange(nutrition?.protein)}</span>
+                    </div>
+                    <span className="health-scan-page__metric-range-container">
+                      <span className="health-scan-page__metric-range-label">Ideal range</span>
+                      <span className="health-scan-page__metric-range-value">{toText(proteinIdealRangeDisplay, '-')}</span>
                     </span>
                   </div>
-                  <span className="health-scan-page__metric-range-container">
-                    <span className="health-scan-page__metric-range-label">Ideal range</span>
-                    <span className="health-scan-page__metric-range-value">{formatMacroIdeal(nutrition?.protein)}</span>
-                  </span>
+                  <button
+                    type="button"
+                    className="health-scan-page__metric-info-btn"
+                    aria-label="View protein interpretation"
+                    aria-expanded={nutritionInsightKey === 'protein'}
+                    onClick={() => setNutritionInsightKey((prev) => (prev === 'protein' ? null : 'protein'))}
+                  >
+                    <MetricInfoIcon />
+                  </button>
                 </div>
 
-                <div className="health-scan-page__metric-card">
-                  <div className="health-scan-page__metric-title">
-                    <img src={fibreIcon} alt="" aria-hidden="true" />
-                    <span>Fibre</span>
-                  </div>
-                  <div className={`health-scan-page__metric-value ${fibreStatus.className}`}>
-                    <span>{formatMacroRange(nutrition?.fibre)}</span>
-                    <span className="health-scan-page__metric-icon" aria-hidden="true">
-                      {renderMetricStatusIcon(fibreStatus)}
+                <div className="health-scan-page__metric-card health-scan-page__metric-card--with-info">
+                  <div className="health-scan-page__metric-card-body">
+                    <div className="health-scan-page__metric-title">
+                      <img src={fibreIcon} alt="" aria-hidden="true" />
+                      <span>Fibre</span>
+                    </div>
+                    <div className={`health-scan-page__metric-value ${fibreMetricStatus.className}`}>
+                      <span>{formatMacroRange(nutrition?.fibre, 'g')}</span>
+                    </div>
+                    <span className="health-scan-page__metric-range-container">
+                      <span className="health-scan-page__metric-range-label">Ideal range</span>
+                      <span className="health-scan-page__metric-range-value">{toText(fibreIdealRangeDisplay, '-')}</span>
                     </span>
                   </div>
-                  <span className="health-scan-page__metric-range-container">
-                    <span className="health-scan-page__metric-range-label">Ideal range</span>
-                    <span className="health-scan-page__metric-range-value">{formatMacroIdeal(nutrition?.fibre)}</span>
-                  </span>
+                  <button
+                    type="button"
+                    className="health-scan-page__metric-info-btn"
+                    aria-label="View fibre interpretation"
+                    aria-expanded={nutritionInsightKey === 'fibre'}
+                    onClick={() => setNutritionInsightKey((prev) => (prev === 'fibre' ? null : 'fibre'))}
+                  >
+                    <MetricInfoIcon />
+                  </button>
                 </div>
               </div>
 
@@ -712,9 +922,6 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                 </div>
                 <div className={`health-scan-page__metric-value ${waterStatus.className}`}>
                   <span>{waterIntakeText}</span>
-                  <span className="health-scan-page__metric-icon" aria-hidden="true">
-                    {renderMetricStatusIcon(waterStatus)}
-                  </span>
                 </div>
                 <span className="health-scan-page__metric-range-container">
                   <span className="health-scan-page__metric-range-label">Ideal range</span>
@@ -830,7 +1037,23 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
               </div>
             </div>
           )}
+          </div>
+
         </div>
+
+        {showFitnessInsight && activeTab === 0 ? (
+          <FitnessMetricInsightOverlay
+            interpretation={activeFitnessInsight}
+            onClose={() => setFitnessInsightKey(null)}
+          />
+        ) : null}
+
+        {showNutritionInsight && activeTab === 1 ? (
+          <MacroNutrientInsightOverlay
+            interpretation={activeMacroInterpretation}
+            onClose={() => setNutritionInsightKey(null)}
+          />
+        ) : null}
 
         {/* Navigation Navbar - Bottom */}
         <div className="health-scan-page__navbar">

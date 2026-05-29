@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import RotatingCube3 from '../../components/RotatingCube3/RotatingCube3';
-import supershyftLogo from '../../images/SuperShyft - Logo [Final]-03 1.png';
+import supershyftLogo from '../../images/supershyft-splash-logo.png';
 import poweredBySupershyft from '../../images/Powered by Supershyt.svg';
 import './SplashScreen3.css';
 

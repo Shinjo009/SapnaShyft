@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState, Suspense, lazy } from 'rea
 import './PackageDetailsPage.css';
 import { getDiagnosticPackageDetail, getDiagnosticPackageTests } from '../../services/diagnosticPackagesService';
 import { getComplimentaryConsultationContent } from '../../utils/complimentaryConsultation';
-import { mapHealthAreasForDisplay } from '../../utils/healthAreasCovered';
+import { mapHealthAreasForDisplay, resolveParameterGroupIconSrc } from '../../utils/healthAreasCovered';
 import medicalInsightsIcon from '../../images/medicalinsights_D+N.svg';
 import guidanceIcon from '../../images/Guidance_D+N.svg';
 
@@ -363,24 +363,28 @@ const PARAMETER_GROUPS = [
   {
     id: 'liver',
     title: 'Liver Function',
+    iconKey: 'Liver_HAC',
     items: ['Bilirubin', 'Albumin', 'SGOT', 'SGPT', 'ALP', ''],
     locked: false,
   },
   {
     id: 'kidney',
     title: 'Kidney Function',
+    iconKey: 'Kidney_HAC',
     items: ['Creatinine', 'BUN', 'Uric Acid', 'Calcium', '', ''],
     locked: false,
   },
   {
     id: 'thyroid',
     title: 'Kidney Function',
+    iconKey: 'thyroid_HAC',
     items: ['Creatinine', 'BUN', 'Uric Acid', 'Calcium', '', ''],
     locked: true,
   },
   {
     id: 'heart',
     title: 'Heart Function',
+    iconKey: 'Heart_HAC',
     items: ['Troponin', 'CK-MB', 'LDH', 'Apo-A1', 'Apo-B', ''],
     locked: false,
   },
@@ -584,6 +588,14 @@ const toTestGroupCards = (payload) => {
       return {
         id: String(group?.group_id || group?.id || `group-${index}`),
         title,
+        iconKey: String(
+          group?.icon_key
+          ?? group?.iconKey
+          ?? group?.health_area_icon
+          ?? group?.health_area_icon_key
+          ?? group?.health_area
+          ?? '',
+        ).trim(),
         items: testNames,
         sortOrder: Number.isFinite(Number(group?.display_order)) ? Number(group.display_order) : Number.MAX_SAFE_INTEGER,
         fallbackOrder: index,
@@ -597,7 +609,7 @@ const toTestGroupCards = (payload) => {
       return a.fallbackOrder - b.fallbackOrder;
     });
 
-  return mapped.map(({ id, title, items }) => ({ id, title, items }));
+  return mapped.map(({ id, title, iconKey, items }) => ({ id, title, iconKey, items }));
 };
 
 const reorderItemsForPillPacking = (items) => {
@@ -625,6 +637,18 @@ const reorderItemsForPillPacking = (items) => {
   }
 
   return packed;
+};
+
+const resolvePackageHealthAreas = (isCustomReview, packageDetail, packageCard) => {
+  if (isCustomReview) {
+    return [];
+  }
+
+  const rawHealthAreas = packageDetail?.health_areas_covered
+    ?? packageCard?.apiData?.health_areas_covered
+    ?? packageCard?.health_areas_covered;
+
+  return mapHealthAreasForDisplay(rawHealthAreas);
 };
 
 const toDiscountLabel = (discountPercent, price, originalPrice) => {
@@ -770,14 +794,31 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
     };
   }, [isCustomReview, packageId]);
 
-  const parameterGroups = useMemo(() => {
-    if (isCustomReview) {
-      return PARAMETER_GROUPS;
-    }
+  const healthAreas = useMemo(
+    () => resolvePackageHealthAreas(isCustomReview, packageDetail, packageCard),
+    [isCustomReview, packageCard, packageDetail],
+  );
 
-    const fromApi = toTestGroupCards(packageTests);
-    return fromApi.length > 0 ? fromApi : PARAMETER_GROUPS;
-  }, [isCustomReview, packageTests]);
+  const parameterGroups = useMemo(() => {
+    const mappedHealthAreas = resolvePackageHealthAreas(isCustomReview, packageDetail, packageCard);
+    const baseGroups = (() => {
+      if (isCustomReview) {
+        return PARAMETER_GROUPS;
+      }
+
+      const fromApi = toTestGroupCards(packageTests);
+      return fromApi.length > 0 ? fromApi : PARAMETER_GROUPS;
+    })();
+
+    return baseGroups.map((group) => ({
+      ...group,
+      iconSrc: resolveParameterGroupIconSrc({
+        title: group.title,
+        iconKey: group.iconKey,
+        healthAreas: mappedHealthAreas,
+      }),
+    }));
+  }, [isCustomReview, packageTests, packageDetail, packageCard]);
 
   const packageTitle = useMemo(() => {
     if (isCustomReview) {
@@ -796,18 +837,6 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
 
     return MISSING_VALUE;
   }, [customPackageTitle, isCustomReview, packageCard, packageDetail]);
-
-  const healthAreas = useMemo(() => {
-    if (isCustomReview) {
-      return [];
-    }
-
-    const rawHealthAreas = packageDetail?.health_areas_covered
-      ?? packageCard?.apiData?.health_areas_covered
-      ?? packageCard?.health_areas_covered;
-
-    return mapHealthAreasForDisplay(rawHealthAreas);
-  }, [isCustomReview, packageCard, packageDetail]);
 
   const genderLabel = useMemo(() => {
     if (isCustomReview) {
@@ -1472,9 +1501,18 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
                   <section key={group.id} className="package-details-page__test-card" aria-label={group.title}>
                     <div className="package-details-page__test-head">
                       <div className="package-details-page__test-icon-box">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-                          <path d="M12.1667 6.33333H10.72C10.1961 6.33221 9.73563 6.68052 9.59417 7.185L8.22333 12.0617C8.20519 12.1239 8.14815 12.1667 8.08333 12.1667C8.01852 12.1667 7.96148 12.1239 7.94333 12.0617L4.72333 0.605C4.70519 0.542778 4.64815 0.5 4.58333 0.5C4.51852 0.5 4.46148 0.542778 4.44333 0.605L3.0725 5.48167C2.93162 5.98407 2.47428 6.33184 1.9525 6.33333H0.5" stroke="#90DF9E" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
+                        {group.iconSrc ? (
+                          <img
+                            src={group.iconSrc}
+                            alt=""
+                            aria-hidden="true"
+                            className="package-details-page__test-icon-img"
+                          />
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+                            <path d="M12.1667 6.33333H10.72C10.1961 6.33221 9.73563 6.68052 9.59417 7.185L8.22333 12.0617C8.20519 12.1239 8.14815 12.1667 8.08333 12.1667C8.01852 12.1667 7.96148 12.1239 7.94333 12.0617L4.72333 0.605C4.70519 0.542778 4.64815 0.5 4.58333 0.5C4.51852 0.5 4.46148 0.542778 4.44333 0.605L3.0725 5.48167C2.93162 5.98407 2.47428 6.33184 1.9525 6.33333H0.5" stroke="#90DF9E" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
                       </div>
                       <h4>{group.title}</h4>
                     </div>
@@ -1484,6 +1522,14 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
                     <div className="package-details-page__test-grid">
                       {reorderItemsForPillPacking(group.items).map((item, idx) => (
                         <div key={`${group.id}-${item}-${idx}`} className="package-details-page__test-pill">
+                          {group.iconSrc ? (
+                            <img
+                              src={group.iconSrc}
+                              alt=""
+                              aria-hidden="true"
+                              className="package-details-page__test-pill-icon"
+                            />
+                          ) : null}
                           <span>{item}</span>
                         </div>
                       ))}

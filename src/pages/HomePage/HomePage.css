@@ -331,6 +331,19 @@
   padding: 0;
 }
 
+.home-page-no-data__see-more--locked {
+  filter: blur(3px);
+  pointer-events: none;
+  cursor: default;
+  opacity: 0.75;
+}
+
+.home-page-no-data__health-subtitle--locked {
+  filter: blur(3px);
+  pointer-events: none;
+  opacity: 0.75;
+}
+
 .home-page-no-data__health-subtitle {
   margin: 6px 0 0;
   color: #c4c4c4;

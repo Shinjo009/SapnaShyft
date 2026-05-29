@@ -46,23 +46,24 @@
 
 .app-root--swipe-back-locked,
 .app-root--swipe-back-locked .app-scroll {
-  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: contain;
 }
 
 html.ss-pwa-home-guard,
 html.ss-pwa-home-guard body {
-  overscroll-behavior: none;
   overscroll-behavior-x: none;
+  overscroll-behavior-y: contain;
   touch-action: pan-y pinch-zoom;
-  -webkit-overflow-scrolling: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 html.app-swipe-back-locked,
 html.app-swipe-back-locked body {
-  overscroll-behavior: none;
   overscroll-behavior-x: none;
+  overscroll-behavior-y: contain;
   touch-action: pan-y pinch-zoom;
-  -webkit-overflow-scrolling: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 @media (display-mode: standalone) {
@@ -70,8 +71,8 @@ html.app-swipe-back-locked body {
   html.app-swipe-back-locked body,
   .app-root--swipe-back-locked,
   .app-root--swipe-back-locked .app-scroll {
-    overscroll-behavior: none;
     overscroll-behavior-x: none;
+    overscroll-behavior-y: contain;
     touch-action: pan-y pinch-zoom;
   }
 }
@@ -164,9 +165,10 @@ html.app-swipe-back-locked body {
   display: none;
 }
 
-/* Home: contain horizontal overscroll so edge back-swipe does not chain to browser history. */
+/* Home: block horizontal overscroll only; keep vertical scroll on the main container. */
 .app-scroll.app-scroll--home-lock {
-  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: contain;
   touch-action: pan-y pinch-zoom;
 }
 

@@ -230,10 +230,27 @@ const normalizeHealthSpanScores = (payload) => {
     return Math.max(0, Math.min(100, Math.round(value)));
   };
 
+  const fitnessClamped = clampScore(fitness);
+  const nutritionClamped = clampScore(nutrition);
+  const lifestyleClamped = clampScore(lifestyle);
+
+  const clampedScores = [fitnessClamped, nutritionClamped, lifestyleClamped];
+  const hasAnyScore = clampedScores.some((value) => value !== null && value > 0);
+  if (!hasAnyScore) {
+    return null;
+  }
+
+  const toDisplayScore = (riskScore) => {
+    if (riskScore === null) {
+      return null;
+    }
+    return Math.max(0, Math.min(100, 100 - riskScore));
+  };
+
   return {
-    fitnessScore: clampScore(fitness),
-    nutritionScore: clampScore(nutrition),
-    lifestyleScore: clampScore(lifestyle),
+    fitnessScore: toDisplayScore(fitnessClamped),
+    nutritionScore: toDisplayScore(nutritionClamped),
+    lifestyleScore: toDisplayScore(lifestyleClamped),
   };
 };
 
