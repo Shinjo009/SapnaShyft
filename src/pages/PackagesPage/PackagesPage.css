@@ -21,8 +21,20 @@
   user-select: none;
 }
 
+.packages-page--onboarding {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.packages-page--onboarding .packages-page__underlay {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 .packages-page--onboarding .packages-page__content {
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 .packages-page--onboarding::before {

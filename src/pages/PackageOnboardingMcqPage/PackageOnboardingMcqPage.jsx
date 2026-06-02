@@ -184,6 +184,7 @@ const PackageOnboardingMcqPage = ({
   });
 
   const touchStartYRef = useRef(null);
+  const touchStartXRef = useRef(null);
   const touchStartScrollTopRef = useRef(0);
   const lastWheelAtRef = useRef(0);
   const cardRef = useRef(null);
@@ -218,6 +219,53 @@ const PackageOnboardingMcqPage = ({
     if (chipsScrollRef.current) {
       chipsScrollRef.current.scrollTop = 0;
     }
+  }, [cardIndex, activeCard.key]);
+
+  useEffect(() => {
+    const stackEl = stackWrapRef.current;
+    if (!stackEl) {
+      return undefined;
+    }
+
+    const onTouchMove = (event) => {
+      if (touchStartYRef.current == null || touchStartXRef.current == null) {
+        return;
+      }
+
+      const chipsEl = chipsScrollRef.current;
+      const currentY = event.touches[0]?.clientY;
+      const currentX = event.touches[0]?.clientX;
+      if (!Number.isFinite(currentY) || !Number.isFinite(currentX)) {
+        return;
+      }
+
+      const deltaY = currentY - touchStartYRef.current;
+      const deltaX = currentX - touchStartXRef.current;
+
+      if (chipsEl && chipsListCanScroll(chipsEl)) {
+        const scrollMoved = Math.abs(chipsEl.scrollTop - touchStartScrollTopRef.current) > 8;
+        if (scrollMoved) {
+          return;
+        }
+
+        if (deltaY < 0 && !isChipsScrolledToBottom(chipsEl)) {
+          return;
+        }
+
+        if (deltaY > 0 && !isChipsScrolledToTop(chipsEl)) {
+          return;
+        }
+      }
+
+      if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 4) {
+        event.preventDefault();
+      }
+    };
+
+    stackEl.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => {
+      stackEl.removeEventListener('touchmove', onTouchMove);
+    };
   }, [cardIndex, activeCard.key]);
 
   const canNavigateToNextCard = () => isChipsScrolledToBottom(chipsScrollRef.current);
@@ -262,6 +310,7 @@ const PackageOnboardingMcqPage = ({
 
   const handleTouchStart = (event) => {
     touchStartYRef.current = event.touches[0].clientY;
+    touchStartXRef.current = event.touches[0].clientX;
     touchStartScrollTopRef.current = chipsScrollRef.current?.scrollTop ?? 0;
   };
 
@@ -276,6 +325,7 @@ const PackageOnboardingMcqPage = ({
 
     if (scrollMoved) {
       touchStartYRef.current = null;
+      touchStartXRef.current = null;
       return;
     }
 
@@ -290,6 +340,7 @@ const PackageOnboardingMcqPage = ({
       }
     }
     touchStartYRef.current = null;
+    touchStartXRef.current = null;
   };
 
   const scrollChipsByWheel = (event) => {

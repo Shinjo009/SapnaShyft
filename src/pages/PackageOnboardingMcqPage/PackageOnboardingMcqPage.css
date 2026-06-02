@@ -15,6 +15,9 @@
   padding: 39px 0 96px;
   pointer-events: none;
   background: transparent;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 .package-onboarding-mcq--overlay .package-onboarding-mcq__header,
@@ -23,6 +26,14 @@
 .package-onboarding-mcq--overlay .package-onboarding-mcq__swipe-hint,
 .package-onboarding-mcq--overlay .package-onboarding-mcq__done {
   pointer-events: auto;
+}
+
+.package-onboarding-mcq--overlay .package-onboarding-mcq__stack-wrap {
+  touch-action: none;
+}
+
+.package-onboarding-mcq--overlay .package-onboarding-mcq__chips-scroll {
+  touch-action: pan-y;
 }
 
 .package-onboarding-mcq--overlay .package-onboarding-mcq__header {

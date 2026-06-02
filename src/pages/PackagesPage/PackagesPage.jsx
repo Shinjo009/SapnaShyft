@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState, Suspense, lazy } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, Suspense, lazy } from 'react';
 import './PackagesPage.css';
 import NavBar from '../../components/NavBar';
 import PackageOnboardingMcqPage from '../PackageOnboardingMcqPage/PackageOnboardingMcqPage';
@@ -414,19 +414,8 @@ const PackagesPage = ({
   const [forYouProfile, setForYouProfile] = useState(null);
   const [showPackageOnboarding, setShowPackageOnboarding] = useState(false);
   const [onboardingResult, setOnboardingResult] = useState(null);
+  const contentScrollRef = useRef(null);
   const normalizedQuery = searchQuery.trim().toLowerCase();
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-
-    if (isPatientOverlayOpen || showPackageOnboarding) {
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isPatientOverlayOpen, showPackageOnboarding]);
 
   useEffect(() => {
     if (showPackageOnboarding) {
@@ -625,6 +614,75 @@ const PackagesPage = ({
   }, [packageCardsFromApi]);
 
   const isOnboardingOverlayOpen = showPackageOnboarding && Boolean(accountScopeId);
+
+  useEffect(() => {
+    const shouldLockScroll = isPatientOverlayOpen || isOnboardingOverlayOpen;
+    if (!shouldLockScroll) {
+      return undefined;
+    }
+
+    const { body, documentElement } = document;
+    const appScroll = document.querySelector('.app-scroll');
+    const contentEl = contentScrollRef.current;
+    const previous = {
+      htmlOverflow: documentElement.style.overflow,
+      htmlOverscroll: documentElement.style.overscrollBehavior,
+      htmlTouchAction: documentElement.style.touchAction,
+      bodyOverflow: body.style.overflow,
+      bodyTouchAction: body.style.touchAction,
+      bodyOverscroll: body.style.overscrollBehavior,
+      appScrollOverflow: appScroll?.style.overflow ?? '',
+      appScrollTouchAction: appScroll?.style.touchAction ?? '',
+      appScrollOverscroll: appScroll?.style.overscrollBehavior ?? '',
+      contentOverflow: contentEl?.style.overflow ?? '',
+      contentTouchAction: contentEl?.style.touchAction ?? '',
+      contentOverscroll: contentEl?.style.overscrollBehavior ?? '',
+    };
+    const appScrollTop = appScroll?.scrollTop ?? 0;
+    const contentScrollTop = contentEl?.scrollTop ?? 0;
+
+    documentElement.style.overflow = 'hidden';
+    documentElement.style.overscrollBehavior = 'none';
+    documentElement.style.touchAction = 'none';
+    body.style.overflow = 'hidden';
+    body.style.touchAction = 'none';
+    body.style.overscrollBehavior = 'none';
+
+    if (appScroll) {
+      appScroll.style.overflow = 'hidden';
+      appScroll.style.touchAction = 'none';
+      appScroll.style.overscrollBehavior = 'none';
+    }
+
+    if (contentEl) {
+      contentEl.style.overflow = 'hidden';
+      contentEl.style.touchAction = 'none';
+      contentEl.style.overscrollBehavior = 'none';
+    }
+
+    return () => {
+      documentElement.style.overflow = previous.htmlOverflow;
+      documentElement.style.overscrollBehavior = previous.htmlOverscroll;
+      documentElement.style.touchAction = previous.htmlTouchAction;
+      body.style.overflow = previous.bodyOverflow;
+      body.style.touchAction = previous.bodyTouchAction;
+      body.style.overscrollBehavior = previous.bodyOverscroll;
+
+      if (appScroll) {
+        appScroll.style.overflow = previous.appScrollOverflow;
+        appScroll.style.touchAction = previous.appScrollTouchAction;
+        appScroll.style.overscrollBehavior = previous.appScrollOverscroll;
+        appScroll.scrollTop = appScrollTop;
+      }
+
+      if (contentEl) {
+        contentEl.style.overflow = previous.contentOverflow;
+        contentEl.style.touchAction = previous.contentTouchAction;
+        contentEl.style.overscrollBehavior = previous.contentOverscroll;
+        contentEl.scrollTop = contentScrollTop;
+      }
+    };
+  }, [isPatientOverlayOpen, isOnboardingOverlayOpen]);
 
   const visibleCards = useMemo(() => {
     const filterKeyForView = isOnboardingOverlayOpen ? 'all' : activeFilterKey;
@@ -852,7 +910,7 @@ const PackagesPage = ({
         </section>
       </div>
 
-      <div className="packages-page__content">
+      <div className="packages-page__content" ref={contentScrollRef}>
         <section className="packages-page__cards" aria-label="Packages list">
           {visibleCards.map((pkg) => (
             <article
