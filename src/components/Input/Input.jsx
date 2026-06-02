@@ -103,7 +103,7 @@ const Input = ({
   `.trim().replace(/\s+/g, ' ');
 
   const stateClasses = error
-    ? 'border border-red-500 shadow-[0_0_10px_0_rgba(255,0,0,0.30)] focus:outline-none focus:border-red-500 focus:shadow-[0_0_10px_0_rgba(255,0,0,0.30)]'
+    ? 'border border-[#E95D5C] shadow-[0_0_10px_0_rgba(233,93,92,0.30)] focus:outline-none focus:border-[#E95D5C] focus:shadow-[0_0_10px_0_rgba(233,93,92,0.30)]'
     : 'border border-transparent focus:outline-none focus:border-white/20 focus:shadow-[0_0_10px_0_rgba(144,223,158,0.30)]';
 
   const typeClasses = isPhoneInput ? 'text-[13px] placeholder:text-[13px] placeholder:leading-4' : '';
@@ -134,7 +134,7 @@ const Input = ({
         />
       </div>
       {error && (
-        <Typography variant="label" className="!text-[10px] !leading-[14px] text-red-500">
+        <Typography variant="label" className="!text-[10px] !leading-[14px] text-[#E95D5C]">
           {error}
         </Typography>
       )}

@@ -1,0 +1,463 @@
+/* Figma: App — first phase / lifestyle habits MCQ (node 4775:40883), adapted for Packages onboarding */
+
+.package-onboarding-mcq {
+  min-height: 100vh;
+  padding: 12px 0 96px;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.package-onboarding-mcq--overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  min-height: 0;
+  padding: 39px 0 96px;
+  pointer-events: none;
+  background: transparent;
+}
+
+.package-onboarding-mcq--overlay .package-onboarding-mcq__header,
+.package-onboarding-mcq--overlay .package-onboarding-mcq__subtitle,
+.package-onboarding-mcq--overlay .package-onboarding-mcq__stack-wrap,
+.package-onboarding-mcq--overlay .package-onboarding-mcq__swipe-hint,
+.package-onboarding-mcq--overlay .package-onboarding-mcq__done {
+  pointer-events: auto;
+}
+
+.package-onboarding-mcq--overlay .package-onboarding-mcq__header {
+  top: 0;
+}
+
+.package-onboarding-mcq__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  position: relative;
+  top: 20px;
+  min-height: 56px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.package-onboarding-mcq__header-main {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.package-onboarding-mcq__back {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.package-onboarding-mcq__title {
+  margin: 0;
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 19px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.095px;
+  white-space: nowrap;
+}
+
+.package-onboarding-mcq__header-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.package-onboarding-mcq__subtitle {
+  margin: 17px 20px 0;
+  max-width: 320px;
+  color: #c4c4c4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.package-onboarding-mcq__close {
+  position: absolute;
+  top: -44px;
+  right: 0;
+  z-index: 4;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.package-onboarding-mcq__stack-wrap {
+  margin: 0 16px;
+  position: relative;
+  max-width: 328px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-bottom: var(--stack-space, 36px);
+}
+
+.package-onboarding-mcq__card {
+  display: flex;
+  width: 100%;
+  padding: 24px 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  border-radius: 8px;
+  border: 0.8px solid rgba(221, 219, 219, 0.12);
+  background: linear-gradient(128deg, rgba(124, 58, 237, 0.14) 0%, rgba(0, 242, 254, 0.2) 99.99%);
+  position: relative;
+  z-index: 3;
+  box-sizing: border-box;
+  animation: package-onboarding-card-enter 620ms cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.package-onboarding-mcq__card > * {
+  animation: package-onboarding-card-content-enter 520ms cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+@keyframes package-onboarding-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes package-onboarding-card-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes package-onboarding-card-shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+  100% { transform: translateX(0); }
+}
+
+.package-onboarding-mcq__card.is-shaking {
+  animation: package-onboarding-card-shake 340ms ease-in-out;
+}
+
+.package-onboarding-mcq__progress {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  background: linear-gradient(90deg, #fff 0%, #ccc 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.package-onboarding-mcq__progress-main {
+  font-family: Lato, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06px;
+}
+
+.package-onboarding-mcq__progress-sub {
+  font-family: Lato, sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.05px;
+}
+
+.package-onboarding-mcq__question-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.package-onboarding-mcq__card-nav-zone {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.package-onboarding-mcq__chips-scroll {
+  width: 100%;
+  max-height: min(360px, calc(100vh - 300px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: none;
+}
+
+.package-onboarding-mcq__chips-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.package-onboarding-mcq__card--health-goals {
+  gap: 16px;
+}
+
+.package-onboarding-mcq__chips-scroll--expanded {
+  max-height: none;
+  overflow-y: visible;
+}
+
+.package-onboarding-mcq__card--health-goals .package-onboarding-mcq__chips--mixed {
+  gap: 10px 12px;
+}
+
+.package-onboarding-mcq__card--health-goals .package-onboarding-mcq__chips--mixed .package-onboarding-mcq__chip {
+  min-height: 34px;
+  padding: 6px 8px;
+}
+
+.package-onboarding-mcq__card--health-goals .package-onboarding-mcq__chips--mixed .package-onboarding-mcq__chip span {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.package-onboarding-mcq__card--health-goals .package-onboarding-mcq__chips--multi {
+  gap: 10px 12px;
+}
+
+.package-onboarding-mcq__card--health-goals .package-onboarding-mcq__chips--multi .package-onboarding-mcq__chip {
+  min-height: 34px;
+  padding: 6px 8px;
+}
+
+.package-onboarding-mcq__card--health-goals .package-onboarding-mcq__chips--multi .package-onboarding-mcq__chip span {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.package-onboarding-mcq__question {
+  margin: 0;
+  width: 100%;
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.075px;
+}
+
+.package-onboarding-mcq__helper {
+  margin: -12px 0 0;
+  width: 100%;
+  color: #bbb;
+  font-family: Lato, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.06px;
+}
+
+.package-onboarding-mcq__chips {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  justify-content: space-between;
+  row-gap: 16px;
+  column-gap: 12px;
+}
+
+.package-onboarding-mcq__chips--stacked {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.package-onboarding-mcq__chips--stacked .package-onboarding-mcq__chip {
+  width: 100%;
+  max-width: none;
+}
+
+.package-onboarding-mcq__chips--multi {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
+  justify-content: stretch;
+}
+
+.package-onboarding-mcq__chips--multi .package-onboarding-mcq__chip {
+  width: 100%;
+  max-width: none;
+  min-height: 34px;
+  height: auto;
+  padding: 6px 8px;
+}
+
+.package-onboarding-mcq__chips--multi .package-onboarding-mcq__chip span {
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.package-onboarding-mcq__chips--mixed {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
+  justify-content: stretch;
+}
+
+.package-onboarding-mcq__chips--mixed .package-onboarding-mcq__chip {
+  width: 100%;
+  max-width: none;
+  min-height: 34px;
+  height: auto;
+  padding: 6px 8px;
+}
+
+.package-onboarding-mcq__chips--mixed .package-onboarding-mcq__chip--full {
+  grid-column: 1 / -1;
+}
+
+.package-onboarding-mcq__chips--mixed .package-onboarding-mcq__chip span {
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.package-onboarding-mcq__chip {
+  display: flex;
+  min-height: 32px;
+  width: calc((100% - 12px) / 2);
+  max-width: 142px;
+  padding: 4px 10px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 0.5px solid rgba(160, 170, 176, 0.5);
+  background: transparent;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 24px;
+  cursor: pointer;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.package-onboarding-mcq__chip--full {
+  width: 100%;
+  max-width: none;
+}
+
+.package-onboarding-mcq__chip--selected {
+  border: 0.5px solid #d0d0d0;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(79, 172, 254, 0.5) 21.15%, rgba(122, 94, 168, 0.2) 100%);
+}
+
+.package-onboarding-mcq__chip--selected span {
+  font-weight: 600;
+}
+
+.package-onboarding-mcq__chip span {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 24px;
+  text-align: center;
+}
+
+.package-onboarding-mcq__tick {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.package-onboarding-mcq__stack-card {
+  position: absolute;
+  height: 18px;
+  border-radius: 0 0 8px 8px;
+  border: 0.8px solid rgba(221, 219, 219, 0.12);
+  pointer-events: none;
+}
+
+.package-onboarding-mcq__stack-card--one {
+  left: 10px;
+  right: 10px;
+  top: calc(100% - var(--stack-space, 36px));
+  z-index: 2;
+  background: linear-gradient(157deg, rgba(124, 58, 237, 0.07) 0%, rgba(0, 242, 254, 0.1) 99.99%);
+}
+
+.package-onboarding-mcq__stack-card--two {
+  left: 20px;
+  right: 20px;
+  top: calc(100% - var(--stack-space, 36px) + 18px);
+  z-index: 1;
+  background: linear-gradient(156deg, rgba(124, 58, 237, 0.035) 0%, rgba(0, 242, 254, 0.05) 99.99%);
+}
+
+.package-onboarding-mcq__swipe-hint {
+  margin: 12px 0 0;
+  text-align: center;
+  color: #bbb;
+  font-family: Lato, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06px;
+}
+
+.package-onboarding-mcq__done {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 40px;
+  width: calc(100% - 40px);
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.32px;
+  cursor: pointer;
+}
+
