@@ -51,7 +51,6 @@ const FitnessMetricInsightOverlay = ({ interpretation, onClose }) => (
       onClick={onClose}
     />
     <div className={`health-scan-page__bmr-insight-card health-scan-page__bmr-insight-card--track health-scan-page__bmr-insight-card--${interpretation.tone}`}>
-      <div className="health-scan-page__bmr-insight-glow" aria-hidden="true" />
       <div className="health-scan-page__bmr-insight-head">
         <div className={`health-scan-page__bmr-insight-icon${interpretation.iconModifierClass ? ` ${interpretation.iconModifierClass}` : ''}`}>
           <img src={interpretation.iconSrc} alt="" aria-hidden="true" />
@@ -116,7 +115,6 @@ const MacroNutrientInsightOverlay = ({ interpretation, onClose }) => (
       onClick={onClose}
     />
     <div className={`health-scan-page__bmr-insight-card health-scan-page__carbs-insight-card health-scan-page__bmr-insight-card--track health-scan-page__bmr-insight-card--${interpretation.tone}`}>
-      <div className="health-scan-page__bmr-insight-glow" aria-hidden="true" />
       <div className="health-scan-page__bmr-insight-head">
         <div className={`health-scan-page__bmr-insight-icon${interpretation.iconModifierClass ? ` ${interpretation.iconModifierClass}` : ''}`}>
           <img src={interpretation.iconSrc} alt="" aria-hidden="true" />
@@ -305,6 +303,9 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     );
 
     if (!numberWithUnitMatch || typeof numberWithUnitMatch.index !== 'number') {
+      if (toneClass !== 'health-scan-page__metric-value-tone--neutral') {
+        return <span className={`health-scan-page__metric-value-text ${toneClass}`}>{text}</span>;
+      }
       return <span className="health-scan-page__metric-value-text health-scan-page__metric-value-text--plain">{text}</span>;
     }
 

@@ -1,10 +1,23 @@
-import React, { useEffect, useMemo, useState, Suspense, lazy } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, Suspense, lazy } from 'react';
 import './PackagesPage.css';
 import NavBar from '../../components/NavBar';
+import PackageOnboardingMcqPage from '../PackageOnboardingMcqPage/PackageOnboardingMcqPage';
 import { listDiagnosticPackages, listPublicDiagnosticPackageFilterChips } from '../../services/diagnosticPackagesService';
 import { getMyProfileCached } from '../../services/profileService';
 import { getComplimentaryConsultationContent } from '../../utils/complimentaryConsultation';
 import { getAccessToken } from '../../utils/authStorage';
+import {
+  buildConcernsFromMcq,
+  computePackageRecommendations,
+  computeProfileOnlyPackageRecommendations,
+} from '../../utils/packageRecommendationEngine';
+import {
+  isPackageOnboardingComplete,
+  isPackageOnboardingEligible,
+  loadPackageOnboardingResult,
+  savePackageOnboardingResult,
+  setPackageOnboardingEligible,
+} from '../../utils/packageRecommendationStorage';
 
 // PatientSelectionOverlay is a large (~14 KiB) booking sheet that only renders when the user
 // taps "Book"; keep it out of the initial Packages bundle via React.lazy + Suspense.
@@ -382,7 +395,15 @@ const formatPrice = (value) => {
 
 const normalizeBadgeToken = (value) => String(value || '').trim().toLowerCase();
 
-const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustomPackage, onNavigateToDoctors, onNavigateToSuperClub, customPackageCard }) => {
+const PackagesPage = ({
+  accountScopeId = null,
+  onNavigateHome,
+  onOpenPackageDetails,
+  onOpenCreateCustomPackage,
+  onNavigateToDoctors,
+  onNavigateToSuperClub,
+  customPackageCard,
+}) => {
   const [activeFilterKey, setActiveFilterKey] = useState('all');
   const [filterChips, setFilterChips] = useState([ALL_FILTER]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -391,19 +412,16 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
   const [packageCardsFromApi, setPackageCardsFromApi] = useState([]);
   const [bookingPackage, setBookingPackage] = useState(null);
   const [forYouProfile, setForYouProfile] = useState(null);
+  const [showPackageOnboarding, setShowPackageOnboarding] = useState(false);
+  const [onboardingResult, setOnboardingResult] = useState(null);
+  const contentScrollRef = useRef(null);
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-
-    if (isPatientOverlayOpen) {
-      document.body.style.overflow = 'hidden';
+    if (showPackageOnboarding) {
+      setActiveFilterKey('all');
     }
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isPatientOverlayOpen]);
+  }, [showPackageOnboarding]);
 
   useEffect(() => {
     let mounted = true;
@@ -463,6 +481,108 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
   }, []);
 
   useEffect(() => {
+    if (!accountScopeId) {
+      setOnboardingResult(null);
+      setShowPackageOnboarding(false);
+      return;
+    }
+
+    const saved = loadPackageOnboardingResult(accountScopeId);
+    setOnboardingResult(saved);
+    const isEligible = isPackageOnboardingEligible(accountScopeId);
+    setShowPackageOnboarding(isEligible && !isPackageOnboardingComplete(accountScopeId));
+  }, [accountScopeId]);
+
+  const resolveForYouChipKey = useCallback(() => {
+    const chip = (Array.isArray(filterChips) ? filterChips : [])
+      .find((item) => isForYouChipKey(item?.chip_key));
+    return String(chip?.chip_key || 'for_you').trim().toLowerCase();
+  }, [filterChips]);
+
+  const handlePackageOnboardingComplete = useCallback(({ persona, primaryConcern, otherConcerns }) => {
+    if (!accountScopeId) {
+      return;
+    }
+
+    const concerns = buildConcernsFromMcq(primaryConcern, otherConcerns);
+    const ranked = computePackageRecommendations({
+      age: forYouProfile?.age ?? 28,
+      gender: forYouProfile?.gender,
+      persona,
+      concerns,
+      packageCards: packageCardsFromApi,
+    });
+
+    const payload = {
+      skipped: false,
+      source: 'questionnaire',
+      persona,
+      primaryConcern,
+      otherConcerns,
+      concerns,
+      rankedPackages: ranked.map((row, index) => ({
+        packageId: Number(row.package.id),
+        score: row.score,
+        label: row.label || null,
+        rank: index + 1,
+      })),
+    };
+
+    savePackageOnboardingResult(accountScopeId, payload);
+    setPackageOnboardingEligible(accountScopeId, false);
+    const saved = loadPackageOnboardingResult(accountScopeId);
+    setOnboardingResult(saved);
+    setShowPackageOnboarding(false);
+    setActiveFilterKey(resolveForYouChipKey());
+  }, [
+    accountScopeId,
+    forYouProfile?.age,
+    forYouProfile?.gender,
+    packageCardsFromApi,
+    resolveForYouChipKey,
+  ]);
+
+  const handlePackageOnboardingSkip = useCallback(() => {
+    if (!accountScopeId) {
+      return;
+    }
+
+    const ranked = computeProfileOnlyPackageRecommendations({
+      age: forYouProfile?.age ?? 28,
+      gender: forYouProfile?.gender,
+      packageCards: packageCardsFromApi,
+    });
+
+    const payload = {
+      skipped: true,
+      source: 'profile_only',
+      persona: '',
+      primaryConcern: '',
+      otherConcerns: [],
+      concerns: [],
+      rankedPackages: ranked.map((row, index) => ({
+        packageId: Number(row.package.id),
+        score: row.score,
+        label: row.label || null,
+        rank: index + 1,
+      })),
+    };
+
+    savePackageOnboardingResult(accountScopeId, payload);
+    setPackageOnboardingEligible(accountScopeId, false);
+    const saved = loadPackageOnboardingResult(accountScopeId);
+    setOnboardingResult(saved);
+    setShowPackageOnboarding(false);
+    setActiveFilterKey(resolveForYouChipKey());
+  }, [
+    accountScopeId,
+    forYouProfile?.age,
+    forYouProfile?.gender,
+    packageCardsFromApi,
+    resolveForYouChipKey,
+  ]);
+
+  useEffect(() => {
     let mounted = true;
 
     const loadFilterChips = async () => {
@@ -493,25 +613,84 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
     return packageCardsFromApi;
   }, [packageCardsFromApi]);
 
+  const isOnboardingOverlayOpen = showPackageOnboarding && Boolean(accountScopeId);
+
+  useEffect(() => {
+    const shouldLockScroll = isPatientOverlayOpen || isOnboardingOverlayOpen;
+    if (!shouldLockScroll) {
+      return undefined;
+    }
+
+    const { body, documentElement } = document;
+    const appScroll = document.querySelector('.app-scroll');
+    const contentEl = contentScrollRef.current;
+    const previous = {
+      htmlOverflow: documentElement.style.overflow,
+      htmlOverscroll: documentElement.style.overscrollBehavior,
+      htmlTouchAction: documentElement.style.touchAction,
+      bodyOverflow: body.style.overflow,
+      bodyTouchAction: body.style.touchAction,
+      bodyOverscroll: body.style.overscrollBehavior,
+      appScrollOverflow: appScroll?.style.overflow ?? '',
+      appScrollTouchAction: appScroll?.style.touchAction ?? '',
+      appScrollOverscroll: appScroll?.style.overscrollBehavior ?? '',
+      contentOverflow: contentEl?.style.overflow ?? '',
+      contentTouchAction: contentEl?.style.touchAction ?? '',
+      contentOverscroll: contentEl?.style.overscrollBehavior ?? '',
+    };
+    const appScrollTop = appScroll?.scrollTop ?? 0;
+    const contentScrollTop = contentEl?.scrollTop ?? 0;
+
+    documentElement.style.overflow = 'hidden';
+    documentElement.style.overscrollBehavior = 'none';
+    documentElement.style.touchAction = 'none';
+    body.style.overflow = 'hidden';
+    body.style.touchAction = 'none';
+    body.style.overscrollBehavior = 'none';
+
+    if (appScroll) {
+      appScroll.style.overflow = 'hidden';
+      appScroll.style.touchAction = 'none';
+      appScroll.style.overscrollBehavior = 'none';
+    }
+
+    if (contentEl) {
+      contentEl.style.overflow = 'hidden';
+      contentEl.style.touchAction = 'none';
+      contentEl.style.overscrollBehavior = 'none';
+    }
+
+    return () => {
+      documentElement.style.overflow = previous.htmlOverflow;
+      documentElement.style.overscrollBehavior = previous.htmlOverscroll;
+      documentElement.style.touchAction = previous.htmlTouchAction;
+      body.style.overflow = previous.bodyOverflow;
+      body.style.touchAction = previous.bodyTouchAction;
+      body.style.overscrollBehavior = previous.bodyOverscroll;
+
+      if (appScroll) {
+        appScroll.style.overflow = previous.appScrollOverflow;
+        appScroll.style.touchAction = previous.appScrollTouchAction;
+        appScroll.style.overscrollBehavior = previous.appScrollOverscroll;
+        appScroll.scrollTop = appScrollTop;
+      }
+
+      if (contentEl) {
+        contentEl.style.overflow = previous.contentOverflow;
+        contentEl.style.touchAction = previous.contentTouchAction;
+        contentEl.style.overscrollBehavior = previous.contentOverscroll;
+        contentEl.scrollTop = contentScrollTop;
+      }
+    };
+  }, [isPatientOverlayOpen, isOnboardingOverlayOpen]);
+
   const visibleCards = useMemo(() => {
-    const filteredCards = sourceCards.filter((pkg) => {
-      const selectedChip = filterChips.find((chip) => String(chip?.chip_key || '').toLowerCase() === activeFilterKey);
-      const selectedKey = String(selectedChip?.chip_key || activeFilterKey || 'all').trim().toLowerCase();
-      const selectedLabel = String(selectedChip?.display_name || '').trim().toLowerCase();
+    const filterKeyForView = isOnboardingOverlayOpen ? 'all' : activeFilterKey;
+    const selectedChip = filterChips.find((chip) => String(chip?.chip_key || '').toLowerCase() === filterKeyForView);
+    const selectedKey = String(selectedChip?.chip_key || filterKeyForView || 'all').trim().toLowerCase();
+    const selectedLabel = String(selectedChip?.display_name || '').trim().toLowerCase();
 
-      if (selectedKey === 'all') {
-        return true;
-      }
-
-      if (isForYouChipKey(selectedKey)) {
-        return packageMatchesForYou(pkg, forYouProfile);
-      }
-
-      const packageValues = toNormalizedPackageTagValues(pkg);
-      return packageValues.has(selectedKey) || (selectedLabel ? packageValues.has(selectedLabel) : false);
-    });
-
-    const searchFilteredCards = filteredCards.filter((pkg) => {
+    const applySearchFilter = (cards) => cards.filter((pkg) => {
       if (!normalizedQuery) {
         return true;
       }
@@ -540,18 +719,71 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
         || tagsText.includes(normalizedQuery);
     });
 
-    if (!customPackageCard) {
-      return searchFilteredCards;
+    const appendCustomCard = (cards) => {
+      if (!customPackageCard) {
+        return cards;
+      }
+
+      const shouldIncludeCustomCard = !normalizedQuery
+        || String(customPackageCard?.title || '').toLowerCase().includes(normalizedQuery)
+        || String(customPackageCard?.chips || '').toLowerCase().includes(normalizedQuery);
+
+      return shouldIncludeCustomCard
+        ? [...cards, { ...customPackageCard }]
+        : cards;
+    };
+
+    if (isForYouChipKey(selectedKey) && onboardingResult?.rankedPackages?.length) {
+      const rankById = new Map(
+        onboardingResult.rankedPackages.map((row, index) => [Number(row.packageId), { ...row, order: index }])
+      );
+
+      const recommendedCards = sourceCards
+        .filter((pkg) => rankById.has(Number(pkg.id)))
+        .map((pkg) => {
+          const meta = rankById.get(Number(pkg.id));
+          const recommendationLabel = meta?.label || null;
+          const badges = Array.isArray(pkg.badges) ? [...pkg.badges] : [];
+
+          if (recommendationLabel && !badges.includes(recommendationLabel)) {
+            badges.unshift(recommendationLabel);
+          }
+
+          return {
+            ...pkg,
+            badges,
+            recommendationLabel,
+          };
+        })
+        .sort((a, b) => rankById.get(Number(a.id)).order - rankById.get(Number(b.id)).order);
+
+      return appendCustomCard(applySearchFilter(recommendedCards));
     }
 
-    const shouldIncludeCustomCard = !normalizedQuery
-      || String(customPackageCard?.title || '').toLowerCase().includes(normalizedQuery)
-      || String(customPackageCard?.chips || '').toLowerCase().includes(normalizedQuery);
+    const filteredCards = sourceCards.filter((pkg) => {
+      if (selectedKey === 'all') {
+        return true;
+      }
 
-    return shouldIncludeCustomCard
-      ? [...searchFilteredCards, { ...customPackageCard }]
-      : searchFilteredCards;
-  }, [activeFilterKey, customPackageCard, filterChips, forYouProfile, normalizedQuery, sourceCards]);
+      if (isForYouChipKey(selectedKey)) {
+        return packageMatchesForYou(pkg, forYouProfile);
+      }
+
+      const packageValues = toNormalizedPackageTagValues(pkg);
+      return packageValues.has(selectedKey) || (selectedLabel ? packageValues.has(selectedLabel) : false);
+    });
+
+    return appendCustomCard(applySearchFilter(filteredCards));
+  }, [
+    activeFilterKey,
+    customPackageCard,
+    filterChips,
+    forYouProfile,
+    isOnboardingOverlayOpen,
+    normalizedQuery,
+    onboardingResult,
+    sourceCards,
+  ]);
 
   useEffect(() => {
     const availableKeys = new Set(
@@ -593,6 +825,10 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
       return 'packages-card__badge--custom';
     }
 
+    if (badge === 'Best Match' || badge === 'Premium Upgrade' || badge === 'Budget Alternative') {
+      return 'packages-card__badge--popular';
+    }
+
     if (!shouldHighlightFilterBadge) {
       return 'packages-card__badge--type';
     }
@@ -605,7 +841,8 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
   };
 
   return (
-    <div className={`packages-page ${isSearchOpen ? 'packages-page--search-open' : ''}`}>
+    <div className={`packages-page ${isSearchOpen ? 'packages-page--search-open' : ''}${isOnboardingOverlayOpen ? ' packages-page--onboarding' : ''}`}>
+      <div className={`packages-page__underlay${isOnboardingOverlayOpen ? ' packages-page__underlay--blurred' : ''}`}>
       <div className="packages-page__fixed-top">
         <header className="packages-page__header">
           <h1 className="packages-page__title">Explore Packages</h1>
@@ -655,11 +892,15 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
             const filterKey = String(filter?.chip_key || 'all').trim().toLowerCase();
             const label = String(filter?.display_name || filter?.chip_key || 'All').trim() || 'All';
 
+            const isFilterActive = isOnboardingOverlayOpen
+              ? filterKey === 'all'
+              : activeFilterKey === filterKey;
+
             return (
             <button
               key={String(filter?.filter_chip_id || filterKey)}
               type="button"
-              className={`packages-page__filter-pill${activeFilterKey === filterKey ? ' is-active' : ''}`}
+              className={`packages-page__filter-pill${isFilterActive ? ' is-active' : ''}`}
               onClick={() => setActiveFilterKey(filterKey)}
             >
               {label}
@@ -669,7 +910,7 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
         </section>
       </div>
 
-      <div className="packages-page__content">
+      <div className="packages-page__content" ref={contentScrollRef}>
         <section className="packages-page__cards" aria-label="Packages list">
           {visibleCards.map((pkg) => (
             <article
@@ -780,6 +1021,9 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
         </section>
       </div>
 
+      {!isPatientOverlayOpen ? <NavBar defaultActive="packages" onNavigate={handleNav} /> : null}
+      </div>
+
       {isPatientOverlayOpen ? (
         <Suspense fallback={null}>
           <PatientSelectionOverlay
@@ -793,7 +1037,15 @@ const PackagesPage = ({ onNavigateHome, onOpenPackageDetails, onOpenCreateCustom
         </Suspense>
       ) : null}
 
-      {!isPatientOverlayOpen ? <NavBar defaultActive="packages" onNavigate={handleNav} /> : null}
+      {isOnboardingOverlayOpen ? (
+        <PackageOnboardingMcqPage
+          isOverlay
+          onBack={onNavigateHome}
+          onSkip={handlePackageOnboardingSkip}
+          onComplete={handlePackageOnboardingComplete}
+          profileGender={forYouProfile?.gender}
+        />
+      ) : null}
     </div>
   );
 };

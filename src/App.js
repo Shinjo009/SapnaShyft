@@ -26,6 +26,7 @@ import {
   hasSubmittedHealthQuestionnaire,
   invalidateHealthQuestionnaireSubmittedCache,
 } from './services/questionnaireService';
+import { setPackageOnboardingEligible } from './utils/packageRecommendationStorage';
 import {
   fetchLatestAssessmentReport,
   getLatestAssessmentIdsCached,
@@ -274,6 +275,7 @@ const deriveEmployerOrganizerName = (profile) => {
 };
 
 function App() {
+  const PACKAGE_ONBOARDING_NEW_USER_SESSION_KEY = 'ss_package_onboarding_new_user';
   const [currentPage, setCurrentPage] = useState(getInitialAppPage);
   const currentPageRef = useRef(currentPage);
   currentPageRef.current = currentPage;
@@ -302,6 +304,7 @@ function App() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [customPackageCard, setCustomPackageCard] = useState(null);
   const [pendingCustomPackagePayload, setPendingCustomPackagePayload] = useState(null);
+  const [isSignupNewUserFlow, setIsSignupNewUserFlow] = useState(false);
   const [selectedPackageCard, setSelectedPackageCard] = useState(null);
   const [bloodMarkerDetailFromHome, setBloodMarkerDetailFromHome] = useState(null);
   const [canSwipeBack, setCanSwipeBack] = useState(false);
@@ -1401,6 +1404,12 @@ function App() {
   };
 
   const handleSignup = async (formData) => {
+    try {
+      sessionStorage.setItem(PACKAGE_ONBOARDING_NEW_USER_SESSION_KEY, '1');
+    } catch {
+      // ignore storage issues and continue signup flow
+    }
+    setIsSignupNewUserFlow(true);
     await createUser(formData);
     await handleSendOtp(formData.phone);
   };
@@ -1430,6 +1439,22 @@ function App() {
       const activeUserId = Number(profile?.user_id || 0);
       const normalizedCurrentUserId = activeUserId > 0 ? activeUserId : null;
       setCurrentUserId(normalizedCurrentUserId);
+      const isNewUserFlow = isSignupNewUserFlow || (() => {
+        try {
+          return sessionStorage.getItem(PACKAGE_ONBOARDING_NEW_USER_SESSION_KEY) === '1';
+        } catch {
+          return false;
+        }
+      })();
+      if (isNewUserFlow && normalizedCurrentUserId) {
+        setPackageOnboardingEligible(normalizedCurrentUserId, true);
+      }
+      try {
+        sessionStorage.removeItem(PACKAGE_ONBOARDING_NEW_USER_SESSION_KEY);
+      } catch {
+        // ignore storage issues
+      }
+      setIsSignupNewUserFlow(false);
 
       const linkedProfilesResponse = await getMyProfiles();
       const linkedProfiles = Array.isArray(linkedProfilesResponse?.data)
@@ -1589,9 +1614,11 @@ function App() {
     setEmployerOrganizerName('');
     try {
       sessionStorage.removeItem('ss_b2b_opened_questionnaire');
+      sessionStorage.removeItem(PACKAGE_ONBOARDING_NEW_USER_SESSION_KEY);
     } catch {
       // ignore
     }
+    setIsSignupNewUserFlow(false);
     setIsBootstrappingSession(false);
     setCurrentPage('login');
   }, []);
@@ -1973,6 +2000,7 @@ function App() {
 
       {currentPage === 'packages' && (
         <PackagesPage
+          accountScopeId={selectedAccountId ?? currentUserId}
           customPackageCard={customPackageCard}
           onNavigateHome={navigateToHome}
           onNavigateToSuperClub={navigateToSuperClubFlow}

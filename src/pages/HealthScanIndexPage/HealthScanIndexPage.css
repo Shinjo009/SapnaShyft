@@ -121,6 +121,10 @@
   user-select: none;
 }
 
+.health-scan-page__tab-content-panel--blurred .health-scan-page__metric-info-btn {
+  visibility: hidden;
+}
+
 /* Circle Container */
 .health-scan-page__circle-container {
   display: flex;
@@ -348,6 +352,7 @@
   justify-content: center;
   flex-shrink: 0;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .health-scan-page__metric-info-btn svg {
@@ -382,6 +387,7 @@
   background: transparent;
   cursor: pointer;
   pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .health-scan-page__bmr-insight-card {
@@ -393,7 +399,7 @@
   padding: 21px;
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.5);
-  background: linear-gradient(180deg, rgba(30, 35, 35, 0.5) 0%, rgba(15, 20, 20, 0.7) 100%);
+  background: linear-gradient(180deg, rgba(22, 28, 28, 0.97) 0%, rgba(12, 16, 16, 0.98) 100%);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   box-sizing: border-box;
@@ -404,10 +410,29 @@
   overflow-y: auto;
   pointer-events: auto;
   flex-shrink: 0;
+  isolation: isolate;
   --bmr-tone-color: #dac15a;
   --bmr-tone-bg: rgba(218, 193, 90, 0.1);
   --bmr-tone-border: rgba(218, 193, 90, 0.2);
   --bmr-tone-glow: rgba(218, 193, 90, 0.15);
+}
+
+.health-scan-page__bmr-insight-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 160px;
+  height: 160px;
+  border-radius: 0 24px 0 100%;
+  background: radial-gradient(circle at 100% 0%, var(--bmr-tone-glow) 0%, transparent 72%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.health-scan-page__bmr-insight-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .health-scan-page__bmr-insight-card--optimal {
@@ -436,18 +461,6 @@
   --bmr-tone-bg: rgba(233, 93, 92, 0.1);
   --bmr-tone-border: rgba(233, 93, 92, 0.2);
   --bmr-tone-glow: rgba(233, 93, 92, 0.15);
-}
-
-.health-scan-page__bmr-insight-glow {
-  position: absolute;
-  top: -40px;
-  right: -40px;
-  width: 120px;
-  height: 120px;
-  border-radius: 60px;
-  background: var(--bmr-tone-glow);
-  filter: blur(20px);
-  pointer-events: none;
 }
 
 .health-scan-page__bmr-insight-head {

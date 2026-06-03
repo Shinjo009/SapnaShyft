@@ -4,6 +4,46 @@
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  position: relative;
+}
+
+.packages-page__underlay {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 100%;
+}
+
+.packages-page__underlay--blurred {
+  filter: blur(12px);
+  -webkit-filter: blur(12px);
+  pointer-events: none;
+  user-select: none;
+}
+
+.packages-page--onboarding {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.packages-page--onboarding .packages-page__underlay {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.packages-page--onboarding .packages-page__content {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+.packages-page--onboarding::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: rgba(0, 0, 0, 0.32);
+  pointer-events: none;
 }
 
 .packages-page__fixed-top {

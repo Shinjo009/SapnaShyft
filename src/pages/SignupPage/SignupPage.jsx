@@ -184,7 +184,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
             <div
               className={
                 fieldErrors.phone
-                  ? 'flex self-stretch w-full h-10 box-border px-[15px] py-[10px] rounded-lg border border-red-500 bg-input-bg items-center shadow-[0_0_10px_0_rgba(255,0,0,0.30)] focus-within:border-red-500 focus-within:shadow-[0_0_10px_0_rgba(255,0,0,0.30)] transition-all'
+                  ? 'flex self-stretch w-full h-10 box-border px-[15px] py-[10px] rounded-lg border border-[#E95D5C] bg-input-bg items-center shadow-[0_0_10px_0_rgba(233,93,92,0.30)] focus-within:border-[#E95D5C] focus-within:shadow-[0_0_10px_0_rgba(233,93,92,0.30)] transition-all'
                   : 'flex self-stretch w-full h-10 box-border px-[15px] py-[10px] rounded-lg border border-transparent bg-input-bg items-center focus-within:border-white/20 focus-within:shadow-[0_0_10px_0_rgba(144,223,158,0.30)] transition-all'
               }
             >
@@ -205,7 +205,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
               </span>
             </div>
             {fieldErrors.phone ? (
-              <Typography variant="label" className="!text-[10px] !leading-[14px] text-red-500">
+              <Typography variant="label" className="!text-[10px] !leading-[14px] text-[#E95D5C]">
                 {fieldErrors.phone}
               </Typography>
             ) : null}
@@ -266,7 +266,7 @@ const SignupPage = ({ onSuccess, onLogin }) => {
               </button>
             </div>
             {fieldErrors.gender ? (
-              <Typography variant="label" className="!text-[10px] !leading-[14px] text-red-500">
+              <Typography variant="label" className="!text-[10px] !leading-[14px] text-[#E95D5C]">
                 {fieldErrors.gender}
               </Typography>
             ) : null}

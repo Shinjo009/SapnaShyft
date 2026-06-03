@@ -95,12 +95,23 @@ const getSmokeTone = (normalized) => {
 };
 
 const getPhysicalActivityTone = (normalized) => {
-  const numbers = parseNumbersFromText(normalized);
-  const minutes = numbers.length > 0 ? numbers[0] : null;
-  if (!Number.isFinite(minutes)) return 'neutral';
-  if (minutes >= 60) return 'optimal';
-  if (minutes >= 45) return 'stable';
-  return 'critical';
+  const PHYSICAL_ACTIVITY_TONE_BY_LABEL = {
+    'more than 60 minutes a day': 'optimal',
+    '30-60 minutes a day': 'stable',
+    'less than 30 minutes a day': 'vulnerable',
+    'rarely or never': 'critical',
+  };
+
+  if (PHYSICAL_ACTIVITY_TONE_BY_LABEL[normalized]) {
+    return PHYSICAL_ACTIVITY_TONE_BY_LABEL[normalized];
+  }
+
+  if (/more than 60|>\s*60/.test(normalized)) return 'optimal';
+  if (/30-60|30 to 60/.test(normalized)) return 'stable';
+  if (/less than 30|<\s*30/.test(normalized)) return 'vulnerable';
+  if (/rarely or never|never exercise|never work out/.test(normalized)) return 'critical';
+
+  return 'neutral';
 };
 
 /** @returns {LifestyleTone} */
