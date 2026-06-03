@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { getMyProfileCached } from '../../services/profileService';
 import {
+  computeQuestionsWithVisibility,
+  getQuestionnairePreferencesFromProfile,
   hasNutritionLogQuestionnaireDraft,
   hasSubmittedHealthQuestionnaire,
+  pruneSelectionsForVisibleCards,
 } from '../../services/questionnaireService';
 import ques1Icon from '../../images/ques-1.svg';
 import ques2Icon from '../../images/ques-2.svg';
@@ -1209,7 +1213,7 @@ const getHardcodedQuestionnaireSubline = (title) => {
   }
   if (t.includes('what sports') && t.includes('play')) {
     return '(Select all that apply)';
-  }
+   }
   return '';
 };
 
@@ -1220,6 +1224,7 @@ const familyHelperByQuestionKey = {
 
 const toFamilyApiCards = (questions = []) => {
   return questions
+    .filter((question) => question?.is_visible !== false)
     .filter((question) => !isLikelyOtherTextQuestion(question))
     .map((question) => {
     const key = question?.question_key || `question-${question?.question_id}`;
@@ -1982,12 +1987,15 @@ const buildScaleResponseItem = (question, numericValue, unitLabel, opts = {}) =>
   return buildResponseItem(question, { value: n, unit: unitCode });
 };
 
-const buildResponsesFromSelections = (questions = [], selections = {}) => {
+const buildResponsesFromSelections = (questions = [], selections = {}, preferences = {}) => {
   if (!Array.isArray(questions) || !selections || typeof selections !== 'object') {
     return [];
   }
 
-  const primaryResponses = questions
+  const visibleQuestions = computeQuestionsWithVisibility(questions, { selections, preferences })
+    .filter((question) => question.is_visible !== false);
+
+  const primaryResponses = visibleQuestions
     .map((question) => {
       const questionId = question?.question_id || question?.id;
       const key = question?.question_key || `question-${questionId}`;
@@ -2004,7 +2012,7 @@ const buildResponsesFromSelections = (questions = [], selections = {}) => {
 
   const extraResponses = [];
 
-  questions.forEach((question) => {
+  visibleQuestions.forEach((question) => {
     const questionId = question?.question_id || question?.id;
     const key = question?.question_key || `question-${questionId}`;
     if (!key) {
@@ -2151,8 +2159,8 @@ const coerceNutritionLogAnswerForApi = (question, answer) => {
 };
 
 /** Merges `buildResponsesFromSelections` with answers keyed by static card keys that do not match API `question_key`. */
-const buildNutritionLogResponsesForSave = (questions = [], selections = {}, cardsData = []) => {
-  const base = buildResponsesFromSelections(questions, selections);
+const buildNutritionLogResponsesForSave = (questions = [], selections = {}, cardsData = [], preferences = {}) => {
+  const base = buildResponsesFromSelections(questions, selections, preferences);
   const byQuestionId = new Map(base.map((r) => [Number(r.question_id), r]));
 
   if (selections && typeof selections === 'object' && Array.isArray(cardsData)) {
@@ -2552,14 +2560,63 @@ const buildVitalsResponses = (questions = [], values = {}) => {
     .filter(Boolean);
 };
 
-const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {}, categoryHeading = 'Family History' }) => {
+/** Keeps card index on the same question when visibility removes cards; prunes hidden answers. */
+const useLiveQuestionnaireCardNavigation = (cardsData, cardIndex, setCardIndex, setSelections) => {
+  const activeCardKeyRef = useRef('');
+
+  useEffect(() => {
+    const key = cardsData[cardIndex]?.key;
+    if (key) {
+      activeCardKeyRef.current = key;
+    }
+  }, [cardsData, cardIndex]);
+
+  useEffect(() => {
+    if (!cardsData.length) {
+      return;
+    }
+    setCardIndex((prev) => {
+      const trackedKey = activeCardKeyRef.current;
+      if (trackedKey) {
+        const nextIdx = cardsData.findIndex((card) => card.key === trackedKey);
+        if (nextIdx >= 0) {
+          return nextIdx;
+        }
+      }
+      return Math.min(prev, cardsData.length - 1);
+    });
+  }, [cardsData, setCardIndex]);
+
+  useEffect(() => {
+    setSelections((prev) => pruneSelectionsForVisibleCards(prev, cardsData));
+  }, [cardsData, setSelections]);
+};
+
+const EmbeddedFamilyHistoryPage = ({
+  onBack,
+  onDone,
+  onDraftSave,
+  questions = [],
+  initialSelections = {},
+  categoryHeading = 'Family History',
+  questionnairePreferences = {},
+}) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
+  const [selections, setSelections] = useState(() => {
+    const initialVisible = computeQuestionsWithVisibility(questions, { preferences: questionnairePreferences });
+    const cards = Array.isArray(questions) && questions.length > 0
+      ? toFamilyApiCards(initialVisible)
+      : familyCards;
+    return buildSelectionStateFromCards(cards, initialSelections);
+  });
+  const visibleQuestions = useMemo(
+    () => computeQuestionsWithVisibility(questions, { selections, preferences: questionnairePreferences }),
+    [questions, selections, questionnairePreferences],
+  );
   const cardsData = useMemo(() => {
-    return Array.isArray(questions) ? toFamilyApiCards(questions) : familyCards;
-  }, [questions]);
-
-  const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
+    return Array.isArray(visibleQuestions) ? toFamilyApiCards(visibleQuestions) : familyCards;
+  }, [visibleQuestions]);
   const selectionsRef = useRef(selections);
   selectionsRef.current = selections;
   const touchStartYRef = useRef(null);
@@ -2569,8 +2626,14 @@ const EmbeddedFamilyHistoryPage = ({ onBack, onDone, onDraftSave, questions = []
   useEffect(() => {
     setCardIndex(0);
     setShowInfoPopup(false);
-    setSelections(buildSelectionStateFromCards(cardsData, initialSelections));
-  }, [cardsData, initialSelections]);
+    const initialVisible = computeQuestionsWithVisibility(questions, { preferences: questionnairePreferences });
+    const cards = Array.isArray(questions) && questions.length > 0
+      ? toFamilyApiCards(initialVisible)
+      : familyCards;
+    setSelections(buildSelectionStateFromCards(cards, initialSelections));
+  }, [questions, initialSelections, questionnairePreferences]);
+
+  useLiveQuestionnaireCardNavigation(cardsData, cardIndex, setCardIndex, setSelections);
 
   const familyHistoryKeys = useMemo(() => findFamilyHistoryCardKeys(cardsData), [cardsData]);
 
@@ -3136,6 +3199,7 @@ const lifestyleFullWidthByQuestionKey = {
 
 const toLifestyleApiCards = (questions = []) => {
   return questions
+    .filter((question) => question?.is_visible !== false)
     .filter((question) => !isLikelyOtherTextQuestion(question))
     .map((question) => {
     const key = question?.question_key || `question-${question?.question_id}`;
@@ -3180,14 +3244,31 @@ const EMPTY_LIFESTYLE_ACTIVE_CARD = {
   multi: false,
 };
 
-const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {}, categoryHeading = 'Lifestyle & Habits' }) => {
+const EmbeddedLifestyleHabitsPage = ({
+  onBack,
+  onDone,
+  onDraftSave,
+  questions = [],
+  initialSelections = {},
+  categoryHeading = 'Lifestyle & Habits',
+  questionnairePreferences = {},
+}) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
+  const [selections, setSelections] = useState(() => {
+    const initialVisible = computeQuestionsWithVisibility(questions, { preferences: questionnairePreferences });
+    const cards = Array.isArray(questions) && questions.length > 0
+      ? toLifestyleApiCards(initialVisible)
+      : lifestyleCards;
+    return buildSelectionStateFromCards(cards, initialSelections);
+  });
+  const visibleQuestions = useMemo(
+    () => computeQuestionsWithVisibility(questions, { selections, preferences: questionnairePreferences }),
+    [questions, selections, questionnairePreferences],
+  );
   const cardsData = useMemo(() => {
-    return Array.isArray(questions) ? toLifestyleApiCards(questions) : lifestyleCards;
-  }, [questions]);
-
-  const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
+    return Array.isArray(visibleQuestions) ? toLifestyleApiCards(visibleQuestions) : lifestyleCards;
+  }, [visibleQuestions]);
   const selectionsRef = useRef(selections);
   selectionsRef.current = selections;
   const touchStartYRef = useRef(null);
@@ -3197,8 +3278,14 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
   useEffect(() => {
     setCardIndex(0);
     setShowInfoPopup(false);
-    setSelections(buildSelectionStateFromCards(cardsData, initialSelections));
-  }, [cardsData, initialSelections]);
+    const initialVisible = computeQuestionsWithVisibility(questions, { preferences: questionnairePreferences });
+    const cards = Array.isArray(questions) && questions.length > 0
+      ? toLifestyleApiCards(initialVisible)
+      : lifestyleCards;
+    setSelections(buildSelectionStateFromCards(cards, initialSelections));
+  }, [questions, initialSelections, questionnairePreferences]);
+
+  useLiveQuestionnaireCardNavigation(cardsData, cardIndex, setCardIndex, setSelections);
 
   const totalCards = Math.max(cardsData.length, 1);
   const activeCard = useMemo(
@@ -3207,8 +3294,8 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
   );
   const activeSelections = selections[activeCard.key] || [];
   const sourceQuestion = useMemo(
-    () => findLifestyleSourceQuestion(questions, activeCard.key),
-    [questions, activeCard.key],
+    () => findLifestyleSourceQuestion(visibleQuestions, activeCard.key),
+    [visibleQuestions, activeCard.key],
   );
   const walkingMode = isWalkingDurationLifestyleCard(activeCard, sourceQuestion);
   const unitLabels = useMemo(
@@ -3230,7 +3317,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
     if (!card || card.key !== cardKey) {
       return;
     }
-    const sq = findLifestyleSourceQuestion(questions, cardKey);
+    const sq = findLifestyleSourceQuestion(visibleQuestions, cardKey);
     setSelections((prev) => {
       if (readWalkingWheelFromSelections(prev, cardKey)) {
         return prev;
@@ -3243,7 +3330,7 @@ const EmbeddedLifestyleHabitsPage = ({ onBack, onDone, onDraftSave, questions = 
         [wk]: { value: 0, unitLabel: labels[0] },
       };
     });
-  }, [walkingMode, activeCard.key, cardIndex, cardsData, questions]);
+  }, [walkingMode, activeCard.key, cardIndex, cardsData, visibleQuestions]);
 
   const bumpWalkingValue = (delta) => {
     if (!walkingMode || !activeCard?.key) {
@@ -3987,6 +4074,7 @@ const pruneNutritionFoodGroupSelectionsForPayload = (prev, cardsData) => {
 
 const toNutritionApiCards = (questions = []) => {
   return questions
+    .filter((question) => question?.is_visible !== false)
     .filter((question) => !isLikelyOtherTextQuestion(question))
     .map((question) => {
     const key = question?.question_key || `question-${question?.question_id}`;
@@ -4039,17 +4127,34 @@ const NUTRITION_LOG_EMPTY_CARD = {
 
 const NUTRITION_EMPTY_SELECTIONS = [];
 
-const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [], initialSelections = {}, categoryHeading = 'Nutrition Log' }) => {
+const EmbeddedNutritionLogPage = ({
+  onBack,
+  onDone,
+  onDraftSave,
+  questions = [],
+  initialSelections = {},
+  categoryHeading = 'Nutrition Log',
+  questionnairePreferences = {},
+}) => {
   const [cardIndex, setCardIndex] = useState(0);
   const [showInfoPopup, setShowInfoPopup] = useState(false);
+  const [selections, setSelections] = useState(() => {
+    const initialVisible = computeQuestionsWithVisibility(questions, { preferences: questionnairePreferences });
+    const cards = Array.isArray(questions) && questions.length > 0
+      ? toNutritionApiCards(initialVisible)
+      : nutritionCards;
+    return buildSelectionStateFromCards(cards, initialSelections);
+  });
+  const visibleQuestions = useMemo(
+    () => computeQuestionsWithVisibility(questions, { selections, preferences: questionnairePreferences }),
+    [questions, selections, questionnairePreferences],
+  );
   const cardsData = useMemo(() => {
-    if (!Array.isArray(questions) || questions.length === 0) {
+    if (!Array.isArray(visibleQuestions) || visibleQuestions.length === 0) {
       return nutritionCards;
     }
-    return toNutritionApiCards(questions);
-  }, [questions]);
-
-  const [selections, setSelections] = useState(() => buildSelectionStateFromCards(cardsData, initialSelections));
+    return toNutritionApiCards(visibleQuestions);
+  }, [visibleQuestions]);
   const selectionsRef = useRef(selections);
   selectionsRef.current = selections;
   const touchStartYRef = useRef(null);
@@ -4059,8 +4164,14 @@ const EmbeddedNutritionLogPage = ({ onBack, onDone, onDraftSave, questions = [],
   useEffect(() => {
     setCardIndex(0);
     setShowInfoPopup(false);
-    setSelections(buildSelectionStateFromCards(cardsData, initialSelections));
-  }, [cardsData, initialSelections]);
+    const initialVisible = computeQuestionsWithVisibility(questions, { preferences: questionnairePreferences });
+    const cards = Array.isArray(questions) && questions.length > 0
+      ? toNutritionApiCards(initialVisible)
+      : nutritionCards;
+    setSelections(buildSelectionStateFromCards(cards, initialSelections));
+  }, [questions, initialSelections, questionnairePreferences]);
+
+  useLiveQuestionnaireCardNavigation(cardsData, cardIndex, setCardIndex, setSelections);
 
   const dietTypeCardKey = useMemo(() => cardsData.find(isNutritionDietTypeCard)?.key, [cardsData]);
   const dailyFoodGroupsCardKey = useMemo(() => cardsData.find(isNutritionDailyFoodGroupsCard)?.key, [cardsData]);
@@ -4593,6 +4704,7 @@ const HealthAssessmentPage = ({
   onStepDraftSave,
   onAssessmentSubmit,
 }) => {
+  const [questionnairePreferences, setQuestionnairePreferences] = useState({});
   const [activeSubPage, setActiveSubPage] = useState(null);
   const [showFollowup, setShowFollowup] = useState(false);
   const [anthropometryPrimaryValues, setAnthropometryPrimaryValues] = useState({});
@@ -4604,36 +4716,65 @@ const HealthAssessmentPage = ({
     systolic: null,
     diastolic: null,
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    void getMyProfileCached()
+      .then((profile) => {
+        if (!cancelled) {
+          setQuestionnairePreferences(getQuestionnairePreferencesFromProfile(profile));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setQuestionnairePreferences({});
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const visibleQuestionsByRoute = useMemo(() => {
+    const routes = ['anthropometry', 'family-history', 'lifestyle-habits', 'nutrition-log', 'vitals'];
+    return routes.reduce((acc, routeId) => {
+      const qs = questionsByRouteId[routeId] || [];
+      acc[routeId] = computeQuestionsWithVisibility(qs, { preferences: questionnairePreferences })
+        .filter((q) => q.is_visible !== false);
+      return acc;
+    }, {});
+  }, [questionsByRouteId, questionnairePreferences]);
+
   const anthropometryInitialValues = useMemo(() => {
     return buildAnthropometryInitialValuesFromResponses(
-      questionsByRouteId['anthropometry'] || [],
+      visibleQuestionsByRoute.anthropometry || [],
       initialResponsesByRoute['anthropometry'] || []
     );
-  }, [questionsByRouteId, initialResponsesByRoute]);
+  }, [visibleQuestionsByRoute, initialResponsesByRoute]);
   const familyInitialSelections = useMemo(() => {
     return buildSelectionStateFromResponses(
-      questionsByRouteId['family-history'] || [],
+      visibleQuestionsByRoute['family-history'] || [],
       initialResponsesByRoute['family-history'] || []
     );
-  }, [questionsByRouteId, initialResponsesByRoute]);
+  }, [visibleQuestionsByRoute, initialResponsesByRoute]);
   const lifestyleInitialSelections = useMemo(() => {
     return buildSelectionStateFromResponses(
-      questionsByRouteId['lifestyle-habits'] || [],
+      visibleQuestionsByRoute['lifestyle-habits'] || [],
       initialResponsesByRoute['lifestyle-habits'] || []
     );
-  }, [questionsByRouteId, initialResponsesByRoute]);
+  }, [visibleQuestionsByRoute, initialResponsesByRoute]);
   const nutritionInitialSelections = useMemo(() => {
     return buildSelectionStateFromResponses(
-      questionsByRouteId['nutrition-log'] || [],
+      visibleQuestionsByRoute['nutrition-log'] || [],
       initialResponsesByRoute['nutrition-log'] || []
     );
-  }, [questionsByRouteId, initialResponsesByRoute]);
+  }, [visibleQuestionsByRoute, initialResponsesByRoute]);
   const vitalsInitialValues = useMemo(() => {
     return buildVitalsInitialValuesFromResponses(
-      questionsByRouteId.vitals || [],
+      visibleQuestionsByRoute.vitals || [],
       initialResponsesByRoute.vitals || []
     );
-  }, [questionsByRouteId, initialResponsesByRoute]);
+  }, [visibleQuestionsByRoute, initialResponsesByRoute]);
 
   useEffect(() => {
     if (activeSubPage) {
@@ -4811,7 +4952,7 @@ const HealthAssessmentPage = ({
   if (activeSubPage === 'anthropometry' && !showFollowup) {
     return (
       <EmbeddedAnthropometryPage
-        questions={questionsByRouteId['anthropometry'] || []}
+        questions={visibleQuestionsByRoute.anthropometry || []}
         initialValues={anthropometryPrimaryValues}
         onBack={() => setActiveSubPage(null)}
         onContinue={(values) => {
@@ -4825,12 +4966,12 @@ const HealthAssessmentPage = ({
   if (activeSubPage === 'anthropometry' && showFollowup) {
     return (
       <EmbeddedAnthropometryFollowupPage
-        questions={questionsByRouteId['anthropometry'] || []}
+        questions={visibleQuestionsByRoute.anthropometry || []}
         initialValues={anthropometryFollowupValues}
         onBack={() => setShowFollowup(false)}
         onDone={(followupValues) => {
           setAnthropometryFollowupValues(followupValues || {});
-          const anthropometryQuestions = questionsByRouteId['anthropometry'] || [];
+          const anthropometryQuestions = visibleQuestionsByRoute.anthropometry || [];
           const responses = buildAnthropometryResponses(
             anthropometryQuestions,
             anthropometryPrimaryValues,
@@ -4849,13 +4990,15 @@ const HealthAssessmentPage = ({
     return (
       <EmbeddedFamilyHistoryPage
         questions={questionsByRouteId['family-history'] || []}
+        questionnairePreferences={questionnairePreferences}
         initialSelections={familyHistorySelections}
         onBack={() => setActiveSubPage(null)}
         onDraftSave={(selections) => {
           const safeSelections = selections || {};
           const responses = buildResponsesFromSelections(
             questionsByRouteId['family-history'] || [],
-            safeSelections
+            safeSelections,
+            questionnairePreferences,
           );
 
           onStepDraftSave?.('family-history', responses);
@@ -4864,7 +5007,8 @@ const HealthAssessmentPage = ({
           setFamilyHistorySelections(selections || {});
           const responses = buildResponsesFromSelections(
             questionsByRouteId['family-history'] || [],
-            selections || {}
+            selections || {},
+            questionnairePreferences,
           );
 
           setActiveSubPage(null);
@@ -4878,13 +5022,15 @@ const HealthAssessmentPage = ({
     return (
       <EmbeddedLifestyleHabitsPage
         questions={questionsByRouteId['lifestyle-habits'] || []}
+        questionnairePreferences={questionnairePreferences}
         initialSelections={lifestyleHabitsSelections}
         onBack={() => setActiveSubPage(null)}
         onDraftSave={(selections) => {
           const safeSelections = selections || {};
           const responses = buildResponsesFromSelections(
             questionsByRouteId['lifestyle-habits'] || [],
-            safeSelections
+            safeSelections,
+            questionnairePreferences,
           );
 
           onStepDraftSave?.('lifestyle-habits', responses);
@@ -4893,7 +5039,8 @@ const HealthAssessmentPage = ({
           setLifestyleHabitsSelections(selections || {});
           const responses = buildResponsesFromSelections(
             questionsByRouteId['lifestyle-habits'] || [],
-            selections || {}
+            selections || {},
+            questionnairePreferences,
           );
 
           setActiveSubPage(null);
@@ -4907,21 +5054,40 @@ const HealthAssessmentPage = ({
     return (
       <EmbeddedNutritionLogPage
         questions={questionsByRouteId['nutrition-log'] || []}
+        questionnairePreferences={questionnairePreferences}
         initialSelections={nutritionLogSelections}
         onBack={() => setActiveSubPage(null)}
         onDraftSave={(selections) => {
           const safeSelections = selections || {};
           const qs = questionsByRouteId['nutrition-log'] || [];
-          const cardsForSave = qs.length > 0 ? toNutritionApiCards(qs) : nutritionCards;
-          const responses = buildNutritionLogResponsesForSave(qs, safeSelections, cardsForSave);
+          const visibleQs = computeQuestionsWithVisibility(qs, {
+            selections: safeSelections,
+            preferences: questionnairePreferences,
+          });
+          const cardsForSave = visibleQs.length > 0 ? toNutritionApiCards(visibleQs) : nutritionCards;
+          const responses = buildNutritionLogResponsesForSave(
+            qs,
+            safeSelections,
+            cardsForSave,
+            questionnairePreferences,
+          );
 
           onStepDraftSave?.('nutrition-log', responses);
         }}
         onDone={(selections) => {
           setNutritionLogSelections(selections || {});
           const qs = questionsByRouteId['nutrition-log'] || [];
-          const cardsForSave = qs.length > 0 ? toNutritionApiCards(qs) : nutritionCards;
-          const responses = buildNutritionLogResponsesForSave(qs, selections || {}, cardsForSave);
+          const visibleQs = computeQuestionsWithVisibility(qs, {
+            selections: selections || {},
+            preferences: questionnairePreferences,
+          });
+          const cardsForSave = visibleQs.length > 0 ? toNutritionApiCards(visibleQs) : nutritionCards;
+          const responses = buildNutritionLogResponsesForSave(
+            qs,
+            selections || {},
+            cardsForSave,
+            questionnairePreferences,
+          );
 
           setActiveSubPage(null);
           onStepComplete?.('nutrition-log', responses);
@@ -4937,7 +5103,7 @@ const HealthAssessmentPage = ({
         diastolic: normalizeStoredVitalReading(values?.diastolic),
       };
       setVitalsValues(sanitizedVitals);
-      const responses = buildVitalsResponses(questionsByRouteId['vitals'] || [], sanitizedVitals);
+      const responses = buildVitalsResponses(visibleQuestionsByRoute.vitals || [], sanitizedVitals);
 
       setActiveSubPage(null);
       try {
@@ -4951,7 +5117,7 @@ const HealthAssessmentPage = ({
 
     return (
       <EmbeddedVitalsPage
-        questions={questionsByRouteId['vitals'] || []}
+        questions={visibleQuestionsByRoute.vitals || []}
         initialValues={vitalsValues}
         onBack={() => setActiveSubPage(null)}
         onDone={finishVitalsAndAssessment}

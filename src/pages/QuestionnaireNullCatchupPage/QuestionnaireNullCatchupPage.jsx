@@ -22,7 +22,10 @@ import {
   findFamilyHistoryCardKeys,
   isNoneOptionLabel,
 } from '../HealthAssessmentPage/HealthAssessmentPage';
+import { getMyProfileCached } from '../../services/profileService';
 import {
+  computeQuestionsWithVisibility,
+  getQuestionnairePreferencesFromProfile,
   isEmptyAnswer,
   loadQuestionnaireContextForAssessmentInstance,
   mapCategoryToRouteId,
@@ -338,6 +341,25 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
   const [swipeRoutes, setSwipeRoutes] = useState([]);
   /** route -> frozen embed payload for this visit (questions + initial UI state at entry). */
   const [catchupRouteSnapshots, setCatchupRouteSnapshots] = useState({});
+  const [questionnairePreferences, setQuestionnairePreferences] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+    void getMyProfileCached()
+      .then((profile) => {
+        if (!cancelled) {
+          setQuestionnairePreferences(getQuestionnairePreferencesFromProfile(profile));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setQuestionnairePreferences({});
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const questionsByRoute = useMemo(
     () => buildQuestionsByRoute(categories, questionsByCategoryId),
@@ -554,9 +576,14 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         ? (questionsByRoute.vitals || [])
         : (questionsByRoute[route] || []);
       const raw = mergeResponsesForRoute(categories, responsesMapRef.current, route);
+      const selectionsForVisibility = buildSelectionStateFromResponses(qs, raw);
+      const visibleQs = computeQuestionsWithVisibility(qs, {
+        selections: selectionsForVisibility,
+        preferences: questionnairePreferences,
+      }).filter((q) => q.is_visible !== false);
 
       if (route === 'vitals') {
-        const questions = questionsNullOnlyOrAll(qs, raw);
+        const questions = questionsNullOnlyOrAll(visibleQs, raw);
         const vitalsInitial = buildVitalsInitialValuesFromResponses(qs, raw);
         return {
           ...prev,
@@ -574,14 +601,14 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
       const unfilledPred = route === 'family-history'
         ? (q, list, r) => familyQuestionBlocksCatchup(list, r, q)
         : (q, _list, r) => questionIsUnfilled(q, r);
-      const questions = expandCatchupQuestionsForCardBundles(qs, raw, unfilledPred);
-      const initialSelections = buildSelectionStateFromResponses(qs, raw);
+      const questions = expandCatchupQuestionsForCardBundles(visibleQs, raw, unfilledPred);
+      const initialSelections = buildSelectionStateFromResponses(visibleQs, raw);
       return {
         ...prev,
         [route]: { kind: 'cards', questions, initialSelections },
       };
     });
-  }, [loadState, swipeRoutes, categories, questionsByRoute]);
+  }, [loadState, swipeRoutes, categories, questionsByRoute, questionnairePreferences]);
 
   useEffect(() => {
     let cancelled = false;
@@ -758,7 +785,8 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
     const { questions: nullQs, initialSelections } = snap;
     return (
       <EmbeddedFamilyHistoryPage
-        questions={nullQs}
+        questions={questionsByRoute['family-history'] || []}
+        questionnairePreferences={questionnairePreferences}
         initialSelections={initialSelections}
         categoryHeading={FITPRINT_CATCHUP_HEADING}
         onBack={onBack}
@@ -775,7 +803,11 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
                 }
                 return;
               }
-              const responses = buildResponsesFromSelections(nullQs, selections || {});
+              const responses = buildResponsesFromSelections(
+                questionsByRoute['family-history'] || [],
+                selections || {},
+                questionnairePreferences,
+              );
               await handleRouteDone('family-history', responses);
             } catch (error) {
               reportCatchupError(error);
@@ -796,15 +828,20 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         </div>
       );
     }
-    const { questions: nullQs, initialSelections } = snap;
+    const { initialSelections } = snap;
     return (
       <EmbeddedLifestyleHabitsPage
-        questions={nullQs}
+        questions={questionsByRoute['lifestyle-habits'] || []}
+        questionnairePreferences={questionnairePreferences}
         initialSelections={initialSelections}
         categoryHeading={FITPRINT_CATCHUP_HEADING}
         onBack={onBack}
         onDone={(selections) => {
-          const responses = buildResponsesFromSelections(nullQs, selections || {});
+          const responses = buildResponsesFromSelections(
+            questionsByRoute['lifestyle-habits'] || [],
+            selections || {},
+            questionnairePreferences,
+          );
           void handleRouteDone('lifestyle-habits', responses);
         }}
       />
@@ -821,16 +858,27 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         </div>
       );
     }
-    const { questions: nullQs, initialSelections } = snap;
+    const { initialSelections } = snap;
     return (
       <EmbeddedNutritionLogPage
-        questions={nullQs}
+        questions={questionsByRoute['nutrition-log'] || []}
+        questionnairePreferences={questionnairePreferences}
         initialSelections={initialSelections}
         categoryHeading={FITPRINT_CATCHUP_HEADING}
         onBack={onBack}
         onDone={(selections) => {
-          const cardsForSave = nullQs.length > 0 ? toNutritionApiCards(nullQs) : [];
-          const responses = buildNutritionLogResponsesForSave(nullQs, selections || {}, cardsForSave);
+          const routeQs = questionsByRoute['nutrition-log'] || [];
+          const visibleQs = computeQuestionsWithVisibility(routeQs, {
+            selections: selections || {},
+            preferences: questionnairePreferences,
+          }).filter((q) => q.is_visible !== false);
+          const cardsForSave = visibleQs.length > 0 ? toNutritionApiCards(visibleQs) : [];
+          const responses = buildNutritionLogResponsesForSave(
+            routeQs,
+            selections || {},
+            cardsForSave,
+            questionnairePreferences,
+          );
           void handleRouteDone('nutrition-log', responses);
         }}
       />

@@ -154,6 +154,13 @@ const extractCategoriesFromAssessmentStatus = (payload) => {
   return [];
 };
 
+export {
+  computeQuestionsWithVisibility,
+  filterVisibleQuestions,
+  getQuestionnairePreferencesFromProfile,
+  pruneSelectionsForVisibleCards,
+} from '../utils/questionnaireVisibility';
+
 const extractQuestionsFromCategoryPayload = (payload) => {
   if (Array.isArray(payload)) {
     return payload;
