@@ -12,7 +12,7 @@ import {
   computeProfileOnlyPackageRecommendations,
 } from '../../utils/packageRecommendationEngine';
 import {
-  isPackageOnboardingComplete,
+  hasPersonalizedForYouRecommendations,
   isPackageOnboardingEligible,
   loadPackageOnboardingResult,
   savePackageOnboardingResult,
@@ -489,8 +489,10 @@ const PackagesPage = ({
 
     const saved = loadPackageOnboardingResult(accountScopeId);
     setOnboardingResult(saved);
-    const isEligible = isPackageOnboardingEligible(accountScopeId);
-    setShowPackageOnboarding(isEligible && !isPackageOnboardingComplete(accountScopeId));
+
+    const isNewUser = isPackageOnboardingEligible(accountScopeId);
+    const forYouIsGeneric = !hasPersonalizedForYouRecommendations(saved);
+    setShowPackageOnboarding(isNewUser && forYouIsGeneric);
   }, [accountScopeId]);
 
   const resolveForYouChipKey = useCallback(() => {
@@ -733,7 +735,7 @@ const PackagesPage = ({
         : cards;
     };
 
-    if (isForYouChipKey(selectedKey) && onboardingResult?.rankedPackages?.length) {
+    if (isForYouChipKey(selectedKey) && hasPersonalizedForYouRecommendations(onboardingResult)) {
       const rankById = new Map(
         onboardingResult.rankedPackages.map((row, index) => [Number(row.packageId), { ...row, order: index }])
       );
