@@ -58,6 +58,15 @@ export const isPackageOnboardingComplete = (scopeId) => {
   }
 };
 
+/** True when For you uses engine-ranked packages (questionnaire or profile-only skip). */
+export const hasPersonalizedForYouRecommendations = (scopeIdOrResult) => {
+  const result = scopeIdOrResult && typeof scopeIdOrResult === 'object' && 'rankedPackages' in scopeIdOrResult
+    ? scopeIdOrResult
+    : loadPackageOnboardingResult(scopeIdOrResult);
+
+  return Boolean(result?.rankedPackages?.length);
+};
+
 export const loadPackageOnboardingResult = (scopeId) => {
   try {
     const key = getStorageKey(scopeId);

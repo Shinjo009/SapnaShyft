@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './PackageOnboardingMcqPage.css';
-import packagesHeaderIcon from '../../images/Packages.svg';
-import tickIcon from '../../images/tickpp.svg';
 import {
   getConcernOptionsForGender,
   PERSONA_OPTIONS,
@@ -34,6 +32,9 @@ const THIRD_QUESTION_EXCLUDED_OPTIONS = new Set([
 const MAX_MULTI_SELECT = 2;
 
 const SCROLL_EDGE_TOLERANCE = 8;
+
+/** After the last wheel tick, wait this long before allowing the next card swipe. */
+const WHEEL_GESTURE_END_MS = 480;
 
 const chipsListCanScroll = (element) => (
   Boolean(element) && element.scrollHeight > element.clientHeight + SCROLL_EDGE_TOLERANCE
@@ -74,12 +75,10 @@ const buildMixedLayoutOptions = (labels = []) => {
 
 const getChipsLayoutClass = (layout) => {
   switch (layout) {
-    case 'grid':
-      return 'package-onboarding-mcq__chips--multi';
     case 'mixed':
       return 'package-onboarding-mcq__chips--mixed';
     default:
-      return 'package-onboarding-mcq__chips--stacked';
+      return 'package-onboarding-mcq__chips--grid';
   }
 };
 
@@ -125,11 +124,22 @@ const useCenteredQuestionGap = (deps = []) => {
   return { subtitleRef, stackWrapRef, stackTopGap };
 };
 
-const hasCardAnswer = (card, selections) => {
+const getMinSelectionsForCard = (card) => {
+  if (card.key === CARD_KEYS.persona) {
+    return 1;
+  }
+  if (card.multi && card.maxSelect === MAX_MULTI_SELECT) {
+    return MAX_MULTI_SELECT;
+  }
+  return 1;
+};
+
+const meetsCardSelectionRequirement = (card, selectedItems) => {
   if (card.optional) {
     return true;
   }
-  return Array.isArray(selections) && selections.length > 0;
+  const count = Array.isArray(selectedItems) ? selectedItems.length : 0;
+  return count >= getMinSelectionsForCard(card);
 };
 
 const PackageOnboardingMcqPage = ({
@@ -186,9 +196,16 @@ const PackageOnboardingMcqPage = ({
   const touchStartYRef = useRef(null);
   const touchStartXRef = useRef(null);
   const touchStartScrollTopRef = useRef(0);
-  const lastWheelAtRef = useRef(0);
+  const wheelGestureConsumedRef = useRef(false);
+  const wheelGestureEndTimerRef = useRef(null);
   const cardRef = useRef(null);
   const chipsScrollRef = useRef(null);
+
+  useEffect(() => () => {
+    if (wheelGestureEndTimerRef.current) {
+      clearTimeout(wheelGestureEndTimerRef.current);
+    }
+  }, []);
 
   const totalCards = cardsData.length;
   const activeCard = cardsData[cardIndex] || cardsData[0];
@@ -301,11 +318,21 @@ const PackageOnboardingMcqPage = ({
   };
 
   const attemptGoNext = () => {
-    if (!hasCardAnswer(activeCard, activeSelections)) {
+    if (cardIndex >= totalCards - 1) {
+      return;
+    }
+    if (!meetsCardSelectionRequirement(activeCard, activeSelections)) {
       triggerCardShake();
       return;
     }
     goNext();
+  };
+
+  const attemptGoPrev = () => {
+    if (cardIndex <= 0) {
+      return;
+    }
+    goPrev();
   };
 
   const handleTouchStart = (event) => {
@@ -335,8 +362,8 @@ const PackageOnboardingMcqPage = ({
         if (canNavigateToNextCard()) {
           attemptGoNext();
         }
-      } else if (canNavigateToPrevCard()) {
-        goPrev();
+      } else {
+        attemptGoPrev();
       }
     }
     touchStartYRef.current = null;
@@ -373,24 +400,43 @@ const PackageOnboardingMcqPage = ({
     }
   };
 
+  const scheduleWheelGestureEnd = () => {
+    if (wheelGestureEndTimerRef.current) {
+      clearTimeout(wheelGestureEndTimerRef.current);
+    }
+    wheelGestureEndTimerRef.current = setTimeout(() => {
+      wheelGestureConsumedRef.current = false;
+      wheelGestureEndTimerRef.current = null;
+    }, WHEEL_GESTURE_END_MS);
+  };
+
   const handleWheel = (event) => {
     if (scrollChipsByWheel(event)) {
       return;
     }
 
     event.preventDefault();
-    const now = Date.now();
-    if (now - lastWheelAtRef.current < 340) {
+    scheduleWheelGestureEnd();
+
+    if (wheelGestureConsumedRef.current) {
       return;
     }
-    lastWheelAtRef.current = now;
 
     if (event.deltaY > 0) {
-      if (canNavigateToNextCard()) {
-        attemptGoNext();
+      if (!canNavigateToNextCard()) {
+        return;
       }
-    } else if (event.deltaY < 0 && canNavigateToPrevCard()) {
-      goPrev();
+      wheelGestureConsumedRef.current = true;
+      attemptGoNext();
+      return;
+    }
+
+    if (event.deltaY < 0) {
+      if (!canNavigateToPrevCard()) {
+        return;
+      }
+      wheelGestureConsumedRef.current = true;
+      attemptGoPrev();
     }
   };
 
@@ -422,19 +468,20 @@ const PackageOnboardingMcqPage = ({
   };
 
   const handleDone = () => {
-    if (!hasCardAnswer(activeCard, activeSelections)) {
-      triggerCardShake();
-      return;
-    }
-
-    const persona = selections[CARD_KEYS.persona]?.[0] || '';
+    const personaSelections = selections[CARD_KEYS.persona] || [];
     const healthGoals = selections[CARD_KEYS.primaryGoal] || [];
     const healthConcerns = selections[CARD_KEYS.otherGoals] || [];
 
-    if (!persona || healthGoals.length === 0 || healthConcerns.length === 0) {
+    if (
+      personaSelections.length < 1
+      || healthGoals.length < MAX_MULTI_SELECT
+      || healthConcerns.length < MAX_MULTI_SELECT
+    ) {
       triggerCardShake();
       return;
     }
+
+    const persona = personaSelections[0] || '';
 
     const primaryConcern = healthGoals[0];
     const otherConcerns = [
@@ -467,7 +514,6 @@ const PackageOnboardingMcqPage = ({
           </button>
           <h1 className="package-onboarding-mcq__title">Packages</h1>
         </div>
-        <img src={packagesHeaderIcon} alt="" aria-hidden="true" className="package-onboarding-mcq__header-icon" />
       </div>
 
       <p className="package-onboarding-mcq__subtitle" ref={subtitleRef}>
@@ -477,8 +523,7 @@ const PackageOnboardingMcqPage = ({
       <div
         className="package-onboarding-mcq__stack-wrap"
         ref={stackWrapRef}
-        style={{ '--stack-space': `${stackSpace}px`, marginTop: `${stackTopGap}px` }}
-        onWheel={handleWheel}
+        style={{ marginTop: `${stackTopGap}px` }}
       >
         {onSkip ? (
           <button
@@ -497,57 +542,63 @@ const PackageOnboardingMcqPage = ({
         <div
           key={activeCard.key}
           ref={cardRef}
-          className={`package-onboarding-mcq__card${activeCard.key === CARD_KEYS.otherGoals ? ' package-onboarding-mcq__card--health-goals' : ''}`}
+          className="package-onboarding-mcq__card"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onWheel={handleWheel}
         >
-          <div
-            className="package-onboarding-mcq__card-nav-zone"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          >
+          <div className="package-onboarding-mcq__card-inner">
             <div className="package-onboarding-mcq__progress">
               <span className="package-onboarding-mcq__progress-main">{progressNumerator}</span>
               <span className="package-onboarding-mcq__progress-sub">/{totalCards}</span>
             </div>
 
-            <p className="package-onboarding-mcq__question">{activeCard.title}</p>
-            {activeCard.helper ? (
-              <p className="package-onboarding-mcq__helper">{activeCard.helper}</p>
-            ) : null}
-          </div>
+            <div className="package-onboarding-mcq__question-block">
+              <div className="package-onboarding-mcq__question-row">
+                <p className="package-onboarding-mcq__question">{activeCard.title}</p>
+                {activeCard.helper ? (
+                  <p className="package-onboarding-mcq__helper">{activeCard.helper}</p>
+                ) : null}
+              </div>
 
-          <div
-            ref={chipsScrollRef}
-            className={`package-onboarding-mcq__chips-scroll${activeCard.key === CARD_KEYS.otherGoals ? ' package-onboarding-mcq__chips-scroll--expanded' : ''}`}
-            onWheel={handleChipsWheel}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          >
-            <div className={`package-onboarding-mcq__chips ${getChipsLayoutClass(activeCard.layout)}`}>
-              {activeCardVisibleOptions.map((option) => {
-                const selected = activeSelections.includes(option.label);
-                return (
-                  <button
-                    key={option.label}
-                    type="button"
-                    className={chipClass(option)}
-                    onClick={() => handleChipClick(option.label)}
-                  >
-                    {activeCard.multi && selected ? (
-                      <img src={tickIcon} alt="" aria-hidden="true" className="package-onboarding-mcq__tick" />
-                    ) : null}
-                    <span>{option.label}</span>
-                  </button>
-                );
-              })}
+              <div
+                ref={chipsScrollRef}
+                className="package-onboarding-mcq__chips-scroll"
+                onWheel={handleChipsWheel}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+              >
+                <div className={`package-onboarding-mcq__chips ${getChipsLayoutClass(activeCard.layout)}`}>
+                  {activeCardVisibleOptions.map((option) => {
+                    const selected = activeSelections.includes(option.label);
+                    return (
+                      <button
+                        key={option.label}
+                        type="button"
+                        className={chipClass(option)}
+                        onClick={() => handleChipClick(option.label)}
+                      >
+                        <span>{option.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {stackCardCount >= 1 ? (
-          <div className="package-onboarding-mcq__stack-card package-onboarding-mcq__stack-card--one" aria-hidden="true" />
-        ) : null}
-        {stackCardCount >= 2 ? (
-          <div className="package-onboarding-mcq__stack-card package-onboarding-mcq__stack-card--two" aria-hidden="true" />
+        {stackCardCount > 0 ? (
+          <div
+            className={`package-onboarding-mcq__stack-deck${stackCardCount === 1 ? ' package-onboarding-mcq__stack-deck--one' : ''}`}
+            style={{ '--stack-peek': `${stackSpace}px` }}
+            aria-hidden="true"
+          >
+            {stackCardCount >= 2 ? (
+              <div className="package-onboarding-mcq__stack-card package-onboarding-mcq__stack-card--two" />
+            ) : null}
+            <div className="package-onboarding-mcq__stack-card package-onboarding-mcq__stack-card--one" />
+          </div>
         ) : null}
       </div>
 
