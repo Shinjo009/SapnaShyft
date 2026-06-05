@@ -4,7 +4,11 @@ import maleAvatar from '../../images/male-avatar.png';
 import femaleAvatar from '../../images/female-avatar.png';
 import { getMyProfiles, createMySubProfile } from '../../services/usersService';
 import { getMyProfile } from '../../services/profileService';
-import { listDiagnosticPackages, listPublicDiagnosticPackageFilterChips } from '../../services/diagnosticPackagesService';
+import {
+  listDiagnosticPackages,
+  listDiagnosticPackageFilterChips,
+  listPublicDiagnosticPackageFilterChips,
+} from '../../services/diagnosticPackagesService';
 import {
   loadRazorpayScript,
   createPackageRazorpayOrder,
@@ -22,8 +26,6 @@ import { PAYMENT_DEMO_MODE, BACKEND_ENABLED } from '../../config/appConfig';
 import PackageDetailsPage from '../../pages/PackageDetailsPage/PackageDetailsPage';
 
 const PATIENTS = [];
-
-const CUSTOM_TEST_FILTERS = ['General Health', 'Progressive Tests', 'Hormones', 'Vitamins', 'Cancer', 'Allergies'];
 
 const CUSTOM_TEST_CARDS = [
   {
@@ -590,7 +592,8 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   const [savingPatient, setSavingPatient] = useState(false);
   const [selectedDateId, setSelectedDateId] = useState('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('06:00 AM');
-  const [customActiveFilter, setCustomActiveFilter] = useState('General Health');
+  const [customActiveFilterKey, setCustomActiveFilterKey] = useState('all');
+  const [customFilterChips, setCustomFilterChips] = useState([OVERLAY_ALL_FILTER]);
   const [customSearchQuery, setCustomSearchQuery] = useState('');
   const [customExpandedIds, setCustomExpandedIds] = useState(() => new Set(['thyroid-tests', 'liver-function']));
   const [customSelectedIds, setCustomSelectedIds] = useState(() => new Set(['thyroid-tests', 'liver-function']));
@@ -679,6 +682,32 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       mounted = false;
     };
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !customFlow) {
+      return;
+    }
+
+    let mounted = true;
+    const loadCustomFilterChips = async () => {
+      try {
+        const rows = await listDiagnosticPackageFilterChips({ chip_for: 'custom_package' });
+        if (!mounted) {
+          return;
+        }
+        const normalized = normalizeFilterChipRows(rows);
+        setCustomFilterChips(normalized.length > 0 ? normalized : [OVERLAY_ALL_FILTER]);
+      } catch {
+        if (mounted) {
+          setCustomFilterChips([OVERLAY_ALL_FILTER]);
+        }
+      }
+    };
+    loadCustomFilterChips();
+    return () => {
+      mounted = false;
+    };
+  }, [open, customFlow]);
 
   useEffect(() => {
     if (!scheduleDates.some((item) => item.id === selectedDateId)) {
@@ -962,6 +991,10 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
     return packageFilterChips;
   }, [packageFilterChips]);
 
+  const customFilterTabs = useMemo(() => {
+    return customFilterChips;
+  }, [customFilterChips]);
+
   useEffect(() => {
     const availableKeys = new Set(
       packageFilterTabs
@@ -972,6 +1005,17 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       setActiveFilterKey('all');
     }
   }, [activeFilterKey, packageFilterTabs]);
+
+  useEffect(() => {
+    const availableKeys = new Set(
+      customFilterTabs
+        .map((chip) => String(chip?.chip_key || '').trim().toLowerCase())
+        .filter(Boolean)
+    );
+    if (!availableKeys.has(customActiveFilterKey)) {
+      setCustomActiveFilterKey('all');
+    }
+  }, [customActiveFilterKey, customFilterTabs]);
 
   const selectedCount = selectedIds.length;
   const canContinue = selectedCount > 0;
@@ -1054,10 +1098,25 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   const normalizedCustomQuery = customSearchQuery.trim().toLowerCase();
 
   const filteredCustomCards = useMemo(() => {
+    const activeFilterKey = String(customActiveFilterKey || 'all').trim().toLowerCase();
+    const activeChip = customFilterTabs.find(
+      (chip) => String(chip?.chip_key || '').trim().toLowerCase() === activeFilterKey
+    );
+    const activeMatchValues = activeFilterKey === 'all'
+      ? []
+      : [
+        activeFilterKey,
+        String(activeChip?.display_name || '').trim().toLowerCase(),
+        activeFilterKey.replace(/_/g, ' '),
+      ].filter(Boolean);
+
     return CUSTOM_TEST_CARDS.filter((item) => {
-      const inTag = customActiveFilter === 'General Health'
+      const inTag = activeFilterKey === 'all'
         ? true
-        : item.tags.some((tag) => tag.toLowerCase() === customActiveFilter.toLowerCase());
+        : item.tags.some((tag) => {
+          const normalizedTag = String(tag || '').trim().toLowerCase();
+          return activeMatchValues.some((value) => normalizedTag === value || normalizedTag.includes(value));
+        });
 
       if (!inTag) {
         return false;
@@ -1070,7 +1129,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       const testsText = item.tests.join(' ').toLowerCase();
       return item.title.toLowerCase().includes(normalizedCustomQuery) || testsText.includes(normalizedCustomQuery);
     });
-  }, [customActiveFilter, normalizedCustomQuery]);
+  }, [customActiveFilterKey, customFilterTabs, normalizedCustomQuery]);
 
   const customSelectedNames = useMemo(
     () => customSelectedCards.map((item) => item.title.split(' ')[0]).join(', '),
@@ -1788,16 +1847,21 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                 </div>
 
                 <div className="patient-package__tabs" aria-label="Test categories">
-                  {CUSTOM_TEST_FILTERS.map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      className={`patient-package__tab${customActiveFilter === tab ? ' is-active' : ''}`}
-                      onClick={() => setCustomActiveFilter(tab)}
-                    >
-                      {tab}
-                    </button>
-                  ))}
+                  {customFilterTabs.map((tab) => {
+                    const filterKey = String(tab?.chip_key || 'all').trim().toLowerCase();
+                    const label = String(tab?.display_name || tab?.chip_key || 'All').trim() || 'All';
+
+                    return (
+                      <button
+                        key={String(tab?.filter_chip_id || filterKey)}
+                        type="button"
+                        className={`patient-package__tab${customActiveFilterKey === filterKey ? ' is-active' : ''}`}
+                        onClick={() => setCustomActiveFilterKey(filterKey)}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <div className="patient-custom-tests__cards-scroll">

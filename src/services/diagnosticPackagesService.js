@@ -6,9 +6,7 @@ const authorizedGet = async (path) => {
   });
 };
 
-export const listDiagnosticPackages = async (_payload) => {
-  const response = await authorizedGet('/diagnostic-packages');
-
+const extractListPayload = (response) => {
   if (Array.isArray(response?.data)) {
     return response.data;
   }
@@ -17,7 +15,40 @@ export const listDiagnosticPackages = async (_payload) => {
     return response;
   }
 
+  if (Array.isArray(response?.items)) {
+    return response.items;
+  }
+
+  if (Array.isArray(response?.results)) {
+    return response.results;
+  }
+
   return [];
+};
+
+export const listDiagnosticPackages = async (_payload, options = {}) => {
+  const query = {
+    gender: options?.gender ?? _payload?.gender,
+    tag: options?.tag ?? _payload?.tag,
+    filter_chip: options?.filterChip ?? options?.filter_chip ?? _payload?.filterChip ?? _payload?.filter_chip,
+    type: options?.type ?? _payload?.type,
+    include_inactive: options?.includeInactive ?? options?.include_inactive ?? _payload?.includeInactive ?? _payload?.include_inactive,
+    package_for: options?.packageFor ?? options?.package_for ?? _payload?.packageFor ?? _payload?.package_for,
+  };
+
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+    params.append(key, String(value));
+  });
+
+  const queryString = params.toString();
+  const path = queryString ? `/diagnostic-packages?${queryString}` : '/diagnostic-packages';
+  const response = await authorizedGet(path);
+
+  return extractListPayload(response);
 };
 
 export const listDiagnosticPackageFilterChips = async (_payload, options) => {
@@ -31,45 +62,13 @@ export const listDiagnosticPackageFilterChips = async (_payload, options) => {
   const chipFor = requestedChipFor || 'custom_package';
   const response = await authorizedGet(`/diagnostic-packages/filters-chips?for=${encodeURIComponent(chipFor)}`);
 
-  if (Array.isArray(response?.data)) {
-    return response.data;
-  }
-
-  if (Array.isArray(response)) {
-    return response;
-  }
-
-  if (Array.isArray(response?.items)) {
-    return response.items;
-  }
-
-  if (Array.isArray(response?.results)) {
-    return response.results;
-  }
-
-  return [];
+  return extractListPayload(response);
 };
 
 export const listPublicDiagnosticPackageFilterChips = async (_payload) => {
   const response = await authorizedGet('/diagnostic-packages/filters-chips');
 
-  if (Array.isArray(response?.data)) {
-    return response.data;
-  }
-
-  if (Array.isArray(response)) {
-    return response;
-  }
-
-  if (Array.isArray(response?.items)) {
-    return response.items;
-  }
-
-  if (Array.isArray(response?.results)) {
-    return response.results;
-  }
-
-  return [];
+  return extractListPayload(response);
 };
 
 export const getDiagnosticPackageDetail = async (packageId, _payload) => {
