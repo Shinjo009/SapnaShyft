@@ -18,6 +18,7 @@ import { getMyProfiles, invalidateMyProfilesCache, unlinkMyProfile } from '../..
 import { clearReportRequestCache, clearStoredLatestAssessmentId } from '../../services/reportService';
 import { clearAuthTokens, extractTokensFromResponse, saveAuthTokens } from '../../utils/authStorage';
 import { isSessionAuthError, logAuthError } from '../../utils/sessionAuth';
+import { formatProfileAddressDisplay } from '../../utils/profileAddress';
 
 // BG-1.png lives under /public/ (stable URL, no content hash) so index.html
 // can preload it for faster LCP on the very first paint. Reference it by
@@ -43,12 +44,6 @@ const ProfilePage = ({
   onAccountSwitched,
   onLogout,
 }) => {
-  const UnlinkAccountIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="30" viewBox="0 0 28 30" fill="none" aria-hidden="true">
-      <path d="M17.7382 13L21.6402 9.098C23.0772 7.661 23.1252 5.38 21.7472 4.003C20.3702 2.625 18.0892 2.673 16.6522 4.11L12.7502 8.012M14.7502 15.962L10.8582 19.842C9.42624 21.272 7.21824 21.457 5.77624 19.949C4.33424 18.442 4.45024 16.31 5.88324 14.881L9.77524 11M10.7502 15L16.7502 9" stroke="#CCCCCC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-
   const [activeModal, setActiveModal] = useState(null);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [unlinkLoading, setUnlinkLoading] = useState(false);
@@ -160,14 +155,27 @@ const ProfilePage = ({
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim() || 'User';
   const phoneText = profile?.phone ? `+91 ${profile.phone}` : '-';
   const emailText = profile?.email || '-';
-  const cityText = profile?.city || '-';
-  const stateText = profile?.state || '';
-  const locationText = [cityText, stateText].filter(Boolean).join(', ') || '-';
+  const locationText = formatProfileAddressDisplay(profile);
   const genderText = profile?.gender
     ? `${String(profile.gender).charAt(0).toUpperCase()}${String(profile.gender).slice(1)}`
     : '';
   const genderAgeText = [genderText, age].filter(Boolean).join(', ') || '-';
   const linkedProfilesToRender = linkedProfiles.filter((item) => Number(item?.user_id || 0) !== Number(profile?.user_id || 0));
+  const isViewingSelfAccount = useMemo(() => {
+    const currentUserId = Number(profile?.user_id || 0);
+
+    if (currentUserId <= 0) {
+      return false;
+    }
+
+    if (linkedProfiles.length === 0) {
+      return true;
+    }
+
+    return linkedProfiles.every(
+      (item) => Number(item?.parent_id || 0) === currentUserId
+    );
+  }, [profile?.user_id, linkedProfiles]);
   const isSwitchingProfile = switchingUserId !== null;
 
   const getAvatarByGender = (genderValue) => {
@@ -364,9 +372,8 @@ const ProfilePage = ({
             const relationship = account?.relationship
               ? `${String(account.relationship).charAt(0).toUpperCase()}${String(account.relationship).slice(1)}`
               : 'Member';
-            const isSelfRelationship = String(account?.relationship || '').trim().toLowerCase() === 'self';
-            const isChildRelationship = String(account?.relationship || '').trim().toLowerCase() === 'child';
             const linkedAvatarSrc = getAvatarByGender(account?.gender);
+            const showUnlinkOption = isViewingSelfAccount;
 
             return (
               <div key={account.user_id} className={`profile-page__linked-account-row${switchingUserId === account.user_id ? ' is-switching' : ''}`}>
@@ -378,36 +385,24 @@ const ProfilePage = ({
                   <span className="profile-page__linked-account-relation">{relationship}</span>
                 </div>
                 <div className="profile-page__linked-account-actions">
-                  {!isSelfRelationship && isChildRelationship ? (
-                    <button
-                      type="button"
-                      className="profile-page__unlink-btn"
-                      aria-label="Unlink account"
-                      onClick={() => {
-                        setPendingUnlinkAccount(account);
-                        setActiveModal('unlink');
-                        setError('');
-                      }}
-                    >
-                      <UnlinkAccountIcon />
-                    </button>
-                  ) : null}
                   <div className="profile-page__switch-cluster">
-                    <button
-                      type="button"
-                      className="profile-page__switch-link-icon"
-                      aria-label="Unlink account"
-                      onClick={() => {
-                        setPendingUnlinkAccount(account);
-                        setActiveModal('unlink');
-                        setError('');
-                      }}
-                      disabled={unlinkLoading || switchingUserId === account.user_id}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <path d="M13.7382 10.75L17.6402 6.84803C19.0772 5.41103 19.1252 3.13003 17.7472 1.75303C16.3702 0.375032 14.0892 0.423032 12.6522 1.86003L8.75025 5.76203M10.7502 13.712L6.85824 17.592C5.42624 19.022 3.21824 19.207 1.77624 17.699C0.334245 16.192 0.450245 14.06 1.88324 12.631L5.77524 8.75003M6.75025 12.75L12.7502 6.75003" stroke="#CCCCCC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
+                    {showUnlinkOption ? (
+                      <button
+                        type="button"
+                        className="profile-page__switch-link-icon"
+                        aria-label="Unlink account"
+                        onClick={() => {
+                          setPendingUnlinkAccount(account);
+                          setActiveModal('unlink');
+                          setError('');
+                        }}
+                        disabled={unlinkLoading || switchingUserId === account.user_id}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                          <path d="M13.7382 10.75L17.6402 6.84803C19.0772 5.41103 19.1252 3.13003 17.7472 1.75303C16.3702 0.375032 14.0892 0.423032 12.6522 1.86003L8.75025 5.76203M10.7502 13.712L6.85824 17.592C5.42624 19.022 3.21824 19.207 1.77624 17.699C0.334245 16.192 0.450245 14.06 1.88324 12.631L5.77524 8.75003M6.75025 12.75L12.7502 6.75003" stroke="#CCCCCC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className={`profile-page__switch-btn${switchingUserId === account.user_id ? ' is-loading' : ''}`}

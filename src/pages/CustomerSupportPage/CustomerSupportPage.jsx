@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { getMyProfile } from '../../services/profileService';
 import { submitSupportTicket } from '../../services/usersService';
 import './CustomerSupportPage.css';
 
 /**
  * CustomerSupportPage - Contact support form
  */
-const CustomerSupportPage = ({ onBack }) => {
+const CustomerSupportPage = ({ onBack, currentUserId = null }) => {
   const [query, setQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -20,8 +21,22 @@ const CustomerSupportPage = ({ onBack }) => {
     setIsSubmitting(true);
 
     try {
+      let userId = Number(currentUserId || 0);
+
+      if (userId <= 0) {
+        const profileResponse = await getMyProfile();
+        const profile = profileResponse?.data && typeof profileResponse.data === 'object'
+          ? profileResponse.data
+          : profileResponse;
+        userId = Number(profile?.user_id || profile?.id || 0);
+      }
+
+      if (userId <= 0) {
+        throw new Error('Unable to submit support request. Please sign in again and try.');
+      }
+
       await submitSupportTicket({
-        contact_input: 'Not Provided',
+        user_id: userId,
         query_text: queryText,
       });
       setQuery('');

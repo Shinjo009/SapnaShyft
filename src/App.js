@@ -2366,6 +2366,7 @@ function App() {
 
       {currentPage === 'customer-support' && (
         <CustomerSupportPage
+          currentUserId={currentUserId}
           onBack={() => {
             console.log('Back to Profile');
             setCurrentPage('profile');

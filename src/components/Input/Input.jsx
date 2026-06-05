@@ -50,7 +50,7 @@ const getAutoIconFromPlaceholder = (placeholder = '') => {
   if (normalized.includes('phone')) return PhoneFieldIcon;
   if (normalized.includes('organization')) return OrganizationFieldIcon;
   if (normalized.includes('address') || normalized.includes('country')) return CityFieldIcon;
-  if (normalized.includes('city')) return CityFieldIcon;
+  if (normalized.includes('city') || normalized.includes('state')) return CityFieldIcon;
   if (normalized.includes('age')) return AgeFieldIcon;
 
   return null;

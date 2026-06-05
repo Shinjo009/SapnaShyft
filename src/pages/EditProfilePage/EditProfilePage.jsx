@@ -4,8 +4,8 @@ import Typography from '../../components/Typography';
 import maleAvatar from '../../images/male-avatar.png';
 import femaleAvatar from '../../images/female-avatar.png';
 import './EditProfilePage.css';
-import { getMyProfile, updateMyProfile } from '../../services/profileService';
-import { getMyProfiles, updateMySubProfile } from '../../services/usersService';
+import { getMyProfile, invalidateMyProfileCache, updateMyProfile } from '../../services/profileService';
+import { getMyProfiles, invalidateMyProfilesCache, updateMySubProfile } from '../../services/usersService';
 
 const genderOptions = [
   { value: 'male', label: 'Male' },
@@ -49,6 +49,7 @@ const validateEditProfileForm = (data) => {
   set('last_name', requiredOrInvalidFormat(data.last_name, RE_NAME));
   set('age', requiredOrInvalidFormat(data.age, RE_AGE));
   set('city', requiredOrInvalidFormat(data.city, RE_CITY));
+  set('state', optionalOrInvalidFormat(data.state, RE_CITY));
   set('pincode', requiredOrInvalidFormat(data.pincode, RE_PINCODE));
   set('email', optionalOrInvalidFormat(data.email, RE_EMAIL));
   set('phone', optionalOrInvalidFormat(data.phone, RE_PHONE));
@@ -224,6 +225,7 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
     area: '',
     landmark: '',
     city: '',
+    state: '',
     pincode: '',
     organization_name: '',
     phone: '',
@@ -284,13 +286,20 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
           area: address.area,
           landmark: address.landmark,
           city: address.city,
+          state: profileToEdit?.state || '',
           pincode: address.pincode,
           organization_name: profileToEdit?.referred_by || '',
           phone: profileToEdit?.phone || '',
         });
+        const primaryUserId = Number(profile?.user_id || profile?.id || 0);
+        const isEditingOwnProfile = activeUserId > 0 && primaryUserId > 0 && activeUserId === primaryUserId;
+        const shouldEditAsSubProfile = !isEditingOwnProfile
+          && !isSelfRelationship(relationshipToEvaluate)
+          && Boolean(matchedLinkedProfile);
+
         setActiveProfileUserId(activeUserId > 0 ? activeUserId : null);
         setActiveRelationship(relationshipToEvaluate);
-        setIsSubProfileEdit(!isSelfRelationship(relationshipToEvaluate));
+        setIsSubProfileEdit(shouldEditAsSubProfile);
       } catch (loadError) {
         if (mounted) {
           setError(loadError?.message || 'Failed to load profile. Please try again.');
@@ -345,6 +354,7 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
       const address = buildAddressString(formData);
       const phone = formData.phone.trim() || null;
 
+      const dateOfBirth = getDateOfBirthFromAge(formData.age);
       const profilePayload = {
         age,
         first_name: formData.first_name.trim() || null,
@@ -353,9 +363,10 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
         gender: formData.gender.trim() || null,
         address,
         city: formData.city.trim() || null,
+        state: formData.state.trim() || null,
         pin_code: formData.pincode.trim() || null,
-        referred_by: formData.organization_name.trim() || null,
         phone,
+        date_of_birth: dateOfBirth,
       };
 
       if (isSubProfileEdit) {
@@ -363,7 +374,7 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
           age,
           first_name: formData.first_name.trim() || null,
           last_name: formData.last_name.trim() || null,
-          date_of_birth: getDateOfBirthFromAge(formData.age),
+          date_of_birth: dateOfBirth,
           gender: formData.gender.trim() || null,
           relationship: String(activeRelationship || '').trim().toLowerCase() || null,
           phone,
@@ -376,6 +387,9 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
       } else {
         await updateMyProfile(profilePayload);
       }
+
+      invalidateMyProfileCache();
+      invalidateMyProfilesCache();
 
       setSuccess('Profile updated successfully.');
       onBack();
@@ -551,6 +565,15 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
             value={formData.city}
             onChange={(e) => handleChange('city', e.target.value)}
             error={fieldErrors.city}
+            className={inputTextClass}
+            disabled={loading}
+          />
+
+          <Input
+            placeholder="State"
+            value={formData.state}
+            onChange={(e) => handleChange('state', e.target.value)}
+            error={fieldErrors.state}
             className={inputTextClass}
             disabled={loading}
           />

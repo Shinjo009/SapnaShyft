@@ -57,4 +57,8 @@ export const invalidateMyProfileCache = () => {
   myProfileInFlight = null;
 };
 
-export const updateMyProfile = (payload) => authorizedProfileRequest('/users/me', 'PUT', payload);
+export const updateMyProfile = async (payload) => {
+  const result = await authorizedProfileRequest('/users/me', 'PUT', payload);
+  invalidateMyProfileCache();
+  return result;
+};

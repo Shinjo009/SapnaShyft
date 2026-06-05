@@ -3,6 +3,7 @@ import { post } from './authService';
 import { SIGNUP_BEARER_TOKEN } from '../config/appConfig';
 import { authorizedRequest } from './apiClient';
 import { getAccessToken } from '../utils/authStorage';
+import { invalidateMyProfileCache } from './profileService';
 
 const MY_PROFILES_CACHE_TTL_MS = 30000;
 let myProfilesCache = null;
@@ -15,8 +16,18 @@ export const getMyPreferences = () =>
 export const updateMyPreferences = (preferences) =>
   authorizedUsersRequest('/users/me/preferences', 'PUT', preferences).then((response) => response?.data || response);
 
-export const submitSupportTicket = ({ contact_input, query_text }) =>
-  post('/support/tickets', { contact_input, query_text }).then((response) => response?.data || response);
+export const submitSupportTicket = ({ user_id, query_text }) => {
+  const parsedUserId = Number(user_id || 0);
+
+  if (!Number.isFinite(parsedUserId) || parsedUserId <= 0) {
+    throw new Error('Unable to submit support request. Please sign in again and try.');
+  }
+
+  return authorizedUsersRequest('/support/tickets', 'POST', {
+    user_id: parsedUserId,
+    query_text,
+  }).then((response) => response?.data || response);
+};
 
 const formatDate = (date) => date.toISOString().split('T')[0];
 
@@ -128,7 +139,7 @@ export const createMySubProfile = (formData) => {
   return authorizedUsersRequest('/users/me/profiles', 'POST', buildCreateSubProfilePayload(formData));
 };
 
-export const updateMySubProfile = (userId, payload) => {
+export const updateMySubProfile = async (userId, payload) => {
   const parsedUserId = Number(userId || 0);
 
   if (!Number.isFinite(parsedUserId) || parsedUserId <= 0) {
@@ -136,10 +147,10 @@ export const updateMySubProfile = (userId, payload) => {
   }
 
   const safePayload = payload && typeof payload === 'object' ? payload : {};
-  return authorizedUsersRequest('/users/me', 'PUT', {
-    ...safePayload,
-    user_id: parsedUserId,
-  });
+  const result = await authorizedUsersRequest(`/users/me/profiles/${parsedUserId}`, 'PUT', safePayload);
+  invalidateMyProfilesCache();
+  invalidateMyProfileCache();
+  return result;
 };
 
 export const unlinkMyProfile = (payload = {}) => {
