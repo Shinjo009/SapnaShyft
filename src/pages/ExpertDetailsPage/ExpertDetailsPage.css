@@ -1,31 +1,64 @@
 .expert-details-page {
+  position: relative;
+  isolation: isolate;
   width: 100%;
   min-height: 100%;
   box-sizing: border-box;
   overflow-y: auto;
-  padding: 56px 16px 130px;
+  padding: 0 16px 130px;
+  background-color: #000;
 }
 
-.expert-details-page__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.expert-details-page::before {
+  content: '';
+  position: fixed;
+  inset: -10px;
+  z-index: -1;
+  background-image: var(--supercare-page-bg);
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  filter: blur(10px);
+  pointer-events: none;
 }
 
-.expert-details-page__header-left {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 0;
+.expert-details-page__hero {
+  position: relative;
+  width: calc(100% + 32px);
+  margin: 0 -16px;
+  min-height: 400px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.expert-details-page__header-actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+.expert-details-page__hero-media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
-.expert-details-page__icon-btn {
+.expert-details-page__hero-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center center;
+}
+
+.expert-details-page__hero-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 30.06%, #000 99.91%);
+}
+
+.expert-details-page__hero-back {
+  position: absolute;
+  top: 48px;
+  left: 16px;
+  z-index: 3;
   width: 24px;
   height: 24px;
   border: 0;
@@ -33,20 +66,65 @@
   padding: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   cursor: pointer;
 }
 
-.expert-details-page__title {
-  margin: 0;
-  color: #fff;
-  font-family: Lato, sans-serif;
-  font-size: 20px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: normal;
-  letter-spacing: 0.1px;
+.expert-details-page__hero-bottom {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 80px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
 }
 
+.expert-details-page__session-badge {
+  display: flex;
+  padding: 6px 12px;
+  align-items: center;
+  gap: 6px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-sizing: border-box;
+}
+
+.expert-details-page__session-badge svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.expert-details-page__session-badge span {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.expert-details-page__plan-title {
+  margin: 0;
+  color: #fff;
+  text-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  font-family: Inter, sans-serif;
+  font-size: 36px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 39.6px;
+  letter-spacing: -0.5px;
+}
+
+/* Legacy identity block — still used by IntegratedHealthProgramPage */
 .expert-details-page__identity {
   margin-top: 20px;
   display: flex;
@@ -92,7 +170,7 @@
 .expert-details-page__category {
   margin: 0;
   color: #00e8c9;
-  font-family: "DM Sans", sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 11px;
   font-style: normal;
   font-weight: 600;
@@ -105,7 +183,7 @@
   margin: 4px 0 0;
   color: #fff;
   text-shadow: 0 0 15px rgba(0, 245, 212, 0.3);
-  font-family: "DM Sans", sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 30px;
   font-style: normal;
   font-weight: 700;
@@ -130,7 +208,7 @@
 
 .expert-details-page__rating-text {
   color: #4ade80;
-  font-family: "DM Sans", sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   font-style: normal;
   font-weight: 600;
@@ -143,7 +221,7 @@
 }
 
 .expert-details-page__stats {
-  margin-top: 16px;
+  margin-top: 20px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
@@ -154,9 +232,11 @@
   padding: 8px 12px;
   flex-direction: column;
   align-items: flex-start;
+  flex: 1 0 0;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
 }
 
 .expert-details-page__stat-label {
@@ -181,8 +261,9 @@
   line-height: 28px;
 }
 
-.expert-details-page__expertise {
-  margin-top: 16px;
+.expert-details-page__expertise,
+.expert-details-page__consultation-covers {
+  margin-top: 24px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -201,20 +282,19 @@
 }
 
 .expert-details-page__pills {
-  display: flex;
-  align-items: center;
-  align-content: center;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   align-self: stretch;
-  flex-wrap: wrap;
 }
 
 .expert-details-page__pill {
   display: flex;
+  width: 100%;
   height: 34px;
   padding: 8px 16px;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   border-radius: 9999px;
   border: 1px solid rgba(144, 223, 158, 0.1);
@@ -226,6 +306,7 @@
   font-style: normal;
   font-weight: 400;
   line-height: 16px;
+  box-sizing: border-box;
 }
 
 .expert-details-page__about {
@@ -432,13 +513,12 @@
 
 .expert-details-page__fee-label {
   margin: 0;
-  color: #c4c4c4;
-  font-family: Sora, sans-serif;
-  font-size: 10px;
+  color: #999;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
-  letter-spacing: 0.25px;
 }
 
 .expert-details-page__fee-row {
@@ -449,29 +529,29 @@
 
 .expert-details-page__fee-now {
   color: #fff;
-  font-family: "DM Sans", sans-serif;
-  font-size: 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 20px;
   font-style: normal;
-  font-weight: 600;
+  font-weight: 700;
   line-height: normal;
 }
 
 .expert-details-page__fee-old {
-  color: #c4c4c4;
-  font-family: "DM Sans", sans-serif;
-  font-size: 10px;
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
   font-style: normal;
-  font-weight: 300;
+  font-weight: 400;
   line-height: normal;
   text-decoration: line-through;
 }
 
 .expert-details-page__fee-off {
-  color: #fff;
-  font-family: "DM Sans", sans-serif;
+  color: #ccc;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px;
   font-style: normal;
-  font-weight: 500;
+  font-weight: 600;
   line-height: normal;
 }
 

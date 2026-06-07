@@ -1,0 +1,221 @@
+.supercare-plan-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  align-self: stretch;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #1a2220;
+  box-shadow:
+    0 24px 48px 0 rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 12px 40px 0 rgba(87, 139, 120, 0.15);
+  overflow: hidden;
+}
+
+.supercare-plan-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #000 74.65%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.supercare-plan-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+.supercare-plan-card__hero {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 320 / 207;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.supercare-plan-card__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center center;
+  pointer-events: none;
+}
+
+.supercare-plan-card__copy {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 12px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  align-self: stretch;
+}
+
+.supercare-plan-card__title {
+  margin: 0;
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.supercare-plan-card__subtitle {
+  margin: 0;
+  color: #999;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 200;
+  line-height: normal;
+}
+
+.supercare-plan-card__metrics {
+  display: flex;
+  padding: 8px 0;
+  justify-content: space-between;
+  align-items: center;
+  align-self: stretch;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.supercare-plan-card__metric {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  flex: 1 0 0;
+  min-width: 0;
+}
+
+.supercare-plan-card__metric-value {
+  color: #90df9e;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.supercare-plan-card__metric-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 300;
+  line-height: normal;
+}
+
+.supercare-plan-card__metric-separator {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.supercare-plan-card__price-row {
+  display: flex;
+  padding: 8px 16px;
+  justify-content: space-between;
+  align-items: center;
+  align-self: stretch;
+  margin: 12px 16px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+}
+
+.supercare-plan-card__price-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.supercare-plan-card__price-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.supercare-plan-card__price-now {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+}
+
+.supercare-plan-card__price-old {
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  text-decoration-line: line-through;
+}
+
+.supercare-plan-card__off-pill {
+  display: flex;
+  padding: 2px 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  border-radius: 4px;
+  background: rgba(220, 252, 231, 0.05);
+  color: #ccc;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.supercare-plan-card__cta {
+  display: flex;
+  width: 88px;
+  height: 31px;
+  padding: 0;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  border-radius: 36px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.24px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.supercare-plan-card__cta:active {
+  opacity: 0.92;
+}
