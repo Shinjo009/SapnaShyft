@@ -393,6 +393,8 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     return unit ? `${range} ${unit}` : range;
   };
 
+  const WAIST_COLOR_TIER_INCHES = 2;
+
   const getFitnessIdealBandStatus = (value, idealBand) => {
     const v = Number(value);
     const lo = Number(idealBand?.low);
@@ -403,19 +405,18 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     if (v >= lo && v <= hi) {
       return buildMetricStatus({ severity: 'within' });
     }
-    const span = Math.max(hi - lo, 1e-6);
-    if (v < lo) {
-      const delta = lo - v;
-      const ratio = delta / span;
-      if (ratio >= 0.35 || delta >= span * 0.5) return buildMetricStatus({ direction: 'down', severity: 'red' });
-      if (ratio >= 0.15) return buildMetricStatus({ direction: 'down', severity: 'orange' });
-      return buildMetricStatus({ direction: 'down', severity: 'yellow' });
+
+    const inchesOutside = v < lo ? lo - v : v - hi;
+    const direction = v < lo ? 'down' : 'up';
+    const tier = WAIST_COLOR_TIER_INCHES;
+
+    if (inchesOutside <= tier) {
+      return buildMetricStatus({ direction, severity: 'yellow' });
     }
-    const delta = v - hi;
-    const ratio = delta / span;
-    if (ratio >= 0.35 || delta >= span * 0.5) return buildMetricStatus({ direction: 'up', severity: 'red' });
-    if (ratio >= 0.15) return buildMetricStatus({ direction: 'up', severity: 'orange' });
-    return buildMetricStatus({ direction: 'up', severity: 'yellow' });
+    if (inchesOutside <= tier * 2) {
+      return buildMetricStatus({ direction, severity: 'orange' });
+    }
+    return buildMetricStatus({ direction, severity: 'red' });
   };
 
   const getFitnessBloodPressureStatus = (fit) => {
@@ -627,6 +628,7 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
               <CircularProgressCard
                 percentage={scoreByTab[activeTab]}
                 label={tabTitles[activeTab]}
+                noRingOvershoot
               />
             </div>
           </div>

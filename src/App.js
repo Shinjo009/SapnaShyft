@@ -10,7 +10,7 @@ import {
   SUPERCLUB_V1_SCREENS_ENABLED,
 } from './utils/superclubPlaylistLock';
 import { sendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
-import { createUser, getMyProfiles, invalidateMyProfilesCache } from './services/usersService';
+import { createUser, getMyProfiles, invalidateMyProfilesCache, saveSuperclubMcqPreferences } from './services/usersService';
 import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
 import {
   loadQuestionnaireContext,
@@ -1918,6 +1918,7 @@ function App() {
             const p = payload || {};
             persistSuperclubPlaylistLock(p);
             setSuperclubPlaylistPayload(p);
+            saveSuperclubMcqPreferences(p).catch(() => {});
             setCurrentPage('super-club-playlist-confirm');
           }}
         />

@@ -8,7 +8,7 @@ import './CircularProgressCard.css';
  * - percentage: The percentage value to display (e.g., 75)
  * - label: Label text below the card (e.g., "Lifestyle score")
  */
-const CircularProgressCard = ({ percentage = null, label = 'Score', onClick }) => {
+const CircularProgressCard = ({ percentage = null, label = 'Score', onClick, noRingOvershoot = false }) => {
   // SVG circle properties - stroke-based progress ring
   const RADIUS = 40; // Circle radius for 82px outer diameter with 2px stroke
   const CIRCUMFERENCE = useMemo(() => 2 * Math.PI * RADIUS, []);
@@ -80,7 +80,9 @@ const CircularProgressCard = ({ percentage = null, label = 'Score', onClick }) =
           strokeDasharray={`${strokeDasharray} ${CIRCUMFERENCE}`}
           strokeLinecap="round"
           style={{
-            transition: 'stroke-dasharray 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: noRingOvershoot
+              ? 'stroke-dasharray 1.2s ease-out'
+              : 'stroke-dasharray 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
             transform: 'rotate(-90deg)',
             transformOrigin: '42.5px 42.5px'
           }}
