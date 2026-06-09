@@ -69,9 +69,6 @@ import {
   readSuperclubPlaylistLock,
   resolvePageWithSuperclubLock,
 } from './utils/superclubPlaylistLock';
-// Same asset as Profile logout modal (`/public/BG-1.png`).
-const questionnaireSuccessModalBg = `${process.env.PUBLIC_URL || ''}/BG-1.png`;
-
 // Route-level code splitting: every non-entry page loads its own JS/CSS chunk on demand.
 // Splash + Login stay eager because they're the first paint; everything else is deferred
 // so the initial main bundle stays small (~172 KiB of unused JS audit finding).
@@ -2456,11 +2453,6 @@ function App() {
         >
           <div
             className="questionnaire-success-modal"
-            style={{
-              backgroundImage: `url(${questionnaireSuccessModalBg})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
             onClick={(e) => e.stopPropagation()}
           >
             <button

@@ -20,11 +20,6 @@ import { clearAuthTokens, extractTokensFromResponse, saveAuthTokens } from '../.
 import { isSessionAuthError, logAuthError } from '../../utils/sessionAuth';
 import { formatProfileAddressDisplay } from '../../utils/profileAddress';
 
-// BG-1.png lives under /public/ (stable URL, no content hash) so index.html
-// can preload it for faster LCP on the very first paint. Reference it by
-// absolute path here instead of an import so we reuse the same cached asset.
-const bgImage1 = `${process.env.PUBLIC_URL || ''}/BG-1.png`;
-
 /**
  * ProfilePage - User profile management screen
  */
@@ -537,7 +532,6 @@ const ProfilePage = ({
           <div
             className="profile-page__delete-modal"
             onClick={(e) => e.stopPropagation()}
-            style={{ backgroundImage: `url(${bgImage1})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
           >
             <button
               className="profile-page__modal-close"

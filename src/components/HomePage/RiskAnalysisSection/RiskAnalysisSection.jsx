@@ -9,6 +9,7 @@ import {
 } from '../../../utils/bloodParametersReportNormalize';
 import ObesityIcon from '../../../images/Obesity-RA.svg';
 import { formatOrdinal } from '../../../utils/formatOrdinal';
+import { orderHomeBloodMarkersByHierarchy } from '../../../utils/homeBloodMarkerOrder';
 import ThyroidHealthIcon from '../../../images/Thyroid-RA.svg';
 import NAFLDIcon from '../../../images/NAFLD-RA.svg';
 import Type2Icon from '../../../images/Type2-RA.svg';
@@ -317,19 +318,6 @@ export const buildHomeBloodMarkersFromBloodParametersResponse = (response, asses
   return buildBloodMarkersFromGroups(groups);
 };
 
-const orderByHierarchy = (markers) => {
-  const source = Array.isArray(markers) ? markers : [];
-  const high = source.filter((item) => item.riskKey === 'high');
-  const low = source.filter((item) => item.riskKey === 'low');
-  const optimal = source.filter((item) => item.riskKey === 'optimal');
-
-  if (high.length === 0 && low.length === 0) {
-    return optimal;
-  }
-
-  return [...high, ...low, ...optimal];
-};
-
 const STACK_FRONT_X_PX = -14;
 const STACK_FRONT_Y_PX = 0;
 
@@ -397,7 +385,7 @@ const RiskAnalysisSection = ({
       };
     });
 
-    return orderByHierarchy(normalized).slice(0, 3);
+    return orderHomeBloodMarkersByHierarchy(normalized).slice(0, 3);
   }, [apiBloodMarkers]);
   const cardCount = stackCards.length;
   const [activeIndex, setActiveIndex] = useState(0);

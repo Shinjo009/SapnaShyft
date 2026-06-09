@@ -19,8 +19,6 @@ import waistGif from '../../images/waist-gif.gif';
 import hipGif from '../../images/hip-gif.gif';
 import './HealthAssessmentPage.css';
 
-const questionnaireSuccessModalBg = `${process.env.PUBLIC_URL || ''}/BG-1.png`;
-
 const AnthropometryTriangleArrow = ({ direction = 'right' }) => {
   const rotation = direction === 'left' ? '180deg' : direction === 'up' ? '-90deg' : direction === 'down' ? '90deg' : '0deg';
   return (
@@ -323,6 +321,37 @@ const prioritizeHeightUnitOptions = (options = []) => {
   return prioritized;
 };
 
+const prioritizeCircumferenceUnitOptions = (options = []) => {
+  const normalizedOptions = Array.isArray(options) ? options.filter(Boolean) : [];
+  if (normalizedOptions.length === 0) {
+    return ['In', 'cm'];
+  }
+
+  const inchOption = normalizedOptions.find((option) => isInchUnit(option));
+  const cmOption = normalizedOptions.find((option) => isCentimeterUnit(option));
+  const prioritized = [];
+
+  if (inchOption) {
+    prioritized.push(inchOption);
+  } else {
+    prioritized.push('In');
+  }
+
+  if (cmOption) {
+    prioritized.push(cmOption);
+  } else {
+    prioritized.push('cm');
+  }
+
+  for (const option of normalizedOptions) {
+    if (!prioritized.some((existing) => normalizeUnitToken(existing) === normalizeUnitToken(option))) {
+      prioritized.push(option);
+    }
+  }
+
+  return prioritized;
+};
+
 const parseInitialAnthropometryWeight = (raw) => {
   if (raw == null || raw === '') {
     return null;
@@ -385,7 +414,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
     [weightQuestionConfig]
   );
   const waistUnitOptions = useMemo(
-    () => extractUnitOptionsFromQuestion(waistQuestionConfig),
+    () => prioritizeCircumferenceUnitOptions(extractUnitOptionsFromQuestion(waistQuestionConfig)),
     [waistQuestionConfig]
   );
 
@@ -947,7 +976,7 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
     [questions]
   );
   const hipUnitOptions = useMemo(
-    () => extractUnitOptionsFromQuestion(hipQuestionConfig),
+    () => prioritizeCircumferenceUnitOptions(extractUnitOptionsFromQuestion(hipQuestionConfig)),
     [hipQuestionConfig]
   );
 
@@ -4611,17 +4640,10 @@ const EmbeddedVitalsPage = ({ onBack, onDone, questions = [], initialValues = {}
 
       {showSubmitPopup ? (
         <div className="vitals-page__confirm-overlay" role="dialog" aria-label="Confirm questionnaire submit">
-          <div
-            className="vitals-page__confirm-popup"
-            style={{
-              backgroundImage: `url(${questionnaireSuccessModalBg})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          >
+          <div className="vitals-page__confirm-popup">
             <h2 className="vitals-page__confirm-title">Submit Health Assessment?</h2>
             <p className="vitals-page__confirm-text">
-              You can edit this in Profile section.
+              You cannot make changes later.
             </p>
             <div className="vitals-page__confirm-actions">
               <button
