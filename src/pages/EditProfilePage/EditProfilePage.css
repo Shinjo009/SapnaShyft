@@ -106,7 +106,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(0px + env(safe-area-inset-bottom, 0px));
 }
 
 .edit-profile-page__name-row {
@@ -170,6 +170,12 @@
 }
 
 .edit-profile-page__choice:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.edit-profile-page__form input:disabled,
+.edit-profile-page__form input:read-only {
   opacity: 0.7;
   cursor: not-allowed;
 }

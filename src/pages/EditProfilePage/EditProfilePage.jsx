@@ -238,6 +238,15 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
   const [isSubProfileEdit, setIsSubProfileEdit] = useState(false);
   const [activeProfileUserId, setActiveProfileUserId] = useState(null);
   const [activeRelationship, setActiveRelationship] = useState('');
+  const [lockedProfileFields, setLockedProfileFields] = useState({
+    email: '',
+    gender: '',
+    phone: '',
+  });
+
+  const isPhoneEditable = isSubProfileEdit;
+  const isEmailEditable = false;
+  const isGenderEditable = false;
 
   useEffect(() => {
     let mounted = true;
@@ -289,6 +298,11 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
           state: profileToEdit?.state || '',
           pincode: address.pincode,
           organization_name: profileToEdit?.referred_by || '',
+          phone: profileToEdit?.phone || '',
+        });
+        setLockedProfileFields({
+          email: profileToEdit?.email || '',
+          gender: (profileToEdit?.gender || '').toLowerCase(),
           phone: profileToEdit?.phone || '',
         });
         const primaryUserId = Number(profile?.user_id || profile?.id || 0);
@@ -352,15 +366,18 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
 
       const age = Number.parseInt(formData.age, 10);
       const address = buildAddressString(formData);
-      const phone = formData.phone.trim() || null;
+      const email = lockedProfileFields.email.trim() || null;
+      const gender = lockedProfileFields.gender.trim() || null;
+      const phoneSource = isPhoneEditable ? formData.phone : lockedProfileFields.phone;
+      const phone = String(phoneSource || '').trim() || null;
 
       const dateOfBirth = getDateOfBirthFromAge(formData.age);
       const profilePayload = {
         age,
         first_name: formData.first_name.trim() || null,
         last_name: formData.last_name.trim() || null,
-        email: formData.email.trim() || null,
-        gender: formData.gender.trim() || null,
+        email,
+        gender,
         address,
         city: formData.city.trim() || null,
         state: formData.state.trim() || null,
@@ -375,10 +392,10 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
           first_name: formData.first_name.trim() || null,
           last_name: formData.last_name.trim() || null,
           date_of_birth: dateOfBirth,
-          gender: formData.gender.trim() || null,
+          gender,
           relationship: String(activeRelationship || '').trim().toLowerCase() || null,
           phone,
-          email: formData.email.trim() || null,
+          email,
           city: formData.city.trim() || null,
           address,
         };
@@ -479,7 +496,7 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
                     type="button"
                     className={`edit-profile-page__choice ${isSelected ? 'edit-profile-page__choice--selected' : ''}`}
                     onClick={() => handleChange('gender', option.value)}
-                    disabled={loading}
+                    disabled={loading || !isGenderEditable}
                   >
                     <span className="edit-profile-page__gender-icon" aria-hidden="true">
                       {option.value === 'male' ? <MaleIcon active={isSelected} /> : <FemaleIcon active={isSelected} />}
@@ -503,7 +520,8 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
             onChange={(e) => handleChange('email', e.target.value)}
             error={fieldErrors.email}
             className={inputTextClass}
-            disabled={loading}
+            disabled={loading || !isEmailEditable}
+            readOnly={!isEmailEditable}
           />
 
           <Input
@@ -514,7 +532,8 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
             error={fieldErrors.phone}
             maxLength={10}
             className={inputTextClass}
-            disabled={loading}
+            disabled={loading || !isPhoneEditable}
+            readOnly={!isPhoneEditable}
           />
 
           <Input

@@ -2533,22 +2533,23 @@ const buildAnthropometryResponses = (questions = [], primaryValues = {}, followu
     .filter(Boolean);
 };
 
+const DEFAULT_SYSTOLIC_BP = 120;
+const DEFAULT_DIASTOLIC_BP = 80;
+
 const buildVitalsResponses = (questions = [], values = {}) => {
   const fieldMap = [
-    { aliases: ['systolic_blood_pressure', 'systolic'], value: values.systolic },
-    { aliases: ['diastolic_blood_pressure', 'diastolic'], value: values.diastolic },
+    {
+      aliases: ['systolic_blood_pressure', 'systolic'],
+      value: normalizeStoredVitalReading(values.systolic) ?? DEFAULT_SYSTOLIC_BP,
+    },
+    {
+      aliases: ['diastolic_blood_pressure', 'diastolic'],
+      value: normalizeStoredVitalReading(values.diastolic) ?? DEFAULT_DIASTOLIC_BP,
+    },
   ];
 
   return fieldMap
     .map(({ aliases, value }) => {
-      if (value == null || value === '') {
-        return null;
-      }
-      const n = Number(value);
-      if (!Number.isFinite(n) || n <= 0) {
-        return null;
-      }
-
       const question = findQuestionByKeys(questions, aliases);
       if (!question) {
         return null;

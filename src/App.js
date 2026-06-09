@@ -2303,13 +2303,6 @@ function App() {
             console.log('Navigate to Nutrition');
             setCurrentPage('nutrition');
           }}
-          onOpenHealthAssessment={() => {
-            console.log('Navigate to Health Assessment');
-            setIsB2bQuestionnaireFlow(false);
-            setHealthAssessmentBackPage('profile');
-            setCurrentPage('health-assessment');
-            initializeQuestionnaire();
-          }}
           onOpenCustomerSupport={() => {
             console.log('Navigate to Customer Support');
             setCurrentPage('customer-support');

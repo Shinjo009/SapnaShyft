@@ -740,11 +740,11 @@
 .anthropometry-page__weight-dial-input {
   position: absolute;
   inset: 0;
-  opacity: 0;
   width: 100%;
   height: 100%;
   cursor: text;
-  color: #fff;
+  color: transparent;
+  caret-color: #fff;
   text-align: center;
   font-family: "DM Sans", sans-serif;
   font-size: 24px !important;
