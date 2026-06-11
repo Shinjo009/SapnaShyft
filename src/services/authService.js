@@ -65,9 +65,16 @@ export const post = async (path, payload, extraHeaders = {}) => {
   return parsedBody;
 };
 
-export const sendOtp = (phone) => post('/auth/send-otp', { phone });
+const normalizePhoneDigits = (phone) => String(phone || '').replace(/\D/g, '');
 
-export const verifyOtp = ({ phone, otp }) => post('/auth/verify-otp', { phone, otp });
+export const sendOtp = (phone) => post('/auth/send-otp', { phone: normalizePhoneDigits(phone) });
+
+export const resendOtp = (phone) => post('/auth/resend-otp', { phone: normalizePhoneDigits(phone) });
+
+export const verifyOtp = ({ phone, otp }) => post('/auth/verify-otp', {
+  phone: normalizePhoneDigits(phone),
+  otp: String(otp || '').trim(),
+});
 
 export const refreshToken = (refreshTokenValue) => {
   if (!refreshTokenValue || !String(refreshTokenValue).trim()) {

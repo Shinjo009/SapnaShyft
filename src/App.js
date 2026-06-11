@@ -9,7 +9,7 @@ import {
   SUPERCLUB_PLAYLIST_FLOW_DEV_UNLOCK,
   SUPERCLUB_V1_SCREENS_ENABLED,
 } from './utils/superclubPlaylistLock';
-import { sendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
+import { sendOtp, resendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
 import { createUser, getMyProfiles, invalidateMyProfilesCache, saveSuperclubMcqPreferences } from './services/usersService';
 import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
 import {
@@ -1400,6 +1400,11 @@ function App() {
     setCurrentPage('otp');
   };
 
+  const handleResendOtp = async (phone) => {
+    await resendOtp(phone);
+    setPhoneNumber(phone);
+  };
+
   const handleSignup = async (formData) => {
     try {
       sessionStorage.setItem(PACKAGE_ONBOARDING_NEW_USER_SESSION_KEY, '1');
@@ -1807,7 +1812,7 @@ function App() {
         <OTPPage 
           phoneNumber={phoneNumber}
           onVerifyOtp={handleVerifyOtp}
-          onResendOtp={handleSendOtp}
+          onResendOtp={handleResendOtp}
           onBack={() => setCurrentPage('login')}
         />
       )}
