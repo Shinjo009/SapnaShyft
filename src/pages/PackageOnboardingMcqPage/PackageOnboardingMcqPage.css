@@ -295,6 +295,7 @@
   padding: 4px 10px;
   justify-content: center;
   align-items: center;
+  gap: 8px;
   border-radius: 24px;
   border: 0.5px solid rgba(160, 170, 176, 0.5);
   background: transparent;
@@ -321,6 +322,12 @@
 
 .package-onboarding-mcq__chip--selected span {
   font-weight: 600;
+}
+
+.package-onboarding-mcq__tick {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
 .package-onboarding-mcq__chips--mixed .package-onboarding-mcq__chip span {

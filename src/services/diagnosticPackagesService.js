@@ -1,4 +1,44 @@
 import { authorizedRequest } from './apiClient';
+import { getAccessToken } from '../utils/authStorage';
+import { packageHasFastingData, packageHasReportDuration } from '../utils/diagnosticPackageCardMapper';
+
+const PACKAGES_CACHE_TTL_MS = 120000;
+const PACKAGES_LIST_CACHE_VERSION = 2;
+
+let packagesListCache = null;
+let packagesListInFlight = null;
+let filterChipsCache = null;
+let filterChipsInFlight = null;
+
+const getCacheToken = () => getAccessToken() || '__anonymous__';
+
+export const getCachedDiagnosticPackagesList = () => {
+  const token = getCacheToken();
+  if (packagesListCache
+    && packagesListCache.token === token
+    && packagesListCache.version === PACKAGES_LIST_CACHE_VERSION
+    && packagesListCache.expiresAt > Date.now()) {
+    return packagesListCache.value;
+  }
+  return null;
+};
+
+export const getCachedDiagnosticPackageFilterChips = () => {
+  const token = getCacheToken();
+  if (filterChipsCache
+    && filterChipsCache.token === token
+    && filterChipsCache.expiresAt > Date.now()) {
+    return filterChipsCache.value;
+  }
+  return null;
+};
+
+export const invalidateDiagnosticPackagesCache = () => {
+  packagesListCache = null;
+  packagesListInFlight = null;
+  filterChipsCache = null;
+  filterChipsInFlight = null;
+};
 
 const authorizedGet = async (path) => {
   return authorizedRequest(path, {
@@ -26,7 +66,7 @@ const extractListPayload = (response) => {
   return [];
 };
 
-export const listDiagnosticPackages = async (_payload, options = {}) => {
+const fetchDiagnosticPackagesList = async (_payload, options = {}) => {
   const query = {
     gender: options?.gender ?? _payload?.gender,
     tag: options?.tag ?? _payload?.tag,
@@ -51,6 +91,67 @@ export const listDiagnosticPackages = async (_payload, options = {}) => {
   return extractListPayload(response);
 };
 
+export const listDiagnosticPackages = fetchDiagnosticPackagesList;
+
+export const listDiagnosticPackagesCached = async (_payload, options = {}) => {
+  const hasQueryFilters = Boolean(
+    options?.gender
+    || options?.tag
+    || options?.filterChip
+    || options?.filter_chip
+    || options?.type
+    || options?.includeInactive
+    || options?.include_inactive
+    || options?.packageFor
+    || options?.package_for
+    || _payload?.gender
+    || _payload?.tag
+    || _payload?.filterChip
+    || _payload?.filter_chip
+  );
+
+  if (hasQueryFilters) {
+    return fetchDiagnosticPackagesList(_payload, options);
+  }
+
+  const forceRefresh = Boolean(options?.forceRefresh);
+  const token = getCacheToken();
+
+  if (!forceRefresh
+    && packagesListCache
+    && packagesListCache.token === token
+    && packagesListCache.version === PACKAGES_LIST_CACHE_VERSION
+    && packagesListCache.expiresAt > Date.now()) {
+    return packagesListCache.value;
+  }
+
+  if (!forceRefresh
+    && packagesListInFlight
+    && packagesListInFlight.token === token) {
+    return packagesListInFlight.promise;
+  }
+
+  const promise = fetchDiagnosticPackagesList(_payload, options)
+    .then((rows) => enrichPackagesWithDetailFields(rows))
+    .then((value) => {
+      packagesListCache = {
+        token,
+        value,
+        version: PACKAGES_LIST_CACHE_VERSION,
+        expiresAt: Date.now() + PACKAGES_CACHE_TTL_MS,
+      };
+      return value;
+    })
+    .finally(() => {
+      if (packagesListInFlight?.token === token) {
+        packagesListInFlight = null;
+      }
+    });
+
+  packagesListInFlight = { token, promise };
+  return promise;
+};
+
 export const listDiagnosticPackageFilterChips = async (_payload, options) => {
   const requestedChipFor = String(
     options?.chipFor
@@ -65,10 +166,83 @@ export const listDiagnosticPackageFilterChips = async (_payload, options) => {
   return extractListPayload(response);
 };
 
-export const listPublicDiagnosticPackageFilterChips = async (_payload) => {
+const fetchPublicDiagnosticPackageFilterChips = async () => {
   const response = await authorizedGet('/diagnostic-packages/filters-chips');
 
   return extractListPayload(response);
+};
+
+export const listPublicDiagnosticPackageFilterChips = fetchPublicDiagnosticPackageFilterChips;
+
+export const listPublicDiagnosticPackageFilterChipsCached = async ({ forceRefresh = false } = {}) => {
+  const token = getCacheToken();
+
+  if (!forceRefresh
+    && filterChipsCache
+    && filterChipsCache.token === token
+    && filterChipsCache.expiresAt > Date.now()) {
+    return filterChipsCache.value;
+  }
+
+  if (!forceRefresh
+    && filterChipsInFlight
+    && filterChipsInFlight.token === token) {
+    return filterChipsInFlight.promise;
+  }
+
+  const promise = fetchPublicDiagnosticPackageFilterChips()
+    .then((value) => {
+      filterChipsCache = {
+        token,
+        value,
+        expiresAt: Date.now() + PACKAGES_CACHE_TTL_MS,
+      };
+      return value;
+    })
+    .finally(() => {
+      if (filterChipsInFlight?.token === token) {
+        filterChipsInFlight = null;
+      }
+    });
+
+  filterChipsInFlight = { token, promise };
+  return promise;
+};
+
+/** Warm packages list + filter chips while the Packages chunk loads (navbar hover / idle prefetch). */
+export const prefetchPackagesPageData = () => {
+  listDiagnosticPackagesCached().catch(() => {});
+  listPublicDiagnosticPackageFilterChipsCached().catch(() => {});
+};
+
+const enrichPackagesWithDetailFields = async (rows) => {
+  const list = Array.isArray(rows) ? rows : [];
+
+  return Promise.all(list.map(async (row) => {
+    const packageId = Number(row?.diagnostic_package_id);
+    if (!Number.isFinite(packageId) || packageId <= 0) {
+      return row;
+    }
+
+    if (packageHasReportDuration(row) && packageHasFastingData(row)) {
+      return row;
+    }
+
+    try {
+      const detail = await getDiagnosticPackageDetail(packageId);
+      if (!detail || typeof detail !== 'object') {
+        return row;
+      }
+
+      return {
+        ...row,
+        report_duration_hours: detail.report_duration_hours ?? row.report_duration_hours,
+        preparations: detail.preparations ?? row.preparations,
+      };
+    } catch {
+      return row;
+    }
+  }));
 };
 
 export const getDiagnosticPackageDetail = async (packageId, _payload) => {

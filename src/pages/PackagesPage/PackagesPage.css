@@ -64,14 +64,14 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 220px 12px 92px;
+  padding: 168px 12px 92px;
   box-sizing: border-box;
   touch-action: pan-y;
   overscroll-behavior-x: none;
 }
 
 .packages-page--search-open .packages-page__content {
-  padding-top: 260px;
+  padding-top: 208px;
 }
 
 .packages-page__header {
@@ -218,7 +218,7 @@
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 10px 12px 6px;
+  padding: 4px 12px 2px;
   scrollbar-width: none;
   touch-action: pan-x pinch-zoom;
   overscroll-behavior: contain;
@@ -270,10 +270,10 @@
 }
 
 .packages-page__cards {
-  margin-top: 1px;
+  margin-top: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .packages-card {
@@ -543,6 +543,450 @@
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.24px;
+  cursor: pointer;
+}
+
+/* Elite Performance Female face card (Figma 5331:6847) */
+.packages-card--elite-performance {
+  position: relative;
+  min-height: 374px;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #1a2220;
+  box-shadow:
+    0 24px 48px 0 rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 12px 40px 0 rgba(87, 139, 120, 0.15);
+  backdrop-filter: none;
+}
+
+.packages-card--elite-performance-female .packages-card__elite-photo {
+  inset: -147px -15px 102px -1px;
+}
+
+.packages-card--elite-performance-male .packages-card__elite-photo {
+  inset: -160px -21px 107px -1px;
+}
+
+/* Peak Performance face cards (Figma 5331:6903 male, 5331:7021 female) */
+.packages-card--peak-performance-male .packages-card__elite-photo {
+  inset: -38px -35px 152px -35px;
+}
+
+.packages-card--peak-performance-female .packages-card__elite-photo {
+  inset: -36px -42px 140px -42px;
+}
+
+.packages-card--peak-performance-female .packages-card__elite-title-row {
+  min-height: 24px;
+}
+
+/* C-Suite face cards (Figma 5331:6781 male, 5269:6827 female) */
+.packages-card--c-suite-male .packages-card__elite-photo,
+.packages-card--c-suite:not(.packages-card--c-suite-female) .packages-card__elite-photo {
+  inset: -54px -13px 20px -10px;
+}
+
+.packages-card--c-suite-female .packages-card__elite-photo {
+  inset: -19px -2px 11px 1px;
+}
+
+.packages-card__elite-badges--c-suite {
+  max-width: 100%;
+}
+
+/* Supershyft Core face cards (Figma 5316:13885 Core, 5316:13829 Core+) */
+.packages-card--supershyft-core .packages-card__elite-photo {
+  inset: -15px -31px 147px -11px;
+}
+
+.packages-card--supershyft-core-plus .packages-card__elite-photo {
+  inset: -53px -4px 141px -104px;
+}
+
+/* Menstrual Health face card (Figma 5269:8316) */
+.packages-card--menstrual-health .packages-card__elite-photo {
+  inset: -20px -1px 136px -1px;
+}
+
+/* OncoCare face cards (Figma 5269:6957 female, 5269:6889 male) */
+.packages-card--oncocare-female .packages-card__elite-photo {
+  inset: -59px -7px 71px -4px;
+}
+
+.packages-card--oncocare-male .packages-card__elite-photo {
+  inset: -60px -8px 70px -5px;
+}
+
+/* Hair Health face cards (Figma 5331:7080 female, 5249:13116 male) */
+.packages-card--hair-health-female .packages-card__elite-photo {
+  inset: -24px -10px 124px -12px;
+}
+
+.packages-card--hair-health-male .packages-card__elite-photo {
+  inset: -27px -1px 130px -1px;
+}
+
+/* Gen-Z face cards (Figma 5331:6723 male, 5323:14059 female) */
+.packages-card--gen-z-male .packages-card__elite-photo {
+  inset: -6px -11px 129px -45px;
+}
+
+.packages-card--gen-z-female .packages-card__elite-photo {
+  inset: -6px -28px 129px -28px;
+}
+
+/* Fatigue face card (Figma 5311:13532) */
+.packages-card--fatigue .packages-card__elite-photo {
+  inset: -83px -8px 87px -8px;
+}
+
+/* Sleep face card (Figma 5316:13771) */
+.packages-card--sleep .packages-card__elite-photo {
+  inset: -198px -27px 106px -3px;
+}
+
+/* Executive face cards (Figma 5269:7022 male, 5333:7139 female) */
+.packages-card--executive-male .packages-card__elite-photo {
+  inset: -434px -8px 108px -5px;
+}
+
+.packages-card--executive-female .packages-card__elite-photo {
+  inset: -152px -8px 110px -5px;
+}
+
+/* Bio-Allergy+ face card (Figma 5314:13652) */
+.packages-card--bio-allergy-plus .packages-card__elite-photo {
+  inset: -19px -65px 129px -98px;
+}
+
+.packages-card--elite-performance-male .packages-card__elite-title-row {
+  min-height: 24px;
+}
+
+.packages-card__elite-title-group {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.packages-card__elite-gender-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.packages-card__elite-photo {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.packages-card__elite-photo-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  max-width: none;
+  pointer-events: none;
+}
+
+/* Figma 5331:6849 — full-card overlay; transparent top, black from ~67% down */
+.packages-card__elite-gradient {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  pointer-events: none;
+}
+
+.packages-card__elite-promo {
+  position: absolute;
+  top: 13px;
+  left: -1px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 0 999px 999px 0;
+  background: rgba(65, 171, 153, 0.5);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+}
+
+.packages-card__elite-promo-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transform: scaleY(-1) rotate(180deg);
+}
+
+.packages-card__elite-promo-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.packages-card__elite-promo-label {
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.packages-card__elite-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: 387px;
+  width: 100%;
+  flex-direction: column;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.packages-card__elite-margin {
+  display: flex;
+  min-height: 357.38px;
+  width: 100%;
+  flex-direction: column;
+  justify-content: flex-end;
+  flex: 1;
+}
+
+.packages-card__elite-stack {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.packages-card__elite-header-wrap {
+  width: 100%;
+}
+
+.packages-card__elite-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 16px;
+  min-height: 198px;
+  width: 100%;
+}
+
+.packages-card__elite-badges {
+  display: flex;
+  align-items: flex-start;
+  align-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.packages-card__elite-badge {
+  display: inline-flex;
+  padding: 4px 8px;
+  align-items: center;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.packages-card__elite-title-row {
+  width: 100%;
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.packages-card__elite-title {
+  margin: 0;
+  color: #fff;
+  font-family: Lato, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.packages-card__elite-open-btn {
+  border: none;
+  background: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.packages-card__elite-open-btn img {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.packages-card__elite-metrics {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+}
+
+.packages-card__elite-metric {
+  flex: 1 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.packages-card__elite-metric-value {
+  color: #90df9e;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 17px;
+  white-space: nowrap;
+}
+
+.packages-card__elite-metric-label {
+  color: #9a9a9a;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 300;
+  line-height: normal;
+}
+
+.packages-card__elite-metric-separator {
+  width: 1px;
+  height: 36px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.packages-card__elite-footer {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+}
+
+.packages-card__elite-price-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  max-width: 138px;
+  min-width: 0;
+}
+
+.packages-card__elite-price-top {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+.packages-card__elite-price-now {
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.packages-card__elite-off-pill {
+  display: inline-flex;
+  margin-left: 0;
+  padding: 2px 6px;
+  align-items: center;
+  border-radius: 4px;
+  background: rgba(220, 252, 231, 0.05);
+  color: #ccc;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.packages-card__elite-price-old {
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+  text-decoration-line: line-through;
+}
+
+.packages-card__elite-view-btn {
+  display: flex;
+  width: 88px;
+  height: 31px;
+  padding: 0;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  border-radius: 36px;
+  border: 1px solid #969696;
+  background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
+  box-shadow: 0 12px 10px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
   line-height: normal;
   letter-spacing: 0.24px;
   cursor: pointer;

@@ -60,6 +60,17 @@ export default function NavBar2({ defaultActive = 'home', onNavigate }) {
     setActiveItem(defaultActive);
   }, [defaultActive]);
 
+  const handleItemIntent = useCallback(
+    (id) => {
+      const item = navItems.find((entry) => entry.id === id);
+      if (item?.locked) {
+        return;
+      }
+      prefetchRouteChunk(id);
+    },
+    [navItems],
+  );
+
   const handleItemClick = useCallback(
     (id) => {
       const clicked = navItems.find((item) => item.id === id);
@@ -95,6 +106,7 @@ export default function NavBar2({ defaultActive = 'home', onNavigate }) {
                 locked={Boolean(item.locked)}
                 isActive={activeItem === item.id}
                 onClick={handleItemClick}
+                onIntent={handleItemIntent}
               />
             ))}
           </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './PackageOnboardingMcqPage.css';
+import tickIcon from '../../images/ques-tick.svg';
 import {
   getConcernOptionsForGender,
   PERSONA_OPTIONS,
@@ -571,13 +572,18 @@ const PackageOnboardingMcqPage = ({
                 <div className={`package-onboarding-mcq__chips ${getChipsLayoutClass(activeCard.layout)}`}>
                   {activeCardVisibleOptions.map((option) => {
                     const selected = activeSelections.includes(option.label);
+                    const showTick = selected && activeCard.multi;
                     return (
                       <button
                         key={option.label}
                         type="button"
                         className={chipClass(option)}
                         onClick={() => handleChipClick(option.label)}
+                        aria-pressed={selected}
                       >
+                        {showTick ? (
+                          <img src={tickIcon} alt="" aria-hidden="true" className="package-onboarding-mcq__tick" />
+                        ) : null}
                         <span>{option.label}</span>
                       </button>
                     );

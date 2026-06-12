@@ -251,9 +251,16 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   const currentZone = RISK_ZONES[currentZoneIndex];
   const currentZoneColor = RISK_ZONES[currentZoneIndex].color;
   const healthRankColor = RISK_ZONES[healthRankZoneIndex].color;
-  const hasLifestyle = apiDetail?.lifestyle_contribution !== null && apiDetail?.lifestyle_contribution !== undefined;
-  const lifestyleTargetPercent = hasLifestyle ? toClampedScore(apiDetail?.lifestyle_contribution, 0) : 0;
-  const lifestyleBand = hasLifestyle ? lifestyleBandFromPercent(lifestyleTargetPercent) : '-';
+  const lifestyleContributionRaw = apiDetail?.lifestyle_contribution;
+  const hasLifestyle = apiDetail != null && lifestyleContributionRaw !== undefined;
+  const lifestyleTargetPercent = hasLifestyle
+    ? (lifestyleContributionRaw === null ? 0 : toClampedScore(lifestyleContributionRaw, 0))
+    : 0;
+  const lifestyleBand = !hasLifestyle
+    ? '-'
+    : lifestyleTargetPercent === 0
+      ? '0'
+      : lifestyleBandFromPercent(lifestyleTargetPercent);
   const healthRankLabel = hasHealthRank ? formatOrdinal(healthRankScore) : '-';
   const currentZoneDisplayColor = hasScore ? currentZoneColor : '#C4C4C4';
   const currentZoneLabel = hasScore ? currentZone.label : '-';

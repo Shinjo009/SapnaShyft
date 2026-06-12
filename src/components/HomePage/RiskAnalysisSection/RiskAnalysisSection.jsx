@@ -385,7 +385,7 @@ const RiskAnalysisSection = ({
       };
     });
 
-    return orderHomeBloodMarkersByHierarchy(normalized).slice(0, 3);
+    return orderHomeBloodMarkersByHierarchy(normalized, 3);
   }, [apiBloodMarkers]);
   const cardCount = stackCards.length;
   const [activeIndex, setActiveIndex] = useState(0);

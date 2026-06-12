@@ -3,54 +3,40 @@ const getProfileKey = (marker) => {
   return profile || 'general';
 };
 
+const RISK_TIER_ORDER = ['high', 'low', 'optimal'];
+
 /**
- * Round-robin high-risk markers across profiles so the home screen shows
- * one high from each profile first, then additional highs before any lower risk.
+ * Pick up to `limit` home blood markers: high risk first, then marginal/low, then optimal.
+ * Each profile/category (e.g. Liver) appears at most once.
  */
-export const orderHighMarkersByProfileDiversity = (highMarkers) => {
-  const source = Array.isArray(highMarkers) ? highMarkers : [];
-  if (source.length === 0) {
-    return [];
-  }
+export const orderHomeBloodMarkersByHierarchy = (markers, limit = 3) => {
+  const source = Array.isArray(markers) ? markers : [];
+  const safeLimit = Number.isFinite(Number(limit)) && Number(limit) > 0
+    ? Math.floor(Number(limit))
+    : 3;
 
-  const byProfile = new Map();
-  const profileOrder = [];
+  const picked = [];
+  const seenCategories = new Set();
 
-  source.forEach((marker) => {
-    const key = getProfileKey(marker);
-    if (!byProfile.has(key)) {
-      byProfile.set(key, []);
-      profileOrder.push(key);
+  RISK_TIER_ORDER.forEach((riskKey) => {
+    if (picked.length >= safeLimit) {
+      return;
     }
-    byProfile.get(key).push(marker);
+
+    source.forEach((marker) => {
+      if (picked.length >= safeLimit || marker?.riskKey !== riskKey) {
+        return;
+      }
+
+      const categoryKey = getProfileKey(marker);
+      if (seenCategories.has(categoryKey)) {
+        return;
+      }
+
+      seenCategories.add(categoryKey);
+      picked.push(marker);
+    });
   });
 
-  const ordered = [];
-  let hasMore = true;
-
-  while (hasMore) {
-    hasMore = false;
-    profileOrder.forEach((profileKey) => {
-      const queue = byProfile.get(profileKey);
-      if (queue.length > 0) {
-        ordered.push(queue.shift());
-        hasMore = true;
-      }
-    });
-  }
-
-  return ordered;
-};
-
-export const orderHomeBloodMarkersByHierarchy = (markers) => {
-  const source = Array.isArray(markers) ? markers : [];
-  const high = source.filter((item) => item.riskKey === 'high');
-  const low = source.filter((item) => item.riskKey === 'low');
-  const optimal = source.filter((item) => item.riskKey === 'optimal');
-
-  if (high.length === 0 && low.length === 0) {
-    return optimal;
-  }
-
-  return [...orderHighMarkersByProfileDiversity(high), ...low, ...optimal];
+  return picked;
 };

@@ -6,7 +6,7 @@ import './navbar2.css';
  * Aria-label always comes from the parent button.
  */
 const NavItem2 = forwardRef(function NavItem2(
-  { id, label, iconFilled, iconUnfilled, isActive, locked = false, onClick },
+  { id, label, iconFilled, iconUnfilled, isActive, locked = false, onClick, onIntent },
   ref
 ) {
   return (
@@ -17,6 +17,11 @@ const NavItem2 = forwardRef(function NavItem2(
       onClick={() => {
         if (!locked) {
           onClick(id);
+        }
+      }}
+      onPointerEnter={() => {
+        if (!locked) {
+          onIntent?.(id);
         }
       }}
       aria-label={locked ? `${label} (unavailable)` : label}

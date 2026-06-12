@@ -49,8 +49,8 @@ describe('lifestyleValueTone', () => {
   describe('physical activity', () => {
     it('maps questionnaire physical activity answers', () => {
       expect(getLifestyleValueTone('physical_activity', 'More than 60 minutes a day')).toBe('optimal');
-      expect(getLifestyleValueTone('physical_activity', '30-60 minutes a day')).toBe('stable');
-      expect(getLifestyleValueTone('physical_activity', 'Less than 30 minutes a day')).toBe('vulnerable');
+      expect(getLifestyleValueTone('physical_activity', '30-60 minutes a day')).toBe('optimal');
+      expect(getLifestyleValueTone('physical_activity', 'Less than 30 minutes a day')).toBe('stable');
       expect(getLifestyleValueTone('physical_activity', 'Rarely or never')).toBe('critical');
     });
   });

@@ -97,8 +97,8 @@ const getSmokeTone = (normalized) => {
 const getPhysicalActivityTone = (normalized) => {
   const PHYSICAL_ACTIVITY_TONE_BY_LABEL = {
     'more than 60 minutes a day': 'optimal',
-    '30-60 minutes a day': 'stable',
-    'less than 30 minutes a day': 'vulnerable',
+    '30-60 minutes a day': 'optimal',
+    'less than 30 minutes a day': 'stable',
     'rarely or never': 'critical',
   };
 
@@ -107,8 +107,8 @@ const getPhysicalActivityTone = (normalized) => {
   }
 
   if (/more than 60|>\s*60/.test(normalized)) return 'optimal';
-  if (/30-60|30 to 60/.test(normalized)) return 'stable';
-  if (/less than 30|<\s*30/.test(normalized)) return 'vulnerable';
+  if (/30-60|30 to 60/.test(normalized)) return 'optimal';
+  if (/less than 30|<\s*30/.test(normalized)) return 'stable';
   if (/rarely or never|never exercise|never work out/.test(normalized)) return 'critical';
 
   return 'neutral';

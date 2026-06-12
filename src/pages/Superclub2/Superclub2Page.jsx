@@ -6,13 +6,16 @@ import './Superclub2Page.css';
 import imgPaddle2 from '../../images/Superclub2/Paddle 2.svg';
 import imgCycling from '../../images/Superclub2/Cycling.svg';
 import imgRunning from '../../images/Superclub2/Running.svg';
-import imgBadminton from '../../images/Superclub2/Badminton.svg';
+import imgBadminton from '../../images/Superclub2/Badminton2.svg';
 import imgYoga from '../../images/Superclub2/Yoga2.svg';
 import imgPilates from '../../images/Superclub2/Pilates.svg';
 import imgGym from '../../images/Superclub2/Gym.svg';
 import imgFootball from '../../images/Superclub2/Football.svg';
-import imgCricket from '../../images/Superclub2/Cricket.svg';
+import imgCricket from '../../images/Superclub2/Cricket (1).svg';
 import imgMeditation from '../../images/Superclub2/Meditation.svg';
+import { preloadSuperclub2TileImages } from '../../utils/superclub2ImagePreload';
+
+preloadSuperclub2TileImages();
 
 /** One duplicated slab (half of the stacked track) scrolls by in this many ms. */
 const SUPERCLUB2_MARQUEE_LOOP_MS = 14000;

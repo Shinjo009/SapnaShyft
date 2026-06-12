@@ -2,10 +2,32 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, Suspense, laz
 import './PackagesPage.css';
 import NavBar from '../../components/NavBar';
 import PackageOnboardingMcqPage from '../PackageOnboardingMcqPage/PackageOnboardingMcqPage';
-import { listDiagnosticPackages, listPublicDiagnosticPackageFilterChips } from '../../services/diagnosticPackagesService';
+import ElitePerformancePackageCard, {
+  isElitePerformanceFemalePackage,
+  isElitePerformanceMalePackage,
+} from './ElitePerformancePackageCard';
+import PeakPerformancePackageCard, {
+  isPeakPerformanceFemalePackage,
+  isPeakPerformanceMalePackage,
+} from './PeakPerformancePackageCard';
+import CSuitePackageCard, { isCSuitePackage } from './CSuitePackageCard';
+import SupershyftCorePackageCard, { isSupershyftCoreFamilyPackage } from './SupershyftCorePackageCard';
+import MenstrualHealthPackageCard, { isMenstrualHealthPackage } from './MenstrualHealthPackageCard';
+import OncoCarePackageCard, { isOncoCarePackage } from './OncoCarePackageCard';
+import HairHealthPackageCard, { isHairHealthPackage } from './HairHealthPackageCard';
+import GenZPackageCard, { isGenZPackage } from './GenZPackageCard';
+import FatiguePackageCard, { isFatiguePackage } from './FatiguePackageCard';
+import SleepPackageCard, { isSleepPackage } from './SleepPackageCard';
+import ExecutivePackageCard, { isExecutivePackage } from './ExecutivePackageCard';
+import BioAllergyPlusPackageCard, { isBioAllergyPlusPackage } from './BioAllergyPlusPackageCard';
+import {
+  getCachedDiagnosticPackagesList,
+  getCachedDiagnosticPackageFilterChips,
+  listDiagnosticPackagesCached,
+  listPublicDiagnosticPackageFilterChipsCached,
+} from '../../services/diagnosticPackagesService';
 import { getMyProfileCached } from '../../services/profileService';
 import { getComplimentaryConsultationContent } from '../../utils/complimentaryConsultation';
-import { getAccessToken } from '../../utils/authStorage';
 import {
   buildConcernsFromMcq,
   computePackageRecommendations,
@@ -18,6 +40,11 @@ import {
   savePackageOnboardingResult,
   setPackageOnboardingEligible,
 } from '../../utils/packageRecommendationStorage';
+import { mapDiagnosticPackageToCard } from '../../utils/diagnosticPackageCardMapper';
+import {
+  PackageFaceCardMetrics,
+  PackageFaceCardPricing,
+} from './PackageFaceCard';
 
 // PatientSelectionOverlay is a large (~14 KiB) booking sheet that only renders when the user
 // taps "Book"; keep it out of the initial Packages bundle via React.lazy + Suspense.
@@ -51,8 +78,6 @@ const FOR_YOU_AGE_BANDS = [
     keywords: ['c-suite', 'c suite', 'csuite', 'executive', 'ddecor'],
   },
 ];
-
-const MISSING_VALUE = '-';
 
 const unwrapProfileResponse = (response) => (
   response?.data && typeof response.data === 'object' ? response.data : response
@@ -222,70 +247,6 @@ const getPackageFilterChips = (pkg) => {
   return unique;
 };
 
-const toDiscountText = (discountPercent, nowPrice, originalPrice) => {
-  if (Number(discountPercent) > 0) {
-    return `${Math.round(Number(discountPercent))}% OFF`;
-  }
-
-  if (Number(originalPrice) > Number(nowPrice) && Number(nowPrice) > 0) {
-    const computedPercent = Math.round(((Number(originalPrice) - Number(nowPrice)) / Number(originalPrice)) * 100);
-    if (computedPercent > 0) {
-      return `${computedPercent}% OFF`;
-    }
-  }
-
-  return MISSING_VALUE;
-};
-
-const mapDiagnosticPackageToCard = (pkg, index) => {
-  const resolvedNowPrice = Number(pkg?.price);
-  const resolvedOldPrice = Number(pkg?.original_price);
-  const now = Number.isFinite(resolvedNowPrice) && resolvedNowPrice > 0 ? resolvedNowPrice : null;
-  const old = Number.isFinite(resolvedOldPrice) && resolvedOldPrice > 0 ? resolvedOldPrice : null;
-  const filterChipBadges = getPackageFilterChips(pkg);
-
-  const badges = [
-    ...(pkg?.is_most_popular ? ['Most Popular'] : []),
-    ...filterChipBadges,
-  ];
-
-  const mappedTags = Array.isArray(pkg?.tags)
-    ? pkg.tags
-      .map((tag) => {
-        if (typeof tag === 'string' || typeof tag === 'number') {
-          return String(tag).trim();
-        }
-
-        if (tag && typeof tag === 'object') {
-          return String(tag.tag_name || tag.name || '').trim();
-        }
-
-        return '';
-      })
-      .filter(Boolean)
-      .slice(0, 4)
-    : [];
-
-  return {
-    id: Number(pkg?.diagnostic_package_id) || `package-${index}`,
-    theme: index % 2 === 0 ? 'teal' : 'pink',
-    badges: badges.length > 0 ? badges : [MISSING_VALUE],
-    title: String(pkg?.package_name || MISSING_VALUE),
-    chips: mappedTags.length > 0 ? mappedTags : [MISSING_VALUE],
-    metrics: {
-      parameters: pkg?.no_of_tests != null ? String(pkg.no_of_tests) : MISSING_VALUE,
-      reportsIn: '48-72 hrs',
-      fasting: '10-12 hrs',
-    },
-    pricing: {
-      now,
-      old,
-      off: toDiscountText(pkg?.discount_percent, now, old),
-    },
-    apiData: pkg,
-  };
-};
-
 const normalizeFilterChipRows = (rows) => {
   const source = Array.isArray(rows) ? rows : [];
 
@@ -385,15 +346,26 @@ const SearchIcon = ({ stroke = 'white' }) => (
   </svg>
 );
 
-const formatPrice = (value) => {
-  if (!Number.isFinite(Number(value)) || Number(value) <= 0) {
-    return MISSING_VALUE;
+const normalizeBadgeToken = (value) => String(value || '').trim().toLowerCase();
+
+const getInitialPackageCardsFromCache = () => {
+  const cached = getCachedDiagnosticPackagesList();
+  if (!cached) {
+    return [];
   }
 
-  return `₹${Number(value).toLocaleString('en-IN')}`;
+  return (Array.isArray(cached) ? cached : []).map(mapDiagnosticPackageToCard);
 };
 
-const normalizeBadgeToken = (value) => String(value || '').trim().toLowerCase();
+const getInitialFilterChipsFromCache = () => {
+  const cached = getCachedDiagnosticPackageFilterChips();
+  if (!cached) {
+    return [ALL_FILTER];
+  }
+
+  const normalized = normalizeFilterChipRows(cached);
+  return normalized.length > 0 ? normalized : [ALL_FILTER];
+};
 
 const PackagesPage = ({
   accountScopeId = null,
@@ -405,11 +377,11 @@ const PackagesPage = ({
   customPackageCard,
 }) => {
   const [activeFilterKey, setActiveFilterKey] = useState('all');
-  const [filterChips, setFilterChips] = useState([ALL_FILTER]);
+  const [filterChips, setFilterChips] = useState(getInitialFilterChipsFromCache);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
-  const [packageCardsFromApi, setPackageCardsFromApi] = useState([]);
+  const [packageCardsFromApi, setPackageCardsFromApi] = useState(getInitialPackageCardsFromCache);
   const [bookingPackage, setBookingPackage] = useState(null);
   const [forYouProfile, setForYouProfile] = useState(null);
   const [showPackageOnboarding, setShowPackageOnboarding] = useState(false);
@@ -426,54 +398,44 @@ const PackagesPage = ({
   useEffect(() => {
     let mounted = true;
 
-    const loadDiagnosticPackageCards = async () => {
-      try {
-        const rows = await listDiagnosticPackages();
+    const loadPageData = async () => {
+      const [packagesResult, chipsResult, profileResult] = await Promise.allSettled([
+        listDiagnosticPackagesCached(),
+        listPublicDiagnosticPackageFilterChipsCached(),
+        getMyProfileCached(),
+      ]);
 
-        if (!mounted) {
-          return;
-        }
+      if (!mounted) {
+        return;
+      }
 
+      if (packagesResult.status === 'fulfilled') {
+        const rows = packagesResult.value;
         const mappedRows = (Array.isArray(rows) ? rows : []).map(mapDiagnosticPackageToCard);
         setPackageCardsFromApi(mappedRows);
-      } catch {
-        if (mounted) {
-          setPackageCardsFromApi([]);
-        }
+      } else {
+        setPackageCardsFromApi((current) => (current.length > 0 ? current : []));
       }
-    };
 
-    loadDiagnosticPackageCards();
+      if (chipsResult.status === 'fulfilled') {
+        const normalized = normalizeFilterChipRows(chipsResult.value);
+        setFilterChips(normalized.length > 0 ? normalized : [ALL_FILTER]);
+      } else {
+        setFilterChips((current) => (current.length > 1 ? current : [ALL_FILTER]));
+      }
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadForYouProfile = async () => {
-      try {
-        const response = await getMyProfileCached();
-        const profile = unwrapProfileResponse(response);
-
-        if (!mounted) {
-          return;
-        }
-
+      if (profileResult.status === 'fulfilled') {
+        const profile = unwrapProfileResponse(profileResult.value);
         setForYouProfile({
           gender: normalizeProfileGender(profile),
           age: getAgeFromProfile(profile),
         });
-      } catch {
-        if (mounted) {
-          setForYouProfile({ gender: null, age: null });
-        }
+      } else {
+        setForYouProfile({ gender: null, age: null });
       }
     };
 
-    loadForYouProfile();
+    loadPageData();
 
     return () => {
       mounted = false;
@@ -583,33 +545,6 @@ const PackagesPage = ({
     packageCardsFromApi,
     resolveForYouChipKey,
   ]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadFilterChips = async () => {
-      try {
-        const rows = await listPublicDiagnosticPackageFilterChips({ accessToken: getAccessToken() });
-
-        if (!mounted) {
-          return;
-        }
-
-        const normalized = normalizeFilterChipRows(rows);
-        setFilterChips(normalized.length > 0 ? normalized : [ALL_FILTER]);
-      } catch {
-        if (mounted) {
-          setFilterChips([ALL_FILTER]);
-        }
-      }
-    };
-
-    loadFilterChips();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const sourceCards = useMemo(() => {
     return packageCardsFromApi;
@@ -872,7 +807,7 @@ const PackagesPage = ({
           />
         </div>
 
-        <section className="packages-page__custom-row" aria-label="Package search and custom package">
+        {/* <section className="packages-page__custom-row" aria-label="Package search and custom package">
           <button
             type="button"
             className="packages-page__custom-btn"
@@ -887,7 +822,7 @@ const PackagesPage = ({
             <span>Create Custom Package</span>
             <CustomPackageIcon />
           </button>
-        </section>
+        </section> */}
 
         <section className="packages-page__filters" aria-label="Package filters">
           {filterChips.map((filter) => {
@@ -914,7 +849,176 @@ const PackagesPage = ({
 
       <div className="packages-page__content" ref={contentScrollRef}>
         <section className="packages-page__cards" aria-label="Packages list">
-          {visibleCards.map((pkg) => (
+          {visibleCards.map((pkg) => {
+            if (isElitePerformanceFemalePackage(pkg) || isElitePerformanceMalePackage(pkg)) {
+              return (
+                <ElitePerformancePackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onOpenDetails={() => onOpenPackageDetails && onOpenPackageDetails(pkg)}
+                  onBook={() => {
+                    setBookingPackage(pkg);
+                    setIsPatientOverlayOpen(true);
+                  }}
+                />
+              );
+            }
+
+            if (isPeakPerformanceFemalePackage(pkg) || isPeakPerformanceMalePackage(pkg)) {
+              return (
+                <PeakPerformancePackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onOpenDetails={() => onOpenPackageDetails && onOpenPackageDetails(pkg)}
+                  onBook={() => {
+                    setBookingPackage(pkg);
+                    setIsPatientOverlayOpen(true);
+                  }}
+                />
+              );
+            }
+
+            if (isCSuitePackage(pkg)) {
+              return (
+                <CSuitePackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onOpenDetails={() => onOpenPackageDetails && onOpenPackageDetails(pkg)}
+                  onBook={() => {
+                    setBookingPackage(pkg);
+                    setIsPatientOverlayOpen(true);
+                  }}
+                />
+              );
+            }
+
+            if (isSupershyftCoreFamilyPackage(pkg)) {
+              return (
+                <SupershyftCorePackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onOpenDetails={() => onOpenPackageDetails && onOpenPackageDetails(pkg)}
+                  onBook={() => {
+                    setBookingPackage(pkg);
+                    setIsPatientOverlayOpen(true);
+                  }}
+                />
+              );
+            }
+
+            if (isMenstrualHealthPackage(pkg)) {
+              return (
+                <MenstrualHealthPackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onOpenDetails={() => onOpenPackageDetails && onOpenPackageDetails(pkg)}
+                  onBook={() => {
+                    setBookingPackage(pkg);
+                    setIsPatientOverlayOpen(true);
+                  }}
+                />
+              );
+            }
+
+            if (isOncoCarePackage(pkg)) {
+              return (
+                <OncoCarePackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onOpenDetails={() => onOpenPackageDetails && onOpenPackageDetails(pkg)}
+                  onBook={() => {
+                    setBookingPackage(pkg);
+                    setIsPatientOverlayOpen(true);
+                  }}
+                />
+              );
+            }
+
+            if (isHairHealthPackage(pkg)) {
+              return (
+                <HairHealthPackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onOpenDetails={() => onOpenPackageDetails && onOpenPackageDetails(pkg)}
+                  onBook={() => {
+                    setBookingPackage(pkg);
+                    setIsPatientOverlayOpen(true);
+                  }}
+                />
+              );
+            }
+
+            if (isGenZPackage(pkg)) {
+              return (
+                <GenZPackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onOpenDetails={() => onOpenPackageDetails && onOpenPackageDetails(pkg)}
+                  onBook={() => {
+                    setBookingPackage(pkg);
+                    setIsPatientOverlayOpen(true);
+                  }}
+                />
+              );
+            }
+
+            if (isFatiguePackage(pkg)) {
+              return (
+                <FatiguePackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onOpenDetails={() => onOpenPackageDetails && onOpenPackageDetails(pkg)}
+                  onBook={() => {
+                    setBookingPackage(pkg);
+                    setIsPatientOverlayOpen(true);
+                  }}
+                />
+              );
+            }
+
+            if (isSleepPackage(pkg)) {
+              return (
+                <SleepPackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onOpenDetails={() => onOpenPackageDetails && onOpenPackageDetails(pkg)}
+                  onBook={() => {
+                    setBookingPackage(pkg);
+                    setIsPatientOverlayOpen(true);
+                  }}
+                />
+              );
+            }
+
+            if (isExecutivePackage(pkg)) {
+              return (
+                <ExecutivePackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onOpenDetails={() => onOpenPackageDetails && onOpenPackageDetails(pkg)}
+                  onBook={() => {
+                    setBookingPackage(pkg);
+                    setIsPatientOverlayOpen(true);
+                  }}
+                />
+              );
+            }
+
+            if (isBioAllergyPlusPackage(pkg)) {
+              return (
+                <BioAllergyPlusPackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  onOpenDetails={() => onOpenPackageDetails && onOpenPackageDetails(pkg)}
+                  onBook={() => {
+                    setBookingPackage(pkg);
+                    setIsPatientOverlayOpen(true);
+                  }}
+                />
+              );
+            }
+
+            return (
             <article
               key={pkg.id}
               className={`packages-card packages-card--${pkg.theme}`}
@@ -958,28 +1062,15 @@ const PackagesPage = ({
                 </button>
               </div>
 
-              <div className="packages-card__feature-chips">
-                {(pkg.chips || []).map((chip, chipIndex) => (
-                  <span key={`${pkg.id}-chip-${chipIndex}`} className="packages-card__feature-chip">{chip}</span>
-                ))}
-              </div>
+              {(pkg.chips || []).length > 0 ? (
+                <div className="packages-card__feature-chips">
+                  {(pkg.chips || []).map((chip, chipIndex) => (
+                    <span key={`${pkg.id}-chip-${chipIndex}`} className="packages-card__feature-chip">{chip}</span>
+                  ))}
+                </div>
+              ) : null}
 
-              <div className="packages-card__metrics">
-                <div className="packages-card__metric">
-                  <span className="packages-card__metric-value">{pkg.metrics?.parameters}</span>
-                  <span className="packages-card__metric-label">Parameters</span>
-                </div>
-                <div className="packages-card__metric-separator" aria-hidden="true" />
-                <div className="packages-card__metric">
-                  <span className="packages-card__metric-value">{pkg.metrics?.reportsIn}</span>
-                  <span className="packages-card__metric-label">Reports in</span>
-                </div>
-                <div className="packages-card__metric-separator" aria-hidden="true" />
-                <div className="packages-card__metric">
-                  <span className="packages-card__metric-value">{pkg.metrics?.fasting}</span>
-                  <span className="packages-card__metric-label">Fasting</span>
-                </div>
-              </div>
+              <PackageFaceCardMetrics metrics={pkg.metrics} classPrefix="packages-card" />
 
               <div className="packages-card__book-row">
                 {(() => {
@@ -998,13 +1089,7 @@ const PackagesPage = ({
                   );
                 })()}
                 <div className="packages-card__book-main">
-                  <div className="packages-card__price-wrap">
-                    <div className="packages-card__price-top">
-                      <span className="packages-card__price-now">{formatPrice(pkg.pricing?.now)}</span>
-                      {pkg.pricing?.off ? <span className="packages-card__off-pill">{pkg.pricing.off}</span> : null}
-                    </div>
-                    <span className="packages-card__price-old">{formatPrice(pkg.pricing?.old)}</span>
-                  </div>
+                  <PackageFaceCardPricing pricing={pkg.pricing} classPrefix="packages-card" />
                   <button
                     type="button"
                     className="packages-card__book-btn"
@@ -1019,7 +1104,8 @@ const PackagesPage = ({
                 </div>
               </div>
             </article>
-          ))}
+            );
+          })}
         </section>
       </div>
 

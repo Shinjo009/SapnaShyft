@@ -12,6 +12,7 @@ import {
 import { sendOtp, resendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
 import { createUser, getMyProfiles, invalidateMyProfilesCache, saveSuperclubMcqPreferences } from './services/usersService';
 import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
+import { invalidateDiagnosticPackagesCache } from './services/diagnosticPackagesService';
 import {
   loadQuestionnaireContext,
   submitQuestionnaireResponses,
@@ -1555,6 +1556,7 @@ function App() {
         const tokens = extractTokensFromResponse(switchResponse);
         saveAuthTokens(tokens);
         invalidateMyProfileCache();
+        invalidateDiagnosticPackagesCache();
         invalidateMyProfilesCache();
         clearReportRequestCache();
         clearStoredLatestAssessmentId();
@@ -1600,6 +1602,7 @@ function App() {
     clearAuthTokens();
     clearReportRequestCache();
     clearStoredLatestAssessmentId();
+    invalidateDiagnosticPackagesCache();
     clearSuperclubPlaylistLock();
     setSuperclubPlaylistPayload(null);
     setPhoneNumber('');
@@ -2309,10 +2312,6 @@ function App() {
           onOpenCustomerSupport={() => {
             console.log('Navigate to Customer Support');
             setCurrentPage('customer-support');
-          }}
-          onOpenPermissions={() => {
-            console.log('Navigate to Permissions');
-            setCurrentPage('permissions');
           }}
           onOpenAllAppointments={() => {
             console.log('Navigate to All Appointments');

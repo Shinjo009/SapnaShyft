@@ -10,6 +10,9 @@
  * paint of the destination still runs once when you navigate.
  */
 
+import { preloadSuperclub2TileImages } from './superclub2ImagePreload';
+import { prefetchPackagesPageData } from '../services/diagnosticPackagesService';
+
 const APP_ROUTE_LOADERS = {
   home: () => import('../pages/HomePage'),
   /** Same module as `doctors`; NavBar uses this id. */
@@ -60,6 +63,12 @@ export const prefetchRouteChunk = (id) => {
   }
 
   try {
+    if (id === 'super-club') {
+      preloadSuperclub2TileImages();
+    }
+    if (id === 'packages') {
+      prefetchPackagesPageData();
+    }
     loader();
   } catch (error) {
     console.warn('Route prefetch failed:', id, error);

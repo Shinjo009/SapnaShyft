@@ -77,6 +77,35 @@
   gap: 8px;
 }
 
+.reports-page__row-btn {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.reports-page__row-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.reports-page__row-btn:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.reports-page__open-icon {
+  margin-left: auto;
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .reports-page__pdf-icon {
   display: block;
   flex-shrink: 0;
