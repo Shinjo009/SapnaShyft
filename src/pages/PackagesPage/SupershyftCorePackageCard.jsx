@@ -1,15 +1,15 @@
 import React from 'react';
 import supershyftCoreCardBg from '../../images/PackagesPage/supershyft-core-card-bg.png';
 import supershyftCorePlusCardBg from '../../images/PackagesPage/supershyft-core-plus-card-bg.png';
-import elitePerformanceFemaleDiscountIcon from '../../images/PackagesPage/elite-performance-female-discount-icon.png';
 import elitePerformanceGradient from '../../images/PackagesPage/Gradient.svg';
-import packagesArrowIcon from '../../images/PackagesPage/Packages arrow.svg';
 import { getComplimentaryConsultationContent } from '../../utils/complimentaryConsultation';
 import {
+  ComplimentaryConsultationPromoIcon,
   getPopularGenderBadges,
   normalizePackageTitle,
   PackageFaceCardMetrics,
   PackageFaceCardPricing,
+  PackageFaceCardTitleRow,
 } from './PackageFaceCard';
 
 const getPackageTitle = (pkg) => String(pkg?.title || pkg?.apiData?.package_name || '').trim().toLowerCase();
@@ -75,11 +75,7 @@ const SupershyftCorePackageCard = ({
       {consultation ? (
         <div className="packages-card__elite-promo">
           <span className="packages-card__elite-promo-icon-wrap" aria-hidden="true">
-            <img
-              src={elitePerformanceFemaleDiscountIcon}
-              alt=""
-              className="packages-card__elite-promo-icon"
-            />
+            <ComplimentaryConsultationPromoIcon />
           </span>
           <span className="packages-card__elite-promo-label">{consultation.topPillLabel}</span>
         </div>
@@ -100,22 +96,11 @@ const SupershyftCorePackageCard = ({
                   </div>
                 ) : null}
 
-                <div className="packages-card__elite-title-row">
-                  {displayTitle ? (
-                    <h2 className="packages-card__elite-title">{displayTitle}</h2>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="packages-card__elite-open-btn"
-                    aria-label="Open package details"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onOpenDetails?.();
-                    }}
-                  >
-                    <img src={packagesArrowIcon} alt="" aria-hidden="true" />
-                  </button>
-                </div>
+                <PackageFaceCardTitleRow
+                  pkg={pkg}
+                  displayTitle={displayTitle}
+                  onOpenDetails={onOpenDetails}
+                />
               </div>
             </div>
 

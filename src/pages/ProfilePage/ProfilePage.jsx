@@ -28,7 +28,6 @@ const ProfilePage = ({
   onOpenReports,
   onOpenNutrition,
   onOpenCustomerSupport,
-  onOpenPermissions,
   onOpenAllAppointments,
   onOpenAddAccount,
   onOpenEditProfile,
@@ -476,12 +475,6 @@ const ProfilePage = ({
             <div className="profile-page__menu-sub-list">
               <button type="button" className="profile-page__menu-sub-item" onClick={onOpenAllAppointments} data-tour="profile-all-appointments">
                 <span data-tour="profile-all-appointments-text">All Appointments</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
-                  <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-              <button type="button" className="profile-page__menu-sub-item" onClick={onOpenPermissions}>
-                <span>Permissions</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
                   <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>

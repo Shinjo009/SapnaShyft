@@ -1,44 +1,30 @@
 import React from 'react';
 import peakPerformanceFemaleCardBg from '../../images/PackagesPage/peak-performance-female-card-bg.png';
 import peakPerformanceMaleCardBg from '../../images/PackagesPage/peak-performance-male-card-bg.png';
-import elitePerformanceFemaleDiscountIcon from '../../images/PackagesPage/elite-performance-female-discount-icon.png';
 import elitePerformanceGradient from '../../images/PackagesPage/Gradient.svg';
-import packagesArrowIcon from '../../images/PackagesPage/Packages arrow.svg';
 import { getComplimentaryConsultationContent } from '../../utils/complimentaryConsultation';
+import { getPackageGenderSuitability } from '../../utils/packageGenderIcon';
 import {
+  ComplimentaryConsultationPromoIcon,
   getPopularGenderBadges,
   normalizePackageTitle,
   PackageFaceCardMetrics,
   PackageFaceCardPricing,
+  PackageFaceCardTitleRow,
 } from './PackageFaceCard';
 
-export const isPeakPerformanceFemalePackage = (pkg) => {
+const isPeakPerformanceTitle = (pkg) => {
   const title = String(pkg?.title || pkg?.apiData?.package_name || '').trim().toLowerCase();
-  if (!title.includes('peak performance')) {
-    return false;
-  }
-
-  const gender = String(pkg?.apiData?.gender_suitability || '').trim().toLowerCase();
-  if (gender === 'male' || /♂|\bmale\b/i.test(title)) {
-    return false;
-  }
-
-  return gender === 'female' || /♀|female/i.test(title);
+  return title.includes('peak performance');
 };
 
-export const isPeakPerformanceMalePackage = (pkg) => {
-  const title = String(pkg?.title || pkg?.apiData?.package_name || '').trim().toLowerCase();
-  if (!title.includes('peak performance')) {
-    return false;
-  }
+export const isPeakPerformanceFemalePackage = (pkg) => (
+  isPeakPerformanceTitle(pkg) && getPackageGenderSuitability(pkg) === 'female'
+);
 
-  const gender = String(pkg?.apiData?.gender_suitability || '').trim().toLowerCase();
-  if (gender === 'female' || /♀|female/i.test(title)) {
-    return false;
-  }
-
-  return gender === 'male' || /♂|\bmale\b/i.test(title);
-};
+export const isPeakPerformanceMalePackage = (pkg) => (
+  isPeakPerformanceTitle(pkg) && getPackageGenderSuitability(pkg) === 'male'
+);
 
 const PeakPerformancePackageCard = ({
   pkg,
@@ -85,11 +71,7 @@ const PeakPerformancePackageCard = ({
       {consultation ? (
         <div className="packages-card__elite-promo">
           <span className="packages-card__elite-promo-icon-wrap" aria-hidden="true">
-            <img
-              src={elitePerformanceFemaleDiscountIcon}
-              alt=""
-              className="packages-card__elite-promo-icon"
-            />
+            <ComplimentaryConsultationPromoIcon />
           </span>
           <span className="packages-card__elite-promo-label">{consultation.topPillLabel}</span>
         </div>
@@ -110,22 +92,11 @@ const PeakPerformancePackageCard = ({
                   </div>
                 ) : null}
 
-                <div className="packages-card__elite-title-row">
-                  {displayTitle ? (
-                    <h2 className="packages-card__elite-title">{displayTitle}</h2>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="packages-card__elite-open-btn"
-                    aria-label="Open package details"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onOpenDetails?.();
-                    }}
-                  >
-                    <img src={packagesArrowIcon} alt="" aria-hidden="true" />
-                  </button>
-                </div>
+                <PackageFaceCardTitleRow
+                  pkg={pkg}
+                  displayTitle={displayTitle}
+                  onOpenDetails={onOpenDetails}
+                />
               </div>
             </div>
 

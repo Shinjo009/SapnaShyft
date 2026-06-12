@@ -412,7 +412,7 @@
 .packages-card__metric-value {
   color: #90df9e;
   font-family: 'DM Sans', sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   font-style: normal;
   font-weight: 700;
   line-height: normal;
@@ -421,7 +421,7 @@
 .packages-card__metric-label {
   color: #9a9a9a;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
@@ -536,7 +536,7 @@
   border-radius: 36px;
   border: 1px solid #969696;
   background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
-  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 6px 0 rgba(255, 255, 255, 0.1);
   color: #fff;
   text-align: center;
   font-family: 'DM Sans', sans-serif;
@@ -677,9 +677,18 @@
 }
 
 .packages-card__elite-gender-icon {
+  flex-shrink: 0;
+  display: block;
+}
+
+.packages-card__elite-gender-icon--female {
   width: 24px;
   height: 24px;
-  flex-shrink: 0;
+}
+
+.packages-card__elite-gender-icon--male {
+  width: 16px;
+  height: 16px;
 }
 
 .packages-card__elite-photo {
@@ -733,7 +742,8 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transform: scaleY(-1) rotate(180deg);
+  width: 16px;
+  height: 16px;
 }
 
 .packages-card__elite-promo-icon {
@@ -821,10 +831,11 @@
 
 .packages-card__elite-title-row {
   width: 100%;
-  min-height: 20px;
+  min-height: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .packages-card__elite-title {
@@ -882,7 +893,7 @@
   color: #90df9e;
   text-align: center;
   font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   font-style: normal;
   font-weight: 700;
   line-height: 17px;
@@ -893,7 +904,7 @@
   color: #9a9a9a;
   text-align: center;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 300;
   line-height: normal;
@@ -930,6 +941,7 @@
 .packages-card__elite-price-top {
   display: flex;
   align-items: center;
+  gap: 8px;
   min-height: 24px;
 }
 
@@ -980,7 +992,7 @@
   border-radius: 36px;
   border: 1px solid #969696;
   background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
-  box-shadow: 0 12px 10px 0 rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 6px 0 rgba(255, 255, 255, 0.1);
   color: #fff;
   text-align: center;
   font-family: 'DM Sans', sans-serif;

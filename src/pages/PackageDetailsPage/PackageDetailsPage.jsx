@@ -1522,14 +1522,6 @@ const PackageDetailsPage = ({ onBack, variant = 'default', profileName = 'User',
                     <div className="package-details-page__test-grid">
                       {reorderItemsForPillPacking(group.items).map((item, idx) => (
                         <div key={`${group.id}-${item}-${idx}`} className="package-details-page__test-pill">
-                          {group.iconSrc ? (
-                            <img
-                              src={group.iconSrc}
-                              alt=""
-                              aria-hidden="true"
-                              className="package-details-page__test-pill-icon"
-                            />
-                          ) : null}
                           <span>{item}</span>
                         </div>
                       ))}

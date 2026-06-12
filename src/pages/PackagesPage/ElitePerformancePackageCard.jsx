@@ -1,44 +1,30 @@
 import React from 'react';
 import elitePerformanceFemaleCardBg from '../../images/PackagesPage/elite-performance-female-card-bg.png';
-import elitePerformanceFemaleDiscountIcon from '../../images/PackagesPage/elite-performance-female-discount-icon.png';
 import elitePerformanceMaleCardBg from '../../images/PackagesPage/elite-performance-male-card-bg.png';
 import elitePerformanceGradient from '../../images/PackagesPage/Gradient.svg';
-import packagesArrowIcon from '../../images/PackagesPage/Packages arrow.svg';
 import { getComplimentaryConsultationContent } from '../../utils/complimentaryConsultation';
+import { getPackageGenderSuitability } from '../../utils/packageGenderIcon';
 import {
+  ComplimentaryConsultationPromoIcon,
   getPopularGenderBadges,
   normalizePackageTitle,
   PackageFaceCardMetrics,
   PackageFaceCardPricing,
+  PackageFaceCardTitleRow,
 } from './PackageFaceCard';
 
-export const isElitePerformanceFemalePackage = (pkg) => {
+const isElitePerformanceTitle = (pkg) => {
   const title = String(pkg?.title || pkg?.apiData?.package_name || '').trim().toLowerCase();
-  if (!title.includes('elite performance')) {
-    return false;
-  }
-
-  const gender = String(pkg?.apiData?.gender_suitability || '').trim().toLowerCase();
-  if (gender === 'male' || /♂|\bmale\b/i.test(title)) {
-    return false;
-  }
-
-  return gender === 'female' || /♀|female/i.test(title);
+  return title.includes('elite performance');
 };
 
-export const isElitePerformanceMalePackage = (pkg) => {
-  const title = String(pkg?.title || pkg?.apiData?.package_name || '').trim().toLowerCase();
-  if (!title.includes('elite performance')) {
-    return false;
-  }
+export const isElitePerformanceFemalePackage = (pkg) => (
+  isElitePerformanceTitle(pkg) && getPackageGenderSuitability(pkg) === 'female'
+);
 
-  const gender = String(pkg?.apiData?.gender_suitability || '').trim().toLowerCase();
-  if (gender === 'female' || /♀|female/i.test(title)) {
-    return false;
-  }
-
-  return gender === 'male' || /♂|\bmale\b/i.test(title);
-};
+export const isElitePerformanceMalePackage = (pkg) => (
+  isElitePerformanceTitle(pkg) && getPackageGenderSuitability(pkg) === 'male'
+);
 
 const ElitePerformancePackageCard = ({
   pkg,
@@ -50,9 +36,7 @@ const ElitePerformancePackageCard = ({
   const consultation = getComplimentaryConsultationContent(pkg?.apiData || pkg);
   const badges = getPopularGenderBadges(pkg);
   const displayTitle = normalizePackageTitle(pkg?.title || pkg?.apiData?.package_name) || null;
-  const cardBg = isFemale ? elitePerformanceMaleCardBg : elitePerformanceFemaleCardBg;
-  const discountIcon = elitePerformanceFemaleDiscountIcon;
-
+  const cardBg = isFemale ? elitePerformanceFemaleCardBg : elitePerformanceMaleCardBg;
   const cardClassName = [
     'packages-card',
     'packages-card--elite-performance',
@@ -85,11 +69,7 @@ const ElitePerformancePackageCard = ({
       {consultation ? (
         <div className="packages-card__elite-promo">
           <span className="packages-card__elite-promo-icon-wrap" aria-hidden="true">
-            <img
-              src={discountIcon}
-              alt=""
-              className="packages-card__elite-promo-icon"
-            />
+            <ComplimentaryConsultationPromoIcon />
           </span>
           <span className="packages-card__elite-promo-label">{consultation.topPillLabel}</span>
         </div>
@@ -110,22 +90,11 @@ const ElitePerformancePackageCard = ({
                   </div>
                 ) : null}
 
-                <div className="packages-card__elite-title-row">
-                  {displayTitle ? (
-                    <h2 className="packages-card__elite-title">{displayTitle}</h2>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="packages-card__elite-open-btn"
-                    aria-label="Open package details"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onOpenDetails?.();
-                    }}
-                  >
-                    <img src={packagesArrowIcon} alt="" aria-hidden="true" />
-                  </button>
-                </div>
+                <PackageFaceCardTitleRow
+                  pkg={pkg}
+                  displayTitle={displayTitle}
+                  onOpenDetails={onOpenDetails}
+                />
               </div>
             </div>
 

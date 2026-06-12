@@ -1,15 +1,16 @@
 import React from 'react';
 import cSuiteCardBg from '../../images/PackagesPage/c-suite-card-bg.png';
 import cSuiteFemaleCardBg from '../../images/PackagesPage/c-suite-female-card-bg.png';
-import elitePerformanceFemaleDiscountIcon from '../../images/PackagesPage/elite-performance-female-discount-icon.png';
 import elitePerformanceGradient from '../../images/PackagesPage/Gradient.svg';
-import packagesArrowIcon from '../../images/PackagesPage/Packages arrow.svg';
 import { getComplimentaryConsultationContent } from '../../utils/complimentaryConsultation';
 import { buildPackageFaceBadges } from '../../utils/diagnosticPackageCardMapper';
+import { getPackageGenderSuitability } from '../../utils/packageGenderIcon';
 import {
+  ComplimentaryConsultationPromoIcon,
   normalizePackageTitle,
   PackageFaceCardMetrics,
   PackageFaceCardPricing,
+  PackageFaceCardTitleRow,
 } from './PackageFaceCard';
 
 const MISSING_VALUE = '-';
@@ -19,33 +20,13 @@ const isCSuiteTitle = (pkg) => {
   return /c-?suite|c suite/.test(title) || title.includes('csuite');
 };
 
-export const isCSuiteFemalePackage = (pkg) => {
-  if (!isCSuiteTitle(pkg)) {
-    return false;
-  }
+export const isCSuiteFemalePackage = (pkg) => (
+  isCSuiteTitle(pkg) && getPackageGenderSuitability(pkg) === 'female'
+);
 
-  const title = String(pkg?.title || pkg?.apiData?.package_name || '').trim().toLowerCase();
-  const gender = String(pkg?.apiData?.gender_suitability || '').trim().toLowerCase();
-  if (gender === 'male' || /♂|\bmale\b/i.test(title)) {
-    return false;
-  }
-
-  return gender === 'female' || /♀|female/i.test(title);
-};
-
-export const isCSuiteMalePackage = (pkg) => {
-  if (!isCSuiteTitle(pkg)) {
-    return false;
-  }
-
-  const title = String(pkg?.title || pkg?.apiData?.package_name || '').trim().toLowerCase();
-  const gender = String(pkg?.apiData?.gender_suitability || '').trim().toLowerCase();
-  if (gender === 'female' || /♀|female/i.test(title)) {
-    return false;
-  }
-
-  return gender === 'male' || /♂|\bmale\b/i.test(title);
-};
+export const isCSuiteMalePackage = (pkg) => (
+  isCSuiteTitle(pkg) && getPackageGenderSuitability(pkg) === 'male'
+);
 
 export const isCSuitePackage = (pkg) => (
   isCSuiteFemalePackage(pkg) || isCSuiteMalePackage(pkg) || isCSuiteTitle(pkg)
@@ -99,11 +80,7 @@ const CSuitePackageCard = ({
       {consultation ? (
         <div className="packages-card__elite-promo">
           <span className="packages-card__elite-promo-icon-wrap" aria-hidden="true">
-            <img
-              src={elitePerformanceFemaleDiscountIcon}
-              alt=""
-              className="packages-card__elite-promo-icon"
-            />
+            <ComplimentaryConsultationPromoIcon />
           </span>
           <span className="packages-card__elite-promo-label">{consultation.topPillLabel}</span>
         </div>
@@ -124,22 +101,11 @@ const CSuitePackageCard = ({
                   </div>
                 ) : null}
 
-                <div className="packages-card__elite-title-row">
-                  {displayTitle ? (
-                    <h2 className="packages-card__elite-title">{displayTitle}</h2>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="packages-card__elite-open-btn"
-                    aria-label="Open package details"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onOpenDetails?.();
-                    }}
-                  >
-                    <img src={packagesArrowIcon} alt="" aria-hidden="true" />
-                  </button>
-                </div>
+                <PackageFaceCardTitleRow
+                  pkg={pkg}
+                  displayTitle={displayTitle}
+                  onOpenDetails={onOpenDetails}
+                />
               </div>
             </div>
 
