@@ -284,7 +284,7 @@ const PackageOnboardingMcqPage = ({
     return () => {
       stackEl.removeEventListener('touchmove', onTouchMove);
     };
-  }, [cardIndex, activeCard.key]);
+  }, [cardIndex, activeCard.key, stackWrapRef]);
 
   const canNavigateToNextCard = () => isChipsScrolledToBottom(chipsScrollRef.current);
   const canNavigateToPrevCard = () => isChipsScrolledToTop(chipsScrollRef.current);
