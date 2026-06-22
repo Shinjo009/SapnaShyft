@@ -1258,31 +1258,38 @@
   line-height: 20px;
 }
 
-.blood-marker-detail__description-toggle {
-  margin: 0;
-  padding: 0;
+.blood-marker-detail__description-wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
   width: 100%;
-  border: 0;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
 }
 
-.blood-marker-detail__description-toggle .blood-marker-detail__description {
+.blood-marker-detail__description--clamped {
   display: -webkit-box;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-clamp: 3;
-  -webkit-line-clamp: 3;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
 }
 
-.blood-marker-detail__description-toggle.is-expanded .blood-marker-detail__description {
-  display: block;
-  overflow: visible;
-  text-overflow: unset;
-  line-clamp: unset;
-  -webkit-line-clamp: unset;
+.blood-marker-detail__description-dots {
+  margin: 50px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #C4C4C4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .blood-marker-detail__scale-section {

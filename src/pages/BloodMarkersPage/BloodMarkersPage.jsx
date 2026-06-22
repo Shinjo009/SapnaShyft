@@ -985,6 +985,8 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
   const [isDiagnosticLoading, setIsDiagnosticLoading] = useState(Boolean(marker?.diagnosticTestId));
   const [expandedPill, setExpandedPill] = useState(null);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const descriptionRef = useRef(null);
+  const [isDescriptionTruncated, setIsDescriptionTruncated] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -1087,10 +1089,22 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
   detail.effects = sideEffects.length > 0
     ? sideEffects
     : diagnosticEffects;
+
   const [riskStripWidth, setRiskStripWidth] = useState(0);
   const [dotsAnimated, setDotsAnimated] = useState(false);
   const [animatedMarkerLeftPercent, setAnimatedMarkerLeftPercent] = useState(0);
   const [indicatorWidth, setIndicatorWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const element = descriptionRef.current;
+    if (!element || isDescriptionExpanded) {
+      setIsDescriptionTruncated(false);
+      return;
+    }
+
+    setIsDescriptionTruncated(element.scrollHeight > element.clientHeight + 1);
+  }, [detail.description, isDescriptionExpanded, shouldWaitForDiagnosticData, isDiagnosticLoading]);
+
   const minScale = detail.normalMin - DETAIL_HIGH_RISK_DISPLAY_PADDING;
   const maxScale = detail.normalMax + DETAIL_HIGH_RISK_DISPLAY_PADDING;
   const clampedValue = Math.max(minScale, Math.min(maxScale, activeValue));
@@ -1362,15 +1376,27 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
         {shouldWaitForDiagnosticData && isDiagnosticLoading ? (
         <p className="blood-marker-detail__description">Loading marker details...</p>
       ) : (
-        <button
-          type="button"
-          className={`blood-marker-detail__description-toggle${isDescriptionExpanded ? ' is-expanded' : ''}`}
-          onClick={() => setIsDescriptionExpanded((prev) => !prev)}
-          aria-expanded={isDescriptionExpanded}
-          aria-label={isDescriptionExpanded ? 'Collapse marker description' : 'Expand marker description'}
-        >
-          <span className="blood-marker-detail__description">{detail.description}</span>
-        </button>
+        <div className="blood-marker-detail__description-wrap">
+          <p
+            ref={descriptionRef}
+            className={[
+              'blood-marker-detail__description',
+              !isDescriptionExpanded ? 'blood-marker-detail__description--clamped' : '',
+            ].filter(Boolean).join(' ')}
+          >
+            {detail.description}
+          </p>
+          {!isDescriptionExpanded && isDescriptionTruncated ? (
+            <button
+              type="button"
+              className="blood-marker-detail__description-dots"
+              onClick={() => setIsDescriptionExpanded(true)}
+              aria-label="Show full marker description"
+            >
+              ..
+            </button>
+          ) : null}
+        </div>
       )}
       </section>
 

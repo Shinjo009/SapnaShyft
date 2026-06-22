@@ -159,8 +159,16 @@ export const getHacIconSrc = (iconKey) => {
   return HAC_ICON_SRC_BY_KEY[normalized] || null;
 };
 
+const isMetabolismHealthArea = (area) => {
+  const id = String(area?.id || '').toLowerCase();
+  const iconKey = String(area?.iconKey || '').toLowerCase();
+  const label = String(area?.label || '').toLowerCase();
+  return id.includes('metabolism') || iconKey.includes('metabolism') || label === 'metabolism';
+};
+
 export const mapHealthAreasForDisplay = (raw) => (
   parseHealthAreasCovered(raw)
+    .filter((area) => !isMetabolismHealthArea(area))
     .map((area) => ({
       id: area.id,
       label: area.label,

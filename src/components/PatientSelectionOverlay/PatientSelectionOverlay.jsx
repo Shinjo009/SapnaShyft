@@ -23,6 +23,7 @@ import {
   formatBloodCollectionTimeSlot,
 } from '../../services/bookingService';
 import { PAYMENT_DEMO_MODE, BACKEND_ENABLED } from '../../config/appConfig';
+import { hasPersonalizedForYouRecommendations, loadPackageOnboardingResult } from '../../utils/packageRecommendationStorage';
 import PackageDetailsPage from '../../pages/PackageDetailsPage/PackageDetailsPage';
 
 const PATIENTS = [];
@@ -202,6 +203,112 @@ const toNormalizedPackageTagValues = (pkg) => {
 
   return values;
 };
+
+const FOR_YOU_CHIP_KEYS = new Set(['for_you', 'for-you', 'foryou']);
+
+const FOR_YOU_AGE_BANDS = [
+  {
+    id: 'young',
+    min: 0,
+    max: 29,
+    keywords: ['genz', 'gen z', 'basic', 'core', 'supershyft basic', 'supershyft core'],
+  },
+  {
+    id: 'mid',
+    min: 30,
+    max: 44,
+    keywords: ['peak', 'elite', 'performance', 'progressive'],
+  },
+  {
+    id: 'mature',
+    min: 45,
+    max: 120,
+    keywords: ['c-suite', 'c suite', 'csuite', 'executive', 'ddecor'],
+  },
+];
+
+const buildOverlayPackageSearchHaystack = (item) => {
+  const parts = [
+    String(item?.name || ''),
+    String(item?.apiData?.package_name || ''),
+    String(item?.recommended || ''),
+    ...(Array.isArray(item?.searchTags) ? item.searchTags : []),
+    ...getPackageFilterChips(item?.apiData || {}),
+  ];
+
+  const rawTags = Array.isArray(item?.apiData?.tags) ? item.apiData.tags : [];
+  rawTags.forEach((tag) => {
+    if (typeof tag === 'string' || typeof tag === 'number') {
+      parts.push(String(tag));
+      return;
+    }
+
+    if (tag && typeof tag === 'object') {
+      parts.push(
+        tag.tag_name,
+        tag.name,
+        tag.filter_chip,
+        tag.chip_key,
+        tag.display_name,
+      );
+    }
+  });
+
+  return parts
+    .map((part) => String(part || '').trim())
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+};
+
+const getOverlayPackageAgeBandIds = (item) => {
+  const haystack = buildOverlayPackageSearchHaystack(item);
+  return FOR_YOU_AGE_BANDS
+    .filter((band) => band.keywords.some((keyword) => haystack.includes(keyword)))
+    .map((band) => band.id);
+};
+
+const getAgeBandForAge = (age) => {
+  if (!Number.isFinite(age)) {
+    return null;
+  }
+
+  return FOR_YOU_AGE_BANDS.find((band) => age >= band.min && age <= band.max) || null;
+};
+
+const packageMatchesForYouGender = (item, userGender) => {
+  if (!userGender) {
+    return true;
+  }
+
+  const suitability = String(item?.apiData?.gender_suitability || '').trim().toLowerCase();
+  if (!suitability || suitability === 'both') {
+    return true;
+  }
+
+  return suitability === userGender;
+};
+
+const packageMatchesForYouAge = (item, userAge) => {
+  const userBand = getAgeBandForAge(userAge);
+  if (!userBand) {
+    return true;
+  }
+
+  const packageBands = getOverlayPackageAgeBandIds(item);
+  if (packageBands.length === 0) {
+    return true;
+  }
+
+  return packageBands.includes(userBand.id);
+};
+
+const isForYouChipKey = (chipKey) => FOR_YOU_CHIP_KEYS.has(String(chipKey || '').trim().toLowerCase());
+
+const packageMatchesForYou = (item, forYouContext) => (
+  packageMatchesForYouGender(item, forYouContext?.gender)
+  && packageMatchesForYouAge(item, forYouContext?.age)
+);
 
 const mapDiagnosticPackageToOverlayCard = (pkg, index) => {
   const id = String(pkg?.diagnostic_package_id || pkg?.id || `pkg-${index}`).trim();
@@ -502,6 +609,26 @@ const getAgeFromProfile = (profile) => {
   return age > 0 ? String(age) : '--';
 };
 
+const getNumericAgeFromProfile = (profile) => {
+  if (typeof profile?.age === 'number' && profile.age > 0) {
+    return Math.floor(profile.age);
+  }
+
+  const parsedAge = Number.parseInt(getAgeFromProfile(profile), 10);
+  return Number.isFinite(parsedAge) && parsedAge > 0 ? parsedAge : null;
+};
+
+const normalizeProfileGenderForYou = (profile) => {
+  const gender = String(profile?.gender || '').trim().toLowerCase();
+  if (gender === 'male' || gender === 'm' || gender === 'man') {
+    return 'male';
+  }
+  if (gender === 'female' || gender === 'f' || gender === 'woman') {
+    return 'female';
+  }
+  return null;
+};
+
 const normalizeGenderType = (genderValue) => {
   const normalizedGender = String(genderValue || '').trim().toLowerCase();
   return normalizedGender.startsWith('f') ? 'female' : 'male';
@@ -556,16 +683,14 @@ const buildAddressFromProfile = (profile) => {
   const addressParts = addressText
     ? addressText.split(',').map((part) => part.trim()).filter(Boolean)
     : [];
-  const city = String(profile?.city || profile?.state || '').trim();
-  const pincodeFromProfile = String(profile?.pincode || profile?.postal_code || '').trim();
-  const pincodeFromAddress = addressText.match(/\b\d{6}\b/)?.[0] || '';
+  const city = String(profile?.city || profile?.state || addressParts[3] || '').trim();
 
   return {
     house: addressParts[0] || '',
     area: addressParts[1] || '',
     landmark: addressParts[2] || '',
     city,
-    pincode: pincodeFromProfile || pincodeFromAddress,
+    pincode: '',
   };
 };
 
@@ -580,6 +705,9 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   const [selectedPackageByPatientId, setSelectedPackageByPatientId] = useState({});
   const [draftPackageId, setDraftPackageId] = useState('advanced');
   const [packageViewReturn, setPackageViewReturn] = useState('select');
+  const [addressViewReturn, setAddressViewReturn] = useState('select');
+  const [scheduleViewReturn, setScheduleViewReturn] = useState('address');
+  const [selectViewReturn, setSelectViewReturn] = useState(null);
   const [packageTargetName, setPackageTargetName] = useState('User');
   const [packageTargetPatientId, setPackageTargetPatientId] = useState(null);
   const [phoneSame, setPhoneSame] = useState(false);
@@ -654,6 +782,9 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       setPackageTargetPatientId(null);
       packageManuallyChangedRef.current = false;
       paymentSuccessRef.current = false;
+      setAddressViewReturn('select');
+      setScheduleViewReturn('address');
+      setSelectViewReturn(null);
     }
   }, [open, scheduleDates]);
 
@@ -803,6 +934,20 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       mounted = false;
     };
   }, [open]);
+
+  useEffect(() => {
+    if (!open || view !== 'address' || !profileData) {
+      return;
+    }
+
+    const fromProfile = buildAddressFromProfile(profileData);
+    setAddressData((prev) => ({
+      house: prev.house || fromProfile.house,
+      area: prev.area || fromProfile.area,
+      landmark: prev.landmark || fromProfile.landmark,
+      city: prev.city || fromProfile.city,
+    }));
+  }, [open, profileData, view]);
 
   useEffect(() => {
     const { body, documentElement } = document;
@@ -967,16 +1112,8 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
     const selectedKey = String(selectedChip?.chip_key || activeFilterKey || 'all').trim().toLowerCase();
     const selectedLabel = String(selectedChip?.display_name || '').trim().toLowerCase();
     const q = searchQuery.trim().toLowerCase();
-    return sourcePackages.filter((item) => {
-      const packageValues = toNormalizedPackageTagValues(item);
-      const matchesFilter = selectedKey === 'all'
-        || packageValues.has(selectedKey)
-        || (selectedLabel ? packageValues.has(selectedLabel) : false);
 
-      if (!matchesFilter) {
-        return false;
-      }
-
+    const applySearchFilter = (items) => items.filter((item) => {
       if (!q) {
         return true;
       }
@@ -985,7 +1122,50 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       const inTags = item.searchTags.some((tag) => tag.toLowerCase().includes(q));
       return inName || inTags;
     });
-  }, [activeFilterKey, packageFilterChips, searchQuery, sourcePackages]);
+
+    const scopeId = profileData?.user_id || profileData?.id;
+    const onboardingResult = scopeId ? loadPackageOnboardingResult(scopeId) : null;
+    const forYouContext = {
+      gender: normalizeProfileGenderForYou(profileData),
+      age: getNumericAgeFromProfile(profileData),
+    };
+
+    if (isForYouChipKey(selectedKey) && hasPersonalizedForYouRecommendations(onboardingResult)) {
+      const rankById = new Map(
+        onboardingResult.rankedPackages.map((row, index) => [Number(row.packageId), { ...row, order: index }]),
+      );
+
+      const recommendedPackages = sourcePackages
+        .filter((item) => rankById.has(Number(item.id)))
+        .map((item) => {
+          const meta = rankById.get(Number(item.id));
+          const recommendationLabel = meta?.label || null;
+          return {
+            ...item,
+            recommended: item.recommended || recommendationLabel || '',
+          };
+        })
+        .sort((a, b) => rankById.get(Number(a.id)).order - rankById.get(Number(b.id)).order);
+
+      return applySearchFilter(recommendedPackages);
+    }
+
+    const filtered = sourcePackages.filter((item) => {
+      if (selectedKey === 'all') {
+        return true;
+      }
+
+      if (isForYouChipKey(selectedKey)) {
+        return packageMatchesForYou(item, forYouContext);
+      }
+
+      const packageValues = toNormalizedPackageTagValues(item);
+      return packageValues.has(selectedKey)
+        || (selectedLabel ? packageValues.has(selectedLabel) : false);
+    });
+
+    return applySearchFilter(filtered);
+  }, [activeFilterKey, packageFilterChips, profileData, searchQuery, sourcePackages]);
 
   const packageFilterTabs = useMemo(() => {
     return packageFilterChips;
@@ -1559,6 +1739,11 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       return;
     }
     setAddressFieldErrors({});
+    if (addressViewReturn === 'details') {
+      setView('details');
+      return;
+    }
+    setScheduleViewReturn('address');
     setView('schedule');
   };
 
@@ -1760,6 +1945,12 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                 disabled={!canContinue}
                 onClick={() => {
                   if (canContinue) {
+                    if (selectViewReturn === 'details') {
+                      setSelectViewReturn(null);
+                      setView('details');
+                      return;
+                    }
+                    setAddressViewReturn('select');
                     setView('address');
                   }
                 }}
@@ -1831,7 +2022,17 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
           </>
         ) : view === 'package' ? (
           <>
-            <h3 className="patient-select-overlay__title">{customFlow ? 'Add tests' : 'Select Package'}</h3>
+            <div className="patient-add__header-row">
+              <button
+                type="button"
+                className="patient-add__back"
+                aria-label={packageViewReturn === 'add' ? 'Back to add member' : 'Back to select members'}
+                onClick={() => setView(packageViewReturn)}
+              >
+                <BackIcon />
+              </button>
+              <h3 className="patient-select-overlay__title">{customFlow ? 'Add tests' : 'Select Package'}</h3>
+            </div>
 
             {customFlow ? (
               <div className="patient-custom-tests">
@@ -2022,7 +2223,12 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
         ) : view === 'address' ? (
           <>
             <div className="patient-add__header-row">
-              <button type="button" className="patient-add__back" aria-label="Back to select patients" onClick={() => setView('select')}>
+              <button
+                type="button"
+                className="patient-add__back"
+                aria-label={addressViewReturn === 'details' ? 'Back to booking summary' : 'Back to select members'}
+                onClick={() => setView(addressViewReturn)}
+              >
                 <BackIcon />
               </button>
               <h3 className="patient-select-overlay__title">Add Address</h3>
@@ -2044,7 +2250,12 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
         ) : view === 'schedule' ? (
           <>
             <div className="patient-add__header-row">
-              <button type="button" className="patient-add__back" aria-label="Back to add address" onClick={() => setView('address')}>
+              <button
+                type="button"
+                className="patient-add__back"
+                aria-label={scheduleViewReturn === 'details' ? 'Back to booking summary' : 'Back to add address'}
+                onClick={() => setView(scheduleViewReturn)}
+              >
                 <BackIcon />
               </button>
               <h3 className="patient-select-overlay__title">Schedule Collection</h3>
@@ -2118,9 +2329,22 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
           </>
         ) : view === 'details' ? (
           <>
-            <h3 className="patient-select-overlay__title">Member Details</h3>
-
             <div className="patient-confirm">
+              <div className="patient-confirm__section-head patient-confirm__section-head--first">
+                <h4>Member Details</h4>
+                <button
+                  type="button"
+                  className="patient-confirm__edit-btn"
+                  aria-label="Edit member details"
+                  onClick={() => {
+                    setSelectViewReturn('details');
+                    setView('select');
+                  }}
+                >
+                  <DetailEditIcon />
+                </button>
+              </div>
+
               <div className="patient-confirm__patients">
                 {selectedPatients.map((patient) => (
                   <div key={patient.id} className="patient-confirm__patient-card">
@@ -2134,9 +2358,6 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                           <p className="patient-select-overlay__meta">{patient.meta}</p>
                         </div>
                       </div>
-                      <button type="button" className="patient-confirm__edit-btn" aria-label={`Edit ${patient.name}`}>
-                        <DetailEditIcon />
-                      </button>
                     </div>
 
                     <div className="patient-confirm__divider" />
@@ -2162,7 +2383,10 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                   type="button"
                   className="patient-confirm__edit-btn"
                   aria-label="Edit address details"
-                  onClick={() => setView('address')}
+                  onClick={() => {
+                    setAddressViewReturn('details');
+                    setView('address');
+                  }}
                 >
                   <DetailEditIcon />
                 </button>
@@ -2194,7 +2418,10 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                   type="button"
                   className="patient-confirm__edit-btn"
                   aria-label="Edit appointment details"
-                  onClick={() => setView('schedule')}
+                  onClick={() => {
+                    setScheduleViewReturn('details');
+                    setView('schedule');
+                  }}
                 >
                   <DetailEditIcon />
                 </button>
