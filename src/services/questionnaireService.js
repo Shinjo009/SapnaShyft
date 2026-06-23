@@ -1107,6 +1107,48 @@ export function clearHealthQuestionnaireSubmittedFlag() {
   }
 }
 
+/** Drop the old unscoped session marker (`"1"`) so a new booking is not treated as already submitted. */
+export function clearLegacyHealthQuestionnaireSubmittedMarker() {
+  try {
+    const raw = sessionStorage.getItem(HEALTH_QUESTIONNAIRE_SUBMITTED_SESSION_KEY);
+    if (raw === '1') {
+      sessionStorage.removeItem(HEALTH_QUESTIONNAIRE_SUBMITTED_SESSION_KEY);
+      invalidateHealthQuestionnaireSubmittedCache();
+    }
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Server-only check for camp/home scheduled CTA: finalized Basic/Pro on this engagement.
+ * Returns false when engagement is unknown, no assessment exists yet, or questionnaire is incomplete.
+ */
+export const hasFinalizedHealthQuestionnaireForEngagement = async (engagementId) => {
+  const scopedEngagementId = Number(engagementId || 0);
+  if (scopedEngagementId <= 0) {
+    return false;
+  }
+
+  const assessmentsPayload = await listMyAssessments(1, 50);
+  const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
+  const scopedRows = assessments.filter((row) => {
+    const rowEngagementId = Number(
+      row?.engagement_id
+      || row?.engagementId
+      || row?.engagement?.engagement_id
+      || row?.engagement?.id
+      || 0,
+    );
+    return rowEngagementId === scopedEngagementId;
+  });
+  const scopedBasicPro = pickLatestBasicOrProAssessmentRow(scopedRows);
+  if (!scopedBasicPro) {
+    return false;
+  }
+  return isAssessmentRowSubmitted(scopedBasicPro);
+};
+
 const isAssessmentRowSubmitted = (row) => {
   if (!row || typeof row !== 'object') {
     return false;
@@ -1152,29 +1194,52 @@ export const invalidateHealthQuestionnaireSubmittedCache = () => {
   healthSubmittedInFlight = null;
 };
 
-async function fetchHasSubmittedHealthQuestionnaireUncached() {
+async function fetchHasSubmittedHealthQuestionnaireUncached(options = {}) {
+  const scopedEngagementId = Number(options.engagementId || 0);
   const assessmentsPayload = await listMyAssessments(1, 50);
   const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
-  const latestBasicPro = pickLatestBasicOrProAssessmentRow(assessments);
-  if (!latestBasicPro) {
+
+  const resolveSubmittedForBasicProRow = (basicProRow) => {
+    if (!basicProRow) {
+      return false;
+    }
+    const basicProId = getAssessmentInstanceId(basicProRow);
+    if (isAssessmentRowSubmitted(basicProRow)) {
+      return true;
+    }
+    const marker = parseHealthQuestionnaireSubmittedMarker();
+    if (marker?.basicProAssessmentId === basicProId) {
+      return true;
+    }
     return false;
+  };
+
+  if (scopedEngagementId > 0) {
+    const scopedRows = assessments.filter((row) => {
+      const rowEngagementId = Number(
+        row?.engagement_id
+        || row?.engagementId
+        || row?.engagement?.engagement_id
+        || row?.engagement?.id
+        || 0,
+      );
+      return rowEngagementId === scopedEngagementId;
+    });
+    const scopedBasicPro = pickLatestBasicOrProAssessmentRow(scopedRows);
+    if (!scopedBasicPro) {
+      return false;
+    }
+    return resolveSubmittedForBasicProRow(scopedBasicPro);
   }
 
-  const basicProId = getAssessmentInstanceId(latestBasicPro);
-
-  if (isAssessmentRowSubmitted(latestBasicPro)) {
-    return true;
+  // Prefer the active incomplete Basic/Pro cycle (new booking) over an older completed row.
+  const activeIncomplete = pickLatestIncompleteActiveAssessment(assessments);
+  if (activeIncomplete && getPackagePriorityTier(activeIncomplete) >= 2) {
+    return resolveSubmittedForBasicProRow(activeIncomplete);
   }
 
-  const marker = parseHealthQuestionnaireSubmittedMarker();
-  if (marker?.legacy) {
-    return true;
-  }
-  if (marker?.basicProAssessmentId === basicProId) {
-    return true;
-  }
-
-  return false;
+  const latestBasicPro = pickLatestBasicOrProAssessmentRow(assessments);
+  return resolveSubmittedForBasicProRow(latestBasicPro);
 }
 
 /**
@@ -1182,29 +1247,35 @@ async function fetchHasSubmittedHealthQuestionnaireUncached() {
  * (latest Metsights Basic/Pro on /assessments/me is completed, or a matching session marker exists).
  */
 export const hasSubmittedHealthQuestionnaire = async (options = {}) => {
-  const { forceRefresh = false } = options;
+  const { forceRefresh = false, engagementId = null } = options;
+  const scopedEngagementId = Number(engagementId || 0);
+  const useGlobalCache = !forceRefresh && scopedEngagementId <= 0;
 
-  if (!forceRefresh && Date.now() < healthSubmittedCache.expiresAt) {
+  if (useGlobalCache && Date.now() < healthSubmittedCache.expiresAt) {
     return healthSubmittedCache.value;
   }
 
-  if (!forceRefresh && healthSubmittedInFlight) {
+  if (!forceRefresh && scopedEngagementId <= 0 && healthSubmittedInFlight) {
     return healthSubmittedInFlight;
   }
 
-  const promise = fetchHasSubmittedHealthQuestionnaireUncached()
+  const promise = fetchHasSubmittedHealthQuestionnaireUncached({ engagementId: scopedEngagementId })
     .then((result) => {
-      healthSubmittedCache = {
-        expiresAt: Date.now() + HEALTH_SUBMITTED_CACHE_TTL_MS,
-        value: result,
-      };
+      if (scopedEngagementId <= 0) {
+        healthSubmittedCache = {
+          expiresAt: Date.now() + HEALTH_SUBMITTED_CACHE_TTL_MS,
+          value: result,
+        };
+      }
       return result;
     })
     .finally(() => {
-      healthSubmittedInFlight = null;
+      if (scopedEngagementId <= 0) {
+        healthSubmittedInFlight = null;
+      }
     });
 
-  if (!forceRefresh) {
+  if (!forceRefresh && scopedEngagementId <= 0) {
     healthSubmittedInFlight = promise;
   }
 

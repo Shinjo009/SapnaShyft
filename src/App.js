@@ -10,7 +10,7 @@ import {
   SUPERCLUB_V1_SCREENS_ENABLED,
 } from './utils/superclubPlaylistLock';
 import { sendOtp, resendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
-import { createUser, getMyProfiles, invalidateMyProfilesCache, saveSuperclubMcqPreferences } from './services/usersService';
+import { createUser, getMyProfiles, invalidateMyProfilesCache, saveSuperclubMcqPreferences, getMyUpcomingSlot } from './services/usersService';
 import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
 import { invalidateDiagnosticPackagesCache } from './services/diagnosticPackagesService';
 import {
@@ -24,7 +24,7 @@ import {
   hasNutritionLogQuestionnaireDraft,
   hasFamilyHistoryQuestionnaireDraft,
   markFitprintGapQuestionnaireSubmitted,
-  hasSubmittedHealthQuestionnaire,
+  hasFinalizedHealthQuestionnaireForEngagement,
   invalidateHealthQuestionnaireSubmittedCache,
 } from './services/questionnaireService';
 import { setPackageOnboardingEligible } from './utils/packageRecommendationStorage';
@@ -982,14 +982,29 @@ function App() {
     }
   };
 
+  const openHealthAssessmentIfNotFinalizedForUpcomingBooking = async () => {
+    try {
+      const slotRoot = await getMyUpcomingSlot();
+      const engagementId = Number(
+        slotRoot?.slots?.[0]?.engagement?.engagement_id
+        || slotRoot?.slots?.[0]?.engagement?.id
+        || slotRoot?.slots?.[0]?.engagement_id
+        || slotRoot?.slots?.[0]?.slot?.engagement_id
+        || 0,
+      ) || 0;
+      if (engagementId > 0 && await hasFinalizedHealthQuestionnaireForEngagement(engagementId)) {
+        return false;
+      }
+    } catch {
+      // allow open when slot / submit state cannot be resolved
+    }
+    return true;
+  };
+
   const handleOpenHealthAssessmentFromHome = () => {
     void (async () => {
-      try {
-        if (await hasSubmittedHealthQuestionnaire()) {
-          return;
-        }
-      } catch {
-        // allow open when submit state cannot be resolved
+      if (!(await openHealthAssessmentIfNotFinalizedForUpcomingBooking())) {
+        return;
       }
 
       setIsB2bQuestionnaireFlow(false);
@@ -1001,12 +1016,8 @@ function App() {
 
   const handleOpenB2bHealthAssessment = () => {
     void (async () => {
-      try {
-        if (await hasSubmittedHealthQuestionnaire()) {
-          return;
-        }
-      } catch {
-        // allow open when submit state cannot be resolved
+      if (!(await openHealthAssessmentIfNotFinalizedForUpcomingBooking())) {
+        return;
       }
 
       try {

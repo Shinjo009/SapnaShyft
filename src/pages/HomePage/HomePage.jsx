@@ -31,6 +31,8 @@ import {
   invalidateHealthQuestionnaireSubmittedCache,
   hasSubmittedHealthQuestionnaire,
   peekHealthQuestionnaireSubmittedCache,
+  hasFinalizedHealthQuestionnaireForEngagement,
+  clearLegacyHealthQuestionnaireSubmittedMarker,
   isFitprintGapQuestionnaireSubmittedFlagSet,
   clearFitprintGapQuestionnaireSubmittedFlag,
 } from '../../services/questionnaireService';
@@ -256,12 +258,12 @@ const HomeReportEyeIcon = () => (
 );
 
 const b2bCampChecklistItems = [
-  'Fasting (10–12 hrs) preferred',
-  'OR have a light breakfast: idli, dosa, poha, black tea/coffee, coconut water, apple/guava, or a few nuts',
-  'Avoid: Fried food, dairy, sugary drinks, bananas & mangoes',
-  'Heavy/sugary food can affect your test results',
-  'Drink plenty of water',
-  'Avoid heavy exercise 1–2 hours before the test',
+  'Carry your company ID card',
+  'Fasting Required ( 8-12 hours )',
+  'Avoid alcohol 24 hours before the test',
+  'Continue medication as prescribed unless advised otherwise by your Doctor.',
+  'Avoid heavy workout 2 hours before the test',
+  'Avoid high-fat or high-sugar foods before the test',
 ];
 
 const analyzingTimelineItems = [
@@ -331,8 +333,12 @@ const EMPTY_UPCOMING_SLOT = {
   slotStart: '',
   slotEnd: '',
   engagementDateRaw: '',
+  engagementId: 0,
   locationDisplay: '',
   locationType: '',
+  locationName: '',
+  locationAddress: '',
+  engagementDayLabel: 'Day 1',
 };
 
 const normalizeUpcomingSlotPayload = (root) => {
@@ -356,26 +362,72 @@ const normalizeUpcomingSlotPayload = (root) => {
     slotStart: String(slot.slot_start_time || '').trim(),
     slotEnd: String(slot.slot_end_time || '').trim(),
     engagementDateRaw: String(slot.engagement_date || '').trim(),
+    engagementId: Number(
+      engagement.engagement_id
+      || engagement.id
+      || first.engagement_id
+      || slot.engagement_id
+      || 0,
+    ) || 0,
     locationDisplay: String(location.display || '').trim(),
     locationType: String(location.type || '').trim(),
+    locationName: String(location.name || location.venue_name || location.venue || '').trim(),
+    locationAddress: String(
+      location.address || location.address_line || location.full_address || location.subtitle || '',
+    ).trim(),
+    engagementDayLabel: (() => {
+      const dayNumber = Number(engagement.day_number);
+      if (Number.isFinite(dayNumber) && dayNumber > 0) {
+        return `Day ${dayNumber}`;
+      }
+      const dayLabel = String(engagement.day_label || '').trim();
+      return dayLabel || 'Day 1';
+    })(),
   };
 };
 
-const formatEngagementDateLabel = (raw) => {
+const formatEngagementDateParts = (raw, dayLabel = 'Day 1') => {
   const ymd = String(raw || '').slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
-    return raw ? String(raw) : '';
+    const fallback = raw ? String(raw) : '—';
+    return { primary: fallback, secondary: dayLabel };
   }
   const d = new Date(`${ymd}T12:00:00`);
   if (Number.isNaN(d.getTime())) {
-    return ymd;
+    return { primary: ymd, secondary: dayLabel };
   }
-  const formatted = new Intl.DateTimeFormat('en-IN', {
+  const primary = new Intl.DateTimeFormat('en-IN', {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
   }).format(d);
-  return `${formatted} (Day 1)`;
+  return { primary, secondary: dayLabel };
+};
+
+const formatB2bSlotLocationLines = (slotNorm) => {
+  const name = String(slotNorm?.locationName || '').trim();
+  const address = String(slotNorm?.locationAddress || '').trim();
+  if (name && address) {
+    return { primary: name, secondary: address };
+  }
+  if (name) {
+    return { primary: name, secondary: '' };
+  }
+  if (address) {
+    return { primary: address, secondary: '' };
+  }
+
+  const display = String(slotNorm?.locationDisplay || '').trim();
+  if (!display) {
+    return { primary: '', secondary: '' };
+  }
+
+  const newlineParts = display.split(/\n+/).map((part) => part.trim()).filter(Boolean);
+  if (newlineParts.length >= 2) {
+    return { primary: newlineParts[0], secondary: newlineParts.slice(1).join(', ') };
+  }
+
+  return { primary: display, secondary: '' };
 };
 
 const formatB2cEngagementDate = (raw) => {
@@ -613,6 +665,8 @@ const HomePage = ({
   const [isQuestionnaireCompleted, setIsQuestionnaireCompleted] = useState(false);
   /** POST /assessments/.../submit finalized — hide edit / complete questionnaire CTAs (B2B + B2C). */
   const [isQuestionnaireSubmitted, setIsQuestionnaireSubmitted] = useState(false);
+  /** Server-finalized questionnaire for the current upcoming-slot engagement (camp scheduled CTA). */
+  const [campEngagementQuestionnaireFinalized, setCampEngagementQuestionnaireFinalized] = useState(false);
   /** When camp B2B no-data UI needs nutrition-log draft check; false until that request finishes (avoids camp → analyzing flicker). */
   const [isB2bCampNoDataGateResolved, setIsB2bCampNoDataGateResolved] = useState(true);
   const [hasStableOverviewData, setHasStableOverviewData] = useState(() => hasRenderableOverviewData(preloadedData));
@@ -644,9 +698,6 @@ const HomePage = ({
   ).trim();
 
   const openB2bQuestionnaire = () => {
-    if (isQuestionnaireSubmitted) {
-      return;
-    }
     if (onOpenB2bHealthAssessment) {
       onOpenB2bHealthAssessment();
       return;
@@ -657,6 +708,7 @@ const HomePage = ({
   };
 
   const showHealthQuestionnaireCta = !isQuestionnaireSubmitted;
+  const showCampScheduledQuestionnaireCta = !campEngagementQuestionnaireFinalized;
 
   const openQuestionnaireFromFitprintLock = () => {
     void (async () => {
@@ -897,6 +949,12 @@ const HomePage = ({
       invalidateHealthQuestionnaireSubmittedCache();
     }
 
+    const campEngagementId = Number(slotNorm.engagementId || 0);
+    const submittedCheckOptions = {
+      forceRefresh: Boolean(forceRefreshFromProfile) || campEngagementId > 0,
+      engagementId: campEngagementId > 0 ? campEngagementId : undefined,
+    };
+
     // After questionnaire submit, parent sets `forceRefreshFromProfile` — do not use stale
     // peek caches; re-fetch so the camp home can switch to “questionnaire submitted”.
     const nutritionCached = forceRefreshFromProfile ? null : peekNutritionLogQuestionnaireDraftCache();
@@ -909,7 +967,9 @@ const HomePage = ({
       return undefined;
     }
 
-    const submittedCached = forceRefreshFromProfile ? null : peekHealthQuestionnaireSubmittedCache();
+    const submittedCached = submittedCheckOptions.forceRefresh
+      ? null
+      : peekHealthQuestionnaireSubmittedCache();
     if (submittedCached !== null && !cancelled) {
       setIsQuestionnaireSubmitted(Boolean(submittedCached));
     }
@@ -922,7 +982,7 @@ const HomePage = ({
         const [hasNutritionDraft, hasFamilyDraft, hasSubmitted] = await Promise.all([
           hasNutritionLogQuestionnaireDraft({ forceRefresh: fr }),
           hasFamilyHistoryQuestionnaireDraft({ forceRefresh: fr }),
-          hasSubmittedHealthQuestionnaire({ forceRefresh: fr }),
+          hasSubmittedHealthQuestionnaire(submittedCheckOptions),
         ]);
         if (!cancelled) {
           setIsQuestionnaireCompleted(Boolean(hasNutritionDraft || hasFamilyDraft));
@@ -943,22 +1003,35 @@ const HomePage = ({
     return () => {
       cancelled = true;
     };
-  }, [isNoDataHome, upcomingSlotStatus, campFlowActive, metsightsCycleAssigned, forceRefreshFromProfile]);
+  }, [
+    isNoDataHome,
+    upcomingSlotStatus,
+    campFlowActive,
+    metsightsCycleAssigned,
+    forceRefreshFromProfile,
+    slotNorm.engagementId,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
     const fr = Boolean(forceRefreshFromProfile);
+    const campEngagementId = Number(slotNorm.engagementId || 0);
     if (fr) {
       invalidateHealthQuestionnaireSubmittedCache();
     }
-    const submittedCached = fr ? null : peekHealthQuestionnaireSubmittedCache();
+    const submittedCached = (fr || campEngagementId > 0)
+      ? null
+      : peekHealthQuestionnaireSubmittedCache();
     if (submittedCached !== null && !cancelled) {
       setIsQuestionnaireSubmitted(Boolean(submittedCached));
     }
 
     (async () => {
       try {
-        const submitted = await hasSubmittedHealthQuestionnaire({ forceRefresh: fr });
+        const submitted = await hasSubmittedHealthQuestionnaire({
+          forceRefresh: fr || campEngagementId > 0,
+          engagementId: campEngagementId > 0 ? campEngagementId : undefined,
+        });
         if (!cancelled) {
           setIsQuestionnaireSubmitted(Boolean(submitted));
         }
@@ -972,7 +1045,7 @@ const HomePage = ({
     return () => {
       cancelled = true;
     };
-  }, [forceRefreshFromProfile]);
+  }, [forceRefreshFromProfile, slotNorm.engagementId, upcomingSlotStatus]);
 
   // Warm nutrition-log draft check in parallel with the upcoming-slot request so the camp gate often hits cache.
   useEffect(() => {
@@ -1391,6 +1464,52 @@ const HomePage = ({
       cancelled = true;
     };
   }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
+
+  // New upcoming slot = new camp cycle; don't reuse stale questionnaire submitted/draft caches.
+  useEffect(() => {
+    if (upcomingSlotStatus !== 'ready' || !slotNorm.hasScheduledSlot) {
+      return undefined;
+    }
+
+    invalidateHealthQuestionnaireSubmittedCache();
+    invalidateNutritionLogQuestionnaireDraftCache();
+    invalidateFamilyHistoryQuestionnaireDraftCache();
+    clearLegacyHealthQuestionnaireSubmittedMarker();
+
+    let cancelled = false;
+    const campEngagementId = Number(slotNorm.engagementId || 0);
+    (async () => {
+      try {
+        const [submitted, engagementFinalized] = await Promise.all([
+          hasSubmittedHealthQuestionnaire({
+            forceRefresh: true,
+            engagementId: campEngagementId > 0 ? campEngagementId : undefined,
+          }),
+          hasFinalizedHealthQuestionnaireForEngagement(campEngagementId),
+        ]);
+        if (!cancelled) {
+          setIsQuestionnaireSubmitted(Boolean(submitted));
+          setCampEngagementQuestionnaireFinalized(Boolean(engagementFinalized));
+        }
+      } catch {
+        if (!cancelled) {
+          setIsQuestionnaireSubmitted(false);
+          setCampEngagementQuestionnaireFinalized(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    upcomingSlotStatus,
+    slotNorm.hasScheduledSlot,
+    slotNorm.engagementDateRaw,
+    slotNorm.slotStart,
+    slotNorm.engagementId,
+    slotNorm.slotEnd,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1912,13 +2031,25 @@ const HomePage = ({
       const isB2cScheduled = slotNorm.isB2c;
       const slotWindowTitle = isB2cScheduled
         ? formatB2cTestingWindowTitle(slotNorm)
-        : [slotNorm.slotStart, slotNorm.slotEnd].filter(Boolean).join(' – ') || '—';
-      const dateLine = formatEngagementDateLabel(slotNorm.engagementDateRaw) || '—';
+        : [formatSlotTimeLabel(slotNorm.slotStart), formatSlotTimeLabel(slotNorm.slotEnd)]
+          .filter(Boolean)
+          .join(' – ') || '—';
+      const engagementDateParts = formatEngagementDateParts(
+        slotNorm.engagementDateRaw,
+        slotNorm.engagementDayLabel,
+      );
+      const b2bLocationLines = formatB2bSlotLocationLines(slotNorm);
+      const showB2bLocation = slotNorm.isB2b && Boolean(b2bLocationLines.primary);
+      const showCampQuestionnaireCta = showCampScheduledQuestionnaireCta;
       const b2cAddressLines = formatB2cAddressLines(b2cProfile);
       const campHeroTitle = slotNorm.isB2b ? 'Your Health Camp is Scheduled' : 'Your Test is Scheduled';
 
       return (
-        <div className={`home-page home-page--no-data-scheduled${slotNorm.isB2b ? ' home-page--b2b-camp' : ' home-page--b2c-scheduled'}`}>
+        <div
+          className={`home-page home-page--no-data-scheduled${
+            slotNorm.isB2b ? ' home-page--b2b-camp' : ' home-page--b2c-scheduled'
+          }${showCampQuestionnaireCta ? ' home-page--camp-scheduled-cta' : ''}`}
+        >
           <Header
             name={userName}
             onMenuClick={handleMenuClick}
@@ -1993,20 +2124,39 @@ const HomePage = ({
                   </div>
                 </div>
               ) : (
-                <div className="home-page-scheduled__line-item">
-                  <div className="home-page-scheduled__icon-box" aria-hidden="true">
-                    <SlotDateCalendarIcon />
+                <>
+                  <div className="home-page-scheduled__line-item">
+                    <div className="home-page-scheduled__icon-box" aria-hidden="true">
+                      <SlotDateCalendarIcon />
+                    </div>
+                    <div className="home-page-scheduled__line-copy">
+                      <p className="home-page-scheduled__line-title">{engagementDateParts.primary}</p>
+                      <p className="home-page-scheduled__line-sub">{engagementDateParts.secondary}</p>
+                    </div>
                   </div>
-                  <div className="home-page-scheduled__line-copy">
-                    <p className="home-page-scheduled__line-title">{dateLine}</p>
-                    <p className="home-page-scheduled__line-sub">Camp day</p>
-                  </div>
-                </div>
+                  {showB2bLocation ? (
+                    <div className="home-page-scheduled__line-item">
+                      <div className="home-page-scheduled__icon-box" aria-hidden="true">
+                        <LocationRowIcon />
+                      </div>
+                      <div className="home-page-scheduled__line-copy">
+                        <p className="home-page-scheduled__line-title">{b2bLocationLines.primary}</p>
+                        {b2bLocationLines.secondary ? (
+                          <p className="home-page-scheduled__line-sub">{b2bLocationLines.secondary}</p>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                </>
               )}
             </div>
           </section>
 
-          <section className="home-page-scheduled__card home-page-scheduled__prep">
+          <section
+            className={`home-page-scheduled__card home-page-scheduled__prep${
+              showCampQuestionnaireCta ? ' home-page-scheduled__prep--cta-visible' : ''
+            }`}
+          >
             <div className="home-page-scheduled__prep-head">
               <PrepIcon />
               <div className="home-page-scheduled__prep-head-copy">
@@ -2037,8 +2187,8 @@ const HomePage = ({
             </div>
           </section>
 
-          {slotNorm.isB2b && showHealthQuestionnaireCta && !isQuestionnaireCompleted ? (
-            <div className="home-page-b2b__cta-wrap">
+          {showCampQuestionnaireCta ? (
+            <div className="home-page-b2b__cta-wrap home-page-b2b__cta-wrap--camp">
               <button type="button" className="home-page-b2b__cta" onClick={openB2bQuestionnaire}>
                 Complete your Health Assessment
               </button>
