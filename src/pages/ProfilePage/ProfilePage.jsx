@@ -19,6 +19,13 @@ import { clearReportRequestCache, clearStoredLatestAssessmentId } from '../../se
 import { clearAuthTokens, extractTokensFromResponse, saveAuthTokens } from '../../utils/authStorage';
 import { isSessionAuthError, logAuthError } from '../../utils/sessionAuth';
 import { formatProfileAddressDisplay } from '../../utils/profileAddress';
+import {
+  isPrimaryAccountProfile,
+  resolvePrimaryLinkedProfile,
+  savePrimaryAccountContact,
+  shouldShowSubAccountEmail,
+  shouldShowSubAccountPhone,
+} from '../../utils/profilePrimaryContact';
 
 /**
  * ProfilePage - User profile management screen
@@ -120,6 +127,22 @@ const ProfilePage = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+
+    if (isPrimaryAccountProfile(profile, linkedProfiles)) {
+      savePrimaryAccountContact(profile);
+      return;
+    }
+
+    const primaryProfile = resolvePrimaryLinkedProfile(profile, linkedProfiles);
+    if (primaryProfile) {
+      savePrimaryAccountContact(primaryProfile);
+    }
+  }, [profile, linkedProfiles]);
+
   const age = useMemo(() => {
     if (typeof profile?.age === 'number' && profile.age > 0) {
       return String(profile.age);
@@ -154,21 +177,21 @@ const ProfilePage = ({
     : '';
   const genderAgeText = [genderText, age].filter(Boolean).join(', ') || '-';
   const linkedProfilesToRender = linkedProfiles.filter((item) => Number(item?.user_id || 0) !== Number(profile?.user_id || 0));
-  const isViewingSelfAccount = useMemo(() => {
-    const currentUserId = Number(profile?.user_id || 0);
+  const isViewingSelfAccount = useMemo(
+    () => isPrimaryAccountProfile(profile, linkedProfiles),
+    [profile, linkedProfiles],
+  );
 
-    if (currentUserId <= 0) {
-      return false;
-    }
+  const shouldShowPhone = useMemo(
+    () => shouldShowSubAccountPhone(profile, linkedProfiles),
+    [profile, linkedProfiles],
+  );
 
-    if (linkedProfiles.length === 0) {
-      return true;
-    }
+  const shouldShowEmail = useMemo(
+    () => shouldShowSubAccountEmail(profile, linkedProfiles),
+    [profile, linkedProfiles],
+  );
 
-    return linkedProfiles.every(
-      (item) => Number(item?.parent_id || 0) === currentUserId
-    );
-  }, [profile?.user_id, linkedProfiles]);
   const isSwitchingProfile = switchingUserId !== null;
 
   const getAvatarByGender = (genderValue) => {
@@ -227,6 +250,10 @@ const ProfilePage = ({
 
   const handleSwitchProfile = async (targetUserId) => {
     try {
+      if (profile && isPrimaryAccountProfile(profile, linkedProfiles)) {
+        savePrimaryAccountContact(profile);
+      }
+
       setSwitchingUserId(targetUserId);
       setLinkedProfilesError('');
       setProfileError('');
@@ -334,20 +361,29 @@ const ProfilePage = ({
           <div className="profile-page__section-divider profile-page__section-divider--after-header" />
 
           <div className="profile-page__contact-list">
-            <div className="profile-page__contact-item profile-page__contact-item--split">
-              <span className="profile-page__contact-segment profile-page__contact-segment--left">
-                <img src={proPhoneIcon} alt="" aria-hidden="true" />
-                <span>{phoneText}</span>
-              </span>
-              <span className="profile-page__contact-segment profile-page__contact-segment--right">
+            {shouldShowPhone ? (
+              <div className="profile-page__contact-item profile-page__contact-item--split">
+                <span className="profile-page__contact-segment profile-page__contact-segment--left">
+                  <img src={proPhoneIcon} alt="" aria-hidden="true" />
+                  <span>{phoneText}</span>
+                </span>
+                <span className="profile-page__contact-segment profile-page__contact-segment--right">
+                  <img src={proGenAgeIcon} alt="" aria-hidden="true" />
+                  <span>{genderAgeText}</span>
+                </span>
+              </div>
+            ) : (
+              <div className="profile-page__contact-item">
                 <img src={proGenAgeIcon} alt="" aria-hidden="true" />
                 <span>{genderAgeText}</span>
-              </span>
-            </div>
-            <div className="profile-page__contact-item">
-              <img src={proMailIcon} alt="" aria-hidden="true" />
-              <span>{emailText}</span>
-            </div>
+              </div>
+            )}
+            {shouldShowEmail ? (
+              <div className="profile-page__contact-item">
+                <img src={proMailIcon} alt="" aria-hidden="true" />
+                <span>{emailText}</span>
+              </div>
+            ) : null}
             <div className="profile-page__contact-item profile-page__contact-item--location">
               <img src={proLocIcon} alt="" aria-hidden="true" />
               <span>{locationText}</span>
