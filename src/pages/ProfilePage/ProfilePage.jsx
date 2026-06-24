@@ -21,6 +21,7 @@ import { isSessionAuthError, logAuthError } from '../../utils/sessionAuth';
 import { formatProfileAddressDisplay } from '../../utils/profileAddress';
 import {
   isPrimaryAccountProfile,
+  resolveDisplayEmail,
   resolvePrimaryLinkedProfile,
   savePrimaryAccountContact,
   shouldShowSubAccountEmail,
@@ -170,7 +171,10 @@ const ProfilePage = ({
 
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim() || 'User';
   const phoneText = profile?.phone ? `+91 ${profile.phone}` : '-';
-  const emailText = profile?.email || '-';
+  const emailText = useMemo(
+    () => resolveDisplayEmail(profile, linkedProfiles) || '-',
+    [profile, linkedProfiles],
+  );
   const locationText = formatProfileAddressDisplay(profile);
   const genderText = profile?.gender
     ? `${String(profile.gender).charAt(0).toUpperCase()}${String(profile.gender).slice(1)}`
@@ -447,12 +451,14 @@ const ProfilePage = ({
             );
           })}
 
-          <button className="profile-page__add-account" type="button" onClick={onOpenAddAccount} data-tour="profile-add-account">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M3.75 9H14.25M9 3.75V14.25" stroke="#4B8D83" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span data-tour="profile-add-account-text">Add Account</span>
-          </button>
+          {isViewingSelfAccount ? (
+            <button className="profile-page__add-account" type="button" onClick={onOpenAddAccount} data-tour="profile-add-account">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M3.75 9H14.25M9 3.75V14.25" stroke="#4B8D83" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span data-tour="profile-add-account-text">Add Account</span>
+            </button>
+          ) : null}
         </div>
 
         {/* Menu Sections */}

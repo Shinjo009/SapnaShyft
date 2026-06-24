@@ -731,9 +731,9 @@ const LIST_RISK_PILL_THEME = {
     border: 'rgba(74, 222, 128, 0.2)',
   },
   moderate: {
-    color: '#ee8b48',
-    background: 'rgba(255, 159, 67, 0.1)',
-    border: 'rgba(255, 159, 67, 0.2)',
+    color: 'rgb(218, 193, 90)',
+    background: 'rgba(218, 193, 90, 0.1)',
+    border: 'rgba(218, 193, 90, 0.2)',
   },
   increased: {
     color: '#ff6b6b',

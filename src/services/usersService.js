@@ -153,20 +153,30 @@ export const invalidateMyProfilesCache = () => {
   myProfilesInFlight = null;
 };
 
-export const buildCreateSubProfilePayload = (formData) => ({
-  age: parseAge(formData.age),
-  first_name: formData.firstName.trim(),
-  last_name: formData.lastName.trim(),
-  date_of_birth: getDateOfBirthFromAge(formData.age),
-  gender: formData.gender.trim().toLowerCase(),
-  relationship: formData.relation.trim().toLowerCase(),
-  phone: formData.phone.trim() || null,
-  email: formData.email?.trim() || null,
-  city: formData.city?.trim() || null,
-});
+export const buildCreateSubProfilePayload = (formData, options = {}) => {
+  const payload = {
+    age: parseAge(formData.age),
+    first_name: formData.firstName.trim(),
+    last_name: formData.lastName.trim(),
+    date_of_birth: getDateOfBirthFromAge(formData.age),
+    gender: formData.gender.trim().toLowerCase(),
+    relationship: formData.relation.trim().toLowerCase(),
+    city: formData.city?.trim() || null,
+  };
 
-export const createMySubProfile = (formData) => {
-  return authorizedUsersRequest('/users/me/profiles', 'POST', buildCreateSubProfilePayload(formData));
+  if (!options.omitPhone) {
+    payload.phone = formData.phone?.trim() || null;
+  }
+
+  if (!options.omitEmail) {
+    payload.email = formData.email?.trim() || null;
+  }
+
+  return payload;
+};
+
+export const createMySubProfile = (formData, options = {}) => {
+  return authorizedUsersRequest('/users/me/profiles', 'POST', buildCreateSubProfilePayload(formData, options));
 };
 
 export const updateMySubProfile = async (userId, payload) => {

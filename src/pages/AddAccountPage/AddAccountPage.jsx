@@ -36,7 +36,7 @@ const optionalOrInvalidFormat = (value, pattern) => {
   return null;
 };
 
-const validateAddAccountForm = (data) => {
+const validateAddAccountForm = (data, options = {}) => {
   const errors = {};
   const set = (key, msg) => {
     if (msg) errors[key] = msg;
@@ -45,8 +45,12 @@ const validateAddAccountForm = (data) => {
   set('lastName', requiredOrInvalidFormat(data.lastName, RE_NAME));
   set('city', requiredOrInvalidFormat(data.city, RE_CITY));
   set('pincode', requiredOrInvalidFormat(data.pincode, RE_PINCODE));
-  set('email', optionalOrInvalidFormat(data.email, RE_EMAIL));
-  set('phone', optionalOrInvalidFormat(data.phone, RE_PHONE));
+  if (!options.omitEmail) {
+    set('email', optionalOrInvalidFormat(data.email, RE_EMAIL));
+  }
+  if (!options.omitPhone) {
+    set('phone', optionalOrInvalidFormat(data.phone, RE_PHONE));
+  }
   set('age', optionalOrInvalidFormat(data.age, RE_AGE));
   if (!data.gender) {
     errors.gender = FIELD_REQUIRED;
@@ -124,12 +128,6 @@ const ProfilePlaceholderIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
     <path d="M24 24C27.3137 24 30 21.3137 30 18C30 14.6863 27.3137 12 24 12C20.6863 12 18 14.6863 18 18C18 21.3137 20.6863 24 24 24Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     <path d="M12 38C12 32.4772 17.3726 28 24 28C30.6274 28 36 32.4772 36 38" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const AvatarEditIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-    <path d="M8.5 1.5L10.5 3.5L4 10H2V8L8.5 1.5Z" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -317,7 +315,11 @@ const AddAccountPage = ({ onBack }) => {
   };
 
   const handleSubmit = async () => {
-    const validation = validateAddAccountForm(formData);
+    const submitOptions = {
+      omitPhone: phoneSame,
+      omitEmail: emailSame,
+    };
+    const validation = validateAddAccountForm(formData, submitOptions);
     setFieldErrors(validation);
     if (Object.keys(validation).length > 0) {
       return;
@@ -325,7 +327,7 @@ const AddAccountPage = ({ onBack }) => {
 
     try {
       setSaving(true);
-      await createMySubProfile(formData);
+      await createMySubProfile(formData, submitOptions);
       onBack();
     } catch (error) {
       window.alert(error?.message || 'Failed to add account. Please try again.');
@@ -365,9 +367,6 @@ const AddAccountPage = ({ onBack }) => {
               </div>
             )}
           </div>
-          <button type="button" className="add-account-page__avatar-edit" aria-label="Edit profile photo">
-            <AvatarEditIcon />
-          </button>
         </div>
 
         <div className="add-account-page__form">
