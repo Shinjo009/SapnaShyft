@@ -31,7 +31,7 @@ import {
   invalidateHealthQuestionnaireSubmittedCache,
   hasSubmittedHealthQuestionnaire,
   peekHealthQuestionnaireSubmittedCache,
-  hasFinalizedHealthQuestionnaireForEngagement,
+  peekHealthQuestionnaireSubmittedForEngagement,
   clearLegacyHealthQuestionnaireSubmittedMarker,
   isFitprintGapQuestionnaireSubmittedFlagSet,
   clearFitprintGapQuestionnaireSubmittedFlag,
@@ -665,8 +665,6 @@ const HomePage = ({
   const [isQuestionnaireCompleted, setIsQuestionnaireCompleted] = useState(false);
   /** POST /assessments/.../submit finalized — hide edit / complete questionnaire CTAs (B2B + B2C). */
   const [isQuestionnaireSubmitted, setIsQuestionnaireSubmitted] = useState(false);
-  /** Server-finalized questionnaire for the current upcoming-slot engagement (camp scheduled CTA). */
-  const [campEngagementQuestionnaireFinalized, setCampEngagementQuestionnaireFinalized] = useState(false);
   /** When camp B2B no-data UI needs nutrition-log draft check; false until that request finishes (avoids camp → analyzing flicker). */
   const [isB2bCampNoDataGateResolved, setIsB2bCampNoDataGateResolved] = useState(true);
   const [hasStableOverviewData, setHasStableOverviewData] = useState(() => hasRenderableOverviewData(preloadedData));
@@ -708,7 +706,6 @@ const HomePage = ({
   };
 
   const showHealthQuestionnaireCta = !isQuestionnaireSubmitted;
-  const showCampScheduledQuestionnaireCta = !campEngagementQuestionnaireFinalized;
 
   const openQuestionnaireFromFitprintLock = () => {
     void (async () => {
@@ -1046,6 +1043,16 @@ const HomePage = ({
       cancelled = true;
     };
   }, [forceRefreshFromProfile, slotNorm.engagementId, upcomingSlotStatus]);
+
+  useLayoutEffect(() => {
+    if (!forceRefreshFromProfile) {
+      return;
+    }
+    const campEngagementId = Number(slotNorm.engagementId || 0);
+    if (peekHealthQuestionnaireSubmittedForEngagement(campEngagementId)) {
+      setIsQuestionnaireSubmitted(true);
+    }
+  }, [forceRefreshFromProfile, slotNorm.engagementId]);
 
   // Warm nutrition-log draft check in parallel with the upcoming-slot request so the camp gate often hits cache.
   useEffect(() => {
@@ -1478,23 +1485,21 @@ const HomePage = ({
 
     let cancelled = false;
     const campEngagementId = Number(slotNorm.engagementId || 0);
+    if (peekHealthQuestionnaireSubmittedForEngagement(campEngagementId)) {
+      setIsQuestionnaireSubmitted(true);
+    }
     (async () => {
       try {
-        const [submitted, engagementFinalized] = await Promise.all([
-          hasSubmittedHealthQuestionnaire({
-            forceRefresh: true,
-            engagementId: campEngagementId > 0 ? campEngagementId : undefined,
-          }),
-          hasFinalizedHealthQuestionnaireForEngagement(campEngagementId),
-        ]);
+        const submitted = await hasSubmittedHealthQuestionnaire({
+          forceRefresh: true,
+          engagementId: campEngagementId > 0 ? campEngagementId : undefined,
+        });
         if (!cancelled) {
           setIsQuestionnaireSubmitted(Boolean(submitted));
-          setCampEngagementQuestionnaireFinalized(Boolean(engagementFinalized));
         }
       } catch {
         if (!cancelled) {
           setIsQuestionnaireSubmitted(false);
-          setCampEngagementQuestionnaireFinalized(false);
         }
       }
     })();
@@ -1509,6 +1514,7 @@ const HomePage = ({
     slotNorm.slotStart,
     slotNorm.engagementId,
     slotNorm.slotEnd,
+    forceRefreshFromProfile,
   ]);
 
   useEffect(() => {
@@ -2040,7 +2046,7 @@ const HomePage = ({
       );
       const b2bLocationLines = formatB2bSlotLocationLines(slotNorm);
       const showB2bLocation = slotNorm.isB2b && Boolean(b2bLocationLines.primary);
-      const showCampQuestionnaireCta = showCampScheduledQuestionnaireCta;
+      const showCampQuestionnaireCta = showHealthQuestionnaireCta;
       const b2cAddressLines = formatB2cAddressLines(b2cProfile);
       const campHeroTitle = slotNorm.isB2b ? 'Your Health Camp is Scheduled' : 'Your Test is Scheduled';
 

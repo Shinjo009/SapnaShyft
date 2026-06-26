@@ -4,6 +4,7 @@ import {
   resolveAssessmentSubmitTargetsForEngagementId,
   resolveAssessmentSubmitTargetsFromRows,
   resolveEngagementIdFromAssessmentId,
+  resolveMetsightsSubmitInstanceIdsFromRows,
 } from './reportService';
 import { assertGapQuestionnaireReadyForMetsightsSubmit } from '../utils/fitprintGapCatchupCompletion';
 
@@ -495,8 +496,13 @@ export const listMyAssessments = async (page = 1, limit = 50) => {
   return raw?.data ?? raw;
 };
 
-export const getAssessmentStatus = (assessmentInstanceId) => {
-  return authorizedGet(`/assessments/${assessmentInstanceId}/status`);
+export const getAssessmentStatus = (assessmentInstanceId, { categoryOf = 'supershyft' } = {}) => {
+  const id = Number(assessmentInstanceId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return Promise.reject(new Error('Invalid assessment instance id.'));
+  }
+  const categoryOfValue = String(categoryOf || 'supershyft').trim() || 'supershyft';
+  return authorizedGet(`/assessments/${id}/status`, { category_of: categoryOfValue });
 };
 
 export const getCategoryQuestionnaire = (assessmentInstanceId, categoryId) => {
@@ -726,29 +732,87 @@ export const submitQuestionnaireResponses = (assessmentInstanceId, categoryId, r
   });
 };
 
+const METSIGHTS_SUBMIT_CATEGORY_OF = 'metsights';
+
 /**
- * Finalize an assessment: push merged answers to Metsights (when applicable) and mark completed.
- * @param {number} assessmentInstanceId Path parameter — active instance to finalize (usually FitPrint).
- * @param {{ sourceAssessmentInstanceIds?: number[] }} options Latest engagement instance ids (1–2).
+ * POST /assessments/{id}/submit — push one Metsights category through the strategy engine.
+ * @param {number} assessmentInstanceId
+ * @param {{ category: string, categoryOf?: string }} options
  */
-export const submitAssessmentInstance = async (assessmentInstanceId, { sourceAssessmentInstanceIds } = {}) => {
+export const submitAssessmentInstance = async (assessmentInstanceId, { category, categoryOf } = {}) => {
   const id = Number(assessmentInstanceId);
+  const categoryName = String(category || '').trim();
+  const categoryOfValue = String(categoryOf || METSIGHTS_SUBMIT_CATEGORY_OF).trim()
+    || METSIGHTS_SUBMIT_CATEGORY_OF;
+
   if (!Number.isFinite(id) || id <= 0) {
     throw new Error('Invalid assessment instance id.');
   }
-
-  const payload = {};
-  const sources = Array.isArray(sourceAssessmentInstanceIds)
-    ? sourceAssessmentInstanceIds
-      .map((value) => Number(value))
-      .filter((value) => Number.isFinite(value) && value > 0)
-    : [];
-
-  if (sources.length > 0) {
-    payload.source_assessment_instance_ids = sources;
+  if (!categoryName) {
+    throw new Error('Category is required for assessment submit.');
   }
 
-  return authorizedPost(`/assessments/${id}/submit`, payload);
+  return authorizedPost(`/assessments/${id}/submit`, {
+    category: categoryName,
+    category_of: categoryOfValue,
+  });
+};
+
+const resolveMetsightsSubmitIds = (targets, assessments = []) => {
+  const fromRows = resolveMetsightsSubmitInstanceIdsFromRows(assessments);
+  const metsightsProId = Number(fromRows.metsightsProAssessmentId)
+    || Number(targets?.basicOrProAssessmentId);
+  const fitprintFullId = Number(fromRows.fitprintFullAssessmentId)
+    || Number(targets?.fitprintAssessmentId);
+
+  return {
+    metsightsProId: Number.isFinite(metsightsProId) && metsightsProId > 0 ? metsightsProId : null,
+    fitprintFullId: Number.isFinite(fitprintFullId) && fitprintFullId > 0 ? fitprintFullId : null,
+  };
+};
+
+/**
+ * Build 3 submit calls on Metsights Pro (or Basic fallback) and 1 on FitPrint Full when present.
+ * Instance ids come from `/assessments/me` — never the generic path instance id.
+ */
+const collectMetsightsSubmitJobs = (targets, assessments = []) => {
+  const { metsightsProId, fitprintFullId } = resolveMetsightsSubmitIds(targets, assessments);
+  const jobs = [];
+
+  if (metsightsProId) {
+    jobs.push({ assessmentInstanceId: metsightsProId, category: 'physical-measurement' });
+    jobs.push({ assessmentInstanceId: metsightsProId, category: 'diet-lifestyle-parameters' });
+    jobs.push({ assessmentInstanceId: metsightsProId, category: 'vitals' });
+  }
+
+  if (fitprintFullId) {
+    jobs.push({ assessmentInstanceId: fitprintFullId, category: 'fitness-parameters' });
+  }
+
+  return jobs;
+};
+
+const submitMetsightsCategoryJobs = async (jobs = []) => {
+  let lastResult = null;
+  for (const job of jobs) {
+    lastResult = await submitAssessmentInstance(job.assessmentInstanceId, {
+      category: job.category,
+    });
+  }
+  return lastResult;
+};
+
+const markHealthQuestionnaireSubmittedFromTargets = (assessments, targets) => {
+  const { metsightsProId } = resolveMetsightsSubmitIds(targets, assessments);
+  if (metsightsProId) {
+    const engagementId = resolveEngagementIdFromAssessmentId(assessments, metsightsProId);
+    markHealthQuestionnaireSubmitted({
+      engagementId,
+      basicProAssessmentId: metsightsProId,
+    });
+    return;
+  }
+  markHealthQuestionnaireSubmitted();
 };
 
 const isAssessmentAlreadyCompletedError = (error) => {
@@ -756,38 +820,30 @@ const isAssessmentAlreadyCompletedError = (error) => {
   return message.includes('already completed') || message.includes('assessment is already completed');
 };
 
-/** Resolve latest-engagement submit targets from `/assessments/me` and POST submit. */
+/** Resolve latest-engagement submit targets and POST submit (3 or 4 Metsights strategy calls). */
 export const submitLatestEngagementAssessment = async () => {
   const assessmentsPayload = await listMyAssessments(1, 50);
   const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
   const targets = resolveAssessmentSubmitTargetsFromRows(assessments);
+  const { metsightsProId } = resolveMetsightsSubmitIds(targets, assessments);
 
-  if (!targets?.assessmentInstanceId) {
-    throw new Error('No active assessment is available to submit.');
+  if (!metsightsProId) {
+    throw new Error('No Metsights Pro assessment is available to submit.');
   }
 
-  const result = await submitAssessmentInstance(targets.assessmentInstanceId, {
-    sourceAssessmentInstanceIds: targets.sourceAssessmentInstanceIds,
-  });
+  const jobs = collectMetsightsSubmitJobs(targets, assessments);
 
-  const basicProId = Number(targets.basicOrProAssessmentId);
-  if (Number.isFinite(basicProId) && basicProId > 0) {
-    const engagementId = resolveEngagementIdFromAssessmentId(assessments, basicProId);
-    markHealthQuestionnaireSubmitted({
-      engagementId,
-      basicProAssessmentId: basicProId,
-    });
-  } else {
-    markHealthQuestionnaireSubmitted();
+  if (jobs.length === 0) {
+    throw new Error('No Metsights questionnaire categories are available to submit.');
   }
 
+  const result = await submitMetsightsCategoryJobs(jobs);
+  markHealthQuestionnaireSubmittedFromTargets(assessments, targets);
   return result;
 };
 
 /**
- * Finalize FitPrint gap / catch-up questionnaire (same POST submit as full health assessment).
- * Prefers the active instance from the latest engagement; when the gap flow runs on Basic/Pro,
- * that active row is used as the path id while still merging FitPrint + Basic/Pro source ids when present.
+ * Finalize FitPrint gap / catch-up questionnaire — POST submit (3 or 4 Metsights strategy calls).
  */
 export const submitFitprintGapQuestionnaire = async (gapAssessmentInstanceId) => {
   const gapId = Number(gapAssessmentInstanceId);
@@ -826,70 +882,19 @@ export const submitFitprintGapQuestionnaire = async (gapAssessmentInstanceId) =>
     await assertGapQuestionnaireReadyForMetsightsSubmit(basicProIdForValidation);
   }
 
-  const sourceSet = new Set(
-    (Array.isArray(targets.sourceAssessmentInstanceIds) ? targets.sourceAssessmentInstanceIds : [])
-      .map((value) => Number(value))
-      .filter((value) => Number.isFinite(value) && value > 0),
-  );
-  if (Number.isFinite(gapId) && gapId > 0) {
-    sourceSet.add(gapId);
-  }
-  if (targets.fitprintAssessmentId) {
-    sourceSet.add(Number(targets.fitprintAssessmentId));
-  }
-  if (targets.basicOrProAssessmentId) {
-    sourceSet.add(Number(targets.basicOrProAssessmentId));
-  }
+  const jobs = collectMetsightsSubmitJobs(targets, assessments);
 
-  const orderedSources = [];
-  const basicId = Number(targets.basicOrProAssessmentId);
-  const fitprintId = Number(targets.fitprintAssessmentId);
-  if (Number.isFinite(basicId) && basicId > 0 && sourceSet.has(basicId)) {
-    orderedSources.push(basicId);
-  }
-  if (Number.isFinite(fitprintId) && fitprintId > 0 && sourceSet.has(fitprintId)) {
-    orderedSources.push(fitprintId);
-  }
-  sourceSet.forEach((id) => {
-    if (!orderedSources.includes(id)) {
-      orderedSources.push(id);
-    }
-  });
-
-  let pathId = Number(targets.assessmentInstanceId);
-  if (Number.isFinite(fitprintId) && fitprintId > 0) {
-    pathId = fitprintId;
+  if (jobs.length === 0) {
+    throw new Error('No Metsights questionnaire categories are available to submit.');
   }
 
   try {
-    const result = await submitAssessmentInstance(pathId, {
-      sourceAssessmentInstanceIds: orderedSources.length > 0 ? orderedSources : [pathId],
-    });
-
-    const markBasicProId = Number(targets.basicOrProAssessmentId || basicProIdForValidation);
-    if (Number.isFinite(markBasicProId) && markBasicProId > 0) {
-      const markEngagementId = engagementId || resolveEngagementIdFromAssessmentId(assessments, markBasicProId);
-      markHealthQuestionnaireSubmitted({
-        engagementId: markEngagementId,
-        basicProAssessmentId: markBasicProId,
-      });
-    } else {
-      markHealthQuestionnaireSubmitted();
-    }
-
+    const result = await submitMetsightsCategoryJobs(jobs);
+    markHealthQuestionnaireSubmittedFromTargets(assessments, targets);
     return result;
   } catch (error) {
     if (isAssessmentAlreadyCompletedError(error)) {
-      const markBasicProId = Number(targets.basicOrProAssessmentId || basicProIdForValidation);
-      if (Number.isFinite(markBasicProId) && markBasicProId > 0) {
-        const markEngagementId = engagementId || resolveEngagementIdFromAssessmentId(assessments, markBasicProId);
-        markHealthQuestionnaireSubmitted({
-          engagementId: markEngagementId,
-          basicProAssessmentId: markBasicProId,
-        });
-      } else {
-        markHealthQuestionnaireSubmitted();
-      }
+      markHealthQuestionnaireSubmittedFromTargets(assessments, targets);
       return { message: 'Assessment already submitted' };
     }
     const message = String(error?.message || error || '');
@@ -1077,6 +1082,142 @@ const parseHealthQuestionnaireSubmittedMarker = () => {
   }
 };
 
+const pickLatestBasicOrProAssessmentRow = (assessments) => {
+  const rows = (Array.isArray(assessments) ? assessments : [])
+    .filter((row) => getPackagePriorityTier(row) >= 2);
+  if (rows.length === 0) {
+    return null;
+  }
+  return [...rows].sort((a, b) => {
+    const byAssigned = toTimestamp(b?.assigned_at) - toTimestamp(a?.assigned_at);
+    if (byAssigned !== 0) {
+      return byAssigned;
+    }
+    return getAssessmentInstanceId(b) - getAssessmentInstanceId(a);
+  })[0];
+};
+
+const isCategoryStatusFinalized = (status) => {
+  const normalized = normalizeCategoryStatus(status);
+  return normalized === 'complete' || normalized === 'completed' || normalized === 'submitted';
+};
+
+const normalizeQuestionnaireCategoriesFromStatus = (statusPayload, fallbackAssessmentInstanceId) => {
+  const fallbackId = Number(fallbackAssessmentInstanceId);
+  return sortCategories(
+    extractCategoriesFromAssessmentStatus(statusPayload)
+      .map((category) => {
+        const normalizedCategory = {
+          category_id: Number(category?.category_id || category?.id || 0),
+          category_key: category?.category_key || category?.key || '',
+          display_name: category?.display_name || category?.name || category?.category_name || '',
+          assessment_instance_id: Number(
+            category?.assessment_instance_id || category?.assessment_id || fallbackId,
+          ),
+        };
+        return {
+          ...normalizedCategory,
+          routeId: mapCategoryToRouteId(normalizedCategory),
+          status: normalizeCategoryStatus(category?.status || category?.category_status),
+        };
+      })
+      .filter((category) => (
+        category.category_id > 0
+        && category.routeId
+        && routeOrder.includes(category.routeId)
+      )),
+  );
+};
+
+/** True when every questionnaire category is finalized on GET /assessments/{id}/status. */
+const isQuestionnaireFinalizedFromStatusApi = async (assessmentInstanceId) => {
+  const id = Number(assessmentInstanceId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return false;
+  }
+
+  try {
+    const statusPayload = await getAssessmentStatus(id, { categoryOf: 'supershyft' });
+    const questionnaireCategories = normalizeQuestionnaireCategoriesFromStatus(statusPayload, id);
+    if (questionnaireCategories.length === 0) {
+      return false;
+    }
+    return questionnaireCategories.every((category) => isCategoryStatusFinalized(category.status));
+  } catch {
+    return false;
+  }
+};
+
+const matchesSubmittedSessionMarker = (basicProId, scopedEngagementId = 0) => {
+  const marker = parseHealthQuestionnaireSubmittedMarker();
+  if (!marker) {
+    return false;
+  }
+  if (marker.legacy) {
+    return true;
+  }
+  if (marker.basicProAssessmentId !== basicProId) {
+    return false;
+  }
+  const engagementId = Number(scopedEngagementId);
+  if (engagementId > 0 && marker.engagementId > 0 && marker.engagementId !== engagementId) {
+    return false;
+  }
+  return true;
+};
+
+const resolveBasicProAssessmentIdForSubmitCheck = (assessments, scopedEngagementId = 0) => {
+  const engagementId = Number(scopedEngagementId);
+  const fromRows = resolveMetsightsSubmitInstanceIdsFromRows(assessments);
+
+  if (engagementId > 0) {
+    if (
+      fromRows.metsightsProAssessmentId
+      && (!fromRows.engagementId || Number(fromRows.engagementId) === engagementId)
+    ) {
+      return fromRows.metsightsProAssessmentId;
+    }
+    const scopedRows = assessments.filter((row) => {
+      const rowEngagementId = Number(
+        row?.engagement_id
+        || row?.engagementId
+        || row?.engagement?.engagement_id
+        || row?.engagement?.id
+        || 0,
+      );
+      return rowEngagementId === engagementId;
+    });
+    return getAssessmentInstanceId(pickLatestBasicOrProAssessmentRow(scopedRows));
+  }
+
+  if (fromRows.metsightsProAssessmentId) {
+    return fromRows.metsightsProAssessmentId;
+  }
+
+  const activeIncomplete = pickLatestIncompleteActiveAssessment(assessments);
+  if (activeIncomplete && getPackagePriorityTier(activeIncomplete) >= 2) {
+    return getAssessmentInstanceId(activeIncomplete);
+  }
+
+  return getAssessmentInstanceId(pickLatestBasicOrProAssessmentRow(assessments));
+};
+
+/** Sync read after POST submit — avoids camp CTA flash while /assessments/me catches up. */
+export const peekHealthQuestionnaireSubmittedForEngagement = (engagementId = null) => {
+  const scopedEngagementId = Number(engagementId || 0);
+  const marker = parseHealthQuestionnaireSubmittedMarker();
+  if (!marker) {
+    return false;
+  }
+  if (marker.legacy) {
+    return true;
+  }
+  if (scopedEngagementId > 0 && marker.engagementId > 0 && marker.engagementId !== scopedEngagementId) {
+    return false;
+  }
+  return marker.basicProAssessmentId > 0;
+};
+
 export function markHealthQuestionnaireSubmitted({ engagementId = null, basicProAssessmentId = null } = {}) {
   try {
     const id = Number(basicProAssessmentId);
@@ -1121,62 +1262,11 @@ export function clearLegacyHealthQuestionnaireSubmittedMarker() {
 }
 
 /**
- * Server-only check for camp/home scheduled CTA: finalized Basic/Pro on this engagement.
- * Returns false when engagement is unknown, no assessment exists yet, or questionnaire is incomplete.
+ * Finalized health questionnaire on this engagement via GET /assessments/{id}/status.
  */
-export const hasFinalizedHealthQuestionnaireForEngagement = async (engagementId) => {
-  const scopedEngagementId = Number(engagementId || 0);
-  if (scopedEngagementId <= 0) {
-    return false;
-  }
-
-  const assessmentsPayload = await listMyAssessments(1, 50);
-  const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
-  const scopedRows = assessments.filter((row) => {
-    const rowEngagementId = Number(
-      row?.engagement_id
-      || row?.engagementId
-      || row?.engagement?.engagement_id
-      || row?.engagement?.id
-      || 0,
-    );
-    return rowEngagementId === scopedEngagementId;
-  });
-  const scopedBasicPro = pickLatestBasicOrProAssessmentRow(scopedRows);
-  if (!scopedBasicPro) {
-    return false;
-  }
-  return isAssessmentRowSubmitted(scopedBasicPro);
-};
-
-const isAssessmentRowSubmitted = (row) => {
-  if (!row || typeof row !== 'object') {
-    return false;
-  }
-  const status = normalizeAssessmentStatus(row?.status);
-  if (status === 'completed' || status === 'submitted') {
-    return true;
-  }
-  if (row?.completed_at || row?.completedAt) {
-    return true;
-  }
-  return Boolean(row?.is_completed ?? row?.isComplete);
-};
-
-const pickLatestBasicOrProAssessmentRow = (assessments) => {
-  const rows = (Array.isArray(assessments) ? assessments : [])
-    .filter((row) => getPackagePriorityTier(row) >= 2);
-  if (rows.length === 0) {
-    return null;
-  }
-  return [...rows].sort((a, b) => {
-    const byAssigned = toTimestamp(b?.assigned_at) - toTimestamp(a?.assigned_at);
-    if (byAssigned !== 0) {
-      return byAssigned;
-    }
-    return getAssessmentInstanceId(b) - getAssessmentInstanceId(a);
-  })[0];
-};
+export const hasFinalizedHealthQuestionnaireForEngagement = async (engagementId) => (
+  hasSubmittedHealthQuestionnaire({ forceRefresh: true, engagementId })
+);
 
 const HEALTH_SUBMITTED_CACHE_TTL_MS = 90_000;
 let healthSubmittedCache = { expiresAt: 0, value: null };
@@ -1198,53 +1288,26 @@ async function fetchHasSubmittedHealthQuestionnaireUncached(options = {}) {
   const scopedEngagementId = Number(options.engagementId || 0);
   const assessmentsPayload = await listMyAssessments(1, 50);
   const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
+  const assessmentInstanceId = resolveBasicProAssessmentIdForSubmitCheck(
+    assessments,
+    scopedEngagementId,
+  );
 
-  const resolveSubmittedForBasicProRow = (basicProRow) => {
-    if (!basicProRow) {
-      return false;
-    }
-    const basicProId = getAssessmentInstanceId(basicProRow);
-    if (isAssessmentRowSubmitted(basicProRow)) {
-      return true;
-    }
-    const marker = parseHealthQuestionnaireSubmittedMarker();
-    if (marker?.basicProAssessmentId === basicProId) {
-      return true;
-    }
+  if (assessmentInstanceId <= 0) {
     return false;
-  };
-
-  if (scopedEngagementId > 0) {
-    const scopedRows = assessments.filter((row) => {
-      const rowEngagementId = Number(
-        row?.engagement_id
-        || row?.engagementId
-        || row?.engagement?.engagement_id
-        || row?.engagement?.id
-        || 0,
-      );
-      return rowEngagementId === scopedEngagementId;
-    });
-    const scopedBasicPro = pickLatestBasicOrProAssessmentRow(scopedRows);
-    if (!scopedBasicPro) {
-      return false;
-    }
-    return resolveSubmittedForBasicProRow(scopedBasicPro);
   }
 
-  // Prefer the active incomplete Basic/Pro cycle (new booking) over an older completed row.
-  const activeIncomplete = pickLatestIncompleteActiveAssessment(assessments);
-  if (activeIncomplete && getPackagePriorityTier(activeIncomplete) >= 2) {
-    return resolveSubmittedForBasicProRow(activeIncomplete);
+  const fromStatus = await isQuestionnaireFinalizedFromStatusApi(assessmentInstanceId);
+  if (fromStatus) {
+    return true;
   }
 
-  const latestBasicPro = pickLatestBasicOrProAssessmentRow(assessments);
-  return resolveSubmittedForBasicProRow(latestBasicPro);
+  return matchesSubmittedSessionMarker(assessmentInstanceId, scopedEngagementId);
 }
 
 /**
- * True when the user has finalized the camp/B2B/B2C health questionnaire via POST submit
- * (latest Metsights Basic/Pro on /assessments/me is completed, or a matching session marker exists).
+ * True when the user has finalized the health questionnaire:
+ * GET /assessments/{latest_pro_id}/status?category_of=supershyft shows every category complete.
  */
 export const hasSubmittedHealthQuestionnaire = async (options = {}) => {
   const { forceRefresh = false, engagementId = null } = options;

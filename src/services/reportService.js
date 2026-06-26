@@ -596,6 +596,89 @@ const isActiveIncompleteAssessmentRow = (row) => {
     || status === 'in_progress' || status === 'in-progress';
 };
 
+const normalizePackageCodeFromRow = (row) => String(
+  row?.package_code || row?.packageCode || row?.assessment?.package_code || '',
+).trim().toUpperCase().replace(/\s+/g, '_');
+
+const isMetsightsProRow = (row) => {
+  const code = normalizePackageCodeFromRow(row);
+  return code.includes('METSIGHTS') && code.includes('PRO');
+};
+
+const isFitprintFullRow = (row) => {
+  if (normalizedAssessmentFamily(row) !== 'fitprint') {
+    return false;
+  }
+  const code = normalizePackageCodeFromRow(row);
+  if (code === 'MY_FITNESS_PRINT' || code.includes('FITPRINT') || code.includes('FITNESS_PRINT')) {
+    return true;
+  }
+  const label = String(
+    row?.package_name
+    || row?.package_display_name
+    || row?.assessment_name
+    || row?.name
+    || row?.assessment?.package_name
+    || row?.assessment?.package_display_name
+    || '',
+  ).trim().toLowerCase();
+  return label.includes('fitprint full') || label.includes('fitness print full');
+};
+
+const rowsOnEngagement = (rows, engagementId) => {
+  const engagementKey = String(engagementId || '').trim();
+  if (!engagementKey) {
+    return Array.isArray(rows) ? rows : [];
+  }
+  return (Array.isArray(rows) ? rows : []).filter(
+    (row) => String(extractEngagementIdFromRow(row) || '').trim() === engagementKey,
+  );
+};
+
+/**
+ * Metsights POST /assessments/{id}/submit instance ids from `/assessments/me`:
+ * Pro (or Basic fallback) for the 3 core categories; FitPrint Full for fitness-parameters.
+ */
+export const resolveMetsightsSubmitInstanceIdsFromRows = (rawRows) => {
+  const rows = sortAssessmentRowsLatestFirst(Array.isArray(rawRows) ? rawRows : []);
+
+  const anchorRow = rows.find((row) => isMetsightsProRow(row))
+    || rows.find((row) => normalizedAssessmentFamily(row) === 'basic_or_pro')
+    || null;
+
+  if (!anchorRow) {
+    return {
+      metsightsProAssessmentId: null,
+      fitprintFullAssessmentId: null,
+      engagementId: null,
+    };
+  }
+
+  const engagementId = String(extractEngagementIdFromRow(anchorRow) || '').trim();
+  const onEngagement = rowsOnEngagement(rows, engagementId);
+
+  const proRow = onEngagement.find((row) => isMetsightsProRow(row))
+    || onEngagement.find((row) => normalizedAssessmentFamily(row) === 'basic_or_pro')
+    || anchorRow;
+
+  const metsightsProAssessmentId = Number(extractAssessmentIdFromRow(proRow));
+  const fitprintCandidates = onEngagement.filter((row) => normalizedAssessmentFamily(row) === 'fitprint');
+  const fitprintRow = fitprintCandidates.find((row) => isFitprintFullRow(row))
+    || fitprintCandidates[0]
+    || null;
+  const fitprintFullAssessmentId = fitprintRow ? Number(extractAssessmentIdFromRow(fitprintRow)) : null;
+
+  return {
+    metsightsProAssessmentId: Number.isFinite(metsightsProAssessmentId) && metsightsProAssessmentId > 0
+      ? metsightsProAssessmentId
+      : null,
+    fitprintFullAssessmentId: Number.isFinite(fitprintFullAssessmentId) && fitprintFullAssessmentId > 0
+      ? fitprintFullAssessmentId
+      : null,
+    engagementId: engagementId || null,
+  };
+};
+
 /**
  * Resolve POST /assessments/{id}/submit targets for the latest engagement.
  * Path instance is the active package to finalize (FitPrint when present, else Basic/Pro).
@@ -723,6 +806,8 @@ export const resolveAssessmentSubmitTargetsFromRows = (rawRows) => {
       assessmentInstanceId,
       sourceAssessmentInstanceIds,
       engagementId,
+      basicOrProAssessmentId,
+      fitprintAssessmentId,
     };
   }
 
@@ -736,6 +821,8 @@ export const resolveAssessmentSubmitTargetsFromRows = (rawRows) => {
       assessmentInstanceId,
       sourceAssessmentInstanceIds: [assessmentInstanceId],
       engagementId: resolved.engagementId || extractEngagementIdFromRow(findRowById(assessmentInstanceId)),
+      basicOrProAssessmentId: resolved.basicOrProAssessmentId,
+      fitprintAssessmentId: null,
     };
   }
 
@@ -769,10 +856,23 @@ export const resolveAssessmentSubmitTargetsFromRows = (rawRows) => {
     ? sourceAssessmentInstanceIds
     : [assessmentInstanceId];
 
+  const basicOrProRow = engagementInstances.find((row) => normalizedAssessmentFamily(row) === 'basic_or_pro') || null;
+  const fitprintRow = engagementInstances.find((row) => normalizedAssessmentFamily(row) === 'fitprint') || null;
+  const basicOrProAssessmentId = Number(extractAssessmentIdFromRow(basicOrProRow))
+    || (normalizedAssessmentFamily(preferred) === 'basic_or_pro' ? assessmentInstanceId : null);
+  const fitprintAssessmentId = Number(extractAssessmentIdFromRow(fitprintRow))
+    || (normalizedAssessmentFamily(preferred) === 'fitprint' ? assessmentInstanceId : null);
+
   return {
     assessmentInstanceId,
     sourceAssessmentInstanceIds: orderedSources,
     engagementId: engagementId || null,
+    basicOrProAssessmentId: Number.isFinite(basicOrProAssessmentId) && basicOrProAssessmentId > 0
+      ? basicOrProAssessmentId
+      : null,
+    fitprintAssessmentId: Number.isFinite(fitprintAssessmentId) && fitprintAssessmentId > 0
+      ? fitprintAssessmentId
+      : null,
   };
 };
 

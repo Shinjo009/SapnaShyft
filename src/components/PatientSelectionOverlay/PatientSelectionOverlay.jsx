@@ -305,6 +305,20 @@ const packageMatchesForYouAge = (item, userAge) => {
 
 const isForYouChipKey = (chipKey) => FOR_YOU_CHIP_KEYS.has(String(chipKey || '').trim().toLowerCase());
 
+const isWomenFilterChip = (chip) => {
+  const key = String(chip?.chip_key || '').trim().toLowerCase();
+  const label = String(chip?.display_name || '').trim().toLowerCase();
+  return key === 'women' || key === 'woman' || key === 'female'
+    || label === 'women' || label === 'woman' || label === 'female';
+};
+
+const isMenFilterChip = (chip) => {
+  const key = String(chip?.chip_key || '').trim().toLowerCase();
+  const label = String(chip?.display_name || '').trim().toLowerCase();
+  return key === 'men' || key === 'man' || key === 'male'
+    || label === 'men' || label === 'man' || label === 'male';
+};
+
 const packageMatchesForYou = (item, forYouContext) => (
   packageMatchesForYouGender(item, forYouContext?.gender)
   && packageMatchesForYouAge(item, forYouContext?.age)
@@ -1107,11 +1121,31 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
     view,
   ]);
 
+  const selectedMemberGender = useMemo(() => {
+    if (packageTargetPatientId) {
+      const patient = patients.find((item) => item.id === packageTargetPatientId);
+      if (patient?.gender === 'male' || patient?.gender === 'female') {
+        return patient.gender;
+      }
+    }
+    if (view === 'package' && packageViewReturn === 'add' && formData?.gender) {
+      return normalizeGenderType(formData.gender);
+    }
+    return null;
+  }, [packageTargetPatientId, patients, view, packageViewReturn, formData?.gender]);
+
   const filteredPackages = useMemo(() => {
     const selectedChip = packageFilterChips.find((chip) => String(chip?.chip_key || '').toLowerCase() === activeFilterKey);
     const selectedKey = String(selectedChip?.chip_key || activeFilterKey || 'all').trim().toLowerCase();
     const selectedLabel = String(selectedChip?.display_name || '').trim().toLowerCase();
     const q = searchQuery.trim().toLowerCase();
+
+    const passesMemberGender = (item) => {
+      if (!selectedMemberGender) {
+        return true;
+      }
+      return packageMatchesForYouGender(item, selectedMemberGender);
+    };
 
     const applySearchFilter = (items) => items.filter((item) => {
       if (!q) {
@@ -1126,7 +1160,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
     const scopeId = profileData?.user_id || profileData?.id;
     const onboardingResult = scopeId ? loadPackageOnboardingResult(scopeId) : null;
     const forYouContext = {
-      gender: normalizeProfileGenderForYou(profileData),
+      gender: selectedMemberGender || normalizeProfileGenderForYou(profileData),
       age: getNumericAgeFromProfile(profileData),
     };
 
@@ -1137,6 +1171,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
 
       const recommendedPackages = sourcePackages
         .filter((item) => rankById.has(Number(item.id)))
+        .filter(passesMemberGender)
         .map((item) => {
           const meta = rankById.get(Number(item.id));
           const recommendationLabel = meta?.label || null;
@@ -1151,6 +1186,10 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
     }
 
     const filtered = sourcePackages.filter((item) => {
+      if (!passesMemberGender(item)) {
+        return false;
+      }
+
       if (selectedKey === 'all') {
         return true;
       }
@@ -1165,11 +1204,22 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
     });
 
     return applySearchFilter(filtered);
-  }, [activeFilterKey, packageFilterChips, profileData, searchQuery, sourcePackages]);
+  }, [activeFilterKey, packageFilterChips, profileData, searchQuery, selectedMemberGender, sourcePackages]);
 
   const packageFilterTabs = useMemo(() => {
-    return packageFilterChips;
-  }, [packageFilterChips]);
+    if (!selectedMemberGender) {
+      return packageFilterChips;
+    }
+    return packageFilterChips.filter((chip) => {
+      if (selectedMemberGender === 'male' && isWomenFilterChip(chip)) {
+        return false;
+      }
+      if (selectedMemberGender === 'female' && isMenFilterChip(chip)) {
+        return false;
+      }
+      return true;
+    });
+  }, [packageFilterChips, selectedMemberGender]);
 
   const customFilterTabs = useMemo(() => {
     return customFilterChips;
@@ -1809,6 +1859,9 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
         organization: '',
         gender: formData.gender || 'Female',
         relation: formData.relation || 'Sibling',
+      }, {
+        omitPhone: phoneSame,
+        omitEmail: emailSame,
       });
 
       const refreshedProfilesResponse = await getMyProfiles();
