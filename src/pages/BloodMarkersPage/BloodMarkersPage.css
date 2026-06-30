@@ -533,9 +533,9 @@
   border-color: rgba(233, 93, 92, 0.35);
 }
 
-/* Swipeable optimal peers: same shell as risk cards; green pill + gradient (theme-low); not detail-navigable */
+/* Swipeable optimal peers: same shell as risk cards; green pill + gradient (theme-low) */
 .blood-markers-page__stack-card--optimal-peer:not(.blood-markers-page__stack-card--optimal-aggregate) {
-  cursor: default;
+  cursor: pointer;
 }
 
 .blood-markers-page__stack-card--optimal-aggregate {
@@ -581,11 +581,6 @@
   z-index: 3;
   opacity: 1;
   pointer-events: auto;
-}
-
-/* Laptop / mouse: front risk and aggregate optimal cards are clickable. */
-.blood-markers-page__stack-card--front:not(.blood-markers-page__stack-card--optimal-peer),
-.blood-markers-page__stack-card--front.blood-markers-page__stack-card--optimal-aggregate {
   cursor: pointer;
 }
 

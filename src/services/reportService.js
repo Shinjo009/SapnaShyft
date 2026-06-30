@@ -976,3 +976,26 @@ export const clearReportRequestCache = () => {
   cacheStore.clear();
   inFlightStore.clear();
 };
+
+/** GET /reports/trends — historical values for a blood parameter or disease risk. */
+export const fetchReportTrends = async ({
+  bloodParameter = null,
+  disease = null,
+  ttlMs = 45000,
+} = {}) => {
+  const query = {};
+
+  if (bloodParameter) {
+    query.blood_parameter = String(bloodParameter).trim();
+  }
+
+  if (disease) {
+    query.diseases = String(disease).trim();
+  }
+
+  if (!query.blood_parameter && !query.diseases) {
+    throw new Error('Either bloodParameter or disease is required for trends.');
+  }
+
+  return authorizedGetCached('/reports/trends', ttlMs, query);
+};

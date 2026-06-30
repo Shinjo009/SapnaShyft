@@ -4,6 +4,7 @@ import lifestyleTick from '../../images/tick(lifestyle).svg';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
 import { formatOrdinal } from '../../utils/formatOrdinal';
 import { formatApiContentDisplay } from '../../utils/formatApiContentDisplay';
+import TrendsChart from '../../components/TrendsChart';
 
 const RISK_ZONES = [
   {
@@ -661,6 +662,12 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
           </p>
         </button>
       </section>
+
+      <TrendsChart
+        className="disease-detail-trends-section"
+        variant="disease"
+        diseaseCode={diseaseCode}
+      />
 
       <section className="disease-detail-info-section">
         {[

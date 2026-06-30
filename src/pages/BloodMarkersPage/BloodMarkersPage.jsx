@@ -6,6 +6,8 @@ import { getAccessToken } from '../../utils/authStorage';
 import { formatApiContentDisplay } from '../../utils/formatApiContentDisplay';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
 import { buildBloodParametersGroupsForAssessment } from '../../utils/assessmentBloodMarkerSupplements';
+import TrendsChart from '../../components/TrendsChart';
+import { toBloodParameterKey } from '../../utils/trendsChartUtils';
 import {
   extractBloodParameterGroupsArray,
   getBloodParameterTestsFromGroup,
@@ -318,6 +320,7 @@ const mapHomeBloodMarkerRowToDetailMarker = (row) => {
     id: String(row.id || `home-${markerUpper}`),
     marker: markerUpper,
     title: name,
+    parameter_key: row.parameter_key || row.parameterKey || null,
     value: hasVal ? formatValue(numeric) : '--',
     unit,
     diagnosticTestId: row.diagnosticTestId ?? null,
@@ -493,6 +496,7 @@ const buildSectionsFromApi = (payloadOrGroups) => {
           id: `${key}-test-${groupIndex}-${index}`,
           marker: String(n.test_name || 'TEST').toUpperCase(),
           title: String(n.test_name || 'Test'),
+          parameter_key: n.parameter_key || null,
           diagnosticTestId: n.diagnostic_test_id
             || n.test_id
             || test?.diagnostic_test_id
@@ -625,6 +629,7 @@ const markerCards = (section) => {
       marker: test.marker,
       value: test.value,
       unit: test.unit,
+      parameter_key: test.parameter_key,
       diagnosticTestId: test.diagnosticTestId,
       riskType,
       normalMin: test.normalMin,
@@ -702,6 +707,7 @@ const flattenCardsForListView = (cards) => {
           marker: test.marker,
           value: test.value,
           unit: test.unit,
+          parameter_key: test.parameter_key,
           riskType: test.riskType || 'low',
           diagnosticTestId: test.diagnosticTestId,
           normalMin: test.normalMin,
@@ -1116,6 +1122,7 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
   const bloodTotalDots = dotsPerZone * BLOOD_ZONE_COUNT;
   const selectedIndex = Math.round((markerPercent / 100) * (bloodTotalDots - 1));
   const currentRiskType = getRiskTypeFromBounds(clampedValue, detail.normalMin, detail.normalMax);
+  const isOptimalMarker = currentRiskType === 'low';
   const riskText = RISK_META[getDisplayRiskType(currentRiskType)]?.label || RISK_META.low.label;
   const riskColor = getRiskColorByType(currentRiskType);
 
@@ -1400,60 +1407,70 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
       )}
       </section>
 
-      <section className="blood-marker-detail__info-section">
-        {[
-          {
-            key: 'causes',
-            label: 'Causes',
-            accentClass: 'blood-marker-detail__pill-accent--causes',
-            items: shouldWaitForDiagnosticData && isDiagnosticLoading ? null : detail.causes,
-            loading: shouldWaitForDiagnosticData && isDiagnosticLoading,
-            emptyText: 'No causes provided in report.'
-          },
-          {
-            key: 'effects',
-            label: 'Effects',
-            accentClass: 'blood-marker-detail__pill-accent--effects',
-            items: shouldWaitForDiagnosticData && isDiagnosticLoading ? null : detail.effects,
-            loading: shouldWaitForDiagnosticData && isDiagnosticLoading,
-            emptyText: 'No effects provided in report.'
-          }
-        ].map(({ key, label, accentClass, items, loading, emptyText }) => {
-          const bodyText = loading
-            ? `Loading ${key}...`
-            : items && items.length > 0
-              ? formatApiContentDisplay(items)
-              : emptyText;
-          return (
-            <button
-              key={key}
-              type="button"
-              className="blood-marker-detail__pill"
-              onClick={() => setExpandedPill(expandedPill === key ? null : key)}
-              aria-expanded={expandedPill === key}
-            >
-              <div className="blood-marker-detail__pill-header">
-                <span className={`blood-marker-detail__pill-accent ${accentClass}`} />
-                <span className="blood-marker-detail__pill-title">{label}</span>
-                <svg
-                  className={`blood-marker-detail__pill-chevron${expandedPill === key ? ' blood-marker-detail__pill-chevron--open' : ''}`}
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path d="M5 7.5L10 12.5L15 7.5" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              {expandedPill === key && (
-                <p className="blood-marker-detail__pill-body">{bodyText}</p>
-              )}
-            </button>
-          );
-        })}
-      </section>
+      <TrendsChart
+        className="blood-marker-detail__trends-section"
+        variant="blood"
+        bloodParameter={toBloodParameterKey(marker)}
+        normalMin={detail.normalMin}
+        normalMax={detail.normalMax}
+      />
+
+      {!isOptimalMarker ? (
+        <section className="blood-marker-detail__info-section">
+          {[
+            {
+              key: 'causes',
+              label: 'Causes',
+              accentClass: 'blood-marker-detail__pill-accent--causes',
+              items: shouldWaitForDiagnosticData && isDiagnosticLoading ? null : detail.causes,
+              loading: shouldWaitForDiagnosticData && isDiagnosticLoading,
+              emptyText: 'No causes provided in report.'
+            },
+            {
+              key: 'effects',
+              label: 'Effects',
+              accentClass: 'blood-marker-detail__pill-accent--effects',
+              items: shouldWaitForDiagnosticData && isDiagnosticLoading ? null : detail.effects,
+              loading: shouldWaitForDiagnosticData && isDiagnosticLoading,
+              emptyText: 'No effects provided in report.'
+            }
+          ].map(({ key, label, accentClass, items, loading, emptyText }) => {
+            const bodyText = loading
+              ? `Loading ${key}...`
+              : items && items.length > 0
+                ? formatApiContentDisplay(items)
+                : emptyText;
+            return (
+              <button
+                key={key}
+                type="button"
+                className="blood-marker-detail__pill"
+                onClick={() => setExpandedPill(expandedPill === key ? null : key)}
+                aria-expanded={expandedPill === key}
+              >
+                <div className="blood-marker-detail__pill-header">
+                  <span className={`blood-marker-detail__pill-accent ${accentClass}`} />
+                  <span className="blood-marker-detail__pill-title">{label}</span>
+                  <svg
+                    className={`blood-marker-detail__pill-chevron${expandedPill === key ? ' blood-marker-detail__pill-chevron--open' : ''}`}
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 7.5L10 12.5L15 7.5" stroke="white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                {expandedPill === key && (
+                  <p className="blood-marker-detail__pill-body">{bodyText}</p>
+                )}
+              </button>
+            );
+          })}
+        </section>
+      ) : null}
     </div>
   );
 };
@@ -1964,13 +1981,10 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                   setExpandedLowCardIds((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
                   return;
                 }
-                if (isSingleOptimalPeerCard) {
-                  return;
-                }
                 onOpenDetail({ ...card, organ: section.organ, parameters: section.parameters });
               }}
-              role={isAggregateOptimalCard ? 'button' : isSingleOptimalPeerCard ? 'group' : 'button'}
-              tabIndex={isSingleOptimalPeerCard ? -1 : 0}
+              role="button"
+              tabIndex={0}
               aria-expanded={isAggregateOptimalCard ? isLowCardExpanded : undefined}
               aria-label={
                 isAggregateOptimalCard
@@ -1987,9 +2001,6 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                     event.preventDefault();
                     setExpandedLowCardIds((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
                   }
-                  return;
-                }
-                if (isSingleOptimalPeerCard) {
                   return;
                 }
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -2038,7 +2049,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                 ) : null}
               </div>
 
-              <div className={`blood-markers-page__card-bottom-row${isSingleOptimalPeerCard ? ' blood-markers-page__card-bottom-row--optimal-peer-only' : ''}`}>
+              <div className="blood-markers-page__card-bottom-row">
                 <div className="blood-markers-page__meter" aria-hidden="true">
                   {segments.map((segment, segmentIndex) => (
                     <span
@@ -2055,7 +2066,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                   >
                     <DownChevron />
                   </span>
-                ) : isSingleOptimalPeerCard ? null : (
+                ) : (
                   <span className="blood-markers-page__card-chevron" aria-hidden="true">
                     <CardChevron />
                   </span>

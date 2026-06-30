@@ -1,0 +1,131 @@
+.trends-chart-section {
+  width: 100%;
+}
+
+.trends-chart-section__title {
+  margin: 0;
+  color: #FFF;
+  font-family: Lato, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.trends-chart-section__subtitle {
+  margin: 4px 0 0;
+  color: #C4C4C4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.trends-chart-section__shell {
+  margin-top: 10px;
+  display: flex;
+  padding: 16px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  align-self: stretch;
+  border-radius: 12px;
+  border: 0.4px solid #888;
+  box-sizing: border-box;
+}
+
+.trends-chart-section__body {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  gap: 8px;
+}
+
+.trends-chart-section__y-labels {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+  box-sizing: border-box;
+}
+
+.trends-chart-section__y-label {
+  position: absolute;
+  right: 0;
+  color: #999;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 9px;
+  letter-spacing: -0.197px;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  text-align: right;
+}
+
+.trends-chart-section__plot-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.trends-chart-section__plot {
+  position: relative;
+  width: 100%;
+}
+
+.trends-chart-section__svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.trends-chart-section__dates {
+  position: relative;
+  margin-top: 8px;
+  width: 100%;
+  min-height: 14px;
+}
+
+.trends-chart-section__date {
+  color: #999;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  letter-spacing: -0.197px;
+  white-space: nowrap;
+}
+
+.trends-chart-section__summary {
+  margin: 10px 0 0;
+  color: #FFF;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.trends-chart-section__status {
+  margin: 0;
+  color: #999;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+  text-align: center;
+  width: 100%;
+}
+
+.trends-chart-section--disease .trends-chart-section__shell {
+  margin-top: 8px;
+}
+
+.trends-chart-section--disease .trends-chart-section__summary {
+  font-weight: 400;
+}
