@@ -19,10 +19,37 @@ import {
 } from '../../services/paymentService';
 import {
   bookBioAiBatch,
+  buildAvailableSlotsPayload,
   buildBookBioAiPayload,
-  formatBloodCollectionTimeSlot,
+  extractBioAiBookingMembers,
+  getBioAiBookingFailureMessage,
+  getPrimaryBioAiBookingId,
+  buildCheckServiceAvailabilityPayload,
+  buildLockSlotsPayload,
+  buildResolvedAddressFromGeocode,
+  AREA_NOT_SERVICEABLE_MESSAGE,
+  checkServiceAvailability,
+  chunkScheduleSlots,
+  fetchAvailableSlots,
+  formatApiSlotTimeToDisplay,
+  isServiceAvailabilityDenied,
+  lockSlots,
+  mapServiceAvailabilityByUserId,
+  normalizeAvailableSlotsForUi,
+  searchGeocodeByAddress,
 } from '../../services/bookingService';
 import { PAYMENT_DEMO_MODE, BACKEND_ENABLED } from '../../config/appConfig';
+import {
+  buildResolvedAddressFromEngagement,
+  buildServiceAvailabilityMapFromEngagement,
+  engagementHasAddress,
+  findPackageCardByDiagnosticPackageId,
+  getDraftParticipantUserIds,
+  getDraftScheduleTimeLabel,
+  matchScheduleDateId,
+  parseEngagementAddressToForm,
+  resolveDraftResumeView,
+} from '../../utils/bookingDraftUtils';
 import { hasPersonalizedForYouRecommendations, loadPackageOnboardingResult } from '../../utils/packageRecommendationStorage';
 import PackageDetailsPage from '../../pages/PackageDetailsPage/PackageDetailsPage';
 
@@ -550,7 +577,7 @@ const ConfirmCrossIcon = () => (
 const SCHEDULE_DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const SCHEDULE_MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const SCHEDULE_TIME_SLOTS = [
+const SCHEDULE_FALLBACK_TIME_SLOTS = [
   ['06:00 AM', '06:30 AM', '07:00 AM'],
   ['07:30 AM', '08:00 AM', '08:30 AM'],
   ['09:00 AM', '09:30 AM', '10:00 AM'],
@@ -708,7 +735,14 @@ const buildAddressFromProfile = (profile) => {
   };
 };
 
-const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPackage = null, onBookingConfirmed }) => {
+const PatientSelectionOverlay = ({
+  open,
+  onClose,
+  customFlow = false,
+  initialPackage = null,
+  draftEngagement = null,
+  onBookingConfirmed,
+}) => {
   const [view, setView] = useState('select');
   const [patients, setPatients] = useState(PATIENTS);
   const [profileData, setProfileData] = useState(null);
@@ -730,10 +764,20 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   const [activeAddressField, setActiveAddressField] = useState('house');
   const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
   const [addressData, setAddressData] = useState(DEFAULT_ADDRESS_DATA);
+  const [resolvedAddressData, setResolvedAddressData] = useState(null);
   const [addressFieldErrors, setAddressFieldErrors] = useState({});
+  const [addressSubmitting, setAddressSubmitting] = useState(false);
+  const [addressSubmitError, setAddressSubmitError] = useState('');
   const [savingPatient, setSavingPatient] = useState(false);
   const [selectedDateId, setSelectedDateId] = useState('');
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState('06:00 AM');
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
+  const [selectedSlotMeta, setSelectedSlotMeta] = useState(null);
+  const [availableSlotRows, setAvailableSlotRows] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState('');
+  const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
+  const [scheduleLockError, setScheduleLockError] = useState('');
+  const [serviceAvailabilityByUserId, setServiceAvailabilityByUserId] = useState({});
   const [customActiveFilterKey, setCustomActiveFilterKey] = useState('all');
   const [customFilterChips, setCustomFilterChips] = useState([OVERLAY_ALL_FILTER]);
   const [customSearchQuery, setCustomSearchQuery] = useState('');
@@ -742,14 +786,15 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const [bioBookingError, setBioBookingError] = useState('');
-  const [bioBookingSubmitting, setBioBookingSubmitting] = useState(false);
   const [confirmedBookingId, setConfirmedBookingId] = useState(null);
   const [paymentOutcome, setPaymentOutcome] = useState('success');
   const [packageCardsFromApi, setPackageCardsFromApi] = useState([]);
   const [packageFilterChips, setPackageFilterChips] = useState([OVERLAY_ALL_FILTER]);
   const [packageDetailsCard, setPackageDetailsCard] = useState(null);
   const paymentSuccessRef = useRef(false);
+  const paymentHandlerInvokedRef = useRef(false);
   const packageManuallyChangedRef = useRef(false);
+  const draftAppliedRef = useRef(false);
   const dropdownRefs = useRef({});
   const scheduleDates = useMemo(() => {
     const baseDate = new Date();
@@ -782,7 +827,15 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       setView('select');
       setSelectedIds([]);
       setSelectedPackageByPatientId({});
-      setSelectedDateId(scheduleDates[0]?.id || '');
+      setSelectedDateId('');
+      setSelectedTimeSlot('');
+      setSelectedSlotMeta(null);
+      setAvailableSlotRows([]);
+      setSlotsLoading(false);
+      setSlotsError('');
+      setScheduleSubmitting(false);
+      setScheduleLockError('');
+      setServiceAvailabilityByUserId({});
       setPackageDetailsCard(null);
       setFormData(DEFAULT_FORM_DATA);
       setPhoneSame(false);
@@ -790,15 +843,18 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       setPaymentError(null);
       setPaymentSubmitting(false);
       setBioBookingError('');
-      setBioBookingSubmitting(false);
       setConfirmedBookingId(null);
       setPaymentOutcome('success');
       setPackageTargetPatientId(null);
       packageManuallyChangedRef.current = false;
       paymentSuccessRef.current = false;
+      paymentHandlerInvokedRef.current = false;
       setAddressViewReturn('select');
       setScheduleViewReturn('address');
       setSelectViewReturn(null);
+      setResolvedAddressData(null);
+      setAddressSubmitting(false);
+      setAddressSubmitError('');
     }
   }, [open, scheduleDates]);
 
@@ -855,8 +911,12 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   }, [open, customFlow]);
 
   useEffect(() => {
-    if (!scheduleDates.some((item) => item.id === selectedDateId)) {
-      setSelectedDateId(scheduleDates[0]?.id || '');
+    if (selectedDateId && !scheduleDates.some((item) => item.id === selectedDateId)) {
+      setSelectedDateId('');
+      setSelectedTimeSlot('');
+      setSelectedSlotMeta(null);
+      setAvailableSlotRows([]);
+      setSlotsError('');
     }
   }, [scheduleDates, selectedDateId]);
 
@@ -930,10 +990,12 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
         const defaultAddress = buildAddressFromProfile(profile);
         await loadPackagesData();
 
-        setAddressData((prev) => ({
-          ...prev,
-          ...defaultAddress,
-        }));
+        if (!draftEngagement) {
+          setAddressData((prev) => ({
+            ...prev,
+            ...defaultAddress,
+          }));
+        }
 
       } catch (error) {
         if (mounted) {
@@ -947,21 +1009,23 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
     return () => {
       mounted = false;
     };
-  }, [open]);
+  }, [draftEngagement, open]);
 
   useEffect(() => {
-    if (!open || view !== 'address' || !profileData) {
+    if (!open || view !== 'address' || !profileData || draftEngagement) {
       return;
     }
 
     const fromProfile = buildAddressFromProfile(profileData);
     setAddressData((prev) => ({
+      ...prev,
       house: prev.house || fromProfile.house,
       area: prev.area || fromProfile.area,
       landmark: prev.landmark || fromProfile.landmark,
       city: prev.city || fromProfile.city,
+      pincode: prev.pincode || fromProfile.pincode || '',
     }));
-  }, [open, profileData, view]);
+  }, [draftEngagement, open, profileData, view]);
 
   useEffect(() => {
     const { body, documentElement } = document;
@@ -1075,7 +1139,98 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
   }, [packageById, selectedPackageByPatientId, selectedPackage]);
 
   useEffect(() => {
-    if (!open || customFlow || sourcePackages.length <= 0 || view === 'package' || packageManuallyChangedRef.current) {
+    if (!open) {
+      draftAppliedRef.current = false;
+      return;
+    }
+    if (!draftEngagement || draftAppliedRef.current || patients.length === 0) {
+      return;
+    }
+    if (BACKEND_ENABLED && sourcePackages.length <= 0) {
+      return;
+    }
+
+    const participantSelection = getDraftParticipantUserIds(draftEngagement);
+    let selectedPatientIds = [];
+
+    if (Array.isArray(participantSelection)) {
+      selectedPatientIds = patients
+        .filter((patient) => participantSelection.includes(getNumericPatientUserId(patient)))
+        .map((patient) => patient.id);
+    }
+
+    if (!selectedPatientIds.length) {
+      const fallbackCount = participantSelection?.fallbackCount
+        || Math.max(1, Number(draftEngagement?.participant_count) || 1);
+      selectedPatientIds = patients.slice(0, fallbackCount).map((patient) => patient.id);
+    }
+
+    if (!selectedPatientIds.length) {
+      return;
+    }
+
+    const matchedPackage = findPackageCardByDiagnosticPackageId(
+      sourcePackages,
+      draftEngagement?.diagnostic_package_id,
+    ) || initialPackageCard;
+    const packageId = normalizePackageId(
+      matchedPackage?.id
+      || draftEngagement?.diagnostic_package_id
+      || selectedPackageId,
+    );
+    const packageSelectionByPatient = {};
+    selectedPatientIds.forEach((patientId) => {
+      packageSelectionByPatient[patientId] = packageId;
+    });
+
+    setSelectedIds(selectedPatientIds);
+    setSelectedPackageId(packageId);
+    setDraftPackageId(packageId);
+    setSelectedPackageByPatientId(packageSelectionByPatient);
+
+    if (engagementHasAddress(draftEngagement)) {
+      setAddressData(parseEngagementAddressToForm(draftEngagement));
+      setResolvedAddressData(buildResolvedAddressFromEngagement(draftEngagement));
+
+      const selectedUserIds = selectedPatientIds
+        .map((patientId) => {
+          const patient = patients.find((item) => item.id === patientId);
+          return getNumericPatientUserId(patient);
+        })
+        .filter((userId) => Number.isInteger(userId) && userId > 0);
+
+      setServiceAvailabilityByUserId(
+        buildServiceAvailabilityMapFromEngagement(draftEngagement, selectedUserIds),
+      );
+    }
+
+    const resumeView = resolveDraftResumeView(draftEngagement);
+    const matchedDateId = matchScheduleDateId(scheduleDates, draftEngagement);
+    const scheduleTimeLabel = getDraftScheduleTimeLabel(draftEngagement);
+
+    if (matchedDateId) {
+      setSelectedDateId(matchedDateId);
+    }
+    if (scheduleTimeLabel) {
+      setSelectedTimeSlot(scheduleTimeLabel);
+    }
+
+    setAddressViewReturn(resumeView === 'details' ? 'details' : 'select');
+    setScheduleViewReturn(resumeView === 'details' ? 'details' : 'address');
+    setView(resumeView);
+    draftAppliedRef.current = true;
+  }, [
+    draftEngagement,
+    initialPackageCard,
+    open,
+    patients,
+    scheduleDates,
+    selectedPackageId,
+    sourcePackages,
+  ]);
+
+  useEffect(() => {
+    if (!open || customFlow || sourcePackages.length <= 0 || view === 'package' || packageManuallyChangedRef.current || draftEngagement) {
       return;
     }
 
@@ -1371,6 +1526,13 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
       return '';
     }
 
+    if (selectedSlotMeta?.end_time) {
+      const endLabel = formatApiSlotTimeToDisplay(selectedSlotMeta.end_time);
+      if (endLabel) {
+        return `${selectedTimeSlot} - ${endLabel}`;
+      }
+    }
+
     const [timeValue, meridiem] = selectedTimeSlot.split(' ');
     const [hourText, minuteText] = timeValue.split(':');
     let hour24 = Number(hourText);
@@ -1436,42 +1598,55 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
     return `${selectedDate.date} ${selectedDate.month} | ${format12(startDate)} - ${format12(endDate)} ${endDate.getHours() >= 12 ? 'PM' : 'AM'}`;
   };
 
-  const handleDetailsContinueToPayment = async () => {
+  const handleDetailsContinueToPayment = () => {
     setBioBookingError('');
     if (!BACKEND_ENABLED || customFlow) {
       setView('payment');
       return;
     }
 
-    setBioBookingSubmitting(true);
     try {
-      const selectedScheduleDate = scheduleDates.find((item) => item.id === selectedDateId);
-      const bloodCollectionDate = selectedScheduleDate?.isoDate || '';
-      const bloodCollectionTimeSlot = formatBloodCollectionTimeSlot(selectedTimeSlot);
-      if (!bloodCollectionDate || !bloodCollectionTimeSlot) {
-        throw new Error('Select a collection date and time slot.');
-      }
-      const bioPayload = buildBookBioAiPayload({
+      buildBookBioAiPayload({
         selectedPatients,
-        addressData,
-        bloodCollectionDate,
-        bloodCollectionTimeSlot,
-        getPackageForPatient,
         getNumericPatientUserId,
+        serviceAvailabilityByUserId,
       });
-      await bookBioAiBatch(bioPayload);
       setView('payment');
     } catch (err) {
-      setBioBookingError(err?.message || 'Booking could not be saved. Please try again.');
-    } finally {
-      setBioBookingSubmitting(false);
+      setBioBookingError(err?.message || 'Complete address and schedule before continuing to payment.');
     }
+  };
+
+  const confirmHealthiansBookingAfterPayment = async () => {
+    const bioPayload = buildBookBioAiPayload({
+      selectedPatients,
+      getNumericPatientUserId,
+      serviceAvailabilityByUserId,
+    });
+    const bioResponse = await bookBioAiBatch(bioPayload);
+    const members = extractBioAiBookingMembers(bioResponse);
+    const failureMessage = getBioAiBookingFailureMessage(members);
+    if (failureMessage) {
+      throw new Error(failureMessage);
+    }
+    return getPrimaryBioAiBookingId(members);
+  };
+
+  const getPaymentResultTitle = () => {
+    if (paymentOutcome === 'booking_failed') {
+      return 'Booking Failed';
+    }
+    if (paymentOutcome === 'payment_failed') {
+      return 'Payment Failed';
+    }
+    return 'Booking Confirmed';
   };
 
   const handlePayWithRazorpay = async () => {
     setPaymentError(null);
     setPaymentOutcome('success');
     paymentSuccessRef.current = false;
+    paymentHandlerInvokedRef.current = false;
     setPaymentSubmitting(true);
     try {
       const payerUserId = Number(profileData?.user_id || profileData?.id || getNumericPatientUserId(selectedPatients?.[0]) || 0);
@@ -1516,6 +1691,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
         if (typeof onBookingConfirmed === 'function') {
           onBookingConfirmed();
         }
+        setPaymentSubmitting(false);
         return;
       }
 
@@ -1546,6 +1722,8 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
           contact: (formData.phone || '').replace(/\D/g, '').slice(-10) || undefined,
         },
         handler(response) {
+          paymentHandlerInvokedRef.current = true;
+          setPaymentSubmitting(true);
           void (async () => {
             try {
               const r = await verifyPackageRazorpayPayment({
@@ -1556,6 +1734,8 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
               if (!r.verified) {
                 throw new Error('Payment could not be verified.');
               }
+
+              paymentSuccessRef.current = true;
 
               const verifyBookingIds = Array.isArray(r.bookingIds) && r.bookingIds.length
                 ? r.bookingIds
@@ -1570,8 +1750,18 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                 }
               }
 
-              paymentSuccessRef.current = true;
-              setConfirmedBookingId(r.bookingId || r.paymentId || order.bookingIds?.[0] || '—');
+              let healthiansBookingId = null;
+              if (BACKEND_ENABLED && !customFlow) {
+                healthiansBookingId = await confirmHealthiansBookingAfterPayment();
+              }
+
+              setConfirmedBookingId(
+                healthiansBookingId
+                || r.bookingId
+                || r.paymentId
+                || order.bookingIds?.[0]
+                || '—',
+              );
               setPaymentOutcome('success');
               setPaymentError(null);
               setView('confirmed');
@@ -1579,24 +1769,38 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                 onBookingConfirmed();
               }
             } catch (err) {
-              try {
-                await markPackagePaymentFailed({
-                  razorpay_order_id: response.razorpay_order_id || order.orderId,
-                  failure_reason: err?.message || 'Verification failed',
-                });
-              } catch {
-                // Optional endpoint — ignore if missing.
+              const paymentWasVerified = paymentSuccessRef.current;
+              if (!paymentWasVerified) {
+                try {
+                  await markPackagePaymentFailed({
+                    razorpay_order_id: response.razorpay_order_id || order.orderId,
+                    failure_reason: err?.message || 'Verification failed',
+                  });
+                } catch {
+                  // Optional endpoint — ignore if missing.
+                }
               }
-              setConfirmedBookingId(order.bookingIds?.[0] || response.razorpay_order_id || '—');
-              setPaymentOutcome('failed');
-              setPaymentError(err.message || 'Verification failed. If you were charged, contact support.');
+              setConfirmedBookingId(
+                response.razorpay_payment_id
+                || order.bookingIds?.[0]
+                || response.razorpay_order_id
+                || '—',
+              );
+              setPaymentOutcome(paymentWasVerified ? 'booking_failed' : 'payment_failed');
+              setPaymentError(
+                paymentWasVerified
+                  ? (err?.message || 'Payment succeeded but lab booking could not be confirmed. Contact support with your payment ID.')
+                  : (err?.message || 'Verification failed. If you were charged, contact support.'),
+              );
               setView('confirmed');
+            } finally {
+              setPaymentSubmitting(false);
             }
           })();
         },
         modal: {
           ondismiss() {
-            if (paymentSuccessRef.current) {
+            if (paymentHandlerInvokedRef.current || paymentSuccessRef.current) {
               return;
             }
 
@@ -1610,19 +1814,30 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                 // Optional endpoint — ignore if missing.
               }
               setConfirmedBookingId(order.bookingIds?.[0] || order.orderId || '—');
-              setPaymentOutcome('failed');
+              setPaymentOutcome('payment_failed');
               setPaymentError('Payment was cancelled or could not be completed.');
               setView('confirmed');
+              setPaymentSubmitting(false);
             })();
           },
         },
       };
 
       const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (response) => {
+        paymentHandlerInvokedRef.current = true;
+        const reason = response?.error?.description
+          || response?.error?.reason
+          || 'Payment could not be completed.';
+        setConfirmedBookingId(order.bookingIds?.[0] || order.orderId || '—');
+        setPaymentOutcome('payment_failed');
+        setPaymentError(reason);
+        setView('confirmed');
+        setPaymentSubmitting(false);
+      });
       rzp.open();
     } catch (err) {
       setPaymentError(err.message || 'Could not start payment.');
-    } finally {
       setPaymentSubmitting(false);
     }
   };
@@ -1782,19 +1997,139 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
     });
   };
 
-  const handleAddressContinue = () => {
+  const handleAddressContinue = async () => {
     const nextErrors = validatePackageAddressForm(addressData);
     setAddressFieldErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       return;
     }
     setAddressFieldErrors({});
+    setAddressSubmitError('');
+
     if (addressViewReturn === 'details') {
       setView('details');
       return;
     }
-    setScheduleViewReturn('address');
-    setView('schedule');
+
+    if (!BACKEND_ENABLED) {
+      setScheduleViewReturn('address');
+      setView('schedule');
+      return;
+    }
+
+    setAddressSubmitting(true);
+    try {
+      const geocodeResult = await searchGeocodeByAddress(addressData);
+      const resolvedAddress = buildResolvedAddressFromGeocode(addressData, geocodeResult);
+      setResolvedAddressData(resolvedAddress);
+
+      const availabilityPayload = buildCheckServiceAvailabilityPayload({
+        selectedPatients,
+        addressData,
+        geocodeResult,
+        getPackageForPatient,
+        getNumericPatientUserId,
+      });
+      const availabilityResponse = await checkServiceAvailability(availabilityPayload);
+      if (isServiceAvailabilityDenied(availabilityResponse)) {
+        throw new Error(AREA_NOT_SERVICEABLE_MESSAGE);
+      }
+      setServiceAvailabilityByUserId(mapServiceAvailabilityByUserId(availabilityResponse));
+      setSelectedDateId('');
+      setSelectedTimeSlot('');
+      setSelectedSlotMeta(null);
+      setAvailableSlotRows([]);
+      setSlotsError('');
+
+      setScheduleViewReturn('address');
+      setView('schedule');
+    } catch (err) {
+      setAddressSubmitError(err?.message || 'Could not verify service availability. Please try again.');
+    } finally {
+      setAddressSubmitting(false);
+    }
+  };
+
+  const handleScheduleDateSelect = async (dateItem) => {
+    setSelectedDateId(dateItem.id);
+    setSelectedTimeSlot('');
+    setSelectedSlotMeta(null);
+    setSlotsError('');
+    setScheduleLockError('');
+    setAvailableSlotRows([]);
+
+    if (!BACKEND_ENABLED) {
+      const fallbackSlots = SCHEDULE_FALLBACK_TIME_SLOTS.flat().map((displayLabel) => ({
+        displayLabel,
+        slot_time: '',
+        end_time: '',
+        stm_id: displayLabel,
+      }));
+      setAvailableSlotRows(chunkScheduleSlots(fallbackSlots));
+      return;
+    }
+
+    setSlotsLoading(true);
+    try {
+      const payload = buildAvailableSlotsPayload({
+        selectedPatients,
+        getNumericPatientUserId,
+        serviceAvailabilityByUserId,
+        bloodCollectionDate: dateItem.isoDate,
+      });
+      const response = await fetchAvailableSlots(payload);
+      const normalizedSlots = normalizeAvailableSlotsForUi(response);
+      if (!normalizedSlots.length) {
+        setSlotsError('No slots available for this date.');
+        return;
+      }
+      setAvailableSlotRows(chunkScheduleSlots(normalizedSlots));
+    } catch (err) {
+      setSlotsError(err?.message || 'Could not load available slots. Please try again.');
+    } finally {
+      setSlotsLoading(false);
+    }
+  };
+
+  const handleScheduleContinue = async () => {
+    setScheduleLockError('');
+
+    const selectedScheduleDate = scheduleDates.find((item) => item.id === selectedDateId);
+    const bloodCollectionDate = selectedScheduleDate?.isoDate || '';
+    const bloodCollectionTimeSlotId = String(selectedSlotMeta?.stm_id || '').trim();
+
+    if (!bloodCollectionDate || !selectedTimeSlot) {
+      setScheduleLockError('Select a collection date and time slot.');
+      return;
+    }
+
+    if (!BACKEND_ENABLED) {
+      setView('details');
+      return;
+    }
+
+    if (!bloodCollectionTimeSlotId) {
+      setScheduleLockError('Select a valid time slot.');
+      return;
+    }
+
+    setScheduleSubmitting(true);
+    try {
+      const lockPayload = buildLockSlotsPayload({
+        selectedPatients,
+        getNumericPatientUserId,
+        serviceAvailabilityByUserId,
+        bloodCollectionDate,
+        bloodCollectionTimeSlotId,
+        addressData,
+      });
+      await lockSlots(lockPayload);
+      setView('details');
+    } catch (err) {
+      setScheduleLockError(err?.message || 'Could not lock the selected slot. Please try again.');
+    } finally {
+      setScheduleSubmitting(false);
+    }
   };
 
   const renderAddressField = (key, label, options = {}) => {
@@ -1807,11 +2142,12 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
           <div className="patient-address__field-inner">
             <input
               id={`address-${key}`}
-              value={addressData[key]}
+              value={addressData[key] ?? ''}
               onFocus={() => setActiveAddressField(key)}
               onChange={(event) => {
                 const raw = key === 'pincode' ? event.target.value.replace(/\D/g, '').slice(0, 6) : event.target.value;
                 setAddressData((prev) => ({ ...prev, [key]: raw }));
+                setAddressSubmitError('');
                 setAddressFieldErrors((prev) => {
                   if (!prev[key]) return prev;
                   const next = { ...prev };
@@ -2297,7 +2633,20 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                 {renderAddressField('pincode', 'Pincode', { half: true })}
               </div>
 
-              <button type="button" className="patient-address__continue-btn" onClick={handleAddressContinue}>Continue</button>
+              {addressSubmitError ? (
+                <p className="patient-address__field-error patient-address__submit-error" role="alert">
+                  {addressSubmitError}
+                </p>
+              ) : null}
+
+              <button
+                type="button"
+                className="patient-address__continue-btn"
+                onClick={handleAddressContinue}
+                disabled={addressSubmitting}
+              >
+                {addressSubmitting ? 'Please wait…' : 'Continue'}
+              </button>
             </div>
           </>
         ) : view === 'schedule' ? (
@@ -2328,7 +2677,8 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                       key={item.id}
                       type="button"
                       className={`patient-schedule__date-card${isSelected ? ' is-selected' : ''}`}
-                      onClick={() => setSelectedDateId(item.id)}
+                      onClick={() => handleScheduleDateSelect(item)}
+                      disabled={slotsLoading}
                     >
                       <span className="patient-schedule__date-day">{item.day}</span>
                       <span className="patient-schedule__date-number">{item.date}</span>
@@ -2346,23 +2696,35 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
               </div>
 
               <div className="patient-schedule__slots-wrap">
-                {SCHEDULE_TIME_SLOTS.map((row, index) => (
-                  <div key={`row-${index}`} className="patient-schedule__slot-row">
-                    {row.map((slot) => {
-                      const isSelected = slot === selectedTimeSlot;
-                      return (
-                        <button
-                          key={slot}
-                          type="button"
-                          className={`patient-schedule__slot-pill${isSelected ? ' is-selected' : ''}`}
-                          onClick={() => setSelectedTimeSlot(slot)}
-                        >
-                          {slot}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))}
+                {!selectedDateId ? (
+                  <p className="patient-schedule__slots-hint">Select a date to view available time slots.</p>
+                ) : slotsLoading ? (
+                  <p className="patient-schedule__slots-hint">Loading available slots…</p>
+                ) : slotsError ? (
+                  <p className="patient-schedule__slots-error" role="alert">{slotsError}</p>
+                ) : availableSlotRows.length > 0 ? (
+                  availableSlotRows.map((row, index) => (
+                    <div key={`row-${index}`} className="patient-schedule__slot-row">
+                      {row.map((slot) => {
+                        const isSelected = slot.displayLabel === selectedTimeSlot;
+                        return (
+                          <button
+                            key={slot.stm_id || slot.displayLabel}
+                            type="button"
+                            className={`patient-schedule__slot-pill${isSelected ? ' is-selected' : ''}`}
+                            onClick={() => {
+                              setSelectedTimeSlot(slot.displayLabel);
+                              setSelectedSlotMeta(slot);
+                              setScheduleLockError('');
+                            }}
+                          >
+                            {slot.displayLabel}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))
+                ) : null}
               </div>
 
               <div className="patient-schedule__footer">
@@ -2370,12 +2732,18 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                   <span className="patient-schedule__slot-label">Slot selected</span>
                   <p className="patient-schedule__slot-value">{formatScheduleSummary()}</p>
                 </div>
+                {scheduleLockError ? (
+                  <p className="patient-schedule__slots-error patient-schedule__lock-error" role="alert">
+                    {scheduleLockError}
+                  </p>
+                ) : null}
                 <button
                   type="button"
                   className={`patient-select-overlay__continue${selectedTimeSlot ? ' is-active' : ''}`}
-                  onClick={() => setView('details')}
+                  disabled={!selectedTimeSlot || scheduleSubmitting}
+                  onClick={handleScheduleContinue}
                 >
-                  Continue
+                  {scheduleSubmitting ? 'Please wait…' : 'Continue'}
                 </button>
               </div>
             </div>
@@ -2510,9 +2878,8 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
                 type="button"
                 className="patient-confirm__continue"
                 onClick={handleDetailsContinueToPayment}
-                disabled={bioBookingSubmitting}
               >
-                {bioBookingSubmitting ? 'Please wait…' : 'Continue'}
+                Continue
               </button>
             </div>
           </>
@@ -2555,7 +2922,7 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
               ) : null}
 
               <p className="patient-payment__hint">
-                You will complete payment on Razorpay. Booking is confirmed only after payment succeeds and our server verifies it.
+                You will complete payment on Razorpay. Your lab appointment is confirmed after payment verification and booking with our partner.
               </p>
 
               <button
@@ -2571,16 +2938,22 @@ const PatientSelectionOverlay = ({ open, onClose, customFlow = false, initialPac
         ) : (
           <>
             <div className="patient-final">
-              <div className={`patient-final__status-icon${paymentOutcome === 'failed' ? ' is-failed' : ''}`}>
-                {paymentOutcome === 'failed' ? <ConfirmCrossIcon /> : <ConfirmTickIcon />}
+              <div className={`patient-final__status-icon${paymentOutcome !== 'success' ? ' is-failed' : ''}`}>
+                {paymentOutcome !== 'success' ? <ConfirmCrossIcon /> : <ConfirmTickIcon />}
               </div>
 
-              <p className={`patient-final__status-text${paymentOutcome === 'failed' ? ' is-failed' : ''}`}>
-                {paymentOutcome === 'failed' ? 'Payment Failed' : 'Booking Confirmed'}
+              <p className={`patient-final__status-text${paymentOutcome !== 'success' ? ' is-failed' : ''}`}>
+                {getPaymentResultTitle()}
               </p>
 
+              {paymentError ? (
+                <p className="patient-payment__error patient-final__error" role="alert">
+                  {paymentError}
+                </p>
+              ) : null}
+
               <div className="patient-final__booking-id">
-                <span>Booking ID</span>
+                <span>{paymentOutcome === 'success' ? 'Booking ID' : 'Reference ID'}</span>
                 <i>|</i>
                 <strong>{confirmedBookingId || '—'}</strong>
               </div>

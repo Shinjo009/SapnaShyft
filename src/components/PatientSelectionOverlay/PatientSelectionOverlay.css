@@ -1373,6 +1373,11 @@
   letter-spacing: 0.02em;
 }
 
+.patient-address__submit-error {
+  margin-top: 12px;
+  text-align: center;
+}
+
 .patient-address__field {
   position: relative;
   width: 100%;
@@ -1570,6 +1575,35 @@
   align-items: flex-start;
   gap: 8px;
   align-self: stretch;
+  min-height: 120px;
+}
+
+.patient-schedule__slots-hint {
+  width: 100%;
+  margin: 0;
+  padding: 8px 2px 0;
+  color: rgba(255, 255, 255, 0.55);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.patient-schedule__slots-error {
+  width: 100%;
+  margin: 0;
+  padding: 8px 2px 0;
+  color: #E95D5C;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.patient-schedule__lock-error {
+  margin-bottom: 8px;
 }
 
 .patient-schedule__slot-row {
@@ -1901,6 +1935,11 @@
 
 .patient-final__status-text.is-failed {
   color: #ef4444;
+}
+
+.patient-final__error {
+  margin: 0 0 16px;
+  text-align: center;
 }
 
 .patient-final__booking-id {

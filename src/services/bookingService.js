@@ -7,6 +7,16 @@ import { authorizedRequest } from './apiClient';
 
 const BOOK_BIO_AI_PATH =
   process.env.REACT_APP_BOOK_BIO_AI_PATH || '/book/bio-ai';
+const GEOCODE_SEARCH_PATH =
+  process.env.REACT_APP_GEOCODE_SEARCH_PATH || '/geocode/search';
+const CHECK_SERVICE_AVAILABILITY_PATH =
+  process.env.REACT_APP_CHECK_SERVICE_AVAILABILITY_PATH || '/book/check-service-availability';
+const AVAILABLE_SLOTS_PATH =
+  process.env.REACT_APP_AVAILABLE_SLOTS_PATH || '/book/available-slots';
+const LOCK_SLOTS_PATH =
+  process.env.REACT_APP_LOCK_SLOTS_PATH || '/book/lock';
+
+export const AREA_NOT_SERVICEABLE_MESSAGE = 'Sorry, this area is not serviceable';
 
 /**
  * Convert UI slot like "06:00 AM" to API format "6:00" (24h, minutes zero-padded).
@@ -42,55 +52,235 @@ const assertBioAiMember = (member, index) => {
   if (!Number.isInteger(member.user_id) || member.user_id <= 0) {
     throw new Error(`${label}: missing or invalid user_id for booking.`);
   }
-  if (!Number.isInteger(member.diagnostic_package_id) || member.diagnostic_package_id <= 0) {
-    throw new Error(`${label}: missing or invalid diagnostic_package_id for booking.`);
-  }
-  if (!member.blood_collection_date) {
-    throw new Error(`${label}: collection date is required.`);
-  }
-  if (!member.blood_collection_time_slot) {
-    throw new Error(`${label}: collection time slot is required.`);
-  }
-  if (!String(member.address || '').trim()) {
-    throw new Error(`${label}: address is required.`);
-  }
-  if (!String(member.pincode || '').trim()) {
-    throw new Error(`${label}: pincode is required.`);
-  }
-  if (!String(member.city || '').trim()) {
-    throw new Error(`${label}: city is required.`);
+  if (!Number.isInteger(member.engagement_id) || member.engagement_id <= 0) {
+    throw new Error(`${label}: missing or invalid engagement_id for booking.`);
   }
 };
 
 /**
- * Build POST /book/bio-ai body from overlay selection (shared address/collection slot for all members).
+ * Build POST /book/bio-ai body from overlay selection.
  *
  * @param {object} params
  * @param {Array} params.selectedPatients
- * @param {object} params.addressData — house, area, landmark, city, pincode
- * @param {string} params.bloodCollectionDate — YYYY-MM-DD
- * @param {string} params.bloodCollectionTimeSlot — e.g. "9:00", "14:30"
- * @param {(patientId: string) => object} params.getPackageForPatient
  * @param {(patient: object) => number|null} params.getNumericPatientUserId
+ * @param {Record<number, object>} params.serviceAvailabilityByUserId
  */
 export const buildBookBioAiPayload = ({
   selectedPatients,
-  addressData,
-  bloodCollectionDate,
-  bloodCollectionTimeSlot,
-  getPackageForPatient,
   getNumericPatientUserId,
+  serviceAvailabilityByUserId,
 }) => {
   if (!Array.isArray(selectedPatients) || selectedPatients.length === 0) {
     throw new Error('Select at least one member to book.');
   }
 
+  const members = selectedPatients.map((patient) => {
+    const user_id = getNumericPatientUserId(patient);
+    const engagement_id = Number(serviceAvailabilityByUserId?.[user_id]?.engagement_id);
+
+    return {
+      user_id,
+      engagement_id,
+    };
+  });
+
+  members.forEach(assertBioAiMember);
+
+  return { members };
+};
+
+/**
+ * @param {unknown} response Parsed POST /book/bio-ai response
+ * @returns {Array<object>} Per-member booking results
+ */
+export const extractBioAiBookingMembers = (response) => {
+  const data = response?.data ?? response;
+  if (Array.isArray(data?.members)) {
+    return data.members;
+  }
+  if (Array.isArray(data)) {
+    return data;
+  }
+  return [];
+};
+
+/**
+ * @param {Array<object>} members
+ * @returns {string|null} Combined error message when any member failed
+ */
+export const getBioAiBookingFailureMessage = (members) => {
+  if (!Array.isArray(members) || !members.length) {
+    return 'Booking could not be confirmed. Please contact support.';
+  }
+  const failed = members.filter((member) => (
+    String(member?.status || '').trim().toLowerCase() !== 'success'
+  ));
+  if (!failed.length) {
+    return null;
+  }
+  return failed
+    .map((member) => String(member?.message || 'Booking failed').trim())
+    .filter(Boolean)
+    .join(' ');
+};
+
+/**
+ * @param {Array<object>} members
+ * @returns {string|null} Healthians booking_id from the first successful member
+ */
+export const getPrimaryBioAiBookingId = (members) => {
+  if (!Array.isArray(members)) {
+    return null;
+  }
+  const success = members.find((member) => (
+    String(member?.status || '').trim().toLowerCase() === 'success'
+    && String(member?.booking_id || '').trim()
+  ));
+  if (success?.booking_id) {
+    return String(success.booking_id).trim();
+  }
+  const withId = members.find((member) => String(member?.booking_id || '').trim());
+  return withId ? String(withId.booking_id).trim() : null;
+};
+
+/**
+ * POST /book/bio-ai — creates Healthians booking from draft engagements after payment.
+ *
+ * @param {{ members: Array<object> }} payload
+ * @returns {Promise<unknown>} Parsed JSON body from server
+ */
+export async function bookBioAiBatch(payload) {
+  return authorizedRequest(BOOK_BIO_AI_PATH, {
+    method: 'POST',
+    payload,
+    missingAuthMessage: 'Please log in to complete booking.',
+  });
+}
+
+/**
+ * Build the `q` query for GET /geocode/search (house, area, city, pincode — comma separated).
+ */
+export const buildGeocodeSearchQuery = (addressData) => {
+  return [addressData?.house, addressData?.area, addressData?.city, addressData?.pincode]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join(', ');
+};
+
+const buildGeocodeSearchQueryVariants = (addressData) => {
+  const full = buildGeocodeSearchQuery(addressData);
+  const areaCityPincode = [addressData?.area, addressData?.city, addressData?.pincode]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join(', ');
+  const areaCity = [addressData?.area, addressData?.city]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join(', ');
+
+  return [full, areaCityPincode, areaCity].filter((query, index, queries) => (
+    query && queries.indexOf(query) === index
+  ));
+};
+
+const extractGeocodeRows = (response) => {
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response)) {
+    return response;
+  }
+  return [];
+};
+
+/**
+ * Resolve coordinates and normalized address fields via GET /geocode/search.
+ *
+ * @param {object} addressData — house, area, landmark, city, pincode
+ * @returns {Promise<object>} First geocode match
+ */
+export async function searchGeocodeByAddress(addressData) {
+  const queryVariants = buildGeocodeSearchQueryVariants(addressData);
+  if (!queryVariants.length) {
+    throw new Error('Enter house/flat no., building/area, city, and pincode to continue.');
+  }
+
+  for (const q of queryVariants) {
+    const response = await authorizedRequest(GEOCODE_SEARCH_PATH, {
+      method: 'GET',
+      query: { q, limit: 1 },
+      missingAuthMessage: 'Please log in to continue booking.',
+    });
+
+    const rows = extractGeocodeRows(response);
+    if (rows.length) {
+      return rows[0];
+    }
+  }
+
+  throw new Error(AREA_NOT_SERVICEABLE_MESSAGE);
+}
+
+/**
+ * Merge form address with geocode result for downstream booking steps.
+ */
+export const buildResolvedAddressFromGeocode = (addressData, geocodeResult) => {
+  const house = String(addressData?.house || '').trim();
+  const landmark = String(addressData?.landmark || '').trim();
   const pincode = String(addressData?.pincode || '').trim();
-  const city = String(addressData?.city || '').trim();
-  const addressParts = [addressData?.house, addressData?.area, addressData?.landmark]
-    .map((s) => String(s || '').trim())
-    .filter(Boolean);
-  const address = addressParts.join(', ');
+  const geocodeAddress = String(geocodeResult?.address || geocodeResult?.display_name || '').trim();
+  const address = [house, geocodeAddress].filter(Boolean).join(', ') || geocodeAddress;
+
+  return {
+    house,
+    area: String(addressData?.area || '').trim(),
+    landmark: landmark || String(geocodeResult?.landmark || '').trim(),
+    city: String(geocodeResult?.city || addressData?.city || '').trim(),
+    pincode: pincode || String(geocodeResult?.pincode || '').trim(),
+    sub_locality: String(geocodeResult?.sub_locality || '').trim(),
+    state: String(geocodeResult?.state || '').trim(),
+    country: String(geocodeResult?.country || 'India').trim(),
+    latitude: Number(geocodeResult?.latitude),
+    longitude: Number(geocodeResult?.longitude),
+    address,
+    geocode: geocodeResult,
+  };
+};
+
+const assertServiceAvailabilityMember = (member, index) => {
+  const label = `Member ${index + 1}`;
+  if (!Number.isInteger(member.user_id) || member.user_id <= 0) {
+    throw new Error(`${label}: missing or invalid user_id for service check.`);
+  }
+  if (!Number.isInteger(member.diagnostic_package_id) || member.diagnostic_package_id <= 0) {
+    throw new Error(`${label}: missing or invalid diagnostic package for service check.`);
+  }
+  if (!String(member.address || '').trim()) {
+    throw new Error(`${label}: address is required for service check.`);
+  }
+  if (!Number.isFinite(member.latitude) || !Number.isFinite(member.longitude)) {
+    throw new Error(`${label}: location coordinates are required for service check.`);
+  }
+};
+
+/**
+ * Build POST /book/check-service-availability body.
+ */
+export const buildCheckServiceAvailabilityPayload = ({
+  selectedPatients,
+  addressData,
+  geocodeResult,
+  getPackageForPatient,
+  getNumericPatientUserId,
+}) => {
+  if (!Array.isArray(selectedPatients) || selectedPatients.length === 0) {
+    throw new Error('Select at least one member to continue.');
+  }
+
+  const resolved = buildResolvedAddressFromGeocode(addressData, geocodeResult);
+  if (!Number.isFinite(resolved.latitude) || !Number.isFinite(resolved.longitude)) {
+    throw new Error(AREA_NOT_SERVICEABLE_MESSAGE);
+  }
 
   const members = selectedPatients.map((patient) => {
     const user_id = getNumericPatientUserId(patient);
@@ -104,16 +294,187 @@ export const buildBookBioAiPayload = ({
 
     return {
       user_id,
-      address,
-      pincode,
-      city,
-      blood_collection_date: bloodCollectionDate,
-      blood_collection_time_slot: bloodCollectionTimeSlot,
+      address: resolved.address,
+      sub_locality: resolved.sub_locality,
+      landmark: resolved.landmark,
+      city: resolved.city,
+      state: resolved.state,
+      country: resolved.country,
+      pincode: resolved.pincode,
+      latitude: resolved.latitude,
+      longitude: resolved.longitude,
       diagnostic_package_id,
     };
   });
 
-  members.forEach(assertBioAiMember);
+  members.forEach(assertServiceAvailabilityMember);
+  return { members };
+};
+
+/**
+ * @param {unknown} response Parsed API response body
+ * @returns {Array<object>} Per-member availability results
+ */
+export const extractServiceAvailabilityMembers = (response) => {
+  const data = response?.data ?? response;
+  if (Array.isArray(data?.members)) {
+    return data.members;
+  }
+  if (Array.isArray(data)) {
+    return data;
+  }
+  return [];
+};
+
+/**
+ * @param {unknown} response Parsed API response body
+ * @returns {boolean} True when every member has status "serviceable"
+ */
+export const isAreaServiceable = (response) => {
+  const members = extractServiceAvailabilityMembers(response);
+  if (!members.length) {
+    return false;
+  }
+  return members.every((member) => (
+    String(member?.status || '').trim().toLowerCase() === 'serviceable'
+  ));
+};
+
+/**
+ * @param {unknown} response Parsed API response body
+ * @returns {boolean} True when the payload indicates service is not available
+ */
+export const isServiceAvailabilityDenied = (response) => !isAreaServiceable(response);
+
+/**
+ * @param {{ members: Array<object> }} payload
+ * @returns {Promise<unknown>} Parsed JSON body from server
+ */
+export async function checkServiceAvailability(payload) {
+  return authorizedRequest(CHECK_SERVICE_AVAILABILITY_PATH, {
+    method: 'POST',
+    payload,
+    missingAuthMessage: 'Please log in to continue booking.',
+  });
+}
+
+/**
+ * @param {unknown} response Parsed service-availability API response
+ * @returns {Record<number, object>} user_id → availability member (engagement_id, zone_id, …)
+ */
+export const mapServiceAvailabilityByUserId = (response) => {
+  const members = extractServiceAvailabilityMembers(response);
+  const byUserId = {};
+  members.forEach((member) => {
+    const userId = Number(member?.user_id);
+    if (Number.isInteger(userId) && userId > 0) {
+      byUserId[userId] = member;
+    }
+  });
+  return byUserId;
+};
+
+/**
+ * Convert API slot_time like "06:00:00" to UI label "06:00 AM".
+ */
+export const formatApiSlotTimeToDisplay = (slotTime) => {
+  const parts = String(slotTime || '').trim().split(':');
+  const hour24 = Number(parts[0]);
+  const minutes = String(parts[1] || '00').padStart(2, '0');
+  if (!Number.isFinite(hour24)) {
+    return '';
+  }
+  const meridiem = hour24 >= 12 ? 'PM' : 'AM';
+  let hour12 = hour24 % 12;
+  if (hour12 === 0) {
+    hour12 = 12;
+  }
+  return `${String(hour12).padStart(2, '0')}:${minutes} ${meridiem}`;
+};
+
+/**
+ * @param {unknown} response Parsed available-slots API response
+ * @returns {Array<object>} Per-member slot results
+ */
+export const extractAvailableSlotsMembers = (response) => {
+  const data = response?.data ?? response;
+  if (Array.isArray(data?.members)) {
+    return data.members;
+  }
+  if (Array.isArray(data)) {
+    return data;
+  }
+  return [];
+};
+
+/**
+ * Normalize API slot rows for the schedule UI.
+ */
+export const normalizeAvailableSlotsForUi = (response) => {
+  const members = extractAvailableSlotsMembers(response);
+  const memberWithSlots = members.find((member) => Array.isArray(member?.slots) && member.slots.length > 0)
+    || members[0];
+  const slots = Array.isArray(memberWithSlots?.slots) ? memberWithSlots.slots : [];
+
+  return slots
+    .map((slot) => ({
+      ...slot,
+      stm_id: String(slot?.stm_id || ''),
+      slot_time: String(slot?.slot_time || ''),
+      end_time: String(slot?.end_time || ''),
+      displayLabel: formatApiSlotTimeToDisplay(slot?.slot_time),
+    }))
+    .filter((slot) => slot.displayLabel);
+};
+
+export const chunkScheduleSlots = (slots, size = 3) => {
+  const rows = [];
+  for (let index = 0; index < slots.length; index += size) {
+    rows.push(slots.slice(index, index + size));
+  }
+  return rows;
+};
+
+/**
+ * Build POST /book/available-slots body.
+ *
+ * @param {object} params
+ * @param {Array} params.selectedPatients
+ * @param {(patient: object) => number|null} params.getNumericPatientUserId
+ * @param {Record<number, object>} params.serviceAvailabilityByUserId
+ * @param {string} params.bloodCollectionDate — YYYY-MM-DD
+ */
+export const buildAvailableSlotsPayload = ({
+  selectedPatients,
+  getNumericPatientUserId,
+  serviceAvailabilityByUserId,
+  bloodCollectionDate,
+}) => {
+  if (!Array.isArray(selectedPatients) || selectedPatients.length === 0) {
+    throw new Error('Select at least one member to view slots.');
+  }
+  if (!String(bloodCollectionDate || '').trim()) {
+    throw new Error('Select a collection date.');
+  }
+
+  const members = selectedPatients.map((patient, index) => {
+    const user_id = getNumericPatientUserId(patient);
+    const availability = serviceAvailabilityByUserId?.[user_id];
+    const engagement_id = Number(availability?.engagement_id);
+
+    if (!Number.isInteger(user_id) || user_id <= 0) {
+      throw new Error(`Member ${index + 1}: missing or invalid user_id for slot lookup.`);
+    }
+    if (!Number.isInteger(engagement_id) || engagement_id <= 0) {
+      throw new Error(`Member ${index + 1}: missing engagement for slot lookup.`);
+    }
+
+    return {
+      user_id,
+      engagement_id,
+      blood_collection_date: bloodCollectionDate,
+    };
+  });
 
   return { members };
 };
@@ -122,10 +483,94 @@ export const buildBookBioAiPayload = ({
  * @param {{ members: Array<object> }} payload
  * @returns {Promise<unknown>} Parsed JSON body from server
  */
-export async function bookBioAiBatch(payload) {
-  return authorizedRequest(BOOK_BIO_AI_PATH, {
+export async function fetchAvailableSlots(payload) {
+  return authorizedRequest(AVAILABLE_SLOTS_PATH, {
     method: 'POST',
     payload,
-    missingAuthMessage: 'Please log in to complete booking.',
+    missingAuthMessage: 'Please log in to view available slots.',
+  });
+}
+
+/**
+ * Build POST /book/lock body.
+ */
+export const buildLockSlotsPayload = ({
+  selectedPatients,
+  getNumericPatientUserId,
+  serviceAvailabilityByUserId,
+  bloodCollectionDate,
+  bloodCollectionTimeSlotId,
+  addressData,
+}) => {
+  if (!Array.isArray(selectedPatients) || selectedPatients.length === 0) {
+    throw new Error('Select at least one member to lock a slot.');
+  }
+  if (!String(bloodCollectionDate || '').trim()) {
+    throw new Error('Select a collection date.');
+  }
+  const slotId = String(bloodCollectionTimeSlotId || '').trim();
+  if (!slotId) {
+    throw new Error('Select a valid time slot.');
+  }
+  const pincode = String(addressData?.pincode || '').trim();
+
+  const members = selectedPatients.map((patient, index) => {
+    const user_id = getNumericPatientUserId(patient);
+    const engagement_id = Number(serviceAvailabilityByUserId?.[user_id]?.engagement_id);
+
+    if (!Number.isInteger(user_id) || user_id <= 0) {
+      throw new Error(`Member ${index + 1}: missing or invalid user_id for slot lock.`);
+    }
+    if (!Number.isInteger(engagement_id) || engagement_id <= 0) {
+      throw new Error(`Member ${index + 1}: missing engagement for slot lock.`);
+    }
+
+    return {
+      user_id,
+      engagement_id,
+      blood_collection_date: bloodCollectionDate,
+      blood_collection_time_slot_id: slotId,
+      ...(pincode ? { pincode } : {}),
+    };
+  });
+
+  return { members };
+};
+
+/**
+ * @param {{ members: Array<object> }} payload
+ * @returns {Promise<unknown>} Parsed JSON body from server
+ */
+export async function lockSlots(payload) {
+  return authorizedRequest(LOCK_SLOTS_PATH, {
+    method: 'POST',
+    payload,
+    missingAuthMessage: 'Please log in to lock your slot.',
+  });
+}
+
+/**
+ * @returns {Promise<unknown>}
+ */
+export async function getMyBookingDrafts() {
+  return authorizedRequest('/book/me/drafts', {
+    method: 'GET',
+    missingAuthMessage: 'Please log in to view booking drafts.',
+  });
+}
+
+/**
+ * @param {number} engagementId
+ * @returns {Promise<unknown>}
+ */
+export async function getEngagementDetails(engagementId) {
+  const id = Number(engagementId);
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('Invalid engagement id.');
+  }
+
+  return authorizedRequest(`/engagements/${id}`, {
+    method: 'GET',
+    missingAuthMessage: 'Please log in to resume your booking.',
   });
 }

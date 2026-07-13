@@ -43,6 +43,14 @@ import {
 } from '../../utils/packageRecommendationStorage';
 import { mapDiagnosticPackageToCard } from '../../utils/diagnosticPackageCardMapper';
 import {
+  extractEngagementPayload,
+  findPackageCardByDiagnosticPackageId,
+  getLatestDraftEngagementId,
+  isDraftEngagement,
+} from '../../utils/bookingDraftUtils';
+import { getEngagementDetails, getMyBookingDrafts } from '../../services/bookingService';
+import { BACKEND_ENABLED } from '../../config/appConfig';
+import {
   PackageFaceCardMetrics,
   PackageFaceCardPricing,
 } from './PackageFaceCard';
@@ -369,6 +377,10 @@ const PackagesPage = ({
   const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
   const [packageCardsFromApi, setPackageCardsFromApi] = useState(getInitialPackageCardsFromCache);
   const [bookingPackage, setBookingPackage] = useState(null);
+  const [draftEngagement, setDraftEngagement] = useState(null);
+  const draftResumeDismissedRef = useRef(false);
+  const draftCheckCompletedRef = useRef(false);
+  const draftFetchInFlightRef = useRef(false);
   const [forYouProfile, setForYouProfile] = useState(null);
   const [showPackageOnboarding, setShowPackageOnboarding] = useState(false);
   const [onboardingResult, setOnboardingResult] = useState(null);
@@ -380,6 +392,63 @@ const PackagesPage = ({
       setActiveFilterKey('all');
     }
   }, [showPackageOnboarding]);
+
+  useEffect(() => {
+    return () => {
+      draftResumeDismissedRef.current = false;
+      draftCheckCompletedRef.current = false;
+      draftFetchInFlightRef.current = false;
+    };
+  }, [accountScopeId]);
+
+  const resumeDraftFromResponse = useCallback(async (packageRows, draftsResponse) => {
+    const latestDraftEngagementId = getLatestDraftEngagementId(draftsResponse);
+    if (!latestDraftEngagementId) {
+      return;
+    }
+
+    const engagementResponse = await getEngagementDetails(latestDraftEngagementId);
+    const engagement = extractEngagementPayload(engagementResponse);
+    if (!isDraftEngagement(engagement)) {
+      return;
+    }
+
+    const rows = Array.isArray(packageRows) ? packageRows : [];
+    const matchedPackage = findPackageCardByDiagnosticPackageId(
+      rows,
+      engagement?.diagnostic_package_id,
+    );
+
+    setDraftEngagement(engagement);
+    setBookingPackage(matchedPackage || {
+      diagnostic_package_id: engagement?.diagnostic_package_id,
+      id: engagement?.diagnostic_package_id,
+    });
+    setIsPatientOverlayOpen(true);
+  }, []);
+
+  const checkAndResumeDraft = useCallback(async (packageRows, { force = false } = {}) => {
+    if (!BACKEND_ENABLED || draftResumeDismissedRef.current) {
+      return;
+    }
+    if (!force && draftCheckCompletedRef.current) {
+      return;
+    }
+    if (draftFetchInFlightRef.current) {
+      return;
+    }
+
+    draftFetchInFlightRef.current = true;
+    try {
+      const draftsResponse = await getMyBookingDrafts();
+      draftCheckCompletedRef.current = true;
+      await resumeDraftFromResponse(packageRows, draftsResponse);
+    } catch {
+      // Ignore draft resume failures and show the normal packages screen.
+    } finally {
+      draftFetchInFlightRef.current = false;
+    }
+  }, [resumeDraftFromResponse]);
 
   useEffect(() => {
     let mounted = true;
@@ -395,9 +464,10 @@ const PackagesPage = ({
         return;
       }
 
+      let mappedRows = [];
       if (packagesResult.status === 'fulfilled') {
         const rows = packagesResult.value;
-        const mappedRows = (Array.isArray(rows) ? rows : []).map(mapDiagnosticPackageToCard);
+        mappedRows = (Array.isArray(rows) ? rows : []).map(mapDiagnosticPackageToCard);
         setPackageCardsFromApi(mappedRows);
       } else {
         setPackageCardsFromApi((current) => (current.length > 0 ? current : []));
@@ -419,6 +489,8 @@ const PackagesPage = ({
       } else {
         setForYouProfile({ gender: null, age: null });
       }
+
+      await checkAndResumeDraft(mappedRows);
     };
 
     loadPageData();
@@ -426,7 +498,7 @@ const PackagesPage = ({
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [accountScopeId, checkAndResumeDraft]);
 
   useEffect(() => {
     if (!accountScopeId) {
@@ -728,6 +800,12 @@ const PackagesPage = ({
 
     if (itemId === 'super-sync' && onNavigateToDoctors) {
       onNavigateToDoctors();
+      return;
+    }
+
+    if (itemId === 'packages') {
+      draftResumeDismissedRef.current = false;
+      checkAndResumeDraft(packageCardsFromApi, { force: true });
       return;
     }
 
@@ -1103,10 +1181,15 @@ const PackagesPage = ({
           <PatientSelectionOverlay
             open={isPatientOverlayOpen}
             onClose={() => {
+              if (draftEngagement) {
+                draftResumeDismissedRef.current = true;
+              }
               setIsPatientOverlayOpen(false);
               setBookingPackage(null);
+              setDraftEngagement(null);
             }}
             initialPackage={bookingPackage}
+            draftEngagement={draftEngagement}
           />
         </Suspense>
       ) : null}
