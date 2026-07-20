@@ -11,32 +11,28 @@ import {
 } from '../../services/diagnosticPackagesService';
 import {
   loadRazorpayScript,
-  createPackageRazorpayOrder,
-  verifyPackageRazorpayPayment,
-  markPackagePaymentFailed,
-  getPackageBookingStatus,
   getDefaultRazorpayKeyId,
 } from '../../services/paymentService';
 import {
   bookBioAiBatch,
   buildAvailableSlotsPayload,
-  buildBookBioAiPayload,
+  buildBookPayPayload,
   extractBioAiBookingMembers,
   getBioAiBookingFailureMessage,
   getPrimaryBioAiBookingId,
   buildCheckServiceAvailabilityPayload,
   buildLockSlotsPayload,
-  buildResolvedAddressFromGeocode,
   AREA_NOT_SERVICEABLE_MESSAGE,
   checkServiceAvailability,
   chunkScheduleSlots,
+  createBookPayOrder,
   fetchAvailableSlots,
   formatApiSlotTimeToDisplay,
+  formatBloodCollectionTimeSlot,
   isServiceAvailabilityDenied,
   lockSlots,
   mapServiceAvailabilityByUserId,
   normalizeAvailableSlotsForUi,
-  searchGeocodeByAddress,
 } from '../../services/bookingService';
 import { PAYMENT_DEMO_MODE, BACKEND_ENABLED } from '../../config/appConfig';
 import {
@@ -612,7 +608,7 @@ const RE_PACKAGE_ADDRESS_PINCODE = /^\d{6}$/;
 
 const validatePackageAddressForm = (data) => {
   const errors = {};
-  ['house', 'area', 'landmark', 'city'].forEach((key) => {
+  ['house', 'area', 'city'].forEach((key) => {
     if (!String(data[key] || '').trim()) {
       errors[key] = ADDRESS_REQUIRED_MSG;
     }
@@ -731,7 +727,7 @@ const buildAddressFromProfile = (profile) => {
     area: addressParts[1] || '',
     landmark: addressParts[2] || '',
     city,
-    pincode: '',
+    pincode: String(profile?.pin_code || profile?.pincode || profile?.postal_code || '').trim(),
   };
 };
 
@@ -1215,8 +1211,8 @@ const PatientSelectionOverlay = ({
       setSelectedTimeSlot(scheduleTimeLabel);
     }
 
-    setAddressViewReturn(resumeView === 'details' ? 'details' : 'select');
-    setScheduleViewReturn(resumeView === 'details' ? 'details' : 'address');
+    setAddressViewReturn(resumeView === 'details' || resumeView === 'payment' ? 'details' : 'select');
+    setScheduleViewReturn(resumeView === 'details' || resumeView === 'payment' ? 'details' : 'address');
     setView(resumeView);
     draftAppliedRef.current = true;
   }, [
@@ -1606,7 +1602,7 @@ const PatientSelectionOverlay = ({
     }
 
     try {
-      buildBookBioAiPayload({
+      buildBookPayPayload({
         selectedPatients,
         getNumericPatientUserId,
         serviceAvailabilityByUserId,
@@ -1617,19 +1613,21 @@ const PatientSelectionOverlay = ({
     }
   };
 
-  const confirmHealthiansBookingAfterPayment = async () => {
-    const bioPayload = buildBookBioAiPayload({
-      selectedPatients,
-      getNumericPatientUserId,
-      serviceAvailabilityByUserId,
+  const confirmHealthiansBookingAfterPayment = async (razorpayResponse) => {
+    const bioResponse = await bookBioAiBatch({
+      razorpay_payment_id: razorpayResponse?.razorpay_payment_id,
+      razorpay_order_id: razorpayResponse?.razorpay_order_id,
+      razorpay_signature: razorpayResponse?.razorpay_signature,
     });
-    const bioResponse = await bookBioAiBatch(bioPayload);
     const members = extractBioAiBookingMembers(bioResponse);
     const failureMessage = getBioAiBookingFailureMessage(members);
     if (failureMessage) {
       throw new Error(failureMessage);
     }
-    return getPrimaryBioAiBookingId(members);
+    return getPrimaryBioAiBookingId(members)
+      || bioResponse?.data?.razorpay_payment_id
+      || razorpayResponse?.razorpay_payment_id
+      || null;
   };
 
   const getPaymentResultTitle = () => {
@@ -1649,42 +1647,12 @@ const PatientSelectionOverlay = ({
     paymentHandlerInvokedRef.current = false;
     setPaymentSubmitting(true);
     try {
-      const payerUserId = Number(profileData?.user_id || profileData?.id || getNumericPatientUserId(selectedPatients?.[0]) || 0);
-      if (!Number.isInteger(payerUserId) || payerUserId <= 0) {
-        throw new Error('Valid payer user_id is required to create order.');
-      }
-
       if (customFlow) {
         throw new Error('Select a valid diagnostic package before payment.');
       }
 
-      const items = selectedPatients
-        .map((patient) => {
-          const memberUserId = getNumericPatientUserId(patient);
-          const memberPackage = getPackageForPatient(patient.id);
-          const packageEntityId = Number(
-            memberPackage?.apiData?.diagnostic_package_id
-            || memberPackage?.apiData?.id
-            || memberPackage?.id,
-          );
-          if (!memberUserId || !Number.isInteger(packageEntityId) || packageEntityId <= 0) {
-            return null;
-          }
-          return {
-          user_id: memberUserId,
-          entity_type: 'diagnostic_package',
-          entity_id: packageEntityId,
-          };
-        })
-        .filter(Boolean);
-
-      if (!items.length || items.length !== selectedPatients.length) {
-        throw new Error('Add at least one valid member before payment.');
-      }
-
       if (PAYMENT_DEMO_MODE && !BACKEND_ENABLED) {
-        const r = await verifyPackageRazorpayPayment({});
-        setConfirmedBookingId(r.bookingId || 'DEMO');
+        setConfirmedBookingId(`DEMO-${Date.now().toString(36).toUpperCase()}`);
         setPaymentOutcome('success');
         paymentSuccessRef.current = true;
         setView('confirmed');
@@ -1695,15 +1663,18 @@ const PatientSelectionOverlay = ({
         return;
       }
 
-      await loadRazorpayScript();
-      const order = await createPackageRazorpayOrder({
-        user_id: payerUserId,
-        items,
+      const payPayload = buildBookPayPayload({
+        selectedPatients,
+        getNumericPatientUserId,
+        serviceAvailabilityByUserId,
       });
+
+      await loadRazorpayScript();
+      const order = await createBookPayOrder(payPayload);
 
       const key = order.keyId || getDefaultRazorpayKeyId();
       if (!key) {
-        throw new Error('Set REACT_APP_RAZORPAY_KEY_ID or return keyId from your create-order API.');
+        throw new Error('Set REACT_APP_RAZORPAY_KEY_ID or return key_id from /book/pay.');
       }
 
       const options = {
@@ -1726,39 +1697,17 @@ const PatientSelectionOverlay = ({
           setPaymentSubmitting(true);
           void (async () => {
             try {
-              const r = await verifyPackageRazorpayPayment({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              });
-              if (!r.verified) {
-                throw new Error('Payment could not be verified.');
-              }
-
               paymentSuccessRef.current = true;
-
-              const verifyBookingIds = Array.isArray(r.bookingIds) && r.bookingIds.length
-                ? r.bookingIds
-                : (r.bookingId ? [r.bookingId] : []);
-
-              if (verifyBookingIds.length) {
-                const primaryBookingId = verifyBookingIds[0];
-                try {
-                  await getPackageBookingStatus(primaryBookingId);
-                } catch {
-                  // Keep UX unblocked if status endpoint is not available in an environment.
-                }
-              }
 
               let healthiansBookingId = null;
               if (BACKEND_ENABLED && !customFlow) {
-                healthiansBookingId = await confirmHealthiansBookingAfterPayment();
+                healthiansBookingId = await confirmHealthiansBookingAfterPayment(response);
               }
 
               setConfirmedBookingId(
                 healthiansBookingId
-                || r.bookingId
-                || r.paymentId
+                || response.razorpay_payment_id
+                || order.bookingId
                 || order.bookingIds?.[0]
                 || '—',
               );
@@ -1770,16 +1719,6 @@ const PatientSelectionOverlay = ({
               }
             } catch (err) {
               const paymentWasVerified = paymentSuccessRef.current;
-              if (!paymentWasVerified) {
-                try {
-                  await markPackagePaymentFailed({
-                    razorpay_order_id: response.razorpay_order_id || order.orderId,
-                    failure_reason: err?.message || 'Verification failed',
-                  });
-                } catch {
-                  // Optional endpoint — ignore if missing.
-                }
-              }
               setConfirmedBookingId(
                 response.razorpay_payment_id
                 || order.bookingIds?.[0]
@@ -1790,7 +1729,7 @@ const PatientSelectionOverlay = ({
               setPaymentError(
                 paymentWasVerified
                   ? (err?.message || 'Payment succeeded but lab booking could not be confirmed. Contact support with your payment ID.')
-                  : (err?.message || 'Verification failed. If you were charged, contact support.'),
+                  : (err?.message || 'Payment could not be completed. If you were charged, contact support.'),
               );
               setView('confirmed');
             } finally {
@@ -1804,21 +1743,11 @@ const PatientSelectionOverlay = ({
               return;
             }
 
-            void (async () => {
-              try {
-                await markPackagePaymentFailed({
-                  razorpay_order_id: order.orderId,
-                  failure_reason: 'User closed Razorpay checkout',
-                });
-              } catch {
-                // Optional endpoint — ignore if missing.
-              }
-              setConfirmedBookingId(order.bookingIds?.[0] || order.orderId || '—');
-              setPaymentOutcome('payment_failed');
-              setPaymentError('Payment was cancelled or could not be completed.');
-              setView('confirmed');
-              setPaymentSubmitting(false);
-            })();
+            setConfirmedBookingId(order.bookingIds?.[0] || order.orderId || '—');
+            setPaymentOutcome('payment_failed');
+            setPaymentError('Payment was cancelled or could not be completed.');
+            setView('confirmed');
+            setPaymentSubmitting(false);
           },
         },
       };
@@ -2019,14 +1948,17 @@ const PatientSelectionOverlay = ({
 
     setAddressSubmitting(true);
     try {
-      const geocodeResult = await searchGeocodeByAddress(addressData);
-      const resolvedAddress = buildResolvedAddressFromGeocode(addressData, geocodeResult);
-      setResolvedAddressData(resolvedAddress);
+      setResolvedAddressData({
+        house: String(addressData?.house || '').trim(),
+        area: String(addressData?.area || '').trim(),
+        landmark: String(addressData?.landmark || '').trim(),
+        city: String(addressData?.city || '').trim(),
+        pincode: String(addressData?.pincode || '').trim(),
+      });
 
       const availabilityPayload = buildCheckServiceAvailabilityPayload({
         selectedPatients,
         addressData,
-        geocodeResult,
         getPackageForPatient,
         getNumericPatientUserId,
       });
@@ -2097,6 +2029,12 @@ const PatientSelectionOverlay = ({
     const selectedScheduleDate = scheduleDates.find((item) => item.id === selectedDateId);
     const bloodCollectionDate = selectedScheduleDate?.isoDate || '';
     const bloodCollectionTimeSlotId = String(selectedSlotMeta?.stm_id || '').trim();
+    const bloodCollectionTimeSlot = String(
+      selectedSlotMeta?.slot_time
+      || formatBloodCollectionTimeSlot(selectedTimeSlot)
+      || selectedTimeSlot
+      || '',
+    ).trim();
 
     if (!bloodCollectionDate || !selectedTimeSlot) {
       setScheduleLockError('Select a collection date and time slot.');
@@ -2108,7 +2046,7 @@ const PatientSelectionOverlay = ({
       return;
     }
 
-    if (!bloodCollectionTimeSlotId) {
+    if (!bloodCollectionTimeSlotId || !bloodCollectionTimeSlot) {
       setScheduleLockError('Select a valid time slot.');
       return;
     }
@@ -2121,6 +2059,7 @@ const PatientSelectionOverlay = ({
         serviceAvailabilityByUserId,
         bloodCollectionDate,
         bloodCollectionTimeSlotId,
+        bloodCollectionTimeSlot,
         addressData,
       });
       await lockSlots(lockPayload);
@@ -2626,7 +2565,7 @@ const PatientSelectionOverlay = ({
             <div className="patient-address__body">
               {renderAddressField('house', 'House/ Flat No.')}
               {renderAddressField('area', 'Building/ Area')}
-              {renderAddressField('landmark', 'Landmark')}
+              {renderAddressField('landmark', 'Landmark (optional)')}
 
               <div className="patient-address__split-row">
                 {renderAddressField('city', 'City', { half: true })}

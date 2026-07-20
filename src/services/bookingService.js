@@ -1,10 +1,13 @@
 /**
- * Bio-AI batch booking (packages flow).
- * POST /book/bio-ai — override path with REACT_APP_BOOK_BIO_AI_PATH if needed.
+ * Packages booking APIs.
+ * POST /book/pay — create Razorpay order for draft engagements
+ * POST /book/bio-ai — verify payment + finalize Healthians booking
  */
 
 import { authorizedRequest } from './apiClient';
 
+const BOOK_PAY_PATH =
+  process.env.REACT_APP_BOOK_PAY_PATH || '/book/pay';
 const BOOK_BIO_AI_PATH =
   process.env.REACT_APP_BOOK_BIO_AI_PATH || '/book/bio-ai';
 const GEOCODE_SEARCH_PATH =
@@ -16,7 +19,7 @@ const AVAILABLE_SLOTS_PATH =
 const LOCK_SLOTS_PATH =
   process.env.REACT_APP_LOCK_SLOTS_PATH || '/book/lock';
 
-export const AREA_NOT_SERVICEABLE_MESSAGE = 'Sorry, this area is not serviceable';
+export const AREA_NOT_SERVICEABLE_MESSAGE = 'This area is not yet serviceable.';
 
 /**
  * Convert UI slot like "06:00 AM" to API format "6:00" (24h, minutes zero-padded).
@@ -47,7 +50,7 @@ export const formatBloodCollectionTimeSlot = (selectedTimeSlot) => {
   return `${hour24}:${String(minutes).padStart(2, '0')}`;
 };
 
-const assertBioAiMember = (member, index) => {
+const assertBookPayMember = (member, index) => {
   const label = `Member ${index + 1}`;
   if (!Number.isInteger(member.user_id) || member.user_id <= 0) {
     throw new Error(`${label}: missing or invalid user_id for booking.`);
@@ -58,14 +61,14 @@ const assertBioAiMember = (member, index) => {
 };
 
 /**
- * Build POST /book/bio-ai body from overlay selection.
+ * Build POST /book/pay body from overlay selection.
  *
  * @param {object} params
  * @param {Array} params.selectedPatients
  * @param {(patient: object) => number|null} params.getNumericPatientUserId
  * @param {Record<number, object>} params.serviceAvailabilityByUserId
  */
-export const buildBookBioAiPayload = ({
+export const buildBookPayPayload = ({
   selectedPatients,
   getNumericPatientUserId,
   serviceAvailabilityByUserId,
@@ -84,10 +87,65 @@ export const buildBookBioAiPayload = ({
     };
   });
 
-  members.forEach(assertBioAiMember);
+  members.forEach(assertBookPayMember);
 
   return { members };
 };
+
+/** @deprecated Use buildBookPayPayload */
+export const buildBookBioAiPayload = buildBookPayPayload;
+
+/**
+ * Normalize POST /book/pay response for Razorpay Checkout.
+ *
+ * @param {unknown} response
+ * @returns {{ orderId: string, amount: number, currency: string, keyId?: string, bookingIds: Array, bookingId?: string }}
+ */
+export const normalizeBookPayOrder = (response) => {
+  const data = response?.data && typeof response.data === 'object' ? response.data : response;
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid /book/pay response from server.');
+  }
+
+  const orderId = data.razorpay_order_id || data.orderId || data.id;
+  if (!orderId) {
+    throw new Error('/book/pay response is missing razorpay order id.');
+  }
+
+  const amountPaise = Number(data.amount_paise ?? data.amount ?? data.amountPaise);
+  if (!Number.isFinite(amountPaise) || amountPaise <= 0) {
+    throw new Error('/book/pay response is missing amount in paise.');
+  }
+
+  const bookingIds = Array.isArray(data.booking_ids)
+    ? data.booking_ids
+    : (data.booking_id ? [data.booking_id] : []);
+
+  return {
+    orderId: String(orderId),
+    amount: amountPaise,
+    currency: data.currency || 'INR',
+    keyId: data.key_id || data.keyId,
+    bookingIds,
+    bookingId: data.booking_id || bookingIds[0],
+    members: Array.isArray(data.members) ? data.members : [],
+    raw: data,
+  };
+};
+
+/**
+ * POST /book/pay — create Razorpay order for locked draft engagements.
+ *
+ * @param {{ members: Array<{ user_id: number, engagement_id: number }> }} payload
+ */
+export async function createBookPayOrder(payload) {
+  const response = await authorizedRequest(BOOK_PAY_PATH, {
+    method: 'POST',
+    payload,
+    missingAuthMessage: 'Please log in to complete payment.',
+  });
+  return normalizeBookPayOrder(response);
+}
 
 /**
  * @param {unknown} response Parsed POST /book/bio-ai response
@@ -144,15 +202,27 @@ export const getPrimaryBioAiBookingId = (members) => {
 };
 
 /**
- * POST /book/bio-ai — creates Healthians booking from draft engagements after payment.
+ * POST /book/bio-ai — verify Razorpay payment and finalize Healthians bookings.
  *
- * @param {{ members: Array<object> }} payload
+ * @param {{ razorpay_payment_id: string, razorpay_order_id: string, razorpay_signature: string }} payload
  * @returns {Promise<unknown>} Parsed JSON body from server
  */
 export async function bookBioAiBatch(payload) {
+  const razorpay_payment_id = String(payload?.razorpay_payment_id || '').trim();
+  const razorpay_order_id = String(payload?.razorpay_order_id || '').trim();
+  const razorpay_signature = String(payload?.razorpay_signature || '').trim();
+
+  if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+    throw new Error('Payment confirmation details are missing.');
+  }
+
   return authorizedRequest(BOOK_BIO_AI_PATH, {
     method: 'POST',
-    payload,
+    payload: {
+      razorpay_payment_id,
+      razorpay_order_id,
+      razorpay_signature,
+    },
     missingAuthMessage: 'Please log in to complete booking.',
   });
 }
@@ -255,11 +325,17 @@ const assertServiceAvailabilityMember = (member, index) => {
   if (!Number.isInteger(member.diagnostic_package_id) || member.diagnostic_package_id <= 0) {
     throw new Error(`${label}: missing or invalid diagnostic package for service check.`);
   }
-  if (!String(member.address || '').trim()) {
-    throw new Error(`${label}: address is required for service check.`);
+  if (!String(member.house_flat_no || '').trim()) {
+    throw new Error(`${label}: house/flat no. is required for service check.`);
   }
-  if (!Number.isFinite(member.latitude) || !Number.isFinite(member.longitude)) {
-    throw new Error(`${label}: location coordinates are required for service check.`);
+  if (!String(member.building_area || '').trim()) {
+    throw new Error(`${label}: building/area is required for service check.`);
+  }
+  if (!String(member.city || '').trim()) {
+    throw new Error(`${label}: city is required for service check.`);
+  }
+  if (!String(member.pincode || '').trim()) {
+    throw new Error(`${label}: pincode is required for service check.`);
   }
 };
 
@@ -269,7 +345,6 @@ const assertServiceAvailabilityMember = (member, index) => {
 export const buildCheckServiceAvailabilityPayload = ({
   selectedPatients,
   addressData,
-  geocodeResult,
   getPackageForPatient,
   getNumericPatientUserId,
 }) => {
@@ -277,9 +352,14 @@ export const buildCheckServiceAvailabilityPayload = ({
     throw new Error('Select at least one member to continue.');
   }
 
-  const resolved = buildResolvedAddressFromGeocode(addressData, geocodeResult);
-  if (!Number.isFinite(resolved.latitude) || !Number.isFinite(resolved.longitude)) {
-    throw new Error(AREA_NOT_SERVICEABLE_MESSAGE);
+  const house_flat_no = String(addressData?.house || '').trim();
+  const building_area = String(addressData?.area || '').trim();
+  const landmark = String(addressData?.landmark || '').trim();
+  const city = String(addressData?.city || '').trim();
+  const pincode = String(addressData?.pincode || '').trim();
+
+  if (!house_flat_no || !building_area || !city || !pincode) {
+    throw new Error('Enter house/flat no., building/area, city, and pincode to continue.');
   }
 
   const members = selectedPatients.map((patient) => {
@@ -294,15 +374,11 @@ export const buildCheckServiceAvailabilityPayload = ({
 
     return {
       user_id,
-      address: resolved.address,
-      sub_locality: resolved.sub_locality,
-      landmark: resolved.landmark,
-      city: resolved.city,
-      state: resolved.state,
-      country: resolved.country,
-      pincode: resolved.pincode,
-      latitude: resolved.latitude,
-      longitude: resolved.longitude,
+      house_flat_no,
+      building_area,
+      landmark,
+      city,
+      pincode,
       diagnostic_package_id,
     };
   });
@@ -500,6 +576,7 @@ export const buildLockSlotsPayload = ({
   serviceAvailabilityByUserId,
   bloodCollectionDate,
   bloodCollectionTimeSlotId,
+  bloodCollectionTimeSlot,
   addressData,
 }) => {
   if (!Array.isArray(selectedPatients) || selectedPatients.length === 0) {
@@ -510,6 +587,10 @@ export const buildLockSlotsPayload = ({
   }
   const slotId = String(bloodCollectionTimeSlotId || '').trim();
   if (!slotId) {
+    throw new Error('Select a valid time slot.');
+  }
+  const slotTime = String(bloodCollectionTimeSlot || '').trim();
+  if (!slotTime) {
     throw new Error('Select a valid time slot.');
   }
   const pincode = String(addressData?.pincode || '').trim();
@@ -530,6 +611,7 @@ export const buildLockSlotsPayload = ({
       engagement_id,
       blood_collection_date: bloodCollectionDate,
       blood_collection_time_slot_id: slotId,
+      blood_collection_time_slot: slotTime,
       ...(pincode ? { pincode } : {}),
     };
   });

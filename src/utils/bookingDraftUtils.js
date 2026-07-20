@@ -6,21 +6,73 @@ export const extractEngagementPayload = (response) => (
   response?.data && typeof response.data === 'object' ? response.data : response
 );
 
-export const getLatestDraftEngagementId = (response) => {
+/**
+ * Normalize GET /book/me/drafts into draft summary rows.
+ * Supports `data.engagements[]` (current) and legacy `data.engagement_ids[]`.
+ */
+export const extractDraftEngagementSummaries = (response) => {
+  const engagements = response?.data?.engagements ?? response?.engagements;
+  if (Array.isArray(engagements) && engagements.length) {
+    return engagements
+      .map((row) => {
+        const engagementId = Number(row?.engagement_id ?? row?.id);
+        if (!Number.isInteger(engagementId) || engagementId <= 0) {
+          return null;
+        }
+        return {
+          engagement_id: engagementId,
+          status: String(row?.status || 'draft').trim().toLowerCase() || 'draft',
+          resume_step: String(row?.resume_step || '').trim(),
+          address: String(row?.address || '').trim(),
+        };
+      })
+      .filter(Boolean);
+  }
+
   const engagementIds = response?.data?.engagement_ids ?? response?.engagement_ids ?? [];
   if (!Array.isArray(engagementIds) || engagementIds.length === 0) {
-    return null;
+    return [];
   }
 
-  const numericIds = engagementIds
+  return engagementIds
     .map((value) => Number(value))
-    .filter((value) => Number.isInteger(value) && value > 0);
+    .filter((value) => Number.isInteger(value) && value > 0)
+    .map((engagementId) => ({
+      engagement_id: engagementId,
+      status: 'draft',
+      resume_step: '',
+      address: '',
+    }));
+};
 
-  if (!numericIds.length) {
+/** Latest unfinished draft summary (highest engagement_id), or null. */
+export const getLatestDraftSummary = (response) => {
+  const summaries = extractDraftEngagementSummaries(response)
+    .filter((row) => !row.status || row.status === 'draft');
+  if (!summaries.length) {
     return null;
   }
 
-  return Math.max(...numericIds);
+  return summaries.reduce((latest, row) => (
+    !latest || row.engagement_id > latest.engagement_id ? row : latest
+  ), null);
+};
+
+export const getLatestDraftEngagementId = (response) => {
+  const latest = getLatestDraftSummary(response);
+  return latest?.engagement_id ?? null;
+};
+
+/**
+ * Map API resume_step → PatientSelectionOverlay view.
+ * API only returns: `address` | `booking_date`
+ * @returns {'address'|'schedule'|null}
+ */
+export const mapResumeStepToView = (resumeStep) => {
+  const step = String(resumeStep || '').trim().toLowerCase();
+  if (step === 'address') return 'address';
+  if (step === 'booking_date') return 'schedule';
+  return null;
 };
 
 export const isDraftEngagement = (engagement) => (
@@ -73,9 +125,14 @@ export const engagementHasSchedule = (engagement) => {
 };
 
 /**
- * @returns {'select'|'address'|'schedule'|'details'}
+ * @returns {'select'|'address'|'schedule'|'details'|'payment'}
  */
 export const resolveDraftResumeView = (engagement) => {
+  const fromResumeStep = mapResumeStepToView(engagement?.resume_step);
+  if (fromResumeStep) {
+    return fromResumeStep;
+  }
+
   const hasPackage = Number(engagement?.diagnostic_package_id) > 0;
   const hasMembers = Number(engagement?.participant_count) > 0;
 

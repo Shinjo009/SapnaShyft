@@ -45,7 +45,7 @@ import { mapDiagnosticPackageToCard } from '../../utils/diagnosticPackageCardMap
 import {
   extractEngagementPayload,
   findPackageCardByDiagnosticPackageId,
-  getLatestDraftEngagementId,
+  getLatestDraftSummary,
   isDraftEngagement,
 } from '../../utils/bookingDraftUtils';
 import { getEngagementDetails, getMyBookingDrafts } from '../../services/bookingService';
@@ -402,13 +402,35 @@ const PackagesPage = ({
   }, [accountScopeId]);
 
   const resumeDraftFromResponse = useCallback(async (packageRows, draftsResponse) => {
-    const latestDraftEngagementId = getLatestDraftEngagementId(draftsResponse);
+    const latestDraft = getLatestDraftSummary(draftsResponse);
+    const latestDraftEngagementId = latestDraft?.engagement_id ?? null;
     if (!latestDraftEngagementId) {
       return;
     }
 
-    const engagementResponse = await getEngagementDetails(latestDraftEngagementId);
-    const engagement = extractEngagementPayload(engagementResponse);
+    let engagement = {
+      engagement_id: latestDraftEngagementId,
+      status: latestDraft?.status || 'draft',
+      resume_step: latestDraft?.resume_step || '',
+      address: latestDraft?.address || '',
+    };
+
+    try {
+      const engagementResponse = await getEngagementDetails(latestDraftEngagementId);
+      const details = extractEngagementPayload(engagementResponse);
+      if (details && typeof details === 'object') {
+        engagement = {
+          ...details,
+          status: details?.status || latestDraft?.status || 'draft',
+          resume_step: latestDraft?.resume_step || details?.resume_step || '',
+          address: details?.address || latestDraft?.address || '',
+          engagement_id: Number(details?.engagement_id) || latestDraftEngagementId,
+        };
+      }
+    } catch {
+      // Drafts list is enough to open the right step; details enrich when available.
+    }
+
     if (!isDraftEngagement(engagement)) {
       return;
     }
@@ -424,6 +446,7 @@ const PackagesPage = ({
       diagnostic_package_id: engagement?.diagnostic_package_id,
       id: engagement?.diagnostic_package_id,
     });
+    setShowPackageOnboarding(false);
     setIsPatientOverlayOpen(true);
   }, []);
 
@@ -608,7 +631,10 @@ const PackagesPage = ({
     return packageCardsFromApi;
   }, [packageCardsFromApi]);
 
-  const isOnboardingOverlayOpen = showPackageOnboarding && Boolean(accountScopeId);
+  const isOnboardingOverlayOpen = showPackageOnboarding
+    && Boolean(accountScopeId)
+    && !isPatientOverlayOpen
+    && !draftEngagement;
 
   useEffect(() => {
     const shouldLockScroll = isPatientOverlayOpen || isOnboardingOverlayOpen;
