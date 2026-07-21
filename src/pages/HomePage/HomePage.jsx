@@ -20,7 +20,6 @@ import {
   resolveHealthSpanIndexSourcesFromRows,
 } from '../../services/reportService';
 import { getMyUpcomingSlot } from '../../services/usersService';
-import { getMyProfileCached } from '../../services/profileService';
 import {
   hasNutritionLogQuestionnaireDraft,
   hasFamilyHistoryQuestionnaireDraft,
@@ -404,7 +403,8 @@ const formatEngagementDateParts = (raw, dayLabel = 'Day 1') => {
   return { primary, secondary: dayLabel };
 };
 
-const formatB2bSlotLocationLines = (slotNorm) => {
+/** Location lines from GET /users/me/upcoming-slot (B2B venue or B2C home collection). */
+const formatSlotLocationLines = (slotNorm) => {
   const name = String(slotNorm?.locationName || '').trim();
   const address = String(slotNorm?.locationAddress || '').trim();
   if (name && address) {
@@ -425,6 +425,14 @@ const formatB2bSlotLocationLines = (slotNorm) => {
   const newlineParts = display.split(/\n+/).map((part) => part.trim()).filter(Boolean);
   if (newlineParts.length >= 2) {
     return { primary: newlineParts[0], secondary: newlineParts.slice(1).join(', ') };
+  }
+
+  const commaParts = display.split(',').map((part) => part.trim()).filter(Boolean);
+  if (commaParts.length >= 2) {
+    return {
+      primary: commaParts.slice(0, -1).join(', '),
+      secondary: commaParts[commaParts.length - 1],
+    };
   }
 
   return { primary: display, secondary: '' };
@@ -477,29 +485,6 @@ const formatB2cTestingWindowTitle = (slotNorm) => {
 
   return timePart || date || '—';
 };
-
-const formatB2cAddressLines = (profile) => {
-  const street = String(profile?.address || '').trim();
-  const city = String(profile?.city || '').trim();
-  const state = String(profile?.state || '').trim();
-  const cityState = [city, state].filter(Boolean).join(', ');
-
-  if (street) {
-    return {
-      primary: street,
-      secondary: cityState,
-    };
-  }
-
-  return {
-    primary: cityState || '—',
-    secondary: '',
-  };
-};
-
-const unwrapProfileResponse = (response) => (
-  response?.data && typeof response.data === 'object' ? response.data : response
-);
 
 /** Show sample-collected UI 1 minute after the published slot end (e.g. 10–11 → at 11:01). */
 const B2C_SLOT_END_GRACE_MS = 60 * 1000;
@@ -660,7 +645,6 @@ const HomePage = ({
   const [checklistScrollProgress, setChecklistScrollProgress] = useState(0);
   const [upcomingSlotNormalized, setUpcomingSlotNormalized] = useState(null);
   const [upcomingSlotStatus, setUpcomingSlotStatus] = useState('idle');
-  const [b2cProfile, setB2cProfile] = useState(null);
   const [b2cSlotEnded, setB2cSlotEnded] = useState(false);
   const [isQuestionnaireCompleted, setIsQuestionnaireCompleted] = useState(false);
   /** POST /assessments/.../submit finalized — hide edit / complete questionnaire CTAs (B2B + B2C). */
@@ -1517,35 +1501,6 @@ const HomePage = ({
     forceRefreshFromProfile,
   ]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const slot = upcomingSlotNormalized || EMPTY_UPCOMING_SLOT;
-    const shouldLoadB2cProfile = Boolean(slot.hasScheduledSlot && slot.isB2c);
-
-    if (!shouldLoadB2cProfile) {
-      setB2cProfile(null);
-      return undefined;
-    }
-
-    (async () => {
-      try {
-        const response = await getMyProfileCached();
-        if (cancelled) {
-          return;
-        }
-        setB2cProfile(unwrapProfileResponse(response));
-      } catch {
-        if (!cancelled) {
-          setB2cProfile(null);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [upcomingSlotNormalized]);
-
   const handleMenuClick = () => {
     console.log('Menu clicked');
     if (onNavigateToProfile) {
@@ -2044,10 +1999,9 @@ const HomePage = ({
         slotNorm.engagementDateRaw,
         slotNorm.engagementDayLabel,
       );
-      const b2bLocationLines = formatB2bSlotLocationLines(slotNorm);
-      const showB2bLocation = slotNorm.isB2b && Boolean(b2bLocationLines.primary);
+      const slotLocationLines = formatSlotLocationLines(slotNorm);
+      const showSlotLocation = Boolean(slotLocationLines.primary);
       const showCampQuestionnaireCta = showHealthQuestionnaireCta;
-      const b2cAddressLines = formatB2cAddressLines(b2cProfile);
       const campHeroTitle = slotNorm.isB2b ? 'Your Health Camp is Scheduled' : 'Your Test is Scheduled';
 
       return (
@@ -2118,17 +2072,19 @@ const HomePage = ({
                 </div>
               </div>
               {isB2cScheduled ? (
-                <div className="home-page-scheduled__line-item">
-                  <div className="home-page-scheduled__icon-box" aria-hidden="true">
-                    <LocationRowIcon />
+                showSlotLocation ? (
+                  <div className="home-page-scheduled__line-item">
+                    <div className="home-page-scheduled__icon-box" aria-hidden="true">
+                      <LocationRowIcon />
+                    </div>
+                    <div className="home-page-scheduled__line-copy">
+                      <p className="home-page-scheduled__line-title">{slotLocationLines.primary}</p>
+                      {slotLocationLines.secondary ? (
+                        <p className="home-page-scheduled__line-sub">{slotLocationLines.secondary}</p>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="home-page-scheduled__line-copy">
-                    <p className="home-page-scheduled__line-title">{b2cAddressLines.primary}</p>
-                    {b2cAddressLines.secondary ? (
-                      <p className="home-page-scheduled__line-sub">{b2cAddressLines.secondary}</p>
-                    ) : null}
-                  </div>
-                </div>
+                ) : null
               ) : (
                 <>
                   <div className="home-page-scheduled__line-item">
@@ -2140,15 +2096,15 @@ const HomePage = ({
                       <p className="home-page-scheduled__line-sub">{engagementDateParts.secondary}</p>
                     </div>
                   </div>
-                  {showB2bLocation ? (
+                  {showSlotLocation ? (
                     <div className="home-page-scheduled__line-item">
                       <div className="home-page-scheduled__icon-box" aria-hidden="true">
                         <LocationRowIcon />
                       </div>
                       <div className="home-page-scheduled__line-copy">
-                        <p className="home-page-scheduled__line-title">{b2bLocationLines.primary}</p>
-                        {b2bLocationLines.secondary ? (
-                          <p className="home-page-scheduled__line-sub">{b2bLocationLines.secondary}</p>
+                        <p className="home-page-scheduled__line-title">{slotLocationLines.primary}</p>
+                        {slotLocationLines.secondary ? (
+                          <p className="home-page-scheduled__line-sub">{slotLocationLines.secondary}</p>
                         ) : null}
                       </div>
                     </div>
