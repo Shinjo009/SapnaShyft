@@ -325,11 +325,8 @@ const assertServiceAvailabilityMember = (member, index) => {
   if (!Number.isInteger(member.diagnostic_package_id) || member.diagnostic_package_id <= 0) {
     throw new Error(`${label}: missing or invalid diagnostic package for service check.`);
   }
-  if (!String(member.house_flat_no || '').trim()) {
-    throw new Error(`${label}: house/flat no. is required for service check.`);
-  }
-  if (!String(member.building_area || '').trim()) {
-    throw new Error(`${label}: building/area is required for service check.`);
+  if (!String(member.address_line || '').trim()) {
+    throw new Error(`${label}: address line is required for service check.`);
   }
   if (!String(member.city || '').trim()) {
     throw new Error(`${label}: city is required for service check.`);
@@ -341,6 +338,7 @@ const assertServiceAvailabilityMember = (member, index) => {
 
 /**
  * Build POST /book/check-service-availability body.
+ * Combines house + building/area into a single `address_line`.
  */
 export const buildCheckServiceAvailabilityPayload = ({
   selectedPatients,
@@ -352,13 +350,14 @@ export const buildCheckServiceAvailabilityPayload = ({
     throw new Error('Select at least one member to continue.');
   }
 
-  const house_flat_no = String(addressData?.house || '').trim();
-  const building_area = String(addressData?.area || '').trim();
+  const house = String(addressData?.house || '').trim();
+  const area = String(addressData?.area || '').trim();
+  const address_line = [house, area].filter(Boolean).join(', ');
   const landmark = String(addressData?.landmark || '').trim();
   const city = String(addressData?.city || '').trim();
   const pincode = String(addressData?.pincode || '').trim();
 
-  if (!house_flat_no || !building_area || !city || !pincode) {
+  if (!house || !area || !city || !pincode) {
     throw new Error('Enter house/flat no., building/area, city, and pincode to continue.');
   }
 
@@ -374,8 +373,7 @@ export const buildCheckServiceAvailabilityPayload = ({
 
     return {
       user_id,
-      house_flat_no,
-      building_area,
+      address_line,
       landmark,
       city,
       pincode,
