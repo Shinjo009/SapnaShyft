@@ -43,14 +43,6 @@ import {
 } from '../../utils/packageRecommendationStorage';
 import { mapDiagnosticPackageToCard } from '../../utils/diagnosticPackageCardMapper';
 import {
-  extractEngagementPayload,
-  findPackageCardByDiagnosticPackageId,
-  getLatestDraftSummary,
-  isDraftEngagement,
-} from '../../utils/bookingDraftUtils';
-import { getEngagementDetails, getMyBookingDrafts } from '../../services/bookingService';
-import { BACKEND_ENABLED } from '../../config/appConfig';
-import {
   PackageFaceCardMetrics,
   PackageFaceCardPricing,
 } from './PackageFaceCard';
@@ -377,10 +369,6 @@ const PackagesPage = ({
   const [isPatientOverlayOpen, setIsPatientOverlayOpen] = useState(false);
   const [packageCardsFromApi, setPackageCardsFromApi] = useState(getInitialPackageCardsFromCache);
   const [bookingPackage, setBookingPackage] = useState(null);
-  const [draftEngagement, setDraftEngagement] = useState(null);
-  const draftResumeDismissedRef = useRef(false);
-  const draftCheckCompletedRef = useRef(false);
-  const draftFetchInFlightRef = useRef(false);
   const [forYouProfile, setForYouProfile] = useState(null);
   const [showPackageOnboarding, setShowPackageOnboarding] = useState(false);
   const [onboardingResult, setOnboardingResult] = useState(null);
@@ -392,86 +380,6 @@ const PackagesPage = ({
       setActiveFilterKey('all');
     }
   }, [showPackageOnboarding]);
-
-  useEffect(() => {
-    return () => {
-      draftResumeDismissedRef.current = false;
-      draftCheckCompletedRef.current = false;
-      draftFetchInFlightRef.current = false;
-    };
-  }, [accountScopeId]);
-
-  const resumeDraftFromResponse = useCallback(async (packageRows, draftsResponse) => {
-    const latestDraft = getLatestDraftSummary(draftsResponse);
-    const latestDraftEngagementId = latestDraft?.engagement_id ?? null;
-    if (!latestDraftEngagementId) {
-      return;
-    }
-
-    let engagement = {
-      engagement_id: latestDraftEngagementId,
-      status: latestDraft?.status || 'draft',
-      resume_step: latestDraft?.resume_step || '',
-      address: latestDraft?.address || '',
-    };
-
-    try {
-      const engagementResponse = await getEngagementDetails(latestDraftEngagementId);
-      const details = extractEngagementPayload(engagementResponse);
-      if (details && typeof details === 'object') {
-        engagement = {
-          ...details,
-          status: details?.status || latestDraft?.status || 'draft',
-          resume_step: latestDraft?.resume_step || details?.resume_step || '',
-          address: details?.address || latestDraft?.address || '',
-          engagement_id: Number(details?.engagement_id) || latestDraftEngagementId,
-        };
-      }
-    } catch {
-      // Drafts list is enough to open the right step; details enrich when available.
-    }
-
-    if (!isDraftEngagement(engagement)) {
-      return;
-    }
-
-    const rows = Array.isArray(packageRows) ? packageRows : [];
-    const matchedPackage = findPackageCardByDiagnosticPackageId(
-      rows,
-      engagement?.diagnostic_package_id,
-    );
-
-    setDraftEngagement(engagement);
-    setBookingPackage(matchedPackage || {
-      diagnostic_package_id: engagement?.diagnostic_package_id,
-      id: engagement?.diagnostic_package_id,
-    });
-    setShowPackageOnboarding(false);
-    setIsPatientOverlayOpen(true);
-  }, []);
-
-  const checkAndResumeDraft = useCallback(async (packageRows, { force = false } = {}) => {
-    if (!BACKEND_ENABLED || draftResumeDismissedRef.current) {
-      return;
-    }
-    if (!force && draftCheckCompletedRef.current) {
-      return;
-    }
-    if (draftFetchInFlightRef.current) {
-      return;
-    }
-
-    draftFetchInFlightRef.current = true;
-    try {
-      const draftsResponse = await getMyBookingDrafts();
-      draftCheckCompletedRef.current = true;
-      await resumeDraftFromResponse(packageRows, draftsResponse);
-    } catch {
-      // Ignore draft resume failures and show the normal packages screen.
-    } finally {
-      draftFetchInFlightRef.current = false;
-    }
-  }, [resumeDraftFromResponse]);
 
   useEffect(() => {
     let mounted = true;
@@ -487,10 +395,9 @@ const PackagesPage = ({
         return;
       }
 
-      let mappedRows = [];
       if (packagesResult.status === 'fulfilled') {
         const rows = packagesResult.value;
-        mappedRows = (Array.isArray(rows) ? rows : []).map(mapDiagnosticPackageToCard);
+        const mappedRows = (Array.isArray(rows) ? rows : []).map(mapDiagnosticPackageToCard);
         setPackageCardsFromApi(mappedRows);
       } else {
         setPackageCardsFromApi((current) => (current.length > 0 ? current : []));
@@ -512,8 +419,6 @@ const PackagesPage = ({
       } else {
         setForYouProfile({ gender: null, age: null });
       }
-
-      await checkAndResumeDraft(mappedRows);
     };
 
     loadPageData();
@@ -521,7 +426,7 @@ const PackagesPage = ({
     return () => {
       mounted = false;
     };
-  }, [accountScopeId, checkAndResumeDraft]);
+  }, [accountScopeId]);
 
   useEffect(() => {
     if (!accountScopeId) {
@@ -633,8 +538,7 @@ const PackagesPage = ({
 
   const isOnboardingOverlayOpen = showPackageOnboarding
     && Boolean(accountScopeId)
-    && !isPatientOverlayOpen
-    && !draftEngagement;
+    && !isPatientOverlayOpen;
 
   useEffect(() => {
     const shouldLockScroll = isPatientOverlayOpen || isOnboardingOverlayOpen;
@@ -826,12 +730,6 @@ const PackagesPage = ({
 
     if (itemId === 'super-sync' && onNavigateToDoctors) {
       onNavigateToDoctors();
-      return;
-    }
-
-    if (itemId === 'packages') {
-      draftResumeDismissedRef.current = false;
-      checkAndResumeDraft(packageCardsFromApi, { force: true });
       return;
     }
 
@@ -1207,15 +1105,10 @@ const PackagesPage = ({
           <PatientSelectionOverlay
             open={isPatientOverlayOpen}
             onClose={() => {
-              if (draftEngagement) {
-                draftResumeDismissedRef.current = true;
-              }
               setIsPatientOverlayOpen(false);
               setBookingPackage(null);
-              setDraftEngagement(null);
             }}
             initialPackage={bookingPackage}
-            draftEngagement={draftEngagement}
           />
         </Suspense>
       ) : null}
