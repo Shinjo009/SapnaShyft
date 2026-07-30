@@ -37,6 +37,9 @@ const ProfilePage = ({
   onOpenNutrition,
   onOpenCustomerSupport,
   onOpenAllAppointments,
+  onOpenScheduledScreen1,
+  onOpenScheduledScreen2,
+  onOpenScheduledScreen3,
   onOpenAddAccount,
   onOpenEditProfile,
   onOpenFaq,
@@ -517,6 +520,24 @@ const ProfilePage = ({
             <div className="profile-page__menu-sub-list">
               <button type="button" className="profile-page__menu-sub-item" onClick={onOpenAllAppointments} data-tour="profile-all-appointments">
                 <span data-tour="profile-all-appointments-text">All Appointments</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
+                  <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button type="button" className="profile-page__menu-sub-item" onClick={onOpenScheduledScreen1}>
+                <span>Screen 1</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
+                  <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button type="button" className="profile-page__menu-sub-item" onClick={onOpenScheduledScreen2}>
+                <span>Screen 2</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
+                  <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button type="button" className="profile-page__menu-sub-item" onClick={onOpenScheduledScreen3}>
+                <span>Screen 3</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
                   <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
