@@ -20,6 +20,12 @@ import CardiacHealthIcon from '../../../images/Cardiac-RA.svg';
 import DyslipidemiaIcon from '../../../images/Dyslipidemia-RA.svg';
 import OxidativeIcon from '../../../images/Oxidative-RA.svg';
 import HealthRankSpark from '../../../images/HealthRankSpark.svg';
+import BloodDropHighIcon from '../../../images/blood-drop-high.svg';
+import BloodDropLowIcon from '../../../images/blood-drop-low.svg';
+import BloodDropOptimalIcon from '../../../images/blood-drop-optimal.svg';
+import BloodMarkerGlowHigh from '../../../images/blood-marker-glow-high.svg';
+import BloodMarkerGlowLow from '../../../images/blood-marker-glow-low.svg';
+import BloodMarkerGlowOptimal from '../../../images/blood-marker-glow-optimal.svg';
 
 const PositiveWinsHeaderIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21" fill="none" aria-hidden="true">
@@ -32,19 +38,6 @@ const PositiveWinsHeaderIcon = () => (
 const SwipeArrow = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
     <path d="M4 11.3334L7.33333 8.00008L4 4.66675M8.66667 11.3334L12 8.00008L8.66667 4.66675" stroke="#9A9A9A" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const MarkerTrendIcon = ({ color = '#EF4444' }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <g clipPath="url(#clip0_2394_17328)">
-      <path d="M11.787 3.65514L12.9743 4.78469L8.99102 8.57417L6.30999 6.02356C6.00359 5.69562 5.46738 5.69562 5.16098 6.02356L0.258528 10.6875C-0.0861759 10.979 -0.0861759 11.4891 0.258528 11.7806C0.564931 12.0721 1.10114 12.0721 1.40754 11.7806L5.73549 7.66324L8.41652 10.2138C8.72292 10.5418 9.25913 10.5418 9.56553 10.2138L14.1233 5.87781L15.3106 7.00736C15.5787 7.22599 16 7.08024 16 6.71587V3.40008C16 3.18145 15.8468 2.99927 15.617 2.99927H12.0934C11.7487 2.99927 11.5572 3.43651 11.787 3.65514Z" fill={color}/>
-    </g>
-    <defs>
-      <clipPath id="clip0_2394_17328">
-        <rect width="16" height="16" fill="white" transform="translate(0 -0.000732422)"/>
-      </clipPath>
-    </defs>
   </svg>
 );
 
@@ -203,10 +196,16 @@ const getBloodMarkerRiskPriority = (risk = '') => {
   return BLOOD_MARKER_RISK_PRIORITY[key] ?? Number.MAX_SAFE_INTEGER;
 };
 
-const BLOOD_MARKER_COLOR_BY_RISK = {
-  high: '#EF4444',
-  low: '#DAC15A',
-  optimal: '#4ADE80',
+const BLOOD_MARKER_DROP_BY_RISK = {
+  high: BloodDropHighIcon,
+  low: BloodDropLowIcon,
+  optimal: BloodDropOptimalIcon,
+};
+
+const BLOOD_MARKER_GLOW_BY_RISK = {
+  high: BloodMarkerGlowHigh,
+  low: BloodMarkerGlowLow,
+  optimal: BloodMarkerGlowOptimal,
 };
 
 const getRiskTypeFromBounds = (value, lowerRange, upperRange) => {
@@ -238,16 +237,6 @@ const formatValue = (value) => {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return String(value ?? '--');
   return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2).replace(/\.00$/, '');
-};
-
-const HOME_BLOOD_MARKER_NAME_MAX = 14;
-
-const truncateHomeBloodMarkerName = (name) => {
-  const s = String(name ?? '');
-  if (s.length <= HOME_BLOOD_MARKER_NAME_MAX) {
-    return s;
-  }
-  return `${s.slice(0, HOME_BLOOD_MARKER_NAME_MAX)}...`;
 };
 
 const toDiseaseName = (groupName = '') => {
@@ -952,38 +941,65 @@ const RiskAnalysisSection = ({
         </div>
 
         <div className="risk-analysis-wins__blood-markers-list">
-          {bloodMarkers.map((marker) => (
-            <article
-              className={`risk-analysis-wins__blood-marker-card risk-analysis-wins__blood-marker-card--${marker.riskKey}`}
-              key={marker.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => onHomeBloodMarkerSelect?.(marker)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  onHomeBloodMarkerSelect?.(marker);
-                }
-              }}
-            >
-              <div className="risk-analysis-wins__blood-marker-left">
-                <div className="risk-analysis-wins__blood-marker-main-row">
-                  <span
-                    className="risk-analysis-wins__blood-marker-name"
-                    title={String(marker.name ?? '').length > HOME_BLOOD_MARKER_NAME_MAX ? String(marker.name) : undefined}
-                  >
-                    {truncateHomeBloodMarkerName(marker.name)}
-                  </span>
-                  <span className={`risk-analysis-wins__blood-marker-divider risk-analysis-wins__blood-marker-divider--${marker.riskKey}`} aria-hidden="true" />
-                  <span className="risk-analysis-wins__blood-marker-value">{marker.value}</span>
-                  <span className="risk-analysis-wins__blood-marker-trend" aria-hidden="true"><MarkerTrendIcon color={BLOOD_MARKER_COLOR_BY_RISK[marker.riskKey] || '#EF4444'} /></span>
-                </div>
-                <span className="risk-analysis-wins__blood-marker-profile">{marker.disease || marker.profile}</span>
-              </div>
+          {bloodMarkers.map((marker) => {
+            const riskKey = marker.riskKey || 'optimal';
+            const dropIcon = BLOOD_MARKER_DROP_BY_RISK[riskKey] || BloodDropOptimalIcon;
+            const glowAsset = BLOOD_MARKER_GLOW_BY_RISK[riskKey] || BloodMarkerGlowOptimal;
+            const valueText = Number.isFinite(Number(marker.numericValue))
+              ? formatValue(marker.numericValue)
+              : String(marker.value ?? '--');
+            const unitText = String(marker.unit || '').trim();
+            const profileText = marker.profile || marker.disease || 'Blood Marker';
 
-              <span className={`risk-analysis-wins__blood-marker-risk-pill risk-analysis-wins__blood-marker-risk-pill--${marker.riskKey}`}>{marker.risk}</span>
-            </article>
-          ))}
+            return (
+              <article
+                className={`risk-analysis-wins__blood-marker-card risk-analysis-wins__blood-marker-card--${riskKey}`}
+                key={marker.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onHomeBloodMarkerSelect?.(marker)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onHomeBloodMarkerSelect?.(marker);
+                  }
+                }}
+              >
+                <img
+                  className="risk-analysis-wins__blood-marker-glow"
+                  src={glowAsset}
+                  alt=""
+                  aria-hidden="true"
+                />
+                <div className="risk-analysis-wins__blood-marker-body">
+                  <div className="risk-analysis-wins__blood-marker-top">
+                    <div className="risk-analysis-wins__blood-marker-reading">
+                      <span className="risk-analysis-wins__blood-marker-value">{valueText}</span>
+                      {unitText ? (
+                        <span className="risk-analysis-wins__blood-marker-unit">{unitText}</span>
+                      ) : null}
+                    </div>
+                    <span className="risk-analysis-wins__blood-marker-drop-wrap" aria-hidden="true">
+                      <img
+                        className="risk-analysis-wins__blood-marker-drop"
+                        src={dropIcon}
+                        alt=""
+                      />
+                    </span>
+                  </div>
+                  <div className="risk-analysis-wins__blood-marker-meta">
+                    <span className="risk-analysis-wins__blood-marker-name" title={String(marker.name ?? '')}>
+                      {marker.name}
+                    </span>
+                    <span className="risk-analysis-wins__blood-marker-profile" title={profileText}>
+                      {profileText}
+                    </span>
+                  </div>
+                </div>
+                <span className="risk-analysis-wins__blood-marker-inset-glow" aria-hidden="true" />
+              </article>
+            );
+          })}
         </div>
       </section>
     </section>

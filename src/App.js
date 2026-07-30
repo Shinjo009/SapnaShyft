@@ -1065,7 +1065,9 @@ function App() {
       } catch (error) {
         console.error('Token refresh failed:', error);
         clearAuthTokens();
-        setCurrentPage('login');
+        // Unauthenticated after a failed restore should land on splash (not login),
+        // so cold starts without a valid session still show the intro screen.
+        setCurrentPage('splash');
         setIsBootstrappingSession(false);
         return;
       }

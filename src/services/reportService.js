@@ -240,17 +240,10 @@ const normalizeHealthSpanScores = (payload) => {
     return null;
   }
 
-  const toDisplayScore = (riskScore) => {
-    if (riskScore === null) {
-      return null;
-    }
-    return Math.max(0, Math.min(100, 100 - riskScore));
-  };
-
   return {
-    fitnessScore: toDisplayScore(fitnessClamped),
-    nutritionScore: toDisplayScore(nutritionClamped),
-    lifestyleScore: toDisplayScore(lifestyleClamped),
+    fitnessScore: fitnessClamped,
+    nutritionScore: nutritionClamped,
+    lifestyleScore: lifestyleClamped,
   };
 };
 
