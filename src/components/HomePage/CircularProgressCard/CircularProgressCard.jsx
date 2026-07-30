@@ -28,10 +28,11 @@ const CircularProgressCard = ({ percentage = null, label = 'Score', onClick, noR
 
   const progressStyle = useMemo(() => {
     if (normalizedPercentage === null) return { color: '#9A9A9A', rgb: '154 154 154' };
-    if (normalizedPercentage >= 0 && normalizedPercentage <= 25) return { color: '#90DF9E', rgb: '144 223 158' };
-    if (normalizedPercentage >= 26 && normalizedPercentage <= 50) return { color: '#DAC15A', rgb: '218 193 90' };
-    if (normalizedPercentage >= 51 && normalizedPercentage <= 75) return { color: '#EE8B48', rgb: '238 139 72' };
-    if (normalizedPercentage >= 76 && normalizedPercentage <= 100) return { color: '#E95D5C', rgb: '233 93 92' };
+    // Higher score is better for Health Span Index
+    if (normalizedPercentage >= 75 && normalizedPercentage <= 100) return { color: '#90DF9E', rgb: '144 223 158' }; // Optimal
+    if (normalizedPercentage >= 50 && normalizedPercentage <= 74) return { color: '#DAC15A', rgb: '218 193 90' }; // Stable
+    if (normalizedPercentage >= 25 && normalizedPercentage <= 49) return { color: '#EE8B48', rgb: '238 139 72' }; // Vulnerable
+    if (normalizedPercentage >= 0 && normalizedPercentage <= 24) return { color: '#E95D5C', rgb: '233 93 92' }; // Critical
     return { color: '#E95D5C', rgb: '233 93 92' };
   }, [normalizedPercentage]);
 
