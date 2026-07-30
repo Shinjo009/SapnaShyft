@@ -31,10 +31,10 @@
   "categories": ["health", "medical"],
   "shortcuts": [
     {
-      "name": "Health Insights",
-      "short_name": "Insights",
-      "description": "View your health insights and metrics",
-      "url": "/health-insights",
+      "name": "Home",
+      "short_name": "Home",
+      "description": "Open your SuperShyft home screen",
+      "url": "/",
       "icons": [
         {
           "src": "New new icon.png?v=1",

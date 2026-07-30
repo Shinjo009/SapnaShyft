@@ -99,7 +99,7 @@ export function clearSuperclubPlaylistLock() {
  * @param {string} targetPage
  * @param {'default-auth' | 'superclub-nav'} mode
  *   default-auth — explicit post-login redirect targets only; does not remap the normal
- *   health-insights landing (so reopening the app always follows the default home/insights flow).
+ *   home landing (so reopening the app always follows the default home flow).
  *   superclub-nav — Super Club tab / in-flow super-club routes only (plain Home navigation is not remapped).
  * @returns {{ page: string, updatePayload: boolean, payload: object | null }}
  */

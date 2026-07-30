@@ -9,9 +9,9 @@ import {
   SUPERCLUB_PLAYLIST_FLOW_DEV_UNLOCK,
   SUPERCLUB_V1_SCREENS_ENABLED,
 } from './utils/superclubPlaylistLock';
-import { sendOtp, resendOtp, verifyOtp, refreshToken, logout, switchAccount } from './services/authService';
-import { createUser, getMyProfiles, invalidateMyProfilesCache, saveSuperclubMcqPreferences, getMyUpcomingSlot } from './services/usersService';
-import { getMyProfile, invalidateMyProfileCache } from './services/profileService';
+import { sendOtp, resendOtp, verifyOtp, refreshToken, logout } from './services/authService';
+import { createUser, getMyProfiles, saveSuperclubMcqPreferences, getMyUpcomingSlot } from './services/usersService';
+import { getMyProfile } from './services/profileService';
 import { invalidateDiagnosticPackagesCache } from './services/diagnosticPackagesService';
 import {
   loadQuestionnaireContext,
@@ -75,7 +75,6 @@ import {
 // so the initial main bundle stays small (~172 KiB of unused JS audit finding).
 const OTPPage = lazy(() => import('./pages/OTPPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
-const HealthInsightsPage = lazy(() => import('./pages/HealthInsightsPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const HealthScanIndexPage = lazy(() => import('./pages/HealthScanIndexPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
@@ -96,7 +95,6 @@ const BloodMarkersPage = lazy(() => import('./pages/BloodMarkersPage/BloodMarker
 const PackagesPage = lazy(() => import('./pages/PackagesPage'));
 const PackageDetailsPage = lazy(() => import('./pages/PackageDetailsPage'));
 const CreateCustomPackagePage = lazy(() => import('./pages/CreateCustomPackagePage/CreateCustomPackagePage'));
-const AccountSelectionPage = lazy(() => import('./pages/AccountSelectionPage'));
 const DoctorsPage = lazy(() => import('./pages/DoctorsPage'));
 const ExpertDetailsPage = lazy(() => import('./pages/ExpertDetailsPage'));
 const IntegratedHealthProgramPage = lazy(() => import('./pages/IntegratedHealthProgramPage'));
@@ -115,8 +113,6 @@ const SWIPE_BACK_BLOCKED_PAGES = new Set([
   'signup',
   'otp',
   'splash',
-  'health-insights',
-  'account-selection',
   'super-club-playlist-confirm',
 ]);
 
@@ -432,7 +428,7 @@ function App() {
     }
 
     // Root/auth screens replace the current history entry instead of pushing,
-    // so iOS edge-swipe cannot walk back through splash → login → health-insights.
+    // so iOS edge-swipe cannot walk back through splash → login → otp.
     if (SWIPE_BACK_BLOCKED_PAGES.has(currentPage)) {
       window.history.replaceState(state, '', url);
       return;
@@ -1144,11 +1140,6 @@ function App() {
         setLinkedAccounts(normalizedAccounts);
         setSelectedAccountId(normalizedCurrentUserId || normalizedAccounts[0]?.id || null);
 
-        if (normalizedAccounts.length > 1) {
-          finishAuthenticatedBootstrap('account-selection');
-          return;
-        }
-
         if (postLoginRedirectPageRef.current) {
           const targetPage = postLoginRedirectPageRef.current;
           postLoginRedirectPageRef.current = '';
@@ -1168,7 +1159,7 @@ function App() {
       }
 
       await preloadHomeScreenData();
-      finishAuthenticatedBootstrap('health-insights', { useLockedLanding: true });
+      finishAuthenticatedBootstrap('home', { useLockedLanding: true });
     };
 
     trySessionRestore();
@@ -1305,11 +1296,6 @@ function App() {
       return;
     }
     handleDismissInstall();
-  };
-
-  const handleHealthInsightsGetStarted = async () => {
-    await preloadHomeScreenData();
-    navigateToHome();
   };
 
   const handleQuestionnaireSuccessOk = () => {
@@ -1524,11 +1510,6 @@ function App() {
       setLinkedAccounts(normalizedAccounts);
       setSelectedAccountId(normalizedCurrentUserId || normalizedAccounts[0]?.id || null);
 
-      if (normalizedAccounts.length > 1) {
-        setCurrentPage('account-selection');
-        return;
-      }
-
       if (postLoginRedirectPageRef.current) {
         const targetPage = postLoginRedirectPageRef.current;
         postLoginRedirectPageRef.current = '';
@@ -1548,65 +1529,7 @@ function App() {
     }
 
     await preloadHomeScreenData();
-    applyLockedLanding('health-insights');
-  };
-
-  const handleAccountSelectionStart = async (targetAccountId) => {
-    const parsedTargetId = Number(targetAccountId || 0);
-    if (parsedTargetId <= 0) {
-      await preloadHomeScreenData();
-      applyLockedLanding('health-insights');
-      return;
-    }
-
-    const shouldSwitch = currentUserId && parsedTargetId !== Number(currentUserId);
-
-    try {
-      if (shouldSwitch) {
-        const switchResponse = await switchAccount(parsedTargetId);
-        const tokens = extractTokensFromResponse(switchResponse);
-        saveAuthTokens(tokens);
-        invalidateMyProfileCache();
-        invalidateDiagnosticPackagesCache();
-        invalidateMyProfilesCache();
-        clearReportRequestCache();
-        clearStoredLatestAssessmentId();
-        prefetchRouteChunk('home');
-        void getLatestAssessmentIdsCached(45000).catch(() => {});
-      }
-
-      const profileResponse = await getMyProfile({ forceRefresh: true });
-      const profile = profileResponse?.data && typeof profileResponse.data === 'object'
-        ? profileResponse.data
-        : profileResponse;
-
-      setUserName(profile?.first_name || '');
-      setEmployerOrganizerName(deriveEmployerOrganizerName(profile));
-      setUserAge(getAgeFromProfile(profile));
-      const refreshedUserId = Number(profile?.user_id || 0);
-      setCurrentUserId(refreshedUserId > 0 ? refreshedUserId : null);
-      setSelectedAccountId(parsedTargetId);
-    } catch (error) {
-      console.error('Failed to enter selected account:', error);
-    }
-
-    if (postLoginRedirectPageRef.current) {
-      const targetPage = postLoginRedirectPageRef.current;
-      postLoginRedirectPageRef.current = '';
-      if (targetPage === 'home') {
-        prefetchRouteChunk('home');
-        try {
-          await preloadHomeScreenData();
-        } catch {
-          /* HomePage will recover via its own fetch */
-        }
-      }
-      applyLockedLanding(targetPage);
-      return;
-    }
-
-    await preloadHomeScreenData();
-    applyLockedLanding('health-insights');
+    applyLockedLanding('home');
   };
 
   const resetAppSession = useCallback(() => {
@@ -1828,23 +1751,6 @@ function App() {
           onVerifyOtp={handleVerifyOtp}
           onResendOtp={handleResendOtp}
           onBack={() => setCurrentPage('login')}
-        />
-      )}
-
-      {currentPage === 'health-insights' && (
-        <HealthInsightsPage 
-          userName={userName}
-          onGetStarted={handleHealthInsightsGetStarted}
-        />
-      )}
-
-      {currentPage === 'account-selection' && (
-        <AccountSelectionPage
-          accounts={linkedAccounts}
-          selectedAccountId={selectedAccountId}
-          currentUserId={currentUserId}
-          onSelectAccount={(accountId) => setSelectedAccountId(accountId)}
-          onGetStarted={handleAccountSelectionStart}
         />
       )}
 
