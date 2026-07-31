@@ -175,6 +175,7 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
     centerX: 0,
     centerY: 0,
     radii: { top: 250, right: 450, bottom: 239, left: 365 },
+    ready: false,
   });
 
   // Drag state
@@ -187,6 +188,8 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
   const [diseasesData, setDiseasesData] = useState([]);
   const [metabolicScore, setMetabolicScore] = useState(null);
 
+  const hasUsableSize = (rect) => Boolean(rect && rect.width > 1 && rect.height > 1);
+
   const updateOrbitGeometry = () => {
     const containerRect = containerRef.current?.getBoundingClientRect();
     const scoreRect = scoreCenterRef.current?.getBoundingClientRect();
@@ -194,43 +197,67 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
 
     const containerWidth = containerRect?.width || 375;
     const containerHeight = containerRect?.height || 600;
+    // Cold open can report 0×0 before layout; never scale radii from that.
+    if (!hasUsableSize(containerRect)) {
+      orbitGeometryRef.current = {
+        ...orbitGeometryRef.current,
+        ready: false,
+      };
+      return;
+    }
+
     const scaleX = containerWidth / 375;
     const scaleY = containerHeight / 600;
+    const scoreReady = hasUsableSize(scoreRect);
+    const e3Ready = hasUsableSize(e3Rect);
 
-    const centerX = scoreRect && containerRect
+    const centerX = scoreReady
       ? (scoreRect.left - containerRect.left + (scoreRect.width / 2))
-      : e3Rect && containerRect
+      : e3Ready
         ? (e3Rect.left - containerRect.left + (e3Rect.width / 2))
         : containerWidth / 2 + (160 * scaleX);
-    const centerY = scoreRect && containerRect
+    const centerY = scoreReady
       ? (scoreRect.top - containerRect.top + (scoreRect.height / 2))
-      : e3Rect && containerRect
+      : e3Ready
         ? (e3Rect.top - containerRect.top + (e3Rect.height / 2))
         : containerHeight / 2 - (29 * scaleY);
 
-    const e3ScaleX = e3Rect ? e3Rect.width / 400 : scaleX;
-    const e3ScaleY = e3Rect ? e3Rect.height / 480 : scaleY;
+    const e3ScaleX = e3Ready ? e3Rect.width / 400 : scaleX;
+    const e3ScaleY = e3Ready ? e3Rect.height / 480 : scaleY;
+
+    const radii = {
+      top: 250 * e3ScaleY,
+      right: 450 * e3ScaleX,
+      bottom: 239 * e3ScaleY,
+      left: 365 * e3ScaleX,
+    };
+
+    // Require a real left-orbit radius so icons never collapse onto the score.
+    const ready = radii.left > 40 && radii.top > 40;
 
     orbitGeometryRef.current = {
       centerX,
       centerY,
-      radii: {
-        top: 250 * e3ScaleY,
-        right: 450 * e3ScaleX,
-        bottom: 239 * e3ScaleY,
-        left: 365 * e3ScaleX,
-      },
+      radii,
+      ready,
     };
   };
 
   const updateIconPositions = () => {
     const items = diseasesDataRef.current;
     const totalDiseases = Math.max(1, items.length);
-    const { centerX, centerY, radii } = orbitGeometryRef.current;
+    const { centerX, centerY, radii, ready } = orbitGeometryRef.current;
 
     for (let index = 0; index < items.length; index += 1) {
       const iconNode = iconRefs.current[index];
       if (!iconNode) continue;
+
+      // Keep icons hidden until orbit geometry has real size (avoids pile-up on score).
+      if (!ready) {
+        iconNode.style.opacity = '0';
+        iconNode.style.pointerEvents = 'none';
+        continue;
+      }
 
       const position = getPosition(index, totalDiseases, radii, centerX, centerY, rotationRef.current);
       const opacity = getOpacity(position.angle);
@@ -311,6 +338,10 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
   const animate = () => {
     if (!isDraggingRef.current) {
       rotationRef.current += autoRotateSpeedRef.current;
+    }
+    // Remeasure until layout/images settle — fixes intermittent cold-open collapse.
+    if (!orbitGeometryRef.current.ready) {
+      updateOrbitGeometry();
     }
     updateIconPositions();
     animationFrameRef.current = requestAnimationFrame(animate);
@@ -456,48 +487,60 @@ const DiseaseRiskAnalysisPage = ({ onBack, onDiseaseSelect }) => {
   }, []);
 
   useEffect(() => {
-    const updateScoreAnchor = () => {
+    const refreshLayout = () => {
       const e1Rect = e1Ref.current?.getBoundingClientRect();
       const containerRect = containerRef.current?.getBoundingClientRect();
 
-      if (!e1Rect || !containerRect) return;
+      if (e1Rect && containerRect && e1Rect.width > 1 && e1Rect.height > 1) {
+        const nextX = e1Rect.left - containerRect.left + (e1Rect.width / 2) + 30;
+        const nextY = e1Rect.top - containerRect.top + (e1Rect.height / 2);
 
-      const nextX = e1Rect.left - containerRect.left + (e1Rect.width / 2) + 30;
-      const nextY = e1Rect.top - containerRect.top + (e1Rect.height / 2);
+        setScoreAnchor((prev) => {
+          if (prev && Math.abs(prev.x - nextX) < 0.5 && Math.abs(prev.y - nextY) < 0.5) {
+            return prev;
+          }
+          return { x: nextX, y: nextY };
+        });
+      }
 
-      setScoreAnchor((prev) => {
-        if (prev && Math.abs(prev.x - nextX) < 0.5 && Math.abs(prev.y - nextY) < 0.5) {
-          return prev;
-        }
-        return { x: nextX, y: nextY };
-      });
+      updateOrbitGeometry();
+      updateIconPositions();
     };
 
-    updateScoreAnchor();
+    refreshLayout();
 
     const e1Element = e1Ref.current;
+    const e3Element = e3Ref.current;
     if (e1Element) {
-      e1Element.addEventListener('load', updateScoreAnchor);
+      e1Element.addEventListener('load', refreshLayout);
+    }
+    if (e3Element) {
+      e3Element.addEventListener('load', refreshLayout);
     }
 
     let resizeObserver;
     if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver(updateScoreAnchor);
+      resizeObserver = new ResizeObserver(refreshLayout);
       if (containerRef.current) resizeObserver.observe(containerRef.current);
       if (e1Element) resizeObserver.observe(e1Element);
+      if (e3Element) resizeObserver.observe(e3Element);
     }
 
-    window.addEventListener('resize', updateScoreAnchor);
+    window.addEventListener('resize', refreshLayout);
 
     return () => {
-      window.removeEventListener('resize', updateScoreAnchor);
+      window.removeEventListener('resize', refreshLayout);
       if (e1Element) {
-        e1Element.removeEventListener('load', updateScoreAnchor);
+        e1Element.removeEventListener('load', refreshLayout);
+      }
+      if (e3Element) {
+        e3Element.removeEventListener('load', refreshLayout);
       }
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Render disease icons

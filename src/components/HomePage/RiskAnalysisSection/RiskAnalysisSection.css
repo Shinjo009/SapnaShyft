@@ -691,10 +691,14 @@
  * Keep Figma portrait proportions (~94:110) while scaling wider/taller.
  */
 .risk-analysis-wins__blood-marker-card {
+  /* Figma 6231:16661 — glow ellipse 130×102 at (-32, -37) on ~94×105 card */
   --bm-value: #E95D5C;
   --bm-outer-shadow: rgba(204, 32, 59, 0.05);
-  --bm-inset-shadow: rgba(204, 32, 59, 0.14);
+  --bm-inset-shadow: rgba(204, 32, 59, 0.2);
   --bm-glow-left: -34%;
+  --bm-glow-top: -35%;
+  --bm-glow-width: 138%;
+  --bm-glow-height: 88%;
   position: relative;
   flex: 1 1 0;
   width: auto;
@@ -709,14 +713,18 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  padding: 10px 8px;
+  padding: 8px;
   overflow: hidden;
   isolation: isolate;
-  /* Figma: thin silver/glass edge — not risk-colored */
+  /* Glass: transparent fill so the risk glow reads at Figma strength */
   border: 0.5px solid rgba(255, 255, 255, 0.28);
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.35);
-  box-shadow: -2px -2px 10px 0 var(--bm-outer-shadow);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow:
+    -2px -2px 10px 0 var(--bm-outer-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -724,41 +732,52 @@
 .risk-analysis-wins__blood-marker-card--high {
   --bm-value: #E95D5C;
   --bm-outer-shadow: rgba(204, 32, 59, 0.05);
-  --bm-inset-shadow: rgba(204, 32, 59, 0.14);
+  --bm-inset-shadow: rgba(204, 32, 59, 0.2);
   --bm-glow-left: -34%;
 }
 
 .risk-analysis-wins__blood-marker-card--low {
   --bm-value: #F7DE30;
   --bm-outer-shadow: rgba(247, 222, 48, 0.05);
-  --bm-inset-shadow: rgba(247, 222, 48, 0.14);
-  --bm-glow-left: -28%;
+  --bm-inset-shadow: rgba(247, 222, 48, 0.2);
+  --bm-glow-left: -34%;
 }
 
 .risk-analysis-wins__blood-marker-card--optimal {
   --bm-value: #90DF9E;
   --bm-outer-shadow: rgba(144, 223, 158, 0.05);
-  --bm-inset-shadow: rgba(144, 223, 158, 0.14);
-  --bm-glow-left: -28%;
+  --bm-inset-shadow: rgba(144, 223, 158, 0.2);
+  --bm-glow-left: -34%;
 }
 
 .risk-analysis-wins__blood-marker-card::before {
-  content: none;
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0) 45%
+  );
 }
 
 .risk-analysis-wins__blood-marker-glow {
   position: absolute;
   left: var(--bm-glow-left);
-  top: -34%;
+  top: var(--bm-glow-top);
   right: auto;
-  width: 140%;
-  height: 95%;
+  width: var(--bm-glow-width);
+  height: var(--bm-glow-height);
   max-width: none;
   pointer-events: none;
   z-index: 0;
   display: block;
   object-fit: fill;
-  opacity: 0.45;
+  /* Figma asset already uses fill-opacity 0.5 — do not fade further */
+  opacity: 1;
 }
 
 .risk-analysis-wins__blood-marker-body {
@@ -769,7 +788,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 16px;
+  gap: 22px;
   align-items: flex-start;
 }
 
@@ -778,7 +797,7 @@
   display: flex;
   align-items: flex-start;
   gap: 4px;
-  padding-left: 6px;
+  padding-left: 8px;
   box-sizing: border-box;
 }
 
@@ -789,13 +808,13 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 6px;
+  padding-top: 8px;
 }
 
 .risk-analysis-wins__blood-marker-value {
   color: var(--bm-value);
   font-family: "DM Sans", sans-serif;
-  font-size: 16px;
+  font-size: 15px;
   font-style: normal;
   font-weight: 700;
   line-height: 20px;
@@ -835,6 +854,7 @@
   justify-content: flex-end;
   gap: 4px;
   min-width: 0;
+  margin-top: auto;
 }
 
 .risk-analysis-wins__blood-marker-name {
@@ -845,6 +865,7 @@
   font-style: normal;
   font-weight: 400;
   line-height: 14px;
+  height: 28px; /* always 2 white lines */
   max-width: 100%;
   overflow: hidden;
   display: -webkit-box;
@@ -862,6 +883,7 @@
   font-style: normal;
   font-weight: 400;
   line-height: 12px;
+  height: 24px; /* always 2 grey lines */
   max-width: 100%;
   overflow: hidden;
   display: -webkit-box;
@@ -878,4 +900,19 @@
   pointer-events: none;
   z-index: 2;
   box-shadow: inset 0 -2px 10px 0 var(--bm-inset-shadow);
+}
+
+@media (max-width: 480px) {
+  /* Extra height so marker names sit below the glow, glow size unchanged */
+  .risk-analysis-wins__blood-marker-card {
+    aspect-ratio: 94 / 138;
+  }
+
+  .risk-analysis-wins__blood-marker-body {
+    gap: 28px;
+  }
+
+  .risk-analysis-wins__blood-marker-meta {
+    padding-top: 10px;
+  }
 }
