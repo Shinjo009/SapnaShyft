@@ -9,7 +9,7 @@ import './MetabolicAgeCard.css';
  * - label: Description of metabolic age (e.g., "Metabolic age")
  * - detail: Additional detail (e.g., "5 years older")
  */
-const MetabolicAgeCard = ({ age = 28, label = 'Metabolic age', detail = '5 years older' }) => {
+const MetabolicAgeCard = ({ age = 28, label = 'Bio Age', detail = '5 years older' }) => {
   return (
     <div className="metabolic-card">
       <div className="metabolic-card__content">

@@ -1261,12 +1261,11 @@
 }
 
 .blood-marker-detail__description--clamped {
-  display: -webkit-box;
+  /* Height clip only — no CSS ellipsis; show-more ".." is the sole truncate cue */
+  display: block;
   overflow: hidden;
-  text-overflow: ellipsis;
-  line-clamp: 2;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  max-height: 40px; /* 2 × 20px line-height */
+  text-overflow: clip;
   margin-bottom: 0;
   flex: 1;
   min-width: 0;

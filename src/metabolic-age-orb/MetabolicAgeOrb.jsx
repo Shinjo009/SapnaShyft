@@ -79,7 +79,7 @@ const bandToRgb = (band) => {
 export default function MetabolicAgeOrb({
   value = '32.4',
   currentAge,
-  label = 'METABOLIC AGE',
+  label = 'Bio Age',
   detail = '0.8 years younger',
   absoluteMetabolicAge,
 }) {
@@ -134,7 +134,7 @@ export default function MetabolicAgeOrb({
 
   return (
     <div className="metabolic-orb" data-risk-band={riskBand}>
-      <div className="metabolic-orb__container" aria-label="Metabolic age">
+      <div className="metabolic-orb__container" aria-label="Bio Age">
         {/*
         <Orb config={config} className="metabolic-orb__canvas" />
         */}

@@ -1164,7 +1164,7 @@ const HomePage = ({
       return {
         value: String(Math.round(metabolic - chrono)),
         currentAge: chrono,
-        label: 'Metabolic age',
+        label: 'Bio Age',
         detail: metabolicAgeDetail,
         absoluteMetabolicAge: undefined,
       };
@@ -1174,7 +1174,7 @@ const HomePage = ({
       return {
         value: '0',
         currentAge: undefined,
-        label: 'Metabolic age',
+        label: 'Bio Age',
         detail: metabolicAgeDetail,
         absoluteMetabolicAge: metabolic,
       };
@@ -1183,7 +1183,7 @@ const HomePage = ({
     return {
       value: '-',
       currentAge: undefined,
-      label: 'Metabolic age',
+      label: 'Bio Age',
       detail: '-',
       absoluteMetabolicAge: undefined,
     };

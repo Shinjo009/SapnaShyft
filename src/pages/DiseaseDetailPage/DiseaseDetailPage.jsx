@@ -245,7 +245,36 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
     dotCenterPercents
   } = riskLayout;
 
-  const zoneBoundaryPercents = useMemo(() => [25, 50, 75], []);
+  // Place separators in the gap between the last dot of one zone and the first of the next
+  // (hardcoded 25/50/75 sits on a dot center and draws through it).
+  const zoneBoundaryPercents = useMemo(() => {
+    const boundaries = [25, 50, 75];
+    if (!Array.isArray(dotCenterPercents) || dotCenterPercents.length === 0) {
+      return boundaries;
+    }
+
+    return boundaries.map((boundary) => {
+      let leftCenter = null;
+      let rightCenter = null;
+
+      for (let index = 0; index < dotCenterPercents.length; index += 1) {
+        const center = dotCenterPercents[index];
+        if (center < boundary) {
+          leftCenter = center;
+        } else {
+          rightCenter = center;
+          break;
+        }
+      }
+
+      if (leftCenter != null && rightCenter != null) {
+        return (leftCenter + rightCenter) / 2;
+      }
+
+      return boundary;
+    });
+  }, [dotCenterPercents]);
+
   const zoneCenterPercents = useMemo(() => [12.5, 37.5, 62.5, 87.5], []);
 
   const currentZoneIndex = scoreZoneIndex;
