@@ -627,9 +627,17 @@ const HomePage = ({
   const [healthSpanPhase, setHealthSpanPhase] = useState(
     () => (preloadedData?.fitprintGapLockPreloaded ? preloadedData.healthSpanPhase ?? null : null),
   );
-  /** From server answers on Basic/Pro when FitPrint row is missing (reports not ready yet). */
-  const [fitprintGapQCompleteFromServer, setFitprintGapQCompleteFromServer] = useState(
-    () => Boolean(preloadedData?.fitprintGapLockPreloaded && preloadedData?.fitprintGapQCompleteFromServer),
+  /** True only when FitPrint submit is confirmed (not merely Pro answers complete). */
+  const [, setFitprintGapQCompleteFromServer] = useState(
+    () => Boolean(
+      preloadedData?.fitprintGapLockPreloaded
+      && (
+        preloadedData?.healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_SUBMITTED
+        || preloadedData?.healthSpanPhase === HEALTH_SPAN_PHASE.SHOW_SCORES
+        || preloadedData?.fitprintGapQCompleteFromServer
+      )
+      && preloadedData?.healthSpanPhase !== HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE
+    ),
   );
   /** False until gap lock is verified — avoids flashing 0/0/0 scores before lock state is known. */
   const [fitprintGapCheckDone, setFitprintGapCheckDone] = useState(
@@ -710,11 +718,19 @@ const HomePage = ({
     })();
   };
 
+  // Only show “Submitted Successfully” when FitPrint submit is confirmed (or optimistic
+  // session flag right after submit). Never from Pro-only completeness alone.
   const fitprintGapAwaitingReports = healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_SUBMITTED
-    || isFitprintGapQuestionnaireSubmittedFlagSet()
-    || fitprintGapQCompleteFromServer;
-  const showFitprintGapQuestionnaireCta = healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE
-    || (healthSpanLockedNoFitprint && !fitprintGapAwaitingReports && healthSpanPhase !== HEALTH_SPAN_PHASE.LOCKED_SUBMITTED);
+    || (
+      isFitprintGapQuestionnaireSubmittedFlagSet()
+      && healthSpanPhase !== HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE
+      && healthSpanPhase !== HEALTH_SPAN_PHASE.NO_BASIC_PRO
+      && healthSpanPhase !== null
+    );
+  const showFitprintGapQuestionnaireCta = !fitprintGapAwaitingReports && (
+    healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE
+    || (healthSpanLockedNoFitprint && healthSpanPhase !== HEALTH_SPAN_PHASE.LOCKED_SUBMITTED)
+  );
   const showHealthSpanLocked = healthSpanLockedNoFitprint && fitprintGapCheckDone;
   const showHealthSpanScores = !healthSpanLockedNoFitprint && (
     fitprintGapCheckDone || hasDisplayableHealthSpanScores(healthSpanScores)
@@ -1057,7 +1073,10 @@ const HomePage = ({
     setHealthSpanGapBasicProAssessmentId(preloadedData.healthSpanGapBasicProAssessmentId ?? null);
     setHealthSpanGapEngagementId(preloadedData.healthSpanGapEngagementId ?? null);
     setHealthSpanPhase(preloadedData.healthSpanPhase ?? null);
-    setFitprintGapQCompleteFromServer(Boolean(preloadedData.fitprintGapQCompleteFromServer));
+    setFitprintGapQCompleteFromServer(
+      preloadedData.healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_SUBMITTED
+      || preloadedData.healthSpanPhase === HEALTH_SPAN_PHASE.SHOW_SCORES,
+    );
     if (preloadedData.healthSpanLockedNoFitprint) {
       setHealthSpanScores(null);
     } else if (preloadedData.healthSpanScores) {
@@ -1204,7 +1223,10 @@ const HomePage = ({
       setHealthSpanGapBasicProAssessmentId(data.healthSpanGapBasicProAssessmentId ?? null);
       setHealthSpanGapEngagementId(data.healthSpanGapEngagementId ?? null);
       setHealthSpanPhase(data.healthSpanPhase ?? null);
-      setFitprintGapQCompleteFromServer(Boolean(data.fitprintGapQCompleteFromServer));
+      setFitprintGapQCompleteFromServer(
+        data.healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_SUBMITTED
+        || data.healthSpanPhase === HEALTH_SPAN_PHASE.SHOW_SCORES,
+      );
       setHealthSpanScores(locked ? null : (data.healthSpanScores || null));
       setFitprintGapCheckDone(resolveFitprintGapCheckDoneFromPreload(data));
     } else {

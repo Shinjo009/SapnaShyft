@@ -4,6 +4,7 @@ import {
   fetchHealthSpanIndexForPair,
   getHealthSpanIndexSourceStatus,
 } from '../services/reportService';
+import { isFitprintAssessmentSubmitConfirmed } from '../services/questionnaireService';
 import { isFitprintGapQuestionnaireFullyComplete } from './fitprintGapCatchupCompletion';
 
 /** No published scores yet (null or all zero). */
@@ -105,13 +106,12 @@ const resolveSourcesWithOptionalAssign = async ({ ttlMs, assignFitprintIfMissing
 };
 
 /**
- * Resolve Health Span Index UI from assessments + report + questionnaire completeness.
+ * Resolve Health Span Index UI from assessments + report + FitPrint submit state.
  *
  * 1. Has FitPrint report (scores) → show_scores
- * 2. FitPrint assigned, no report → questionnaire on Basic/Pro (same engagement)
- *    - incomplete → locked_questionnaire + CTA
- *    - complete → locked_submitted
- * 3. No FitPrint on engagement → assign MY_FITNESS_PRINT, then repeat
+ * 2. No scores, FitPrint submit confirmed → locked_submitted (awaiting reports)
+ * 3. No scores, FitPrint not submitted → locked_questionnaire + Complete Assessment CTA
+ *    (even if Basic/Pro already has answers)
  */
 export async function loadFitprintHealthSpanIndexState({
   ttlMs = 45000,
@@ -158,14 +158,16 @@ export async function loadFitprintHealthSpanIndexState({
     }
   }
 
-  let gapQuestionnaireComplete = false;
-  try {
-    gapQuestionnaireComplete = await isFitprintGapQuestionnaireFullyComplete(basicProId);
-  } catch {
-    gapQuestionnaireComplete = false;
+  let fitprintSubmitConfirmed = false;
+  if (fitprintAssessmentId) {
+    try {
+      fitprintSubmitConfirmed = await isFitprintAssessmentSubmitConfirmed(fitprintAssessmentId);
+    } catch {
+      fitprintSubmitConfirmed = false;
+    }
   }
 
-  if (gapQuestionnaireComplete) {
+  if (fitprintSubmitConfirmed) {
     return {
       phase: HEALTH_SPAN_PHASE.LOCKED_SUBMITTED,
       isLocked: true,
@@ -179,13 +181,22 @@ export async function loadFitprintHealthSpanIndexState({
     };
   }
 
+  // FitPrint not finalized — always offer Complete Assessment (do not treat Pro-only
+  // “no unanswered questions” as submitted).
+  let gapQuestionnaireComplete = false;
+  try {
+    gapQuestionnaireComplete = await isFitprintGapQuestionnaireFullyComplete(basicProId);
+  } catch {
+    gapQuestionnaireComplete = false;
+  }
+
   return {
     phase: HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE,
     isLocked: true,
     basicProAssessmentId: basicProId,
     fitprintAssessmentId: fitprintAssessmentId || null,
     engagementId: engagementId || null,
-    gapQuestionnaireComplete: false,
+    gapQuestionnaireComplete,
     hasFitprintReport: false,
     hasFitprintAssigned: Boolean(fitprintAssessmentId),
     scores: null,
@@ -215,7 +226,8 @@ export function fitprintHealthSpanPreloadExtras(state) {
     healthSpanPhase: state.phase,
     healthSpanGapBasicProAssessmentId: state.basicProAssessmentId,
     healthSpanGapEngagementId: state.engagementId,
-    fitprintGapQCompleteFromServer: state.gapQuestionnaireComplete,
+    // Only true when FitPrint submit is confirmed — not when Pro alone has answers.
+    fitprintGapQCompleteFromServer: state.phase === HEALTH_SPAN_PHASE.LOCKED_SUBMITTED,
     healthSpanScores: null,
   };
 }

@@ -1494,36 +1494,174 @@ const isEmptyAnswer = (answer) => {
   return false;
 };
 
-const getOptionDisplayText = (option) => String(
-  option?.display_name ?? option?.label ?? '',
-).trim();
+const getOptionDisplayText = (option) => {
+  if (typeof option === 'string' || typeof option === 'number') {
+    return String(option).trim();
+  }
+  return String(option?.display_name ?? option?.label ?? '').trim();
+};
 
-const getOptionStoredValue = (option) => String(
-  option?.option_value ?? option?.value ?? '',
-).trim();
+const getOptionStoredValue = (option) => {
+  if (typeof option === 'string' || typeof option === 'number') {
+    return String(option).trim();
+  }
+  const fromOptionValue = option?.option_value;
+  if (fromOptionValue != null && String(fromOptionValue).trim() !== '') {
+    return String(fromOptionValue).trim();
+  }
+  const fromValue = option?.value;
+  if (fromValue != null && String(fromValue).trim() !== '') {
+    return String(fromValue).trim();
+  }
+  return '';
+};
+
+/** Last-resort Metsights lifestyle label → option_value when API options are missing on the client. */
+const METSIGHTS_LIFESTYLE_LABEL_TO_KEY = {
+  sitting_hours: {
+    lessthan1hour: '0',
+    '14hours': '1',
+    morethan4hours: '2',
+  },
+  physical_activity_frequency: {
+    rarelyornever: '5',
+    lessthan30minutesaday: '1',
+    '3060minutesaday': '2',
+    morethan60minutesaday: '3',
+  },
+  exercise_frequency_week: {
+    rarelyornever: '0',
+    lessthan1hour: '1',
+    '1to3hours': '2',
+    '13hours': '2',
+    '4to8hours': '3',
+    '48hours': '3',
+    morethan8hours: '4',
+  },
+  exercise_level: {
+    lowintensity: '0',
+    moderateintensity: '1',
+    highintensity: '2',
+  },
+  sleeping_hours: {
+    lessthan5hours: '0',
+    between5to7hours: '1',
+    between57hours: '1',
+    between7to9hours: '2',
+    between79hours: '2',
+    morethan9hours: '3',
+  },
+  alcohol_frequency: {
+    idonotdrinkalcohol: '0',
+    iquitalcohol: '1',
+    '3servingsperweekorless': '2',
+    morethan3servingsperweek: '3',
+    '12timesin3months': '4',
+    '12timesin6months': '5',
+  },
+  tobacco_frequency: {
+    idonotsmoke: '0',
+    iquitsmoking: '1',
+    '1to3timesaweek': '2',
+    '13timesaweek': '2',
+    '5to7timesaweek': '3',
+    '57timesaweek': '3',
+    morethan7timesaweek: '4',
+    '45timesamonth': '5',
+    '12timesamonth': '6',
+  },
+};
+
+const METSIGHTS_LIFESTYLE_LABEL_TO_KEY_BY_ID = {
+  13: METSIGHTS_LIFESTYLE_LABEL_TO_KEY.sitting_hours,
+  14: METSIGHTS_LIFESTYLE_LABEL_TO_KEY.physical_activity_frequency,
+  15: METSIGHTS_LIFESTYLE_LABEL_TO_KEY.exercise_frequency_week,
+  16: METSIGHTS_LIFESTYLE_LABEL_TO_KEY.exercise_level,
+  18: METSIGHTS_LIFESTYLE_LABEL_TO_KEY.sleeping_hours,
+  19: METSIGHTS_LIFESTYLE_LABEL_TO_KEY.alcohol_frequency,
+  20: METSIGHTS_LIFESTYLE_LABEL_TO_KEY.tobacco_frequency,
+};
+
+const looseOptionLookupKey = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 const mapOptionLabelToValue = (question, label) => {
   const normalizedLabel = String(label || '').trim();
   if (!normalizedLabel) return '';
 
-  const matchedOption = Array.isArray(question?.options)
-    ? question.options.find((option) => {
-        const displayName = getOptionDisplayText(option);
-        const optionValue = getOptionStoredValue(option);
-        return displayName === normalizedLabel || optionValue === normalizedLabel;
-      })
-    : null;
+  const opts = Array.isArray(question?.options) ? question.options : [];
+  const normalizedLookup = normalizedLabel.toLowerCase();
+  const looseLabel = looseOptionLookupKey(normalizedLabel);
 
-  if (!matchedOption) {
-    return normalizedLabel;
+  if (opts.length > 0) {
+    const matchedOption = opts.find((option) => {
+      const displayName = getOptionDisplayText(option);
+      const optionValue = getOptionStoredValue(option);
+      return displayName === normalizedLabel
+        || optionValue === normalizedLabel
+        || displayName.toLowerCase() === normalizedLookup
+        || optionValue.toLowerCase() === normalizedLookup
+        || (looseLabel && looseOptionLookupKey(displayName) === looseLabel)
+        || (looseLabel && looseOptionLookupKey(optionValue) === looseLabel);
+    });
+
+    if (matchedOption) {
+      const stored = getOptionStoredValue(matchedOption);
+      if (stored) {
+        return stored;
+      }
+    }
   }
 
-  const stored = getOptionStoredValue(matchedOption);
-  if (stored) {
-    return stored;
+  const questionKey = String(question?.question_key || '').trim().toLowerCase();
+  const questionId = Number(question?.question_id || question?.id || 0);
+  const fallbackMap = METSIGHTS_LIFESTYLE_LABEL_TO_KEY[questionKey]
+    || METSIGHTS_LIFESTYLE_LABEL_TO_KEY_BY_ID[questionId];
+  if (fallbackMap && looseLabel && fallbackMap[looseLabel]) {
+    return fallbackMap[looseLabel];
   }
 
-  return getOptionDisplayText(matchedOption) || normalizedLabel;
+  if (opts.length > 0) {
+    const matchedOption = opts.find((option) => {
+      const displayName = getOptionDisplayText(option);
+      return displayName === normalizedLabel
+        || displayName.toLowerCase() === normalizedLookup
+        || (looseLabel && looseOptionLookupKey(displayName) === looseLabel);
+    });
+    if (matchedOption) {
+      return getOptionDisplayText(matchedOption) || normalizedLabel;
+    }
+  }
+
+  return normalizedLabel;
+};
+
+/** Force every choice answer onto questionnaire option_value keys before PUT. */
+const coerceResponsesToOptionKeys = (questions = [], responses = []) => {
+  const byId = new Map();
+  (Array.isArray(questions) ? questions : []).forEach((question) => {
+    const id = Number(question?.question_id || question?.id || 0);
+    if (id > 0 && !byId.has(id)) {
+      byId.set(id, question);
+    }
+  });
+
+  return (Array.isArray(responses) ? responses : [])
+    .map((row) => {
+      const questionId = Number(row?.question_id || row?.questionId || 0);
+      if (questionId <= 0) {
+        return null;
+      }
+      const question = byId.get(questionId);
+      if (!question) {
+        const answer = row?.answer;
+        if (isEmptyAnswer(answer)) {
+          return null;
+        }
+        return { question_id: questionId, answer };
+      }
+      return buildResponseItem(question, row?.answer);
+    })
+    .filter(Boolean);
 };
 
 const mapOptionValueToLabel = (question, value) => {
@@ -1596,9 +1734,10 @@ const toSelectionArray = (question, rawAnswer) => {
     ? (Array.isArray(rawAnswer) ? rawAnswer : [rawAnswer])
     : [Array.isArray(rawAnswer) ? rawAnswer[0] : rawAnswer];
 
+  // Keep option keys (option_value) in selection state — never display labels.
   return [...new Set(
     values
-      .map((value) => mapOptionValueToLabel(question, value))
+      .map((value) => mapOptionLabelToValue(question, value))
       .filter((value) => !isEmptyAnswer(value))
   )];
 };
@@ -3227,6 +3366,18 @@ const lifestyleFullWidthByQuestionKey = {
   ]),
 };
 
+const resolveOptionChipValue = (option, label) => {
+  const fromOptionValue = option?.option_value;
+  if (fromOptionValue != null && String(fromOptionValue).trim() !== '') {
+    return String(fromOptionValue).trim();
+  }
+  const fromValue = option?.value;
+  if (fromValue != null && String(fromValue).trim() !== '') {
+    return String(fromValue).trim();
+  }
+  return String(label || '').trim();
+};
+
 const toLifestyleApiCards = (questions = []) => {
   return questions
     .filter((question) => question?.is_visible !== false)
@@ -3237,12 +3388,14 @@ const toLifestyleApiCards = (questions = []) => {
     const isTextInput = isTextQuestionWithoutOptions(question);
     const options = Array.isArray(question?.options)
       ? [...new Map(question.options.map((option) => {
-          const label = option?.display_name || option?.option_value || '';
-          return [label, {
-            label,
-            fullWidth: lifestyleFullWidthByQuestionKey[key]?.has(label) || shouldUseFullWidthOption(label),
+          const label = String(option?.display_name || option?.option_value || option?.label || '').trim();
+          const value = resolveOptionChipValue(option, label);
+          return [value || label, {
+            label: label || value,
+            value: value || label,
+            fullWidth: lifestyleFullWidthByQuestionKey[key]?.has(label) || shouldUseFullWidthOption(label || value),
           }];
-        })).values()].filter((option) => option.label)
+        })).values()].filter((option) => option.label || option.value)
       : [];
 
     const normalizedTitle = String(question?.question_text || '').toLowerCase();
@@ -3458,7 +3611,9 @@ const EmbeddedLifestyleHabitsPage = ({
   ]);
 
   const chipClass = (option) => {
-    const selected = activeSelections.includes(option.label);
+    const token = String(option?.value || option?.label || '').trim();
+    const selected = activeSelections.includes(token)
+      || activeSelections.includes(String(option?.label || '').trim());
     const shouldFill = option.fullWidth || shouldUseFullWidthOption(option.label);
     return `lifestyle-habits-page__chip ${selected ? 'lifestyle-habits-page__chip--selected' : ''} ${shouldFill ? 'lifestyle-habits-page__chip--full' : ''}`;
   };
@@ -3525,24 +3680,28 @@ const EmbeddedLifestyleHabitsPage = ({
     }
   };
 
-  const handleChipClick = (optionLabel) => {
+  const handleChipClick = (option) => {
+    const optionToken = String(option?.value || option?.label || '').trim();
+    if (!optionToken) {
+      return;
+    }
     setSelections((prev) => {
       const current = prev[activeCard.key] || [];
 
       if (!activeCard.multi) {
         return {
           ...prev,
-          [activeCard.key]: [optionLabel],
+          [activeCard.key]: [optionToken],
         };
       }
 
-      const exists = current.includes(optionLabel);
+      const exists = current.includes(optionToken);
       let next;
 
       if (exists) {
-        next = current.filter((item) => item !== optionLabel);
+        next = current.filter((item) => item !== optionToken);
       } else {
-        next = [...current, optionLabel];
+        next = [...current, optionToken];
       }
 
       if (activeCard.maxSelections && next.length > activeCard.maxSelections) {
@@ -3676,13 +3835,15 @@ const EmbeddedLifestyleHabitsPage = ({
           ) : (
             <div className={`lifestyle-habits-page__chips ${activeCard.multi ? 'lifestyle-habits-page__chips--multi' : ''}`}>
               {activeCard.options.map((option) => {
-                const selected = activeSelections.includes(option.label);
+                const optionToken = String(option?.value || option?.label || '').trim();
+                const selected = activeSelections.includes(optionToken)
+                  || activeSelections.includes(String(option?.label || '').trim());
                 return (
                   <button
-                    key={option.label}
+                    key={optionToken || option.label}
                     type="button"
                     className={chipClass(option)}
-                    onClick={() => handleChipClick(option.label)}
+                    onClick={() => handleChipClick(option)}
                   >
                     {activeCard.multi && selected ? (
                       <img src={tickIcon} alt="" aria-hidden="true" className="lifestyle-habits-page__tick" />
@@ -4112,12 +4273,14 @@ const toNutritionApiCards = (questions = []) => {
     const isTextInput = isTextQuestionWithoutOptions(question);
     const options = Array.isArray(question?.options)
       ? [...new Map(question.options.map((option) => {
-          const label = option?.display_name || option?.option_value || '';
-          return [label, {
-            label,
-            fullWidth: nutritionFullWidthByQuestionKey[key]?.has(label) || shouldUseFullWidthOption(label),
+          const label = String(option?.display_name || option?.option_value || option?.label || '').trim();
+          const value = resolveOptionChipValue(option, label);
+          return [value || label, {
+            label: label || value,
+            value: value || label,
+            fullWidth: nutritionFullWidthByQuestionKey[key]?.has(label) || shouldUseFullWidthOption(label || value),
           }];
-        })).values()].filter((option) => option.label)
+        })).values()].filter((option) => option.label || option.value)
       : [];
 
     let helper = nutritionHelperByQuestionKey[key] || '';
@@ -4266,7 +4429,9 @@ const EmbeddedNutritionLogPage = ({
   ]);
 
   const chipClass = (option) => {
-    const selected = activeSelections.includes(option.label);
+    const token = String(option?.value || option?.label || '').trim();
+    const selected = activeSelections.includes(token)
+      || activeSelections.includes(String(option?.label || '').trim());
     const shouldFill = option.fullWidth || shouldUseFullWidthOption(option.label);
     return `nutrition-log-page__chip ${selected ? 'nutrition-log-page__chip--selected' : ''} ${shouldFill ? 'nutrition-log-page__chip--full' : ''}`;
   };
@@ -4333,27 +4498,32 @@ const EmbeddedNutritionLogPage = ({
     }
   };
 
-  const handleChipClick = (optionLabel) => {
+  const handleChipClick = (option) => {
+    const optionToken = String(option?.value || option?.label || '').trim();
+    if (!optionToken) {
+      return;
+    }
+    const optionIsNone = isNoneOptionLabel(optionToken) || isNoneOptionLabel(option?.label);
     setSelections((prev) => {
       const current = prev[activeCard.key] || [];
 
       if (!activeCard.multi) {
         return {
           ...prev,
-          [activeCard.key]: [optionLabel],
+          [activeCard.key]: [optionToken],
         };
       }
 
-      if (optionLabel === 'None') {
+      if (optionIsNone) {
         return {
           ...prev,
-          [activeCard.key]: ['None'],
+          [activeCard.key]: [optionToken],
         };
       }
 
-      const withoutNone = current.filter((item) => item !== 'None');
-      const exists = withoutNone.includes(optionLabel);
-      const next = exists ? withoutNone.filter((item) => item !== optionLabel) : [...withoutNone, optionLabel];
+      const withoutNone = current.filter((item) => !isNoneOptionLabel(item));
+      const exists = withoutNone.includes(optionToken);
+      const next = exists ? withoutNone.filter((item) => item !== optionToken) : [...withoutNone, optionToken];
 
       const nextState = {
         ...prev,
@@ -4451,13 +4621,15 @@ const EmbeddedNutritionLogPage = ({
           ) : (
             <div className={`nutrition-log-page__chips ${activeCard.multi ? 'nutrition-log-page__chips--multi' : ''}`}>
               {activeCardVisibleOptions.map((option) => {
-                const selected = activeSelections.includes(option.label);
+                const optionToken = String(option?.value || option?.label || '').trim();
+                const selected = activeSelections.includes(optionToken)
+                  || activeSelections.includes(String(option?.label || '').trim());
                 return (
                   <button
-                    key={option.label}
+                    key={optionToken || option.label}
                     type="button"
                     className={chipClass(option)}
-                    onClick={() => handleChipClick(option.label)}
+                    onClick={() => handleChipClick(option)}
                   >
                     {activeCard.multi && selected ? (
                       <img src={tickIcon} alt="" aria-hidden="true" className="nutrition-log-page__tick" />
@@ -5340,6 +5512,7 @@ export {
   buildAnthropometryResponses,
   buildSelectionStateFromResponses,
   buildResponsesFromSelections,
+  coerceResponsesToOptionKeys,
   buildVitalsInitialValuesFromResponses,
   buildVitalsResponses,
   buildNutritionLogResponsesForSave,

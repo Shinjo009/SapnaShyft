@@ -317,30 +317,43 @@ const familyVisibleCardCount = (catchupQuestionSubset, selections) => {
   return cards.filter((c) => c.key !== medicationKey).length;
 };
 
-const routesWithAnyUnfilled = (categories, questionsByRoute, responsesByCategoryId) => (
+const routesWithAnyUnfilled = (
+  categories,
+  questionsByRoute,
+  responsesByCategoryId,
+  contextQuestionsByRoute = questionsByRoute,
+) => (
   SWIPE_ROUTE_ORDER.filter((routeId) => {
     if (!hasCategoriesForRoute(categories, routeId)) {
       return false;
     }
     const qs = questionsByRoute[routeId] || [];
+    const contextQs = contextQuestionsByRoute[routeId] || qs;
     const raw = mergeResponsesForRoute(categories, responsesByCategoryId, routeId);
     if (routeId === 'family-history') {
-      return qs.some((q) => familyQuestionBlocksCatchup(qs, raw, q));
+      return qs.some((q) => familyQuestionBlocksCatchup(contextQs, raw, q));
     }
     return qs.some((q) => questionIsUnfilled(q, raw));
   })
 );
 
 /**
- * @param {{ categories?: any[], questionsByCategoryId?: Record<string, any[]>, responsesByCategoryId?: Record<string, any[]> }} ctx
+ * @param {{
+ *   categories?: any[],
+ *   questionsByCategoryId?: Record<string, any[]>,
+ *   contextQuestionsByCategoryId?: Record<string, any[]>,
+ *   responsesByCategoryId?: Record<string, any[]>,
+ * }} ctx
  * @returns {boolean}
  */
 export function evaluateFitprintCatchupLoadedContext(ctx) {
   const cats = ctx?.categories || [];
   const qBy = ctx?.questionsByCategoryId || {};
+  const contextBy = ctx?.contextQuestionsByCategoryId || qBy;
   const rBy = ctx?.responsesByCategoryId || {};
 
   const qRoute = buildQuestionsByRoute(cats, qBy);
+  const contextRoute = buildQuestionsByRoute(cats, contextBy);
   const anthQ = qRoute.anthropometry || [];
   const anthRaw = mergeResponsesForRoute(cats, rBy, 'anthropometry');
 
@@ -348,16 +361,17 @@ export function evaluateFitprintCatchupLoadedContext(ctx) {
     return false;
   }
 
-  let swipe = [...routesWithAnyUnfilled(cats, qRoute, rBy)];
+  let swipe = [...routesWithAnyUnfilled(cats, qRoute, rBy, contextRoute)];
   while (swipe[0] === 'family-history' && hasCategoriesForRoute(cats, 'family-history')) {
     const qs = qRoute['family-history'] || [];
+    const contextQs = contextRoute['family-history'] || qs;
     const raw = mergeResponsesForRoute(cats, rBy, 'family-history');
     const nullQs = expandCatchupQuestionsForCardBundles(
       qs,
       raw,
-      (q, list, r) => familyQuestionBlocksCatchup(list, r, q),
+      (q, _list, r) => familyQuestionBlocksCatchup(contextQs, r, q),
     );
-    const initialSelections = buildSelectionStateFromResponses(qs, raw);
+    const initialSelections = buildSelectionStateFromResponses(contextQs, raw);
     if (familyVisibleCardCount(nullQs, initialSelections) > 0) {
       return false;
     }
@@ -379,7 +393,8 @@ export async function assertGapQuestionnaireReadyForMetsightsSubmit(basicProAsse
     throw new Error('Invalid assessment for questionnaire submit.');
   }
 
-  const ctx = await loadQuestionnaireContextForAssessmentInstance(id);
+  // Need answered anthropometry rows for height/weight/waist validation before submit.
+  const ctx = await loadQuestionnaireContextForAssessmentInstance(id, { question: 'all' });
   const categories = ctx?.categories || [];
   const responsesByCategoryId = ctx?.responsesByCategoryId || {};
   const qRoute = buildQuestionsByRoute(categories, ctx?.questionsByCategoryId || {});
@@ -394,7 +409,8 @@ export async function isFitprintGapQuestionnaireFullyComplete(assessmentInstance
     return false;
   }
   try {
-    const ctx = await loadQuestionnaireContextForAssessmentInstance(id);
+    // Same source as Health Span catch-up UI: remaining questions from ?question=unanswered.
+    const ctx = await loadQuestionnaireContextForAssessmentInstance(id, { question: 'unanswered' });
     return evaluateFitprintCatchupLoadedContext(ctx);
   } catch {
     return false;

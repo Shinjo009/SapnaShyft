@@ -505,8 +505,26 @@ export const getAssessmentStatus = (assessmentInstanceId, { categoryOf = 'supers
   return authorizedGet(`/assessments/${id}/status`, { category_of: categoryOfValue });
 };
 
-export const getCategoryQuestionnaire = (assessmentInstanceId, categoryId) => {
-  return authorizedGet(`/questionnaire/${assessmentInstanceId}/category/${categoryId}`);
+const VALID_QUESTION_FILTERS = new Set(['all', 'answered', 'unanswered']);
+
+/**
+ * GET /questionnaire/{assessment_instance_id}/category/{category_id}
+ * @param {number} assessmentInstanceId
+ * @param {number} categoryId
+ * @param {{ question?: 'all' | 'answered' | 'unanswered' }} [options]
+ *   Filter by answer state. Frontend default is `all` so draft/full flows keep answered rows;
+ *   Health Span / FitPrint catch-up should pass `unanswered` for remaining questions.
+ */
+export const getCategoryQuestionnaire = (
+  assessmentInstanceId,
+  categoryId,
+  { question = 'all' } = {},
+) => {
+  const filter = String(question || 'all').trim().toLowerCase();
+  const questionFilter = VALID_QUESTION_FILTERS.has(filter) ? filter : 'all';
+  return authorizedGet(`/questionnaire/${assessmentInstanceId}/category/${categoryId}`, {
+    question: questionFilter,
+  });
 };
 
 const FH_FAMILY_DRAFT_CACHE_TTL_MS = 90_000;
@@ -573,6 +591,7 @@ async function fetchHasFamilyHistoryQuestionnaireDraftUncached() {
   const questionnairePayload = await getCategoryQuestionnaire(
     categoryAssessmentInstanceId,
     categoryId,
+    { question: 'answered' },
   );
   const questions = extractQuestionsFromCategoryPayload(questionnairePayload);
   const responses = extractResponsesFromCategoryPayload(questionnairePayload, questions);
@@ -678,6 +697,7 @@ async function fetchHasNutritionLogQuestionnaireDraftUncached() {
   const questionnairePayload = await getCategoryQuestionnaire(
     categoryAssessmentInstanceId,
     categoryId,
+    { question: 'answered' },
   );
   const questions = extractQuestionsFromCategoryPayload(questionnairePayload);
   const responses = extractResponsesFromCategoryPayload(questionnairePayload, questions);
@@ -773,6 +793,7 @@ const resolveMetsightsSubmitIds = (targets, assessments = []) => {
 
 /**
  * Build 3 submit calls on Metsights Pro (or Basic fallback) and 1 on FitPrint Full when present.
+ * Used by the full health questionnaire (camp/B2B) — not the Health Span / FitPrint gap flow.
  * Instance ids come from `/assessments/me` — never the generic path instance id.
  */
 const collectMetsightsSubmitJobs = (targets, assessments = []) => {
@@ -790,6 +811,43 @@ const collectMetsightsSubmitJobs = (targets, assessments = []) => {
   }
 
   return jobs;
+};
+
+/**
+ * Health Span Index / FitPrint gap finalize — push only to the FitPrint assessment via
+ * POST /assessments/{fitprintId}/submit (no questionnaire PUT mirror onto FitPrint).
+ */
+const collectFitprintGapSubmitJobs = (targets, assessments = []) => {
+  const { fitprintFullId } = resolveMetsightsSubmitIds(targets, assessments);
+  const fromTargets = Number(targets?.fitprintAssessmentId);
+  const fitprintId = fitprintFullId
+    || (Number.isFinite(fromTargets) && fromTargets > 0 ? fromTargets : null);
+
+  if (!fitprintId) {
+    return [];
+  }
+
+  return [{ assessmentInstanceId: fitprintId, category: 'fitness-parameters' }];
+};
+
+/** FitPrint Full instance on the same engagement as the gap Basic/Pro assessment (or null). */
+export const resolveFitprintAssessmentIdForGap = async (gapAssessmentInstanceId) => {
+  const gapId = Number(gapAssessmentInstanceId);
+  if (!Number.isFinite(gapId) || gapId <= 0) {
+    return null;
+  }
+
+  const assessmentsPayload = await listMyAssessments(1, 50);
+  const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
+  const engagementId = resolveEngagementIdFromAssessmentId(assessments, gapId);
+  const targets = engagementId
+    ? resolveAssessmentSubmitTargetsForEngagementId(assessments, engagementId)
+    : resolveAssessmentSubmitTargetsFromRows(assessments);
+  const { fitprintFullId } = resolveMetsightsSubmitIds(targets || {}, assessments);
+  const fromTargets = Number(targets?.fitprintAssessmentId);
+  const fitprintId = fitprintFullId
+    || (Number.isFinite(fromTargets) && fromTargets > 0 ? fromTargets : null);
+  return fitprintId;
 };
 
 const submitMetsightsCategoryJobs = async (jobs = []) => {
@@ -843,7 +901,9 @@ export const submitLatestEngagementAssessment = async () => {
 };
 
 /**
- * Finalize FitPrint gap / catch-up questionnaire — POST submit (3 or 4 Metsights strategy calls).
+ * Finalize Health Span Index / FitPrint gap questionnaire —
+ * POST /assessments/{fitprintId}/submit with fitness-parameters only.
+ * Draft answers stay on Basic/Pro; backend merges engagement responses when pushing.
  */
 export const submitFitprintGapQuestionnaire = async (gapAssessmentInstanceId) => {
   const gapId = Number(gapAssessmentInstanceId);
@@ -882,10 +942,10 @@ export const submitFitprintGapQuestionnaire = async (gapAssessmentInstanceId) =>
     await assertGapQuestionnaireReadyForMetsightsSubmit(basicProIdForValidation);
   }
 
-  const jobs = collectMetsightsSubmitJobs(targets, assessments);
+  const jobs = collectFitprintGapSubmitJobs(targets, assessments);
 
   if (jobs.length === 0) {
-    throw new Error('No Metsights questionnaire categories are available to submit.');
+    throw new Error('No FitPrint assessment is available to submit. Assign FitPrint on this engagement first.');
   }
 
   try {
@@ -930,7 +990,7 @@ export const isQuestionnaireQuestionUnanswered = (question) => {
   return isEmptyAnswer(answer);
 };
 
-export const loadQuestionnaireContext = async () => {
+export const loadQuestionnaireContext = async ({ question = 'all' } = {}) => {
   const assessmentsPayload = await listMyAssessments(1, 50);
   const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
   const latestAssessment = pickAssessmentRowForCategoryDraftCheck(assessments);
@@ -967,7 +1027,11 @@ export const loadQuestionnaireContext = async () => {
   const questionEntries = await Promise.all(
     categories.map(async (category) => {
       const categoryAssessmentInstanceId = Number(category?.assessment_instance_id || assessmentInstanceId);
-      const questionnairePayload = await getCategoryQuestionnaire(categoryAssessmentInstanceId, category.category_id);
+      const questionnairePayload = await getCategoryQuestionnaire(
+        categoryAssessmentInstanceId,
+        category.category_id,
+        { question },
+      );
       const questions = extractQuestionsFromCategoryPayload(questionnairePayload);
       const responses = extractResponsesFromCategoryPayload(questionnairePayload, questions);
       return [String(category.category_id), { questions, responses }];
@@ -989,14 +1053,22 @@ export const loadQuestionnaireContext = async () => {
     categories,
     questionsByCategoryId,
     responsesByCategoryId,
+    questionFilter: question,
   };
 };
 
 /**
  * Same as {@link loadQuestionnaireContext} but for a specific assessment instance (e.g. completed Basic/Pro
- * when filling gaps before FitPrint).
+ * when filling gaps before FitPrint / Health Span Index).
+ * @param {number} assessmentInstanceId
+ * @param {{ question?: 'all' | 'answered' | 'unanswered' }} [options]
+ *   When `question` is `unanswered` (Health Span remaining questions), also loads answered drafts
+ *   into `responsesByCategoryId` / `contextQuestionsByCategoryId` so visibility rules still resolve.
  */
-export const loadQuestionnaireContextForAssessmentInstance = async (assessmentInstanceId) => {
+export const loadQuestionnaireContextForAssessmentInstance = async (
+  assessmentInstanceId,
+  { question = 'all' } = {},
+) => {
   const id = Number(assessmentInstanceId);
   if (!Number.isFinite(id) || id <= 0) {
     throw new Error('Invalid assessment instance id.');
@@ -1031,23 +1103,59 @@ export const loadQuestionnaireContextForAssessmentInstance = async (assessmentIn
     .filter((category) => Number(category?.category_id || 0) > 0);
 
   const categories = sortCategories(categoriesWithRoute);
+  const questionFilter = String(question || 'all').trim().toLowerCase();
+  const loadUnansweredWithContext = questionFilter === 'unanswered';
 
   const questionEntries = await Promise.all(
     categories.map(async (category) => {
       const categoryAssessmentInstanceId = Number(category?.assessment_instance_id || id);
-      const questionnairePayload = await getCategoryQuestionnaire(categoryAssessmentInstanceId, category.category_id);
+      const categoryId = category.category_id;
+
+      if (loadUnansweredWithContext) {
+        const [unansweredPayload, answeredPayload] = await Promise.all([
+          getCategoryQuestionnaire(categoryAssessmentInstanceId, categoryId, {
+            question: 'unanswered',
+          }),
+          getCategoryQuestionnaire(categoryAssessmentInstanceId, categoryId, {
+            question: 'answered',
+          }),
+        ]);
+        const unansweredQuestions = extractQuestionsFromCategoryPayload(unansweredPayload);
+        const answeredQuestions = extractQuestionsFromCategoryPayload(answeredPayload);
+        const responses = extractResponsesFromCategoryPayload(answeredPayload, answeredQuestions);
+        const contextById = new Map();
+        [...answeredQuestions, ...unansweredQuestions].forEach((q) => {
+          const qid = Number(q?.question_id || q?.id || 0);
+          if (qid > 0 && !contextById.has(qid)) {
+            contextById.set(qid, q);
+          }
+        });
+        return [String(categoryId), {
+          questions: unansweredQuestions,
+          responses,
+          contextQuestions: Array.from(contextById.values()),
+        }];
+      }
+
+      const questionnairePayload = await getCategoryQuestionnaire(
+        categoryAssessmentInstanceId,
+        categoryId,
+        { question: questionFilter },
+      );
       const questions = extractQuestionsFromCategoryPayload(questionnairePayload);
       const responses = extractResponsesFromCategoryPayload(questionnairePayload, questions);
-      return [String(category.category_id), { questions, responses }];
+      return [String(categoryId), { questions, responses, contextQuestions: questions }];
     })
   );
 
   const questionsByCategoryId = {};
   const responsesByCategoryId = {};
+  const contextQuestionsByCategoryId = {};
 
   for (const [categoryId, entry] of questionEntries) {
     questionsByCategoryId[categoryId] = entry.questions;
     responsesByCategoryId[categoryId] = entry.responses;
+    contextQuestionsByCategoryId[categoryId] = entry.contextQuestions || entry.questions;
   }
 
   return {
@@ -1056,6 +1164,8 @@ export const loadQuestionnaireContextForAssessmentInstance = async (assessmentIn
     categories,
     questionsByCategoryId,
     responsesByCategoryId,
+    contextQuestionsByCategoryId,
+    questionFilter: questionFilter,
   };
 };
 
@@ -1100,6 +1210,53 @@ const pickLatestBasicOrProAssessmentRow = (assessments) => {
 const isCategoryStatusFinalized = (status) => {
   const normalized = normalizeCategoryStatus(status);
   return normalized === 'complete' || normalized === 'completed' || normalized === 'submitted';
+};
+
+/**
+ * True when FitPrint Full itself has been finalized (category progress complete).
+ * Do not use Basic/Pro “no unanswered questions” for this — that incorrectly shows
+ * “Submitted Successfully” while FitPrint still has 0 submitted responses.
+ */
+export const isFitprintAssessmentSubmitConfirmed = async (fitprintAssessmentInstanceId) => {
+  const id = Number(fitprintAssessmentInstanceId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return false;
+  }
+
+  try {
+    const supershyftStatus = await getAssessmentStatus(id, { categoryOf: 'supershyft' });
+    const supershyftCategories = normalizeQuestionnaireCategoriesFromStatus(supershyftStatus, id);
+    if (
+      supershyftCategories.length > 0
+      && supershyftCategories.every((category) => isCategoryStatusFinalized(category.status))
+    ) {
+      return true;
+    }
+
+    const metsightsStatus = await getAssessmentStatus(id, { categoryOf: 'metsights' });
+    const metsightsCategories = extractCategoriesFromAssessmentStatus(metsightsStatus)
+      .map((category) => ({
+        category_key: String(category?.category_key || category?.key || '').trim().toLowerCase(),
+        status: normalizeCategoryStatus(category?.status || category?.category_status),
+      }));
+
+    const fitnessCategory = metsightsCategories.find((category) => (
+      category.category_key === 'fitness-parameters'
+      || category.category_key.includes('fitness')
+    ));
+    if (fitnessCategory && isCategoryStatusFinalized(fitnessCategory.status)) {
+      return true;
+    }
+
+    // Fallback: any answered rows on FitPrint with at least one category marked complete.
+    if (supershyftCategories.some((category) => isCategoryStatusFinalized(category.status))) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
 };
 
 const normalizeQuestionnaireCategoriesFromStatus = (statusPayload, fallbackAssessmentInstanceId) => {

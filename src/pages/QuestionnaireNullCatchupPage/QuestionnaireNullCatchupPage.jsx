@@ -11,6 +11,7 @@ import {
   buildAnthropometryResponses,
   buildNutritionLogResponsesForSave,
   buildResponsesFromSelections,
+  coerceResponsesToOptionKeys,
   buildSelectionStateFromResponses,
   buildVitalsInitialValuesFromResponses,
   buildVitalsResponses,
@@ -230,13 +231,6 @@ const expandCatchupQuestionsForCardBundles = (fullQs, rawResponses, unfilledPred
   return ordered.length > 0 ? ordered : list;
 };
 
-/** Vitals: unfilled-only (no other-text card pipeline). Falls back to full list if none. */
-const questionsNullOnlyOrAll = (allQuestions, rawResponses) => {
-  const list = Array.isArray(allQuestions) ? allQuestions : [];
-  const filtered = list.filter((q) => questionIsUnfilled(q, rawResponses));
-  return filtered.length > 0 ? filtered : list;
-};
-
 const isAnthropometryFollowupQuestion = (question) => {
   const k = String(question?.question_key || '').toLowerCase();
   const t = String(question?.question_text || '').toLowerCase();
@@ -299,26 +293,33 @@ const familyVisibleCardCount = (catchupQuestionSubset, selections) => {
   return cards.filter((c) => c.key !== medicationKey).length;
 };
 
-const routesWithAnyUnfilled = (categories, questionsByRoute, responsesByCategoryId) => (
+const routesWithAnyUnfilled = (
+  categories,
+  questionsByRoute,
+  responsesByCategoryId,
+  contextQuestionsByRoute = questionsByRoute,
+) => (
   SWIPE_ROUTE_ORDER.filter((routeId) => {
     if (!hasCategoriesForRoute(categories, routeId)) {
       return false;
     }
     const qs = questionsByRoute[routeId] || [];
+    const contextQs = contextQuestionsByRoute[routeId] || qs;
     const raw = mergeResponsesForRoute(categories, responsesByCategoryId, routeId);
     if (routeId === 'family-history') {
-      return qs.some((q) => familyQuestionBlocksCatchup(qs, raw, q));
+      return qs.some((q) => familyQuestionBlocksCatchup(contextQs, raw, q));
     }
     return qs.some((q) => questionIsUnfilled(q, raw));
   })
 );
 
 /**
- * FitPrint gap flow: complete missing questionnaire answers on the latest Basic/Pro assessment.
+ * Health Span Index / FitPrint gap flow: remaining questions come from
+ * GET /questionnaire/{id}/category/{cid}?question=unanswered.
  * Anthropometry first (primary then follow-up when needed), then remaining categories in order
- * (family → lifestyle → nutrition → vitals). Each swipe section snapshots unanswered questions once
- * when you land on it (order preserved, deck does not shrink while answering). Responses are saved
- * only when you tap Done on that section (no draft PUTs while swiping between cards).
+ * (family → lifestyle → nutrition → vitals). Each swipe section lists the unanswered questions
+ * returned by that API (order preserved, deck does not shrink while answering). Responses are saved
+ * only when you tap Done on that section. Final Continue/submit calls POST /assessments/{id}/submit.
  */
 const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) => {
   const instanceId = Number(assessmentInstanceId);
@@ -330,6 +331,7 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
   const finalizeInFlightRef = useRef(false);
   const [categories, setCategories] = useState([]);
   const [questionsByCategoryId, setQuestionsByCategoryId] = useState({});
+  const [contextQuestionsByCategoryId, setContextQuestionsByCategoryId] = useState({});
   const [responsesByCategoryId, setResponsesByCategoryId] = useState({});
   const responsesMapRef = useRef({});
 
@@ -366,6 +368,12 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
     [categories, questionsByCategoryId],
   );
 
+  /** Answered + unanswered definitions — used for visibility / family skip, not for the listed deck. */
+  const contextQuestionsByRoute = useMemo(
+    () => buildQuestionsByRoute(categories, contextQuestionsByCategoryId),
+    [categories, contextQuestionsByCategoryId],
+  );
+
   const anthroQuestions = useMemo(
     () => questionsByRoute['anthropometry'] || [],
     [questionsByRoute],
@@ -395,9 +403,14 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
       return fromCategory > 0 ? fromCategory : instanceId;
     };
 
-    const routeQuestions = questionsByRoute[routeId] || [];
+    // Prefer full context defs (answered + unanswered) so option_value keys are available to remap labels.
+    const routeQuestions = [
+      ...(contextQuestionsByRoute[routeId] || []),
+      ...(questionsByRoute[routeId] || []),
+    ];
+    const keyedIncoming = coerceResponsesToOptionKeys(routeQuestions, incoming);
     const partition = new Map();
-    incoming.forEach((row) => {
+    keyedIncoming.forEach((row) => {
       const qid = Number(row?.question_id || row?.questionId || 0);
       if (qid <= 0) {
         return;
@@ -415,7 +428,7 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
 
     let nextMap = { ...responsesMapRef.current };
 
-    if (incoming.length === 0) {
+    if (keyedIncoming.length === 0) {
       return nextMap;
     }
 
@@ -423,20 +436,23 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
       for (const [catIdNum, rows] of partition) {
         const cid = String(catIdNum);
         const prev = nextMap[cid] || [];
-        const merged = mergeResponsesByQuestionId(prev, rows);
+        const remappedPrev = coerceResponsesToOptionKeys(routeQuestions, prev);
+        const merged = mergeResponsesByQuestionId(remappedPrev, rows);
         if (rows.length > 0) {
           const targetInstanceId = resolveInstanceIdForCategoryId(catIdNum);
-          await submitQuestionnaireResponses(targetInstanceId, catIdNum, merged);
+          // Only PUT this Done action's answers (already remapped to option keys).
+          await submitQuestionnaireResponses(targetInstanceId, catIdNum, rows);
         }
         nextMap = { ...nextMap, [cid]: merged };
       }
     } else if (fallbackCat) {
       const cid = String(fallbackCat.category_id || '');
       const prev = nextMap[cid] || [];
-      const merged = mergeResponsesByQuestionId(prev, incoming);
+      const remappedPrev = coerceResponsesToOptionKeys(routeQuestions, prev);
+      const merged = mergeResponsesByQuestionId(remappedPrev, keyedIncoming);
       const fallbackCategoryId = Number(fallbackCat.category_id);
       const targetInstanceId = resolveInstanceIdForCategoryId(fallbackCategoryId);
-      await submitQuestionnaireResponses(targetInstanceId, fallbackCategoryId, merged);
+      await submitQuestionnaireResponses(targetInstanceId, fallbackCategoryId, keyedIncoming);
       nextMap = { ...nextMap, [cid]: merged };
     } else {
       return responsesMapRef.current;
@@ -451,14 +467,15 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
       markNutritionLogQuestionnaireDraftKnown(true);
     }
     return nextMap;
-  }, [categories, instanceId, questionsByRoute]);
+  }, [categories, instanceId, questionsByRoute, contextQuestionsByRoute]);
 
   const recomputeSwipeFromMap = useCallback((responsesMap) => {
     const qRoute = buildQuestionsByRoute(categories, questionsByCategoryId);
-    const next = routesWithAnyUnfilled(categories, qRoute, responsesMap);
+    const contextRoute = buildQuestionsByRoute(categories, contextQuestionsByCategoryId);
+    const next = routesWithAnyUnfilled(categories, qRoute, responsesMap, contextRoute);
     setSwipeRoutes(next);
     return next;
-  }, [categories, questionsByCategoryId]);
+  }, [categories, questionsByCategoryId, contextQuestionsByCategoryId]);
 
   const finalizeAndExit = useCallback(async () => {
     if (finalizeInFlightRef.current) {
@@ -537,13 +554,14 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
       return;
     }
     const qs = questionsByRoute['family-history'] || [];
+    const contextQs = contextQuestionsByRoute['family-history'] || qs;
     const raw = mergeResponsesForRoute(categories, responsesMapRef.current, 'family-history');
     const nullQs = expandCatchupQuestionsForCardBundles(
       qs,
       raw,
-      (q, list, r) => familyQuestionBlocksCatchup(list, r, q),
+      (q, _list, r) => familyQuestionBlocksCatchup(contextQs, r, q),
     );
-    const initialSelections = buildSelectionStateFromResponses(qs, raw);
+    const initialSelections = buildSelectionStateFromResponses(contextQs, raw);
     if (familyVisibleCardCount(nullQs, initialSelections) > 0) {
       return;
     }
@@ -554,9 +572,20 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
     if (nextRoutes.length === 0) {
       finishAll();
     }
-  }, [loadState, swipeRoutes, categories, questionsByRoute, responsesByCategoryId, finishAll]);
+  }, [
+    loadState,
+    swipeRoutes,
+    categories,
+    questionsByRoute,
+    contextQuestionsByRoute,
+    responsesByCategoryId,
+    finishAll,
+  ]);
 
-  /** Snapshot unanswered questions once per route visit so the deck stays stable until Done (no live refilter). */
+  /**
+   * Snapshot API unanswered questions once per route visit so the deck stays stable until Done.
+   * `questionsByRoute` is already filtered via `?question=unanswered`.
+   */
   useLayoutEffect(() => {
     if (loadState !== 'ready') {
       return;
@@ -575,21 +604,21 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
       const qs = route === 'vitals'
         ? (questionsByRoute.vitals || [])
         : (questionsByRoute[route] || []);
+      const contextQs = contextQuestionsByRoute[route] || qs;
       const raw = mergeResponsesForRoute(categories, responsesMapRef.current, route);
-      const selectionsForVisibility = buildSelectionStateFromResponses(qs, raw);
+      const selectionsForVisibility = buildSelectionStateFromResponses(contextQs, raw);
       const visibleQs = computeQuestionsWithVisibility(qs, {
         selections: selectionsForVisibility,
         preferences: questionnairePreferences,
       }).filter((q) => q.is_visible !== false);
 
       if (route === 'vitals') {
-        const questions = questionsNullOnlyOrAll(visibleQs, raw);
-        const vitalsInitial = buildVitalsInitialValuesFromResponses(qs, raw);
+        const vitalsInitial = buildVitalsInitialValuesFromResponses(contextQs, raw);
         return {
           ...prev,
           [route]: {
             kind: 'vitals',
-            questions,
+            questions: visibleQs,
             initialValues: {
               systolic: vitalsInitial.systolic,
               diastolic: vitalsInitial.diastolic,
@@ -598,17 +627,25 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         };
       }
 
+      // Keep Other-text partners when the API returns the parent but not the free-text row.
       const unfilledPred = route === 'family-history'
-        ? (q, list, r) => familyQuestionBlocksCatchup(list, r, q)
+        ? (q, _list, r) => familyQuestionBlocksCatchup(contextQs, r, q)
         : (q, _list, r) => questionIsUnfilled(q, r);
       const questions = expandCatchupQuestionsForCardBundles(visibleQs, raw, unfilledPred);
-      const initialSelections = buildSelectionStateFromResponses(visibleQs, raw);
+      const initialSelections = buildSelectionStateFromResponses(contextQs, raw);
       return {
         ...prev,
         [route]: { kind: 'cards', questions, initialSelections },
       };
     });
-  }, [loadState, swipeRoutes, categories, questionsByRoute, questionnairePreferences]);
+  }, [
+    loadState,
+    swipeRoutes,
+    categories,
+    questionsByRoute,
+    contextQuestionsByRoute,
+    questionnairePreferences,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -617,25 +654,31 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
       setLoadError(null);
       setCatchupRouteSnapshots({});
       try {
-        const ctx = await loadQuestionnaireContextForAssessmentInstance(instanceId);
+        const ctx = await loadQuestionnaireContextForAssessmentInstance(instanceId, {
+          question: 'unanswered',
+        });
         if (cancelled) {
           return;
         }
         const cats = ctx?.categories || [];
         const qBy = ctx?.questionsByCategoryId || {};
+        const contextBy = ctx?.contextQuestionsByCategoryId || qBy;
         const rBy = { ...(ctx?.responsesByCategoryId || {}) };
         setCategories(cats);
         setQuestionsByCategoryId(qBy);
+        setContextQuestionsByCategoryId(contextBy);
         setResponsesByCategoryId(rBy);
         responsesMapRef.current = rBy;
 
         const qRoute = buildQuestionsByRoute(cats, qBy);
+        const contextRoute = buildQuestionsByRoute(cats, contextBy);
         const anthQ = qRoute['anthropometry'] || [];
+        const anthContext = contextRoute['anthropometry'] || anthQ;
         const anthRaw = mergeResponsesForRoute(cats, rBy, 'anthropometry');
 
         const primaryOpen = anthropometryPrimaryHasUnfilled(anthQ, anthRaw);
         const followOpen = anthropometryFollowupHasUnfilled(anthQ, anthRaw);
-        const init = buildAnthropometryInitialValuesFromResponses(anthQ, anthRaw);
+        const init = buildAnthropometryInitialValuesFromResponses(anthContext, anthRaw);
 
         if (primaryOpen) {
           setAnthroPrimaryValues(init.primary || {});
@@ -654,6 +697,7 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         if (evaluateFitprintCatchupLoadedContext({
           categories: cats,
           questionsByCategoryId: qBy,
+          contextQuestionsByCategoryId: contextBy,
           responsesByCategoryId: rBy,
         })) {
           if (!cancelled) {
@@ -680,7 +724,7 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
           return;
         }
 
-        const swipe = routesWithAnyUnfilled(cats, qRoute, rBy);
+        const swipe = routesWithAnyUnfilled(cats, qRoute, rBy, contextRoute);
         setSwipeRoutes(swipe);
 
         setLoadState('ready');
@@ -785,7 +829,7 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
     const { questions: nullQs, initialSelections } = snap;
     return (
       <EmbeddedFamilyHistoryPage
-        questions={questionsByRoute['family-history'] || []}
+        questions={nullQs}
         questionnairePreferences={questionnairePreferences}
         initialSelections={initialSelections}
         categoryHeading={FITPRINT_CATCHUP_HEADING}
@@ -803,10 +847,16 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
                 }
                 return;
               }
-              const responses = buildResponsesFromSelections(
-                questionsByRoute['family-history'] || [],
-                selections || {},
-                questionnairePreferences,
+              const routeQs = contextQuestionsByRoute['family-history']
+                || questionsByRoute['family-history']
+                || nullQs;
+              const responses = coerceResponsesToOptionKeys(
+                routeQs,
+                buildResponsesFromSelections(
+                  routeQs,
+                  selections || {},
+                  questionnairePreferences,
+                ),
               );
               await handleRouteDone('family-history', responses);
             } catch (error) {
@@ -828,19 +878,25 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         </div>
       );
     }
-    const { initialSelections } = snap;
+    const { questions: nullQs, initialSelections } = snap;
     return (
       <EmbeddedLifestyleHabitsPage
-        questions={questionsByRoute['lifestyle-habits'] || []}
+        questions={nullQs}
         questionnairePreferences={questionnairePreferences}
         initialSelections={initialSelections}
         categoryHeading={FITPRINT_CATCHUP_HEADING}
         onBack={onBack}
         onDone={(selections) => {
-          const responses = buildResponsesFromSelections(
-            questionsByRoute['lifestyle-habits'] || [],
-            selections || {},
-            questionnairePreferences,
+          const routeQs = contextQuestionsByRoute['lifestyle-habits']
+            || questionsByRoute['lifestyle-habits']
+            || nullQs;
+          const responses = coerceResponsesToOptionKeys(
+            routeQs,
+            buildResponsesFromSelections(
+              routeQs,
+              selections || {},
+              questionnairePreferences,
+            ),
           );
           void handleRouteDone('lifestyle-habits', responses);
         }}
@@ -858,26 +914,31 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         </div>
       );
     }
-    const { initialSelections } = snap;
+    const { questions: nullQs, initialSelections } = snap;
     return (
       <EmbeddedNutritionLogPage
-        questions={questionsByRoute['nutrition-log'] || []}
+        questions={nullQs}
         questionnairePreferences={questionnairePreferences}
         initialSelections={initialSelections}
         categoryHeading={FITPRINT_CATCHUP_HEADING}
         onBack={onBack}
         onDone={(selections) => {
-          const routeQs = questionsByRoute['nutrition-log'] || [];
+          const routeQs = contextQuestionsByRoute['nutrition-log']
+            || questionsByRoute['nutrition-log']
+            || nullQs;
           const visibleQs = computeQuestionsWithVisibility(routeQs, {
             selections: selections || {},
             preferences: questionnairePreferences,
           }).filter((q) => q.is_visible !== false);
           const cardsForSave = visibleQs.length > 0 ? toNutritionApiCards(visibleQs) : [];
-          const responses = buildNutritionLogResponsesForSave(
+          const responses = coerceResponsesToOptionKeys(
             routeQs,
-            selections || {},
-            cardsForSave,
-            questionnairePreferences,
+            buildNutritionLogResponsesForSave(
+              routeQs,
+              selections || {},
+              cardsForSave,
+              questionnairePreferences,
+            ),
           );
           void handleRouteDone('nutrition-log', responses);
         }}
