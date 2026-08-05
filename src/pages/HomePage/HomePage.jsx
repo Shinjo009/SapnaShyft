@@ -10,6 +10,14 @@ import RiskAnalysisSection, {
   buildHomeBloodMarkersFromBloodParametersResponse,
 } from '../../components/HomePage/RiskAnalysisSection';
 import NavBar from '../../components/NavBar';
+import {
+  SlotDetailsCard,
+  PrepStepsDeck,
+  StatusTimelineCard,
+  WhatHappensNextCard,
+  PREP_STEPS_B2C,
+  PREP_STEPS_B2B,
+} from '../../components/HomePage/ScheduledStatusUI';
 import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
 import { getAccessToken } from '../../utils/authStorage';
 import {
@@ -162,87 +170,6 @@ const AnalysisHourglassIcon = () => (
   </svg>
 );
 
-const InfoCircleIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-    <path d="M8.75 0C11.0706 0 13.2962 0.921872 14.9372 2.56282C16.5781 4.20376 17.5 6.42936 17.5 8.75C17.5 11.0706 16.5781 13.2962 14.9372 14.9372C13.2962 16.5781 11.0706 17.5 8.75 17.5C6.42936 17.5 4.20376 16.5781 2.56282 14.9372C0.921872 13.2962 0 11.0706 0 8.75C0 6.42936 0.921872 4.20376 2.56282 2.56282C4.20376 0.921872 6.42936 0 8.75 0ZM10.0625 5.37109C10.7129 5.37109 11.2402 4.92188 11.2402 4.25195C11.2402 3.58203 10.7129 3.13281 10.0625 3.13281C9.41211 3.13281 8.88672 3.58203 8.88672 4.25195C8.88672 4.92188 9.41406 5.37305 10.0625 5.37305M10.291 12.4062C10.291 12.2734 10.3379 11.9258 10.3105 11.7266L9.2832 12.9102C9.07031 13.1328 8.80469 13.2891 8.67969 13.248C8.62328 13.227 8.57621 13.1865 8.54687 13.1339C8.51753 13.0813 8.50784 13.02 8.51953 12.9609L10.2305 7.55078C10.3711 6.86328 9.98633 6.23828 9.16992 6.1582C8.31055 6.1582 7.04102 7.03125 6.26953 8.14062C6.26953 8.27344 6.24414 8.60156 6.26953 8.80078L7.29688 7.61719C7.51172 7.39453 7.75781 7.23828 7.88281 7.28125C7.94363 7.3042 7.99333 7.3496 8.02168 7.4081C8.05002 7.46661 8.05484 7.53375 8.03516 7.5957L6.33594 12.9805C6.14062 13.6094 6.51172 14.2266 7.41211 14.3672C8.73828 14.3672 9.52148 13.5156 10.293 12.4062H10.291Z" fill="#4B8D83" />
-  </svg>
-);
-
-const TimeRowIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-    <path d="M9 1.5C13.1423 1.5 16.5 4.85775 16.5 9C16.5 13.1423 13.1423 16.5 9 16.5C4.85775 16.5 1.5 13.1423 1.5 9C1.5 4.85775 4.85775 1.5 9 1.5ZM9 3C7.4087 3 5.88258 3.63214 4.75736 4.75736C3.63214 5.88258 3 7.4087 3 9C3 10.5913 3.63214 12.1174 4.75736 13.2426C5.88258 14.3679 7.4087 15 9 15C10.5913 15 12.1174 14.3679 13.2426 13.2426C14.3679 12.1174 15 10.5913 15 9C15 7.4087 14.3679 5.88258 13.2426 4.75736C12.1174 3.63214 10.5913 3 9 3ZM9 4.5C9.1837 4.50002 9.361 4.56747 9.49828 4.68954C9.63556 4.81161 9.72326 4.97981 9.74475 5.16225L9.75 5.25V8.6895L11.7802 10.7198C11.9148 10.8547 11.9929 11.0358 11.9987 11.2263C12.0045 11.4167 11.9376 11.6023 11.8116 11.7452C11.6855 11.8881 11.5098 11.9777 11.3201 11.9958C11.1305 12.0139 10.941 11.9591 10.7902 11.8425L10.7198 11.7802L8.46975 9.53025C8.35318 9.41358 8.27832 9.26175 8.25675 9.09825L8.25 9V5.25C8.25 5.05109 8.32902 4.86032 8.46967 4.71967C8.61032 4.57902 8.80109 4.5 9 4.5Z" fill="#E6E6E6" />
-  </svg>
-);
-
-const LocationRowIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-    <path
-      d="M9 1.5C6.1005 1.5 3.75 3.8505 3.75 6.75C3.75 10.6875 9 16.5 9 16.5C9 16.5 14.25 10.6875 14.25 6.75C14.25 3.8505 11.8995 1.5 9 1.5ZM9 8.625C8.0055 8.625 7.125 7.7445 7.125 6.75C7.125 5.7555 8.0055 4.875 9 4.875C9.9945 4.875 10.875 5.7555 10.875 6.75C10.875 7.7445 9.9945 8.625 9 8.625Z"
-      fill="#E6E6E6"
-    />
-  </svg>
-);
-
-const SlotDateCalendarIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-    <path
-      d="M6.66699 1.66602V4.99935M13.3337 1.66602V4.99935"
-      stroke="#CCCCCC"
-      strokeWidth="1.66667"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M4.16667 3.33398H15.8333C16.7538 3.33398 17.5 4.08018 17.5 5.00065V16.6673C17.5 17.5878 16.7538 18.334 15.8333 18.334H4.16667C3.24619 18.334 2.5 17.5878 2.5 16.6673V5.00065C2.5 4.08018 3.24619 3.33398 4.16667 3.33398V3.33398"
-      stroke="#CCCCCC"
-      strokeWidth="1.66667"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M2.5 8.33398H17.5"
-      stroke="#CCCCCC"
-      strokeWidth="1.66667"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const PrepIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <g clipPath="url(#clip0_3481_11808)">
-      <path d="M3.75 2.625V19.875C3.75 20.082 3.918 20.25 4.125 20.25H8.88C9.17837 20.25 9.46452 20.3685 9.6755 20.5795C9.88647 20.7905 10.005 21.0766 10.005 21.375C10.005 21.6734 9.88647 21.9595 9.6755 22.1705C9.46452 22.3815 9.17837 22.5 8.88 22.5H4.125C3.42881 22.5 2.76113 22.2234 2.26884 21.7312C1.77656 21.2389 1.5 20.5712 1.5 19.875V2.625C1.5 1.176 2.676 0 4.125 0H16.875C18.324 0 19.5 1.176 19.5 2.625V14.229C19.5 14.5274 19.3815 14.8135 19.1705 15.0245C18.9595 15.2355 18.6734 15.354 18.375 15.354C18.0766 15.354 17.7905 15.2355 17.5795 15.0245C17.3685 14.8135 17.25 14.5274 17.25 14.229V2.625C17.25 2.52554 17.2105 2.43016 17.1402 2.35984C17.0698 2.28951 16.9745 2.25 16.875 2.25H4.125C4.02554 2.25 3.93016 2.28951 3.85984 2.35984C3.78951 2.43016 3.75 2.52554 3.75 2.625ZM23.661 16.9305L16.8255 23.6055C16.6133 23.8123 16.3281 23.927 16.0318 23.9248C15.7355 23.9225 15.452 23.8035 15.243 23.5935L12.3285 20.6685C12.1302 20.4549 12.0225 20.1726 12.0282 19.8811C12.0339 19.5897 12.1525 19.3118 12.359 19.1061C12.5655 18.9003 12.8438 18.7828 13.1353 18.7782C13.4267 18.7736 13.7086 18.8824 13.9215 19.0815L16.05 21.219L22.089 15.321C22.3026 15.1125 22.5903 14.9975 22.8888 15.0011C23.0366 15.003 23.1826 15.0339 23.3184 15.0921C23.4542 15.1503 23.5773 15.2347 23.6805 15.3405C23.7837 15.4463 23.8651 15.5714 23.92 15.7086C23.9749 15.8458 24.0022 15.9925 24.0004 16.1403C23.9985 16.2881 23.9676 16.4341 23.9094 16.5699C23.8512 16.7057 23.7668 16.8288 23.661 16.932M7.125 6H13.875C14.1734 6 14.4595 6.11853 14.6705 6.3295C14.8815 6.54048 15 6.82663 15 7.125C15 7.42337 14.8815 7.70952 14.6705 7.9205C14.4595 8.13147 14.1734 8.25 13.875 8.25H7.125C6.82663 8.25 6.54048 8.13147 6.3295 7.9205C6.11853 7.70952 6 7.42337 6 7.125C6 6.82663 6.11853 6.54048 6.3295 6.3295C6.54048 6.11853 6.82663 6 7.125 6ZM6 11.625C6 11.3266 6.11853 11.0405 6.3295 10.8295C6.54048 10.6185 6.82663 10.5 7.125 10.5H10.125C10.4234 10.5 10.7095 10.6185 10.9205 10.8295C11.1315 11.0405 11.25 11.3266 11.25 11.625C11.25 11.9234 11.1315 12.2095 10.9205 12.4205C10.7095 12.6315 10.4234 12.75 10.125 12.75H7.125C6.82663 12.75 6.54048 12.6315 6.3295 12.4205C6.11853 12.2095 6 11.9234 6 11.625Z" fill="white" />
-    </g>
-    <defs>
-      <clipPath id="clip0_3481_11808">
-        <rect width="24" height="24" fill="white" />
-      </clipPath>
-    </defs>
-  </svg>
-);
-
-const ChecklistTickIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="15"
-    height="15"
-    viewBox="0 0 15 15"
-    fill="none"
-    aria-hidden="true"
-    className="home-page-scheduled__checkmark-svg"
-  >
-    <circle cx="7.5" cy="7.5" r="7" fill="#4B8D83" stroke="white" strokeWidth="1" />
-    <path
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M8.5207 0.109718C8.55982 0.145993 8.59142 0.189621 8.61369 0.238109C8.63595 0.286597 8.64845 0.338996 8.65046 0.392314C8.65247 0.445631 8.64396 0.498823 8.62541 0.548852C8.60687 0.59888 8.57865 0.644764 8.54236 0.683885L3.26111 6.37139C3.22226 6.41322 3.17501 6.4464 3.12247 6.46875C3.06993 6.4911 3.01326 6.50213 2.95617 6.50111C2.89908 6.50008 2.84285 6.48704 2.79114 6.46282C2.73943 6.4386 2.69341 6.40375 2.65607 6.36055L0.083155 3.38139C0.0203834 3.2988 -0.00856349 3.1954 0.00220459 3.09223C0.0129727 2.98906 0.0626465 2.89386 0.141118 2.82602C0.21959 2.75818 0.320963 2.72278 0.424608 2.72704C0.528254 2.73129 0.626384 2.77488 0.69903 2.84893L2.97403 5.48684L7.94653 0.12976C7.98284 0.0906701 8.0265 0.0591157 8.07501 0.0368985C8.12351 0.0146813 8.17592 0.00223637 8.22924 0.000274703C8.28256 -0.00168696 8.33574 0.00687284 8.38575 0.0254654C8.43575 0.044058 8.48161 0.0723192 8.5207 0.108635V0.109718Z"
-      fill="white"
-      transform="translate(3.1 4.1)"
-    />
-  </svg>
-);
-
 const HomeDownloadIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M11.625 15.513C11.5083 15.471 11.4 15.4 11.3 15.3L7.7 11.7C7.5 11.5 7.404 11.2667 7.412 11C7.42 10.7333 7.516 10.5 7.7 10.3C7.9 10.1 8.13767 9.996 8.413 9.988C8.68833 9.98 8.92567 10.0757 9.125 10.275L11 12.15V5C11 4.71667 11.096 4.47934 11.288 4.288C11.48 4.09667 11.7173 4.00067 12 4C12.2827 3.99934 12.5203 4.09534 12.713 4.288C12.9057 4.48067 13.0013 4.718 13 5V12.15L14.875 10.275C15.075 10.075 15.3127 9.979 15.588 9.987C15.8633 9.995 16.1007 10.0993 16.3 10.3C16.4833 10.5 16.5793 10.7333 16.588 11C16.5967 11.2667 16.5007 11.5 16.3 11.7L12.7 15.3C12.6 15.4 12.4917 15.471 12.375 15.513C12.2583 15.555 12.1333 15.5757 12 15.575C11.8667 15.5743 11.7417 15.5537 11.625 15.513ZM6 20C5.45 20 4.97933 19.8043 4.588 19.413C4.19667 19.0217 4.00067 18.5507 4 18V16C4 15.7167 4.096 15.4793 4.288 15.288C4.48 15.0967 4.71733 15.0007 5 15C5.28267 14.9993 5.52033 15.0953 5.713 15.288C5.90567 15.4807 6.00133 15.718 6 16V18H18V16C18 15.7167 18.096 15.4793 18.288 15.288C18.48 15.0967 18.7173 15.0007 19 15C19.2827 14.9993 19.5203 15.0953 19.713 15.288C19.9057 15.4807 20.0013 15.718 20 16V18C20 18.55 19.8043 19.021 19.413 19.413C19.0217 19.805 18.5507 20.0007 18 20H6Z" fill="white" />
@@ -256,40 +183,25 @@ const HomeReportEyeIcon = () => (
   </svg>
 );
 
-const b2bCampChecklistItems = [
-  'Carry your company ID card',
-  'Fasting Required ( 8-12 hours )',
-  'Avoid alcohol 24 hours before the test',
-  'Continue medication as prescribed unless advised otherwise by your Doctor.',
-  'Avoid heavy workout 2 hours before the test',
-  'Avoid high-fat or high-sugar foods before the test',
-];
-
 const analyzingTimelineItems = [
-  { id: 'sample-collected', label: 'Sample Collected', state: 'done' },
-  { id: 'questionnaire-completed', label: 'Questionnaire Completion', state: 'done' },
-  { id: 'analysis-progress', label: 'Analysis in Progress', state: 'active' },
-  { id: 'reports-generated', label: 'Reports Generated', state: 'pending' },
+  { id: 'sample-collected', label: 'Sample Collected', labelLines: ['Sample', 'Collected'], state: 'done' },
+  { id: 'questionnaire-completed', label: 'Questionnaire Completion', labelLines: ['Questionnaire', 'Completion'], state: 'done' },
+  { id: 'analysis-progress', label: 'Analysis in Progress', labelLines: ['Analysis in', 'Progress'], state: 'active' },
+  { id: 'reports-generated', label: 'Reports Generated', labelLines: ['Reports', 'Generated'], state: 'pending' },
 ];
 
 const analyzingQuestionnairePendingTimeline = [
-  { id: 'sample-collected', label: 'Sample Collected', state: 'done' },
-  { id: 'questionnaire-pending', label: 'Questionnaire Completion', state: 'current' },
-  { id: 'analysis-pending', label: 'Analysis in Progress', state: 'pending' },
-  { id: 'reports-generated', label: 'Reports Generated', state: 'pending' },
+  { id: 'sample-collected', label: 'Sample Collected', labelLines: ['Sample', 'Collected'], state: 'done' },
+  { id: 'questionnaire-pending', label: 'Questionnaire Completion', labelLines: ['Questionnaire', 'Completion'], state: 'current' },
+  { id: 'analysis-pending', label: 'Analysis in Progress', labelLines: ['Analysis in', 'Progress'], state: 'pending' },
+  { id: 'reports-generated', label: 'Reports Generated', labelLines: ['Reports', 'Generated'], state: 'pending' },
 ];
 
 const b2cSampleCollectedTimeline = [
-  { id: 'sample-collected', label: 'Sample Collected', state: 'current' },
-  { id: 'questionnaire-pending', label: 'Questionnaire Completion', state: 'pending' },
-  { id: 'analysis-pending', label: 'Analysis in Progress', state: 'pending' },
-  { id: 'reports-generated', label: 'Reports Generated', state: 'pending' },
-];
-
-const analyzingNextItems = [
-  'Your detailed health analysis covers 88+ bio-markers',
-  'Bio-AI powered analysis generates actionable insights',
-  '1:1 consultation with qualified health professionals and get expert guidance on your Health Playbook',
+  { id: 'sample-collected', label: 'Sample Collected', labelLines: ['Sample', 'Collected'], state: 'current' },
+  { id: 'questionnaire-pending', label: 'Questionnaire Completion', labelLines: ['Questionnaire', 'Completion'], state: 'pending' },
+  { id: 'analysis-pending', label: 'Analysis in Progress', labelLines: ['Analysis in', 'Progress'], state: 'pending' },
+  { id: 'reports-generated', label: 'Reports Generated', labelLines: ['Reports', 'Generated'], state: 'pending' },
 ];
 
 const resolveOverviewPayload = (payload) => {
@@ -650,7 +562,6 @@ const HomePage = ({
     () => homePreloadComplete || hasRenderableOverviewData(preloadedData),
   );
   const [noDataStage, setNoDataStage] = useState('welcome');
-  const [checklistScrollProgress, setChecklistScrollProgress] = useState(0);
   const [upcomingSlotNormalized, setUpcomingSlotNormalized] = useState(null);
   const [upcomingSlotStatus, setUpcomingSlotStatus] = useState('idle');
   const [b2cSlotEnded, setB2cSlotEnded] = useState(false);
@@ -1758,18 +1669,6 @@ const HomePage = ({
     }
   };
 
-  const handleChecklistScroll = (event) => {
-    const element = event.currentTarget;
-    const maxScroll = element.scrollHeight - element.clientHeight;
-
-    if (maxScroll <= 0) {
-      setChecklistScrollProgress(0);
-      return;
-    }
-
-    setChecklistScrollProgress(element.scrollTop / maxScroll);
-  };
-
   if (isNoDataHome) {
     // Always wait for upcoming-slot resolution before choosing a no-data sub-screen.
     // This removes transient flashes (e.g. generic welcome) before final state is known.
@@ -1879,34 +1778,9 @@ const HomePage = ({
             </div>
           </section>
 
-          <section className="home-page-analyzing__card">
-            <h3>Status Timeline</h3>
-            <div className="home-page-analyzing__timeline">
-              {b2cSampleCollectedTimeline.map((item, index) => (
-                <div key={item.id} className="home-page-analyzing__timeline-row">
-                  <div className="home-page-analyzing__timeline-rail" aria-hidden="true">
-                    <span
-                      className={`home-page-analyzing__timeline-node home-page-analyzing__timeline-node--${
-                        item.state === 'current' ? 'current' : item.state
-                      }`}
-                    >
-                      {item.state === 'done' ? <ChecklistTickIcon /> : null}
-                    </span>
-                    {index < b2cSampleCollectedTimeline.length - 1 ? (
-                      <span className="home-page-analyzing__timeline-line is-muted" />
-                    ) : null}
-                  </div>
-                  <p
-                    className={`home-page-analyzing__timeline-label home-page-analyzing__timeline-label--${
-                      item.state === 'current' ? 'active' : item.state
-                    }`}
-                  >
-                    {item.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
+          <div className="home-page-analyzing__card home-page-analyzing__card--status-wrap">
+            <StatusTimelineCard steps={b2cSampleCollectedTimeline} />
+          </div>
 
           {showHealthQuestionnaireCta ? (
             <div className="home-page-b2b__cta-wrap">
@@ -1925,7 +1799,6 @@ const HomePage = ({
       const timelineItems = noDataStage === 'analyzing_questionnaire_pending'
         ? analyzingQuestionnairePendingTimeline
         : analyzingTimelineItems;
-      const lineMutedAfterIndex = noDataStage === 'analyzing_questionnaire_pending' ? 1 : 2;
       const showQuestionnaireCta = noDataStage === 'analyzing_questionnaire_pending'
         && showHealthQuestionnaireCta;
 
@@ -1949,53 +1822,13 @@ const HomePage = ({
             </div>
           </section>
 
-          <section className="home-page-analyzing__card">
-            <h3>Status Timeline</h3>
-            <div className="home-page-analyzing__timeline">
-              {timelineItems.map((item, index) => (
-                <div key={item.id} className="home-page-analyzing__timeline-row">
-                  <div className="home-page-analyzing__timeline-rail" aria-hidden="true">
-                    <span
-                      className={`home-page-analyzing__timeline-node home-page-analyzing__timeline-node--${
-                        item.state === 'current' ? 'current' : item.state
-                      }`}
-                    >
-                      {item.state === 'done' ? <ChecklistTickIcon /> : null}
-                    </span>
-                    {index < timelineItems.length - 1 ? (
-                      <span
-                        className={`home-page-analyzing__timeline-line${
-                          index === lineMutedAfterIndex ? ' is-muted' : ''
-                        }`}
-                      />
-                    ) : null}
-                  </div>
-                  <p
-                    className={`home-page-analyzing__timeline-label home-page-analyzing__timeline-label--${
-                      item.state === 'current' ? 'active' : item.state
-                    }`}
-                  >
-                    {item.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
+          <div className="home-page-analyzing__card home-page-analyzing__card--status-wrap">
+            <StatusTimelineCard steps={timelineItems} />
+          </div>
 
-          <section className="home-page-analyzing__card">
-            <div className="home-page-analyzing__next-head">
-              <span className="home-page-analyzing__info-badge" aria-hidden="true">
-                <InfoCircleIcon />
-              </span>
-              <h3>What happens next?</h3>
-            </div>
-
-            <ul className="home-page-analyzing__next-list">
-              {analyzingNextItems.map((text) => (
-                <li key={text}>{text}</li>
-              ))}
-            </ul>
-          </section>
+          <div className="home-page-analyzing__card home-page-analyzing__card--status-wrap">
+            <WhatHappensNextCard />
+          </div>
 
           {showQuestionnaireCta ? (
             <div className="home-page-b2b__cta-wrap">
@@ -2025,6 +1858,29 @@ const HomePage = ({
       const showSlotLocation = Boolean(slotLocationLines.primary);
       const showCampQuestionnaireCta = showHealthQuestionnaireCta;
       const campHeroTitle = slotNorm.isB2b ? 'Your Health Camp is Scheduled' : 'Your Test is Scheduled';
+      const locationRow = showSlotLocation
+        ? {
+          id: 'location',
+          icon: 'location',
+          title: slotLocationLines.primary,
+          sub: slotLocationLines.secondary,
+        }
+        : null;
+      const slotCardRows = (isB2cScheduled
+        ? [
+          { id: 'window', icon: 'time', title: slotWindowTitle, sub: 'Collection Window' },
+          locationRow,
+        ]
+        : [
+          { id: 'window', icon: 'time', title: slotWindowTitle, sub: 'Testing Window' },
+          {
+            id: 'engagement-date',
+            icon: 'calendar',
+            title: engagementDateParts.primary,
+            sub: engagementDateParts.secondary,
+          },
+          locationRow,
+        ]).filter(Boolean);
 
       return (
         <div
@@ -2074,102 +1930,16 @@ const HomePage = ({
             </div>
           </section>
 
-          <section className="home-page-scheduled__card home-page-b2b__slot-card">
-            <div className="home-page-b2b__slot-head">
-              <h3 className="home-page-b2b__slot-title">Your Assigned Slot</h3>
-              {slotNorm.isB2b ? (
-                <span className="home-page-b2b__arrive-pill">
-                  Arrive 10 mins early
-                </span>
-              ) : null}
-            </div>
-            <div className="home-page-scheduled__time-place">
-              <div className="home-page-scheduled__line-item">
-                <div className="home-page-scheduled__icon-box" aria-hidden="true">
-                  <TimeRowIcon />
-                </div>
-                <div className="home-page-scheduled__line-copy">
-                  <p className="home-page-scheduled__line-title">{slotWindowTitle}</p>
-                  <p className="home-page-scheduled__line-sub">Testing Window</p>
-                </div>
-              </div>
-              {isB2cScheduled ? (
-                showSlotLocation ? (
-                  <div className="home-page-scheduled__line-item">
-                    <div className="home-page-scheduled__icon-box" aria-hidden="true">
-                      <LocationRowIcon />
-                    </div>
-                    <div className="home-page-scheduled__line-copy">
-                      <p className="home-page-scheduled__line-title">{slotLocationLines.primary}</p>
-                      {slotLocationLines.secondary ? (
-                        <p className="home-page-scheduled__line-sub">{slotLocationLines.secondary}</p>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null
-              ) : (
-                <>
-                  <div className="home-page-scheduled__line-item">
-                    <div className="home-page-scheduled__icon-box" aria-hidden="true">
-                      <SlotDateCalendarIcon />
-                    </div>
-                    <div className="home-page-scheduled__line-copy">
-                      <p className="home-page-scheduled__line-title">{engagementDateParts.primary}</p>
-                      <p className="home-page-scheduled__line-sub">{engagementDateParts.secondary}</p>
-                    </div>
-                  </div>
-                  {showSlotLocation ? (
-                    <div className="home-page-scheduled__line-item">
-                      <div className="home-page-scheduled__icon-box" aria-hidden="true">
-                        <LocationRowIcon />
-                      </div>
-                      <div className="home-page-scheduled__line-copy">
-                        <p className="home-page-scheduled__line-title">{slotLocationLines.primary}</p>
-                        {slotLocationLines.secondary ? (
-                          <p className="home-page-scheduled__line-sub">{slotLocationLines.secondary}</p>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </div>
-          </section>
+          <div className="home-page-scheduled__card home-page-scheduled__card--home-collection-wrap">
+            <SlotDetailsCard
+              title={isB2cScheduled ? 'Home Collection' : 'Your Assigned Slot'}
+              pill={slotNorm.isB2b ? 'Arrive 10 mins early' : null}
+              rows={slotCardRows}
+              statusText={isB2cScheduled ? 'Your Health Companion is on the way' : null}
+            />
+          </div>
 
-          <section
-            className={`home-page-scheduled__card home-page-scheduled__prep${
-              showCampQuestionnaireCta ? ' home-page-scheduled__prep--cta-visible' : ''
-            }`}
-          >
-            <div className="home-page-scheduled__prep-head">
-              <PrepIcon />
-              <div className="home-page-scheduled__prep-head-copy">
-                <h3>Preparation Checklist</h3>
-                <p>Complete all</p>
-              </div>
-            </div>
-
-            <div className="home-page-scheduled__divider" aria-hidden="true" />
-
-            <div className="home-page-scheduled__checklist-wrap">
-              <div className="home-page-scheduled__checklist-list" onScroll={handleChecklistScroll}>
-                {b2bCampChecklistItems.map((item) => (
-                  <div key={item} className="home-page-scheduled__checklist-item">
-                    <span className="home-page-scheduled__check-icon" aria-hidden="true">
-                      <ChecklistTickIcon />
-                    </span>
-                    <p>{item}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="home-page-scheduled__scroll-indicator" aria-hidden="true">
-                <span
-                  className="home-page-scheduled__scroll-thumb"
-                  style={{ top: `${7 + checklistScrollProgress * 60.933}px` }}
-                />
-              </div>
-            </div>
-          </section>
+          <PrepStepsDeck steps={isB2cScheduled ? PREP_STEPS_B2C : PREP_STEPS_B2B} />
 
           {showCampQuestionnaireCta ? (
             <div className="home-page-b2b__cta-wrap home-page-b2b__cta-wrap--camp">

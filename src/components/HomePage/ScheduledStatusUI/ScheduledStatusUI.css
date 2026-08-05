@@ -1,4 +1,4 @@
-/* TEMPORARY — Screen 1 B2C redesign preview styles */
+/* Scheduled / analyzing screens — shared card designs (Screen 1, 2, 3). */
 
 .home-page-scheduled__card--home-collection-wrap {
   padding: 0;
@@ -200,7 +200,7 @@
   min-width: 0;
 }
 
-/* —— Preparation checklist card deck (Screen 1) —— */
+/* —— Preparation checklist card deck —— */
 
 .prep-deck-section {
   margin: 0 16px 12px;
@@ -372,7 +372,7 @@
   letter-spacing: 0.5px;
 }
 
-/* —— Screen 3: Status Timeline (horizontal gold) —— */
+/* —— Status Timeline (horizontal gold) —— */
 
 .home-page-analyzing__card--status-wrap {
   padding: 0;
@@ -452,8 +452,7 @@
   gap: 4px;
 }
 
-/* Continuous gold line through stem bases; fades after active step.
-   Extends slightly past the first column center on the left. */
+/* Continuous gold line through stem bases; fades after the active step. */
 .status-timeline-card__rail {
   position: absolute;
   left: calc(6% - 0.5px);
@@ -546,7 +545,7 @@
   color: rgba(255, 255, 255, 0.3);
 }
 
-/* —— Screen 3: What happens next? —— */
+/* —— What happens next? —— */
 
 .what-next-card {
   box-sizing: border-box;
@@ -629,4 +628,3 @@
   color: #fff;
   font-weight: 400;
 }
-
