@@ -300,7 +300,7 @@ const TrendsChart = ({
 
   const queryKey = variant === 'disease' ? diseaseCode : bloodParameter;
   const canFetchTrends = Boolean(queryKey) && (variant !== 'blood' || hasBloodRange);
-  const hasTrendData = !isLoading && !loadError && points.length > 0;
+  const hasTrendData = !isLoading && !loadError && points.length > 1;
 
   if (!canFetchTrends || !hasTrendData) {
     return null;

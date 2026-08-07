@@ -1353,12 +1353,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 20px;
-  padding: 2px 10px;
+  min-height: 22px;
+  padding: 3px 10px;
   border-radius: 30px;
-  border: 0.5px solid #c4c4c4;
+  /* 0.5px hairlines clip on many phone GPUs; keep a full 1px ring */
+  border: 1px solid #c4c4c4;
   background: transparent;
   box-sizing: border-box;
+  -webkit-appearance: none;
+  transform: translateZ(0);
 }
 
 .package-details-page__test-pill span {
@@ -1367,7 +1370,7 @@
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
-  line-height: normal;
+  line-height: 16px;
   white-space: nowrap;
 }
 

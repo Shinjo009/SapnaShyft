@@ -312,22 +312,26 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: 30px;
-  border: 0.5px solid #c4c4c4;
+  /* 0.5px hairlines clip on many phone GPUs; keep a full 1px ring */
+  border: 1px solid #c4c4c4;
   background: transparent;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  transform: translateZ(0);
   color: #c4c4c4;
   text-align: center;
   font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-style: normal;
   font-weight: 400;
-  line-height: normal;
+  line-height: 14px;
   letter-spacing: var(--Static-Label-Large-Tracking, 0.1px);
 }
 
 .create-custom-page__card.is-selected .create-custom-page__test-item {
-  border: 0.5px solid #90df9e;
+  border: 1px solid #90df9e;
   background: transparent;
   color: #c4c4c4;
 }

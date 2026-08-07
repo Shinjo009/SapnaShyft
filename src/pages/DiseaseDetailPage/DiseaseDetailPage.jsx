@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './DiseaseDetailPage.css';
 import lifestyleTick from '../../images/tick(lifestyle).svg';
 import { fetchLatestAssessmentReport } from '../../services/reportService';
@@ -132,7 +132,10 @@ const HealthRankInfoIcon = () => (
 
 const DiseaseDetailPage = ({ disease, onBack }) => {
   const riskStripRef = useRef(null);
+  const descriptionRef = useRef(null);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isDescriptionTruncated, setIsDescriptionTruncated] = useState(false);
+  const [collapsedPreview, setCollapsedPreview] = useState(null);
   const [dotsAnimated, setDotsAnimated] = useState(false);
   const [riskStripWidth, setRiskStripWidth] = useState(0);
   const [animatedLifestyleLeftPercent, setAnimatedLifestyleLeftPercent] = useState(0);
@@ -371,6 +374,53 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
   };
 
   const popupData = activeInfoPopup ? infoPopupContent[activeInfoPopup] : null;
+
+  useLayoutEffect(() => {
+    const element = descriptionRef.current;
+    if (!element || isDescriptionExpanded) {
+      setIsDescriptionTruncated(false);
+      setCollapsedPreview(null);
+      return;
+    }
+
+    const fullText = String(detailTopLine || '');
+    const fits = (value) => {
+      element.textContent = value;
+      return element.scrollHeight <= element.clientHeight + 1;
+    };
+
+    if (fits(fullText)) {
+      setIsDescriptionTruncated(false);
+      setCollapsedPreview(null);
+      element.textContent = fullText;
+      return;
+    }
+
+    setIsDescriptionTruncated(true);
+
+    let low = 0;
+    let high = fullText.length;
+    let best = 0;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const candidate = fullText.slice(0, mid).replace(/\s+\S*$/, '').trimEnd();
+      if (!candidate) {
+        high = mid - 1;
+        continue;
+      }
+
+      if (fits(`${candidate} ...`)) {
+        best = candidate.length;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    const preview = fullText.slice(0, best).replace(/\s+\S*$/, '').trimEnd();
+    setCollapsedPreview(preview || fullText.slice(0, Math.max(0, best)).trimEnd());
+  }, [detailTopLine, isDescriptionExpanded]);
 
   useEffect(() => {
     let isActive = true;
@@ -681,14 +731,21 @@ const DiseaseDetailPage = ({ disease, onBack }) => {
       <section className="disease-detail-description-section">
         <button
           type="button"
-          className="disease-detail-description-toggle"
+          className={`disease-detail-description${isDescriptionExpanded ? ' disease-detail-description--expanded' : ''}`}
           onClick={() => setIsDescriptionExpanded((prev) => !prev)}
           aria-expanded={isDescriptionExpanded}
-          aria-label="Toggle full description"
+          aria-label={isDescriptionExpanded ? 'Collapse description' : 'Expand description'}
         >
-          <p className={`disease-detail-description ${isDescriptionExpanded ? 'expanded' : ''}`}>
-            {detailTopLine}
-          </p>
+          <span ref={descriptionRef} className="disease-detail-description__text">
+            {isDescriptionExpanded || !collapsedPreview ? (
+              detailTopLine
+            ) : (
+              <>
+                {collapsedPreview}
+                <span className="disease-detail-description-dots">{' ...'}</span>
+              </>
+            )}
+          </span>
         </button>
       </section>
 
