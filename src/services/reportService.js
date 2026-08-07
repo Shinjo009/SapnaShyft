@@ -56,6 +56,25 @@ const extractArray = (payload) => {
   return [];
 };
 
+/** Package codes from `/assessments/me` that must never win as “latest”. */
+const IGNORED_ASSESSMENTS_ME_PACKAGE_CODES = new Set(['VIFC']);
+
+const getPackageCodeFromAssessmentRow = (row) => String(
+  row?.package_code
+  || row?.packageCode
+  || row?.assessment?.package_code
+  || row?.assessment?.packageCode
+  || '',
+).trim().toUpperCase().replace(/\s+/g, '_');
+
+const isIgnoredAssessmentsMePackageRow = (row) => (
+  IGNORED_ASSESSMENTS_ME_PACKAGE_CODES.has(getPackageCodeFromAssessmentRow(row))
+);
+
+const withoutIgnoredAssessmentsMeRows = (rows) => (
+  (Array.isArray(rows) ? rows : []).filter((row) => !isIgnoredAssessmentsMePackageRow(row))
+);
+
 const toTimestamp = (value) => {
   const timestamp = new Date(value || 0).getTime();
   return Number.isFinite(timestamp) ? timestamp : 0;
@@ -76,7 +95,7 @@ const extractAssessmentIdFromRow = (row) => {
 };
 
 const getSortedAssessmentIds = (assessments) => {
-  const rows = Array.isArray(assessments) ? assessments : [];
+  const rows = withoutIgnoredAssessmentsMeRows(assessments);
 
   const sorted = [...rows].sort((a, b) => {
     const aTime = Math.max(
@@ -107,7 +126,7 @@ const getSortedAssessmentIds = (assessments) => {
 };
 
 const sortAssessmentRowsLatestFirst = (rows) => {
-  const list = Array.isArray(rows) ? rows : [];
+  const list = withoutIgnoredAssessmentsMeRows(rows);
   return [...list].sort((a, b) => {
     const aTime = Math.max(
       toTimestamp(a?.assigned_at),
@@ -176,6 +195,11 @@ const normalizedAssessmentFamily = (row) => {
     .trim()
     .toUpperCase()
     .replace(/\s+/g, '_');
+
+  // Never treat VIFC (or other ignored codes) as FitPrint / Basic / Pro.
+  if (IGNORED_ASSESSMENTS_ME_PACKAGE_CODES.has(packageCode)) {
+    return '';
+  }
 
   if (
     packageCode === 'MY_FITNESS_PRINT'
@@ -306,7 +330,9 @@ const fetchMyAssessmentsPageCached = async (ttlMs = 45000, query = DEFAULT_ASSES
 
 /** Cached GET /assessments/me rows (default page 1, limit 50). Warms the same cache as `getLatestAssessmentIdsCached`. */
 export const peekMyAssessmentsRowsCached = async (ttlMs = 45000) => {
-  return extractArray(await fetchMyAssessmentsPageCached(ttlMs, DEFAULT_ASSESSMENTS_ME_QUERY));
+  return withoutIgnoredAssessmentsMeRows(
+    extractArray(await fetchMyAssessmentsPageCached(ttlMs, DEFAULT_ASSESSMENTS_ME_QUERY)),
+  );
 };
 
 /**
@@ -335,31 +361,19 @@ export const fetchLatestAssessmentReport = async (buildPath, ttlMs = 45000) => {
   const tried = new Set();
   const likelyAssessmentId = readStoredLatestAssessmentId();
 
-  // If we try a stored assessment id first, warm `/assessments/me` in parallel so a stale id
-  // does not pay sequential latency before falling back to the sorted list.
-  const assessmentsListPromise = likelyAssessmentId
-    ? getLatestAssessmentIdsCached(ttlMs).catch(() => [])
-    : null;
-
-  if (likelyAssessmentId) {
-    try {
-      const response = await authorizedGetCached(buildPath(likelyAssessmentId), ttlMs);
-      writeStoredLatestAssessmentId(likelyAssessmentId);
-      return { assessmentId: likelyAssessmentId, response };
-    } catch {
-      tried.add(likelyAssessmentId);
-    }
-  }
-
-  const assessmentIds = assessmentsListPromise != null
-    ? await assessmentsListPromise
-    : await getLatestAssessmentIdsCached(ttlMs);
+  const assessmentIds = await getLatestAssessmentIdsCached(ttlMs);
   let lastError = null;
 
-  for (const assessmentId of assessmentIds) {
+  // Prefer stored id only when it is still a non-ignored (non-VIFC) assessment.
+  const orderedIds = likelyAssessmentId && assessmentIds.includes(likelyAssessmentId)
+    ? [likelyAssessmentId, ...assessmentIds.filter((id) => id !== likelyAssessmentId)]
+    : assessmentIds;
+
+  for (const assessmentId of orderedIds) {
     if (tried.has(assessmentId)) {
       continue;
     }
+    tried.add(assessmentId);
 
     try {
       const response = await authorizedGetCached(buildPath(assessmentId), ttlMs);

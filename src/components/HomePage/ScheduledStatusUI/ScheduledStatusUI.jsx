@@ -9,7 +9,7 @@ export const PREP_STEPS_B2C = [
   {
     step: 'STEP 01',
     title: 'Fasting Required (8-12 hours)',
-    description: 'Water is allowed. Avoid chewing gum, mints, and flavored drinks.',
+    description: 'Water is allowed. Avoid high-fat or high-sugar foods before the test.',
     icon: 'fasting',
     tone: 'yellow',
   },

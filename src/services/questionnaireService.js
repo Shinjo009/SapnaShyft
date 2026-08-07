@@ -56,12 +56,29 @@ const getAssessmentInstanceId = (assessment) => {
 /**
  * Prefer Metsights Pro/Basic over FitPrint — only compares rows that share the same engagement_id.
  */
-const normalizePackageCode = (row) => String(row?.package_code || row?.packageCode || '').trim()
+const normalizePackageCode = (row) => String(
+  row?.package_code || row?.packageCode || row?.assessment?.package_code || '',
+).trim()
   .toUpperCase()
   .replace(/\s+/g, '_');
 
+/** Package codes from `/assessments/me` that must never win as “latest”. */
+const IGNORED_ASSESSMENTS_ME_PACKAGE_CODES = new Set(['VIFC']);
+
+const isIgnoredAssessmentsMePackage = (row) => (
+  IGNORED_ASSESSMENTS_ME_PACKAGE_CODES.has(normalizePackageCode(row))
+);
+
+const withoutIgnoredAssessmentsMePackages = (rows) => (
+  (Array.isArray(rows) ? rows : []).filter((row) => !isIgnoredAssessmentsMePackage(row))
+);
+
 const getPackagePriorityTier = (row) => {
   const code = normalizePackageCode(row);
+
+  if (isIgnoredAssessmentsMePackage(row)) {
+    return -1;
+  }
 
   const isFitPrint = code === 'MY_FITNESS_PRINT'
     || code.includes('FITPRINT')
@@ -461,7 +478,7 @@ const pickAssessmentRowForCategoryDraftCheck = (assessments) => (
 
 const extractAssessmentsFromListPayload = (payload) => {
   if (Array.isArray(payload)) {
-    return payload;
+    return withoutIgnoredAssessmentsMePackages(payload);
   }
 
   if (!payload || typeof payload !== 'object') {
@@ -469,23 +486,27 @@ const extractAssessmentsFromListPayload = (payload) => {
   }
 
   if (Array.isArray(payload.items)) {
-    return payload.items;
+    return withoutIgnoredAssessmentsMePackages(payload.items);
   }
 
   if (Array.isArray(payload.results)) {
-    return payload.results;
+    return withoutIgnoredAssessmentsMePackages(payload.results);
   }
 
   if (Array.isArray(payload.rows)) {
-    return payload.rows;
+    return withoutIgnoredAssessmentsMePackages(payload.rows);
   }
 
   if (Array.isArray(payload.data?.items)) {
-    return payload.data.items;
+    return withoutIgnoredAssessmentsMePackages(payload.data.items);
   }
 
   if (Array.isArray(payload.data?.results)) {
-    return payload.data.results;
+    return withoutIgnoredAssessmentsMePackages(payload.data.results);
+  }
+
+  if (Array.isArray(payload.data)) {
+    return withoutIgnoredAssessmentsMePackages(payload.data);
   }
 
   return [];

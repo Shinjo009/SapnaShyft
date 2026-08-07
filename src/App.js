@@ -79,7 +79,6 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const HealthScanIndexPage = lazy(() => import('./pages/HealthScanIndexPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AllAppointmentsPage = lazy(() => import('./pages/AllAppointmentsPage'));
-const ScheduledDesignPreviewPage = lazy(() => import('./pages/ScheduledDesignPreviewPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const NutritionPage = lazy(() => import('./pages/NutritionPage'));
 const CustomerSupportPage = lazy(() => import('./pages/CustomerSupportPage'));
@@ -2237,15 +2236,6 @@ function App() {
             console.log('Navigate to All Appointments');
             setCurrentPage('all-appointments');
           }}
-          onOpenScheduledScreen1={() => {
-            setCurrentPage('scheduled-design-screen-1');
-          }}
-          onOpenScheduledScreen2={() => {
-            setCurrentPage('scheduled-design-screen-2');
-          }}
-          onOpenScheduledScreen3={() => {
-            setCurrentPage('scheduled-design-screen-3');
-          }}
           onOpenAddAccount={() => {
             console.log('Navigate to Add Account');
             setCurrentPage('add-account');
@@ -2313,30 +2303,6 @@ function App() {
             console.log('Back to Profile');
             setCurrentPage('profile');
           }}
-        />
-      )}
-
-      {currentPage === 'scheduled-design-screen-1' && (
-        <ScheduledDesignPreviewPage
-          variant="test"
-          userName={userName}
-          onBack={() => setCurrentPage('profile')}
-        />
-      )}
-
-      {currentPage === 'scheduled-design-screen-2' && (
-        <ScheduledDesignPreviewPage
-          variant="camp"
-          userName={userName}
-          onBack={() => setCurrentPage('profile')}
-        />
-      )}
-
-      {currentPage === 'scheduled-design-screen-3' && (
-        <ScheduledDesignPreviewPage
-          variant="analyzing"
-          userName={userName}
-          onBack={() => setCurrentPage('profile')}
         />
       )}
 
