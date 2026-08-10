@@ -79,6 +79,7 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const HealthScanIndexPage = lazy(() => import('./pages/HealthScanIndexPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AllAppointmentsPage = lazy(() => import('./pages/AllAppointmentsPage'));
+const NewDesQuesPage = lazy(() => import('./pages/NewDesQuesPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const NutritionPage = lazy(() => import('./pages/NutritionPage'));
 const CustomerSupportPage = lazy(() => import('./pages/CustomerSupportPage'));
@@ -2236,6 +2237,9 @@ function App() {
             console.log('Navigate to All Appointments');
             setCurrentPage('all-appointments');
           }}
+          onOpenNewDesQues={() => {
+            setCurrentPage('new-des-ques');
+          }}
           onOpenAddAccount={() => {
             console.log('Navigate to Add Account');
             setCurrentPage('add-account');
@@ -2301,6 +2305,14 @@ function App() {
         <AllAppointmentsPage
           onBack={() => {
             console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'new-des-ques' && (
+        <NewDesQuesPage
+          onBack={() => {
             setCurrentPage('profile');
           }}
         />
