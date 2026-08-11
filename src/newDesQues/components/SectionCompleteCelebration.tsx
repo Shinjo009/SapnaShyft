@@ -1,22 +1,33 @@
 import type { CSSProperties } from 'react'
 import './sectionCompleteCelebration.css'
 
-type CelebrationTone = 'family' | 'lifestyle' | 'nutrition' | 'booking'
+type CelebrationTone =
+  | 'anthropometry'
+  | 'family'
+  | 'lifestyle'
+  | 'nutrition'
+  | 'vitals'
+  | 'booking'
+  | 'intro'
 
 const TONE_VARS: Record<CelebrationTone, { accent: string; soft: string; glow: string }> = {
+  anthropometry: { accent: '#90df9e', soft: 'rgba(144,223,158,0.55)', glow: 'rgba(144,223,158,0.4)' },
   family: { accent: '#d8b4fe', soft: 'rgba(192,132,252,0.5)', glow: 'rgba(192,132,252,0.35)' },
   lifestyle: { accent: '#fbbf24', soft: 'rgba(251,191,36,0.5)', glow: 'rgba(251,191,36,0.35)' },
   nutrition: { accent: '#7dd3fc', soft: 'rgba(125,211,252,0.5)', glow: 'rgba(125,211,252,0.35)' },
+  vitals: { accent: '#90df9e', soft: 'rgba(144,223,158,0.55)', glow: 'rgba(144,223,158,0.4)' },
   booking: { accent: '#90df9e', soft: 'rgba(144,223,158,0.55)', glow: 'rgba(144,223,158,0.4)' },
+  intro: { accent: '#90df9e', soft: 'rgba(144,223,158,0.55)', glow: 'rgba(144,223,158,0.4)' },
 }
 
-const TONE_COPY: Record<
-  CelebrationTone,
-  { headline: string; milestones: [string, string, string] }
-> = {
+const TONE_COPY: Record<CelebrationTone, { headline: string; milestones: string[] }> = {
   booking: {
     headline: 'STEP 1 DONE',
     milestones: ['Booked', 'Confirmed', 'Ready'],
+  },
+  anthropometry: {
+    headline: 'ANTHRO DONE',
+    milestones: ['Height', 'Weight', 'Waist'],
   },
   family: {
     headline: 'FAMILY DONE',
@@ -30,9 +41,23 @@ const TONE_COPY: Record<
     headline: 'NUTRITION DONE',
     milestones: ['Fuel', 'Choices', 'Logged'],
   },
+  vitals: {
+    headline: 'VITALS DONE',
+    milestones: ['Systolic', 'Diastolic', 'Logged'],
+  },
+  intro: {
+    headline: 'SUCCESS',
+    milestones: ['Anthro', 'Family', 'Lifestyle', 'Nutrition', 'Vitals'],
+  },
 }
 
-const MILESTONE_DELAY = ['scc-delay-1', 'scc-delay-2', 'scc-delay-3'] as const
+const MILESTONE_DELAY = [
+  'scc-delay-1',
+  'scc-delay-2',
+  'scc-delay-3',
+  'scc-delay-4',
+  'scc-delay-5',
+] as const
 
 /** Tick angles in degrees; 0 = right, 90 = up (SVG). Sweep upper semicircle-ish from 200°→340°. */
 const TICK_ANGLES = Array.from({ length: 25 }, (_, i) => 200 + (i * 140) / 24)
@@ -69,20 +94,25 @@ function PedalGlyph() {
  */
 export function SectionCompleteCelebration({
   tone = 'family',
+  milestones: milestonesProp,
 }: {
   tone?: CelebrationTone
+  /** Override pedal labels (5-section intro uses Anthro / Family / …). */
+  milestones?: string[]
   /** @deprecated ignored — single polished size for all screens */
   compact?: boolean
 }) {
   const colors = TONE_VARS[tone]
   const copy = TONE_COPY[tone]
+  const milestones = milestonesProp && milestonesProp.length > 0 ? milestonesProp : copy.milestones
+  const isIntro = tone === 'intro'
   const cx = 120
   const cy = 118
   const r = 88
 
   return (
     <div
-      className="scc"
+      className={isIntro ? 'scc scc--intro' : 'scc'}
       style={
         {
           ['--scc-accent']: colors.accent,
@@ -177,10 +207,13 @@ export function SectionCompleteCelebration({
         <p className="scc-success">{copy.headline}</p>
       </div>
 
-      <div className="scc-pedals">
-        {copy.milestones.map((label, index) => (
-          <div key={label} className={`scc-pedal ${MILESTONE_DELAY[index]}`}>
-            <span className="scc-swoosh" />
+      <div className={isIntro ? 'scc-pedals scc-pedals--five' : 'scc-pedals'}>
+        {milestones.map((label, index) => (
+          <div
+            key={`${label}-${index}`}
+            className={`scc-pedal ${MILESTONE_DELAY[index] || 'scc-delay-3'}`}
+          >
+            {isIntro ? null : <span className="scc-swoosh" />}
             <div className="scc-pedal-icon">
               <PedalGlyph />
             </div>

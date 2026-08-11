@@ -2,10 +2,12 @@ import type { ReactNode } from 'react'
 import backIcon from '../../assets/nutrition-log/back-icon.svg'
 import nextChevronIcon from '../../assets/nutrition-log/next-chevron.svg'
 import type { NutritionQuestionPreview } from '../../data/nutritionLogQuestions'
+import { ContinueButton } from '../ContinueButton'
 import {
   MCQ_SHELL_CLASS,
   MCQ_SHELL_FOOTER_INNER_CLASS,
   MCQ_SHELL_SCROLL_CLASS,
+  PAGE_GUTTER_X,
   formatNextQuestionPreview,
 } from '../mcq/mcqLayout'
 import { McqProgressBar } from '../mcq/McqProgressBar'
@@ -31,7 +33,7 @@ export function NutritionLogMcqShell({
 
   return (
     <div className={MCQ_SHELL_CLASS}>
-      <header className="flex shrink-0 items-center px-4 pb-0 pt-6">
+      <header className="flex shrink-0 items-center px-[25px] pb-0 pt-6">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <button
             type="button"
@@ -47,7 +49,7 @@ export function NutritionLogMcqShell({
         </div>
       </header>
 
-      <div className="flex shrink-0 flex-col gap-2 px-4 py-1">
+      <div className="flex shrink-0 flex-col gap-2 px-[25px] py-1">
         <div className="flex w-full items-center justify-end">
           <p className="text-right text-[11px] font-normal uppercase tracking-[0.3px] text-[#8e8ca3] leading-[13.5px]">
             {clampedPercent}% COMPLETED
@@ -56,11 +58,19 @@ export function NutritionLogMcqShell({
         <McqProgressBar percent={clampedPercent} color="#3F9CFF" />
       </div>
 
-      <div className={MCQ_SHELL_SCROLL_CLASS}>{children}</div>
+      <div className={MCQ_SHELL_SCROLL_CLASS}>
+        <div className={PAGE_GUTTER_X}>{children}</div>
+      </div>
 
       <footer className="fixed inset-x-0 bottom-0 z-10 bg-[rgba(255,255,255,0.05)] backdrop-blur-[25px]">
-        <div className={`${MCQ_SHELL_FOOTER_INNER_CLASS}${isLastQuestion ? ' justify-end' : ''}`}>
-          {!isLastQuestion ? (
+        {isLastQuestion ? (
+          <div className={`${MCQ_SHELL_FOOTER_INNER_CLASS} !justify-center`}>
+            <ContinueButton variant="done" showChevron={false} onClick={onNext}>
+              Done
+            </ContinueButton>
+          </div>
+        ) : (
+          <div className={MCQ_SHELL_FOOTER_INNER_CLASS}>
             <div className="min-w-0 max-w-[200px] flex-1">
               <p className="text-[10px] font-medium uppercase tracking-[1.1px] leading-[14px] text-[rgba(255,255,255,0.4)]">
                 NEXT QUESTION
@@ -69,17 +79,17 @@ export function NutritionLogMcqShell({
                 {formatNextQuestionPreview(nextQuestionPreview.line1, nextQuestionPreview.line2)}
               </p>
             </div>
-          ) : null}
-          <button
-            type="button"
-            onClick={onNext}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-solid border-[#969696] p-px shadow-[0_8px_32px_0_rgba(79,172,254,0.2)]"
-            style={{ backgroundImage: NUTRITION_NEXT_BUTTON_GRADIENT }}
-            aria-label="Next question"
-          >
-            <img src={nextChevronIcon} alt="" className="size-5" aria-hidden />
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={onNext}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full border border-solid border-[#969696] p-px shadow-[0_8px_32px_0_rgba(79,172,254,0.2)]"
+              style={{ backgroundImage: NUTRITION_NEXT_BUTTON_GRADIENT }}
+              aria-label="Next question"
+            >
+              <img src={nextChevronIcon} alt="" className="size-5" aria-hidden />
+            </button>
+          </div>
+        )}
       </footer>
     </div>
   )

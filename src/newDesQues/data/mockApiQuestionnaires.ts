@@ -305,13 +305,88 @@ export const MOCK_LIFESTYLE_HABITS_QUESTIONS: QuestionnaireQuestion[] = [
   },
 ]
 
+export const MOCK_ANTHROPOMETRY_QUESTIONS: QuestionnaireQuestion[] = [
+  {
+    question_id: 1,
+    question_key: 'height',
+    question_text: 'What is you height ?',
+    question_type: 'number',
+    is_required: true,
+    options: [
+      { option_id: 11, option_value: 'ft_in', display_name: 'Ft/In' },
+      { option_id: 12, option_value: 'cm', display_name: 'Cm' },
+    ],
+  },
+  {
+    question_id: 2,
+    question_key: 'weight',
+    question_text: 'What is you weight?',
+    question_type: 'number',
+    is_required: true,
+    options: [
+      { option_id: 21, option_value: 'kg', display_name: 'Kg' },
+      { option_id: 22, option_value: 'lb', display_name: 'Lb' },
+    ],
+  },
+  {
+    question_id: 3,
+    question_key: 'waist_circumference',
+    question_text: 'What is you waist size ?',
+    question_type: 'number',
+    is_required: true,
+    options: [
+      { option_id: 31, option_value: 'in', display_name: 'In' },
+      { option_id: 32, option_value: 'cm', display_name: 'cm' },
+    ],
+  },
+  {
+    question_id: 4,
+    question_key: 'hip_circumference',
+    question_text: 'What is you hip size ?',
+    question_type: 'number',
+    is_required: false,
+    options: [
+      { option_id: 41, option_value: 'in', display_name: 'In' },
+      { option_id: 42, option_value: 'cm', display_name: 'cm' },
+    ],
+  },
+  {
+    question_id: 5,
+    question_key: 'body_fat',
+    question_text: 'What is you body-fat percent ?',
+    question_type: 'number',
+    is_required: false,
+  },
+]
+
+export const MOCK_VITALS_QUESTIONS: QuestionnaireQuestion[] = [
+  {
+    question_id: 501,
+    question_key: 'systolic_blood_pressure',
+    question_text: 'Systolic Blood Pressure',
+    question_type: 'number',
+    is_required: false,
+    options: [{ option_id: 5011, option_value: 'mmhg', display_name: 'mmHg' }],
+  },
+  {
+    question_id: 502,
+    question_key: 'diastolic_blood_pressure',
+    question_text: 'Diastolic Blood Pressure',
+    question_type: 'number',
+    is_required: false,
+    options: [{ option_id: 5021, option_value: 'mmhg', display_name: 'mmHg' }],
+  },
+]
+
 export function getMockQuestionnaireQuestions(categoryKey: string): QuestionnaireQuestion[] {
   const key = String(categoryKey || '')
     .trim()
     .toLowerCase()
+  if (key.includes('anthro')) return MOCK_ANTHROPOMETRY_QUESTIONS
   if (key.includes('family')) return MOCK_FAMILY_HISTORY_QUESTIONS
   if (key.includes('lifestyle')) return MOCK_LIFESTYLE_HABITS_QUESTIONS
   if (key.includes('nutrition')) return MOCK_NUTRITION_LOG_QUESTIONS
+  if (key.includes('vital')) return MOCK_VITALS_QUESTIONS
   return []
 }
 

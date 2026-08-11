@@ -34,10 +34,12 @@
   top: 58%;
   width: 200px;
   height: 120px;
-  translate: -50% -50%;
+  margin-left: -100px;
+  margin-top: -60px;
   border-radius: 50%;
   background: radial-gradient(ellipse at center, var(--scc-glow), transparent 70%);
   opacity: 0.35;
+  transform-origin: center;
   animation: scc-aura 2.4s ease-in-out infinite;
 }
 
@@ -132,6 +134,12 @@
 .scc-delay-3 {
   animation-delay: 1.9s;
 }
+.scc-delay-4 {
+  animation-delay: 2.15s;
+}
+.scc-delay-5 {
+  animation-delay: 2.4s;
+}
 
 .scc-delay-1 .scc-swoosh {
   animation: scc-swoosh 2.8s ease-out 1.4s infinite;
@@ -141,6 +149,12 @@
 }
 .scc-delay-3 .scc-swoosh {
   animation: scc-swoosh 2.8s ease-out 1.9s infinite;
+}
+.scc-delay-4 .scc-swoosh {
+  animation: scc-swoosh 2.8s ease-out 2.15s infinite;
+}
+.scc-delay-5 .scc-swoosh {
+  animation: scc-swoosh 2.8s ease-out 2.4s infinite;
 }
 
 .scc-pedal-icon {
@@ -166,6 +180,12 @@
 .scc-delay-3 .scc-pedal-icon {
   animation-delay: 2.5s;
 }
+.scc-delay-4 .scc-pedal-icon {
+  animation-delay: 2.75s;
+}
+.scc-delay-5 .scc-pedal-icon {
+  animation-delay: 3s;
+}
 
 .scc-pedal-glyph {
   width: 26px;
@@ -190,12 +210,14 @@
   top: -2px;
   width: 36px;
   height: 28px;
-  translate: -50% -100%;
+  margin-left: -18px;
+  margin-top: -28px;
   border-radius: 50%;
   background: radial-gradient(ellipse at bottom, #fff 0%, var(--scc-accent) 40%, transparent 72%);
   opacity: 0;
   filter: blur(0.5px);
   pointer-events: none;
+  transform-origin: center bottom;
 }
 
 /* --- keyframes --- */
@@ -320,18 +342,105 @@
 @keyframes scc-swoosh {
   0% {
     opacity: 0;
-    transform: translate(-50%, 6px) scale(0.5);
+    transform: translateY(6px) scale(0.5);
   }
   12% {
     opacity: 0.85;
+    transform: translateY(-4px) scale(1);
   }
   28% {
     opacity: 0;
-    transform: translate(-50%, -18px) scale(1.2);
+    transform: translateY(-18px) scale(1.2);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -18px) scale(1.2);
+    transform: translateY(-18px) scale(1.2);
+  }
+}
+
+/* 5-section Health Assessment intro — same gauge, compact clipboard rail */
+.scc--intro {
+  width: 100%;
+  max-width: 336px;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.scc--intro .scc-gauge {
+  width: 220px;
+  height: 128px;
+}
+
+.scc--intro .scc-progress {
+  animation: scc-draw-arc 1.45s cubic-bezier(0.22, 0.9, 0.3, 1) 0.25s forwards;
+}
+
+.scc--intro .scc-needle {
+  animation: scc-needle 1.45s cubic-bezier(0.22, 0.9, 0.3, 1) 0.25s forwards;
+}
+
+.scc-pedals--five {
+  display: flex;
+  width: 100%;
+  max-width: 320px;
+  justify-content: center;
+  column-gap: 8px;
+  padding: 0;
+}
+
+.scc-pedals--five:has(.scc-pedal:nth-child(2):last-child) {
+  column-gap: 28px;
+}
+
+.scc-pedals--five .scc-pedal {
+  flex: 0 0 auto;
+  width: 56px;
+}
+
+.scc--intro .scc-pedal {
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.scc--intro .scc-pedal-icon {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  animation: none;
+}
+
+.scc--intro .scc-pedal-glyph {
+  width: 18px;
+  height: 20px;
+}
+
+.scc--intro .scc-pedal-label {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: #9a9a9a;
+}
+
+.scc--intro .scc-delay-1,
+.scc--intro .scc-delay-2,
+.scc--intro .scc-delay-3,
+.scc--intro .scc-delay-4,
+.scc--intro .scc-delay-5 {
+  animation-name: scc-pedal-intro;
+}
+
+@keyframes scc-pedal-intro {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    color: rgba(255, 255, 255, 0.7);
+    filter: none;
   }
 }
 

@@ -33,13 +33,24 @@ type AssessmentStatusResponse = {
 const EXCLUDED_CATEGORY_KEYS = new Set(['anthropometry', 'health_vitals', 'vitals'])
 
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  anthropometry: 'Anthro data.......',
   family_history:
     "Knowing your family's health patterns helps us predict risks more accurately.",
   lifestyle_habits:
     'Your routines help our system decode how your habits influence your health.',
   nutrition_log:
     'Your food patterns help us understand nutrition habits that shape long-term health.',
+  vitals: 'Your blood pressure readings help us understand heart and metabolic risk.',
+  health_vitals: 'Your blood pressure readings help us understand heart and metabolic risk.',
 }
+
+const INTRO_SHORT_LABELS: { match: string; label: string }[] = [
+  { match: 'anthro', label: 'Anthro' },
+  { match: 'family', label: 'Family' },
+  { match: 'lifestyle', label: 'Lifestyle' },
+  { match: 'nutrition', label: 'Nutrition' },
+  { match: 'vital', label: 'Vitals' },
+]
 
 export function categoryDescriptionForKey(categoryKey: string): string | undefined {
   return CATEGORY_DESCRIPTIONS[String(categoryKey || '').trim().toLowerCase()]
@@ -49,6 +60,35 @@ export function normalizeCategoryKey(categoryKey: string): string {
   return String(categoryKey || '')
     .trim()
     .toLowerCase()
+}
+
+export function isAnthropometryCategory(categoryKey: string): boolean {
+  return normalizeCategoryKey(categoryKey).includes('anthro')
+}
+
+export function isVitalsCategory(categoryKey: string): boolean {
+  return normalizeCategoryKey(categoryKey).includes('vital')
+}
+
+/** Family / Lifestyle / Nutrition — the three redesigned questionnaire UIs. */
+export function isRedesignedQuestionnaireCategory(category: AssessmentCategoryStatus): boolean {
+  const key = normalizeCategoryKey(category.category_key)
+  return key.includes('family') || key.includes('lifestyle') || key.includes('nutrition')
+}
+
+export function hasAnthropometryAndVitals(categories: AssessmentCategoryStatus[]): boolean {
+  return (
+    categories.some((category) => isAnthropometryCategory(category.category_key)) &&
+    categories.some((category) => isVitalsCategory(category.category_key))
+  )
+}
+
+export function introShortLabelForCategory(category: AssessmentCategoryStatus): string {
+  const key = normalizeCategoryKey(category.category_key)
+  const match = INTRO_SHORT_LABELS.find((entry) => key.includes(entry.match))
+  if (match) return match.label
+  const name = String(category.display_name || category.category_key || '').trim()
+  return name.split(/\s+/)[0] || 'Section'
 }
 
 export function isCategoryCompleted(
@@ -244,37 +284,72 @@ export type AssessmentBootstrapResult = {
   categories: AssessmentCategoryStatus[]
 }
 
+export type NewDesQuesScenario = 1 | 2 | 3
+
+const MOCK_ASSESSMENT_CATEGORIES: AssessmentCategoryStatus[] = [
+  {
+    id: 1,
+    category_id: 1,
+    category_key: 'anthropometry',
+    display_name: 'Anthropometry',
+    status: 'pending',
+  },
+  {
+    id: 2,
+    category_id: 2,
+    category_key: 'family_history',
+    display_name: 'Family History',
+    status: 'pending',
+  },
+  {
+    id: 3,
+    category_id: 3,
+    category_key: 'lifestyle_habits',
+    display_name: 'Lifestyle & Habits',
+    status: 'pending',
+  },
+  {
+    id: 4,
+    category_id: 4,
+    category_key: 'nutrition_log',
+    display_name: 'Nutrition Log',
+    status: 'pending',
+  },
+  {
+    id: 5,
+    category_id: 5,
+    category_key: 'vitals',
+    display_name: 'Vitals',
+    status: 'pending',
+  },
+]
+
+export function mockCategoriesForScenario(scenario: NewDesQuesScenario = 2): AssessmentCategoryStatus[] {
+  if (scenario === 1) {
+    return MOCK_ASSESSMENT_CATEGORIES.filter((category) => {
+      const key = normalizeCategoryKey(category.category_key)
+      return key.includes('family') || key.includes('lifestyle') || key.includes('nutrition')
+    })
+  }
+  if (scenario === 3) {
+    return MOCK_ASSESSMENT_CATEGORIES.filter((category) => {
+      const key = normalizeCategoryKey(category.category_key)
+      return isAnthropometryCategory(key) || isVitalsCategory(key)
+    })
+  }
+  return MOCK_ASSESSMENT_CATEGORIES
+}
+
 /** Resolve latest Metsights Pro/Basic assessment and questionnaire categories for Step 2. */
 export async function loadAssessmentCategoriesForStep2(
   accessToken: string,
+  scenario: NewDesQuesScenario = 2,
 ): Promise<AssessmentBootstrapResult> {
   if (isFrontendOnly()) {
-    console.info('[frontend-only] using local mock assessment categories')
+    console.info('[frontend-only] using local mock assessment categories', { scenario })
     return {
       assessmentInstanceId: 1,
-      categories: [
-        {
-          id: 1,
-          category_id: 1,
-          category_key: 'family_history',
-          display_name: 'Family History',
-          status: 'pending',
-        },
-        {
-          id: 2,
-          category_id: 2,
-          category_key: 'lifestyle_habits',
-          display_name: 'Lifestyle & Habits',
-          status: 'pending',
-        },
-        {
-          id: 3,
-          category_id: 3,
-          category_key: 'nutrition_log',
-          display_name: 'Nutrition Log',
-          status: 'pending',
-        },
-      ],
+      categories: mockCategoriesForScenario(scenario),
     }
   }
 

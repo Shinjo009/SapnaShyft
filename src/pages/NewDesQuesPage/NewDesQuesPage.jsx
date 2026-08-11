@@ -2,12 +2,11 @@ import React from 'react';
 import { NewDesQuesFlow } from '../../newDesQues/NewDesQuesFlow.tsx';
 
 /**
- * Profile → Settings → NewDesQues
- * Design preview of the redesigned Family / Lifestyle / Nutrition questionnaire
- * from dev-forms. Does not replace the production Health Assessment.
+ * Profile → Settings → Scenario 1 / 2 / 3
+ * Design preview of the redesigned questionnaire. Does not replace production HA.
  */
-const NewDesQuesPage = ({ onBack }) => {
-  return <NewDesQuesFlow onBack={onBack} />;
+const NewDesQuesPage = ({ onBack, scenario = 2 }) => {
+  return <NewDesQuesFlow key={scenario} onBack={onBack} scenario={scenario} />;
 };
 
 export default NewDesQuesPage;

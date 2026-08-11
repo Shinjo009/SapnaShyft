@@ -272,6 +272,7 @@ const deriveEmployerOrganizerName = (profile) => {
 function App() {
   const PACKAGE_ONBOARDING_NEW_USER_SESSION_KEY = 'ss_package_onboarding_new_user';
   const [currentPage, setCurrentPage] = useState(getInitialAppPage);
+  const [newDesQuesScenario, setNewDesQuesScenario] = useState(2);
   const currentPageRef = useRef(currentPage);
   currentPageRef.current = currentPage;
   const [isBootstrappingSession, setIsBootstrappingSession] = useState(
@@ -2237,7 +2238,8 @@ function App() {
             console.log('Navigate to All Appointments');
             setCurrentPage('all-appointments');
           }}
-          onOpenNewDesQues={() => {
+          onOpenNewDesQuesScenario={(scenario) => {
+            setNewDesQuesScenario(scenario);
             setCurrentPage('new-des-ques');
           }}
           onOpenAddAccount={() => {
@@ -2312,6 +2314,7 @@ function App() {
 
       {currentPage === 'new-des-ques' && (
         <NewDesQuesPage
+          scenario={newDesQuesScenario}
           onBack={() => {
             setCurrentPage('profile');
           }}

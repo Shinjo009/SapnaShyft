@@ -1,18 +1,25 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  isAnthropometryCategory,
   isCategoryCompleted,
+  isRedesignedQuestionnaireCategory,
+  isVitalsCategory,
   loadAssessmentCategoriesForStep2,
   normalizeCategoryKey,
   submitCompletedAssessmentFlow,
   type AssessmentCategoryStatus,
+  type NewDesQuesScenario,
 } from './api/assessments'
 import {
   getCategoryQuestionnaire,
   type QuestionnaireQuestion,
 } from './api/questionnaire'
 import { ApiQuestionnaireStep } from './components/ApiQuestionnaireStep'
+import { AnthropometryStep } from './components/anthropometry/AnthropometryStep'
+import { VitalsStep } from './components/vitals/VitalsStep'
 import { HealthAssessmentStep } from './components/HealthAssessmentStep'
 import { PageBackdrop } from './components/PageBackdrop'
+import { ANTHRO_COLUMN_CLASS } from './components/mcq/mcqLayout'
 import {
   SectionCompleteHub,
   type SectionCompleteVariant,
@@ -26,30 +33,41 @@ import nutritionLogBackgroundSvg from './assets/nutritionlogstart.svg'
 import familyHistoryBackgroundSvg from './assets/family history.svg'
 import lifestyleHabitsBackgroundSvg from './assets/lifestyle-habits/background.svg'
 
-type Step = 6 | 7 | 8 | 10 | 12 | 'done'
+type Step = 6 | 7 | 8 | 9 | 10 | 12 | 'done'
 
 type Props = {
   onBack: () => void
+  scenario?: NewDesQuesScenario
 }
 
 const hubStepForVariant = (variant: SectionCompleteVariant): Step => {
+  if (variant === 'anthropometry') return 9
   if (variant === 'lifestyle') return 10
-  if (variant === 'nutrition') return 12
+  if (variant === 'nutrition' || variant === 'vitals') return 12
   return 8
 }
 
 const variantForCategory = (category: AssessmentCategoryStatus): SectionCompleteVariant => {
   const key = normalizeCategoryKey(category.category_key)
+  if (key.includes('anthro')) return 'anthropometry'
   if (key.includes('lifestyle')) return 'lifestyle'
   if (key.includes('nutrition')) return 'nutrition'
+  if (key.includes('vital')) return 'vitals'
   return 'family'
 }
 
+const canOpenHubCategory = (category: AssessmentCategoryStatus): boolean => {
+  return (
+    isAnthropometryCategory(category.category_key) ||
+    isVitalsCategory(category.category_key) ||
+    isRedesignedQuestionnaireCategory(category)
+  )
+}
+
 /**
- * Mirrors BookAppointment steps 6 → 7 → 8/10/12 for the three redesigned sections
- * (Family History, Lifestyle & Habits, Nutrition Log). Does not include Anthropometry/Vitals.
+ * Intro (5 sections when Anthro + Vitals exist) → Anthropometry → Family / Lifestyle / Nutrition → Vitals.
  */
-export function NewDesQuesFlow({ onBack }: Props) {
+export function NewDesQuesFlow({ onBack, scenario = 2 }: Props) {
   const [step, setStep] = useState<Step>(6)
   const [assessmentInstanceId, setAssessmentInstanceId] = useState<number | null>(null)
   const [assessmentCategories, setAssessmentCategories] = useState<AssessmentCategoryStatus[]>([])
@@ -71,7 +89,7 @@ export function NewDesQuesFlow({ onBack }: Props) {
       setUiError('')
       try {
         const accessToken = getAccessToken() || ''
-        const result = await loadAssessmentCategoriesForStep2(accessToken)
+        const result = await loadAssessmentCategoriesForStep2(accessToken, scenario)
         if (cancelled) return
         setAssessmentInstanceId(result.assessmentInstanceId)
         setAssessmentCategories(result.categories)
@@ -94,7 +112,7 @@ export function NewDesQuesFlow({ onBack }: Props) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [scenario])
 
   const handleLoadCategory = useCallback(
     async (category: AssessmentCategoryStatus, options?: { returnStep?: Step }) => {
@@ -114,7 +132,11 @@ export function NewDesQuesFlow({ onBack }: Props) {
       try {
         if (isFrontendOnly()) {
           const questions = getMockQuestionnaireQuestions(category.category_key)
-          if (questions.length === 0) {
+          if (
+            questions.length === 0 &&
+            !isAnthropometryCategory(category.category_key) &&
+            !isVitalsCategory(category.category_key)
+          ) {
             throw new Error('No mock questions available for this category yet.')
           }
           setActiveCategory(category)
@@ -130,11 +152,15 @@ export function NewDesQuesFlow({ onBack }: Props) {
           categoryId,
         )
         const questions = questionnaire.questions
-        if (!Array.isArray(questions) || questions.length === 0) {
+        if (
+          (!Array.isArray(questions) || questions.length === 0) &&
+          !isAnthropometryCategory(category.category_key) &&
+          !isVitalsCategory(category.category_key)
+        ) {
           throw new Error('No questions returned for this category.')
         }
         setActiveCategory(category)
-        setCategoryQuestions(questions)
+        setCategoryQuestions(Array.isArray(questions) ? questions : [])
         setStep(7)
       } catch (error) {
         setUiError(error instanceof Error ? error.message : 'Unable to load questionnaire.')
@@ -148,6 +174,15 @@ export function NewDesQuesFlow({ onBack }: Props) {
 
   const handleStartAssessment = async () => {
     const nextCategory =
+      assessmentCategories.find((category) => {
+        if (isCategoryCompleted(category, completedCategoryIds)) return false
+        if (isAnthropometryCategory(category.category_key)) return true
+        if (isVitalsCategory(category.category_key)) return true
+        if (isFrontendOnly()) {
+          return getMockQuestionnaireQuestions(category.category_key).length > 0
+        }
+        return isRedesignedQuestionnaireCategory(category)
+      }) ||
       assessmentCategories.find((category) => !isCategoryCompleted(category, completedCategoryIds)) ||
       assessmentCategories[0]
 
@@ -157,6 +192,23 @@ export function NewDesQuesFlow({ onBack }: Props) {
     }
 
     await handleLoadCategory(nextCategory, { returnStep: 6 })
+  }
+
+  const markActiveCategoryComplete = (variant: SectionCompleteVariant) => {
+    if (activeCategory) {
+      const categoryId = Number(activeCategory.category_id)
+      setCompletedCategoryIds((prev) => (prev.includes(categoryId) ? prev : [...prev, categoryId]))
+    }
+    setHubVariant(variant)
+    setStep(hubStepForVariant(variant))
+  }
+
+  const handleAnthropometryComplete = () => {
+    markActiveCategoryComplete('anthropometry')
+  }
+
+  const handleVitalsComplete = () => {
+    markActiveCategoryComplete('vitals')
   }
 
   const handleCategoryQuestionnaireComplete = () => {
@@ -196,14 +248,18 @@ export function NewDesQuesFlow({ onBack }: Props) {
   }
 
   const activeCategoryKey = normalizeCategoryKey(activeCategory?.category_key || '')
+  const isAnthroActive = isAnthropometryCategory(activeCategoryKey)
+  const isVitalsActive = isVitalsCategory(activeCategoryKey)
   const questionnaireBackground = activeCategoryKey.includes('lifestyle')
     ? lifestyleHabitsBackgroundSvg
     : activeCategoryKey.includes('nutrition')
       ? nutritionLogBackgroundSvg
-      : familyHistoryBackgroundSvg
+      : isAnthroActive || isVitalsActive
+        ? backgroundAssessmentSvg
+        : familyHistoryBackgroundSvg
 
   const backdropSrc =
-    step === 6 || step === 8
+    step === 6 || step === 8 || step === 9
       ? backgroundAssessmentSvg
       : step === 10
         ? nutritionEndBackgroundSvg
@@ -216,7 +272,7 @@ export function NewDesQuesFlow({ onBack }: Props) {
   if (isBootstrapping) {
     return (
       <PageBackdrop mobileBackgroundSrc={backgroundAssessmentSvg}>
-        <div className="flex h-full min-w-0 flex-col items-center justify-center gap-4 px-6">
+        <div className="flex h-full min-w-0 flex-col items-center justify-center gap-4 px-[25px]">
           <p className="text-center text-[14px] text-[#ccc]">Loading NewDesQues…</p>
           <button
             type="button"
@@ -233,7 +289,7 @@ export function NewDesQuesFlow({ onBack }: Props) {
   if (uiError && assessmentCategories.length === 0) {
     return (
       <PageBackdrop mobileBackgroundSrc={backgroundAssessmentSvg}>
-        <div className="flex h-full min-w-0 flex-col items-center justify-center gap-4 px-6">
+        <div className="flex h-full min-w-0 flex-col items-center justify-center gap-4 px-[25px]">
           <p className="text-center text-[14px] text-[#f5a9a9]">{uiError}</p>
           <button
             type="button"
@@ -250,7 +306,7 @@ export function NewDesQuesFlow({ onBack }: Props) {
   if (step === 'done') {
     return (
       <PageBackdrop mobileBackgroundSrc={nutritionLogBackgroundSvg}>
-        <div className="flex h-full min-w-0 flex-col items-center justify-center gap-6 px-6">
+        <div className="flex h-full min-w-0 flex-col items-center justify-center gap-6 px-[25px]">
           <h2 className="text-center text-[18px] font-semibold tracking-[0.2px] text-white">
             Questionnaire complete
           </h2>
@@ -260,7 +316,7 @@ export function NewDesQuesFlow({ onBack }: Props) {
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex h-[46px] w-full max-w-[320px] items-center justify-center rounded-[36px] bg-gradient-to-r from-[#296359] to-[#41ab99] text-[14px] font-semibold text-white"
+            className="inline-flex h-[46px] w-full items-center justify-center rounded-[36px] bg-gradient-to-r from-[#296359] to-[#41ab99] text-[14px] font-semibold text-white"
           >
             Back to Profile
           </button>
@@ -270,10 +326,13 @@ export function NewDesQuesFlow({ onBack }: Props) {
   }
 
   return (
-    <PageBackdrop mobileBackgroundSrc={backdropSrc}>
+    <PageBackdrop
+      mobileBackgroundSrc={backdropSrc}
+      columnClassName={step === 7 && isAnthroActive ? ANTHRO_COLUMN_CLASS : undefined}
+    >
       <div className="flex h-full min-w-0 flex-col">
         {step === 6 ? (
-          <div className="absolute left-5 top-5 z-10">
+          <div className="absolute left-[25px] top-5 z-10">
             <button
               type="button"
               onClick={onBack}
@@ -294,7 +353,7 @@ export function NewDesQuesFlow({ onBack }: Props) {
         ) : null}
 
         {uiError ? (
-          <p className="shrink-0 px-6 pt-3 text-center text-[12px] text-[#f5a9a9]">{uiError}</p>
+          <p className="shrink-0 px-[25px] pt-3 text-center text-[12px] text-[#f5a9a9]">{uiError}</p>
         ) : null}
 
         {step === 6 && (
@@ -305,7 +364,27 @@ export function NewDesQuesFlow({ onBack }: Props) {
           />
         )}
 
-        {step === 7 && activeCategory && categoryQuestions.length > 0 ? (
+        {step === 7 && activeCategory && isAnthroActive ? (
+          <AnthropometryStep
+            questions={categoryQuestions}
+            onBack={() => setStep(questionnaireReturnStep)}
+            onComplete={handleAnthropometryComplete}
+          />
+        ) : null}
+
+        {step === 7 && activeCategory && isVitalsActive ? (
+          <VitalsStep
+            questions={categoryQuestions}
+            onBack={() => setStep(questionnaireReturnStep)}
+            onComplete={handleVitalsComplete}
+          />
+        ) : null}
+
+        {step === 7 &&
+        activeCategory &&
+        !isAnthroActive &&
+        !isVitalsActive &&
+        categoryQuestions.length > 0 ? (
           <ApiQuestionnaireStep
             title={activeCategory.display_name || 'Assessment'}
             questions={categoryQuestions}
@@ -323,17 +402,18 @@ export function NewDesQuesFlow({ onBack }: Props) {
           />
         ) : null}
 
-        {(step === 8 || step === 10 || step === 12) && (
+        {(step === 8 || step === 9 || step === 10 || step === 12) && (
           <SectionCompleteHub
-            variant={step === 8 ? 'family' : step === 10 ? 'lifestyle' : 'nutrition'}
+            variant={hubVariant}
             categories={assessmentCategories}
             completedCategoryIds={completedCategoryIds}
             isLoadingCategoryId={loadingCategoryId}
             isContinuing={isSubmittingAssessment}
+            canSelectCategory={canOpenHubCategory}
             onSelectCategory={(category) =>
               handleLoadCategory(category, { returnStep: step })
             }
-            onContinue={step === 12 ? handleSubmitCompletedAssessment : undefined}
+            onContinue={handleSubmitCompletedAssessment}
           />
         )}
       </div>

@@ -8,14 +8,28 @@ import {
 } from '../api/assessments'
 import { ContinueButton } from './ContinueButton'
 import { SectionCompleteCelebration } from './SectionCompleteCelebration'
-import { ASSESSMENT_CARD_STACK_CLASS, ASSESSMENT_CONTENT_MAX_CLASS } from './mcq/mcqLayout'
+import {
+  ASSESSMENT_CARD_STACK_CLASS,
+  ASSESSMENT_CONTENT_MAX_CLASS,
+  ASSESSMENT_FIVE_CARD_STACK_CLASS,
+  PAGE_GUTTER_X,
+} from './mcq/mcqLayout'
 
-export type SectionCompleteVariant = 'family' | 'lifestyle' | 'nutrition'
+export type SectionCompleteVariant =
+  | 'anthropometry'
+  | 'family'
+  | 'lifestyle'
+  | 'nutrition'
+  | 'vitals'
 
 const VARIANT_COPY: Record<
   SectionCompleteVariant,
   { title: string; subtitle?: string }
 > = {
+  anthropometry: {
+    title: 'Anthropometry Section Complete!',
+    subtitle: 'Only 4 more sections left',
+  },
   family: {
     title: 'Family Section Complete!',
     subtitle: 'Only 2 more sections left',
@@ -26,6 +40,10 @@ const VARIANT_COPY: Record<
   },
   nutrition: {
     title: 'Nutrition Section Complete!',
+    subtitle: 'Only 1 more section left',
+  },
+  vitals: {
+    title: 'Vitals Section Complete!',
   },
 }
 
@@ -35,6 +53,7 @@ export function SectionCompleteHub({
   categories,
   completedCategoryIds,
   onSelectCategory,
+  canSelectCategory,
   onContinue,
   isLoadingCategoryId,
   isContinuing = false,
@@ -43,6 +62,7 @@ export function SectionCompleteHub({
   categories: AssessmentCategoryStatus[]
   completedCategoryIds: number[]
   onSelectCategory: (category: AssessmentCategoryStatus) => void
+  canSelectCategory?: (category: AssessmentCategoryStatus) => boolean
   onContinue?: () => void
   isLoadingCategoryId?: number | null
   isContinuing?: boolean
@@ -57,8 +77,8 @@ export function SectionCompleteHub({
   const allComplete = remaining === 0
 
   return (
-    <div className="flex min-h-full w-full flex-1 flex-col overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="my-auto flex w-full flex-col items-center gap-11 px-6 py-10">
+    <div className="flex min-h-full w-full flex-1 flex-col overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [overflow-clip-margin:12px]">
+      <div className={`my-auto flex w-full flex-col items-center gap-11 py-10 ${PAGE_GUTTER_X}`}>
         <div className="flex flex-col items-center gap-3">
           <SectionCompleteCelebration key={variant} tone={variant} />
           <div className="flex flex-col items-center gap-1 pb-1">
@@ -73,12 +93,13 @@ export function SectionCompleteHub({
           </div>
         </div>
 
-        <div className={ASSESSMENT_CARD_STACK_CLASS}>
+        <div className={categories.length >= 5 ? ASSESSMENT_FIVE_CARD_STACK_CLASS : ASSESSMENT_CARD_STACK_CLASS}>
           {categories.map((category) => {
             const completed = isCategoryCompleted(category, completedCategoryIds)
             const featured = !completed && category.category_id === nextIncompleteId
             const description = categoryDescriptionForKey(normalizeCategoryKey(category.category_key))
             const loading = isLoadingCategoryId === category.category_id
+            const selectable = canSelectCategory ? canSelectCategory(category) : true
 
             if (completed) {
               return (
@@ -100,7 +121,7 @@ export function SectionCompleteHub({
               <button
                 key={category.category_id}
                 type="button"
-                disabled={loading || Boolean(isLoadingCategoryId)}
+                disabled={!selectable || loading || Boolean(isLoadingCategoryId)}
                 onClick={() => onSelectCategory(category)}
                 className={
                   featured

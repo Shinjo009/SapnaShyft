@@ -8,12 +8,9 @@ import {
 import { resolveLocationCardKind } from '../../lib/apiQuestionLayouts'
 import { FamilyHistoryQuestionHeader } from './FamilyHistoryQuestionHeader'
 
-const CARD_META: Record<
-  'inland' | 'coastal',
-  { image: string; imageTop: string; isInland: boolean }
-> = {
-  inland: { image: inlandImg, imageTop: '-61px', isInland: true },
-  coastal: { image: coastalImg, imageTop: '-65px', isInland: false },
+const CARD_META: Record<'inland' | 'coastal', { image: string }> = {
+  inland: { image: inlandImg },
+  coastal: { image: coastalImg },
 }
 
 /** Warm the location card images into browser cache as soon as this module loads. */
@@ -48,7 +45,7 @@ export function FamilyHistoryLocationOptions({
         <p>{questionText}</p>
       </FamilyHistoryQuestionHeader>
 
-      <div className="flex h-[254px] w-full max-w-[267px] flex-col gap-[16px] lg:max-w-[320px]">
+      <div className="flex h-[254px] w-full flex-col gap-[16px]">
         {options.map((option) => {
           const value = getOptionValue(option)
           const label = getOptionLabel(option) || value
@@ -57,7 +54,6 @@ export function FamilyHistoryLocationOptions({
           const kind = resolveLocationCardKind(option)
           const meta = kind ? CARD_META[kind] : null
           const isSelected = selectedValue === value
-          const isInland = meta?.isInland ?? false
 
           return (
             <button
@@ -67,9 +63,6 @@ export function FamilyHistoryLocationOptions({
               onClick={() => onSelect(value)}
               className={[
                 'relative flex min-h-0 flex-1 flex-col items-end justify-center overflow-hidden rounded-xl px-6 py-3 disabled:opacity-60',
-                isInland
-                  ? 'bg-gradient-to-b from-black to-transparent'
-                  : 'bg-gradient-to-l from-black to-transparent',
                 isSelected
                   ? 'border-[0.5px] border-solid border-[#9d50bb] shadow-[0_0_20px_0_rgba(157,80,187,0.4)]'
                   : 'border-[0.5px] border-solid border-[rgba(255,255,255,0.5)]',
@@ -83,17 +76,12 @@ export function FamilyHistoryLocationOptions({
                     decoding="async"
                     fetchPriority="high"
                     loading="eager"
-                    className="pointer-events-none absolute -left-4 h-[189px] w-[283px] object-cover"
-                    style={{ top: meta.imageTop }}
+                    className="pointer-events-none absolute inset-0 size-full object-cover"
                     aria-hidden
                   />
                   <div
-                    className={[
-                      'pointer-events-none absolute bg-gradient-to-l from-black to-transparent',
-                      isInland
-                        ? 'left-[-3px] top-[-7px] h-[126px] w-[270px]'
-                        : 'left-[-2px] top-[-17px] h-[136px] w-[269px]',
-                    ].join(' ')}
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent from-45% to-black/90"
+                    aria-hidden
                   />
                 </>
               ) : null}
