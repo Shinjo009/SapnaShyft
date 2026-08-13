@@ -4,7 +4,7 @@ import type { QuestionnaireQuestion } from '../../api/questionnaire'
 import backIcon from '../../assets/family-history/back-icon.svg'
 import { ContinueButton } from '../ContinueButton'
 import { McqProgressBar } from '../mcq/McqProgressBar'
-import { MCQ_SHELL_CLASS, MCQ_SHELL_SCROLL_CLASS } from '../mcq/mcqLayout'
+import { MCQ_HEADER_CLASS, MCQ_SHELL_CLASS, MCQ_SHELL_SCROLL_CLASS } from '../mcq/mcqLayout'
 import {
   clampBloodPressure,
   formatVitalsTwoDigits,
@@ -69,7 +69,7 @@ export function VitalsStep({
         aria-hidden
       />
 
-      <header className="relative z-[1] flex shrink-0 items-center px-[25px] pb-0 pt-6">
+      <header className={`relative z-[1] ${MCQ_HEADER_CLASS}`}>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <button type="button" onClick={onBack} className="relative size-6 shrink-0" aria-label="Back">
             <img src={backIcon} alt="" className="absolute inset-0 size-full" aria-hidden />

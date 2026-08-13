@@ -5,6 +5,7 @@ import {
   ANTHRO_FOOTER_INNER_CLASS,
   ANTHRO_SHELL_CLASS,
   formatNextQuestionPreview,
+  MCQ_HEADER_CLASS,
   MCQ_SHELL_SCROLL_CLASS,
   PAGE_GUTTER_X,
 } from '../mcq/mcqLayout'
@@ -38,7 +39,7 @@ export function AnthropometryMcqShell({
         aria-hidden
       />
       <div className="pointer-events-none fixed bottom-0 right-0 z-0 h-72 w-48 rounded-full bg-cyan-400/40 blur-[100px]" aria-hidden />
-      <header className="relative z-[1] flex shrink-0 items-center px-[25px] pb-0 pt-6">
+      <header className={`relative z-[1] ${MCQ_HEADER_CLASS}`}>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <button type="button" onClick={onBack} className="relative size-6 shrink-0" aria-label="Back">
             <img src={backIcon} alt="" className="absolute inset-0 size-full" aria-hidden />

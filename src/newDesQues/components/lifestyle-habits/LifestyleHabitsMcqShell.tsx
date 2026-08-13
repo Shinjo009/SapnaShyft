@@ -4,6 +4,7 @@ import nextChevronIcon from '../../assets/lifestyle-habits/next-chevron.svg'
 import type { LifestyleQuestionPreview } from '../../data/lifestyleHabitsQuestions'
 import { ContinueButton } from '../ContinueButton'
 import {
+  MCQ_HEADER_CLASS,
   MCQ_SHELL_CLASS,
   MCQ_SHELL_FOOTER_INNER_CLASS,
   MCQ_SHELL_SCROLL_CLASS,
@@ -35,7 +36,7 @@ export function LifestyleHabitsMcqShell({
 
   return (
     <div className={MCQ_SHELL_CLASS}>
-      <header className="flex shrink-0 items-center px-[25px] pb-0 pt-6">
+      <header className={MCQ_HEADER_CLASS}>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <button
             type="button"

@@ -73,6 +73,7 @@ import { NutritionDietTypeQuestion } from './nutrition-log/NutritionDietTypeQues
 import { NUTRITION_NEXT_BUTTON_GRADIENT, NUTRITION_PILL_GRADIENT } from './nutrition-log/nutritionLogConfig'
 import {
   formatNextQuestionPreview,
+  MCQ_HEADER_CLASS,
   MCQ_PILL_BORDER_IDLE,
   MCQ_PILL_BORDER_SELECTED,
   MCQ_PILL_CHIP_CLASS,
@@ -432,7 +433,7 @@ export function ApiQuestionnaireStep({
 
   return (
     <div className={MCQ_SHELL_CLASS}>
-      <header className="flex shrink-0 items-center px-[25px] pb-0 pt-6">
+      <header className={MCQ_HEADER_CLASS}>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <button
             type="button"

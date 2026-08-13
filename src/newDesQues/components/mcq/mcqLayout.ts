@@ -4,6 +4,12 @@
 export const PAGE_GUTTER_X = 'px-[25px]'
 
 /**
+ * Match Profile “My Profile” header: content padding-top 20px + header top 20px.
+ * Keeps back arrow / section title clear of the PWA status bar the same way Profile does.
+ */
+export const MCQ_HEADER_CLASS = `flex shrink-0 items-center ${PAGE_GUTTER_X} pb-0 pt-10`
+
+/**
  * Extra room around glowing cards so box-shadow is not clipped by overflow-y.
  * 10px matches the featured-card glow (`0 0 10px`).
  */

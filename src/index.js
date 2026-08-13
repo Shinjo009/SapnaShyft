@@ -5,6 +5,44 @@ import App from './App';
 import { initGoogleAnalytics } from './analytics/googleAnalytics';
 // import reportWebVitals from './reportWebVitals';
 
+/**
+ * CRA's webpack error overlay surfaces opaque cross-origin failures as "Script error."
+ * That often fires on iOS/Safari when opening the Share sheet / Add to Home Screen against
+ * a LAN `npm start` URL — it is not a real app crash and does not appear in production builds.
+ */
+if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+  const isOpaqueScriptError = (message) => {
+    const text = String(message || '').trim().toLowerCase();
+    return text === 'script error.' || text === 'script error';
+  };
+
+  window.addEventListener(
+    'error',
+    (event) => {
+      if (!isOpaqueScriptError(event?.message)) {
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    },
+    true,
+  );
+
+  window.addEventListener(
+    'unhandledrejection',
+    (event) => {
+      const reason = event?.reason;
+      const message = reason instanceof Error ? reason.message : reason;
+      if (!isOpaqueScriptError(message)) {
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    },
+    true,
+  );
+}
+
 initGoogleAnalytics();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

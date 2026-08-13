@@ -1282,12 +1282,19 @@ function App() {
       return;
     }
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response: ${outcome}`);
-
-    setDeferredPrompt(null);
-    setShowInstallPrompt(false);
+    try {
+      deferredPrompt.prompt();
+      const choice = deferredPrompt.userChoice;
+      if (choice && typeof choice.then === 'function') {
+        const { outcome } = await choice;
+        console.log(`User response: ${outcome}`);
+      }
+    } catch (error) {
+      console.warn('PWA install prompt failed:', error);
+    } finally {
+      setDeferredPrompt(null);
+      setShowInstallPrompt(false);
+    }
   };
 
   const handleDismissInstall = () => {
@@ -1295,11 +1302,16 @@ function App() {
   };
 
   const handleInstallGotIt = async () => {
-    if (!isIosInstallFlow && deferredPrompt) {
-      await handleInstallClick();
-      return;
+    try {
+      if (!isIosInstallFlow && deferredPrompt) {
+        await handleInstallClick();
+        return;
+      }
+      handleDismissInstall();
+    } catch (error) {
+      console.warn('PWA install dismiss/install failed:', error);
+      handleDismissInstall();
     }
-    handleDismissInstall();
   };
 
   const handleQuestionnaireSuccessOk = () => {
