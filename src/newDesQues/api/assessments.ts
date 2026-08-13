@@ -33,14 +33,14 @@ type AssessmentStatusResponse = {
 const EXCLUDED_CATEGORY_KEYS = new Set(['anthropometry', 'health_vitals', 'vitals'])
 
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  anthropometry: 'Anthro data.......',
+  anthropometry: 'Your measurements power our AI to generate accurate metabolic and wellness scores.',
   family_history:
     "Knowing your family's health patterns helps us predict risks more accurately.",
   lifestyle_habits:
     'Your routines help our system decode how your habits influence your health.',
   nutrition_log:
     'Your food patterns help us understand nutrition habits that shape long-term health.',
-  vitals: 'Your blood pressure readings help us understand heart and metabolic risk.',
+  vitals: 'Enter your blood pressure reading to track your vitals.',
   health_vitals: 'Your blood pressure readings help us understand heart and metabolic risk.',
 }
 

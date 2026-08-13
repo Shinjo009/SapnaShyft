@@ -67,16 +67,18 @@ function NestedOrangeArcGlow({
   glowId: string
   strokeWidth?: number
 }) {
+  // Filter on the parent <g> (dial/root SVG space). Applying blur inside the
+  // nested arc <svg> clips the glow to that tight viewport — especially left/tall arcs.
   return (
-    <svg
-      x={layout.x}
-      y={layout.y}
-      width={layout.w}
-      height={layout.h}
-      viewBox={`0 0 ${layout.vbW} ${layout.vbH}`}
-      overflow="visible"
-    >
-      <g filter={`url(#${glowId})`}>
+    <g filter={`url(#${glowId})`}>
+      <svg
+        x={layout.x}
+        y={layout.y}
+        width={layout.w}
+        height={layout.h}
+        viewBox={`0 0 ${layout.vbW} ${layout.vbH}`}
+        overflow="visible"
+      >
         <path
           d={layout.path}
           fill="#FF8800"
@@ -84,8 +86,8 @@ function NestedOrangeArcGlow({
           strokeWidth={strokeWidth}
           strokeLinejoin="round"
         />
-      </g>
-    </svg>
+      </svg>
+    </g>
   )
 }
 
@@ -97,18 +99,18 @@ function NestedOrangeArc({
   glowId: string
 }) {
   return (
-    <svg
-      x={layout.x}
-      y={layout.y}
-      width={layout.w}
-      height={layout.h}
-      viewBox={`0 0 ${layout.vbW} ${layout.vbH}`}
-      overflow="visible"
-    >
-      <g filter={`url(#${glowId})`}>
+    <g filter={`url(#${glowId})`}>
+      <svg
+        x={layout.x}
+        y={layout.y}
+        width={layout.w}
+        height={layout.h}
+        viewBox={`0 0 ${layout.vbW} ${layout.vbH}`}
+        overflow="visible"
+      >
         <path d={layout.path} fill="#FF8800" />
-      </g>
-    </svg>
+      </svg>
+    </g>
   )
 }
 
@@ -183,8 +185,6 @@ function RotatedArcGlow({
   pivotY,
   glowId,
   strokeWidth = 0,
-  clipSweepDeg,
-  clipId,
 }: {
   layout: RadialDialArcLayout
   rotation: number
@@ -192,28 +192,15 @@ function RotatedArcGlow({
   pivotY: number
   glowId: string
   strokeWidth?: number
+  /** @deprecated glow is never wedge-clipped — blur must extend past the arc */
   clipSweepDeg?: number
   clipId?: string
 }) {
   const glow = <NestedOrangeArcGlow layout={layout} glowId={glowId} strokeWidth={strokeWidth} />
 
-  const rotated =
-    rotation === 0 ? glow : <g transform={`rotate(${rotation} ${pivotX} ${pivotY})`}>{glow}</g>
-
-  if (!clipSweepDeg || !clipId) {
-    return rotated
-  }
-
-  return (
-    <>
-      <defs>
-        <clipPath id={clipId}>
-          <path d={arcClipWedgePath(pivotX, pivotY, clipSweepDeg, rotation)} />
-        </clipPath>
-      </defs>
-      <g clipPath={`url(#${clipId})`}>{rotated}</g>
-    </>
-  )
+  // Do not clip the glow — soft blur would get hard-cut at the wedge edges.
+  if (rotation === 0) return glow
+  return <g transform={`rotate(${rotation} ${pivotX} ${pivotY})`}>{glow}</g>
 }
 
 function pointerLineFromTouch(
@@ -303,8 +290,6 @@ function GeneratedSlotDialInner<T extends string>({
             pivotY={pivotY}
             glowId={sharedGlowId}
             strokeWidth={activeArcStrokeWidth}
-            clipSweepDeg={clipSweepDeg}
-            clipId={clipSweepDeg ? `${idPrefix}-clip-glow-${activeSlot}` : undefined}
           />
         )
       })() : null}
@@ -495,12 +480,10 @@ function RotatedSlotSelectedDial<T extends string>({
   const sharedGlowId = `${config.idPrefix}-slot-arc-glow`
   const initialRotation = getSlotArcLayout(slotSelection, activeSlot).rotation
 
-  const orangeContent = (
-    <>
-      <NestedOrangeArcGlow layout={baseArc} glowId={sharedGlowId} strokeWidth={strokeWidth} />
-      <NestedOrangeArcFill layout={baseArc} strokeWidth={strokeWidth} />
-    </>
+  const orangeGlow = (
+    <NestedOrangeArcGlow layout={baseArc} glowId={sharedGlowId} strokeWidth={strokeWidth} />
   )
+  const orangeFill = <NestedOrangeArcFill layout={baseArc} strokeWidth={strokeWidth} />
 
   return (
     <g transform={`translate(${config.dialOffsetX} ${config.dialOffsetY})`}>
@@ -525,21 +508,22 @@ function RotatedSlotSelectedDial<T extends string>({
       {clipSweepDeg && orangeClipId ? (
         <>
           <defs>
+            {/* Wedge in local (unrotated) arc space — rotates with the group */}
             <clipPath id={orangeClipId}>
               <path
                 ref={clipPathRef}
-                d={arcClipWedgePath(pivotX, pivotY, clipSweepDeg, initialRotation)}
+                d={arcClipWedgePath(pivotX, pivotY, clipSweepDeg, 0)}
               />
             </clipPath>
           </defs>
-          <g clipPath={`url(#${orangeClipId})`}>
-            <g
-              ref={rotateGroupRef}
-              transform={`rotate(${initialRotation} ${pivotX} ${pivotY})`}
-              style={{ willChange: 'transform' }}
-            >
-              {orangeContent}
-            </g>
+          <g
+            ref={rotateGroupRef}
+            transform={`rotate(${initialRotation} ${pivotX} ${pivotY})`}
+            style={{ willChange: 'transform' }}
+          >
+            {/* Glow unclipped so blur isn't hard-cut at the wedge */}
+            {orangeGlow}
+            <g clipPath={`url(#${orangeClipId})`}>{orangeFill}</g>
           </g>
           <g
             ref={pointerGroupRef}
@@ -555,7 +539,8 @@ function RotatedSlotSelectedDial<T extends string>({
           transform={`rotate(${initialRotation} ${pivotX} ${pivotY})`}
           style={{ willChange: 'transform' }}
         >
-          {orangeContent}
+          {orangeGlow}
+          {orangeFill}
           <SlotPointerLine {...pointer} />
         </g>
       )}
@@ -841,13 +826,7 @@ export function RadialDialSelector<T extends string>({
         const transform = `rotate(${rotation} ${pivot} ${pivot})`
         rotateGroupRef.current?.setAttribute('transform', transform)
         pointerGroupRef.current?.setAttribute('transform', transform)
-        const clipSweep = cfg.slotSelection.arcClipSweepDeg
-        if (clipSweep && clipPathRef.current) {
-          clipPathRef.current.setAttribute(
-            'd',
-            arcClipWedgePath(pivot, pivot, clipSweep, rotation),
-          )
-        }
+        // Clip wedge stays at local centerDeg 0 — it rotates with rotateGroupRef.
         return
       }
 
@@ -881,21 +860,25 @@ export function RadialDialSelector<T extends string>({
       ? (config.rotationByOption[resolvedSelected] ?? 0)
       : 0
 
-  const arcGlow = config.arcGlowBounds ?? {
-    x: 76.882,
-    y: 8.5,
-    width: 167.19,
-    height: 115.84,
+  // Full dial canvas + blur padding (stdDeviation ~8–10 needs ~30px+ beyond the path).
+  const glowPad = 48
+  const arcGlow = {
+    x: -glowPad,
+    y: -glowPad,
+    width: config.width + glowPad * 2,
+    height: config.height + glowPad * 2,
   }
 
   return (
     <div
-      className={`relative mx-auto ${MCQ_DIAL_DESKTOP_CLASS}`}
+      className={`relative mx-auto overflow-visible ${MCQ_DIAL_DESKTOP_CLASS}`}
       style={{ width: config.width, height: config.height }}
     >
       <svg
         viewBox={`0 0 ${config.width} ${config.height}`}
-        className="pointer-events-none absolute inset-0 size-full"
+        className="pointer-events-none absolute inset-0 size-full overflow-visible"
+        overflow="visible"
+        style={{ overflow: 'visible' }}
         aria-hidden
       >
         <defs>
@@ -928,10 +911,10 @@ export function RadialDialSelector<T extends string>({
           {/* Shared slot-arc glow (stdDeviation 8) — avoid recreating filters per frame */}
           <filter
             id={`${config.idPrefix}-slot-arc-glow`}
-            x={arcGlow.x - 20}
-            y={arcGlow.y - 20}
-            width={arcGlow.width + 40}
-            height={arcGlow.height + 40}
+            x={arcGlow.x}
+            y={arcGlow.y}
+            width={arcGlow.width}
+            height={arcGlow.height}
             filterUnits="userSpaceOnUse"
             colorInterpolationFilters="sRGB"
           >

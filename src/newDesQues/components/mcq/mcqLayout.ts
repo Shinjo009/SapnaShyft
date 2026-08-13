@@ -1,13 +1,13 @@
 /** Responsive layout tokens — phones fill the screen with a 25px side gutter. */
 
 /** 25px from the left and right edges of the page on phones. */
-export const PAGE_GUTTER_X = 'px-[25px]'
+export const PAGE_GUTTER_X = 'px-[16px]'
 
 /**
  * Match Profile “My Profile” header: content padding-top 20px + header top 20px.
  * Keeps back arrow / section title clear of the PWA status bar the same way Profile does.
  */
-export const MCQ_HEADER_CLASS = `flex shrink-0 items-center ${PAGE_GUTTER_X} pb-0 pt-10`
+export const MCQ_HEADER_CLASS = `flex shrink-0 items-center ${PAGE_GUTTER_X} pb-0 pt-[50px]`
 
 /**
  * Extra room around glowing cards so box-shadow is not clipped by overflow-y.
@@ -16,7 +16,7 @@ export const MCQ_HEADER_CLASS = `flex shrink-0 items-center ${PAGE_GUTTER_X} pb-
 export const GLOW_SAFE_BOX_CLASS = 'p-2.5 -m-2.5'
 
 const SCROLL_HIDE =
-  '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [overflow-clip-margin:12px]'
+  '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [overflow-clip-margin:32px]'
 
 export const APP_COLUMN_MAX = 'lg:max-w-[480px] xl:max-w-[520px]'
 export const ANTHRO_COLUMN_MAX = 'lg:max-w-[560px] xl:max-w-[680px]'

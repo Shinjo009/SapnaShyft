@@ -1,5 +1,8 @@
 import tickCircleSolid from '../assets/figma/tick-circle-solid.svg'
 import assessmentRadioImg from '../assets/Ellipse 13077.svg'
+import sectionSuccessGif from '../assets/animation-gif (1).gif'
+import lifestyleSuccessGif from '../assets/animation-gif-lifestyle-orange.webp'
+import nutritionSuccessGif from '../assets/animation-gif-nutrition-blue.webp'
 import {
   categoryDescriptionForKey,
   isCategoryCompleted,
@@ -22,29 +25,31 @@ export type SectionCompleteVariant =
   | 'nutrition'
   | 'vitals'
 
-const VARIANT_COPY: Record<
-  SectionCompleteVariant,
-  { title: string; subtitle?: string }
-> = {
+const VARIANT_COPY: Record<SectionCompleteVariant, { title: string }> = {
   anthropometry: {
     title: 'Anthropometry Section Complete!',
-    subtitle: 'Only 4 more sections left',
   },
   family: {
     title: 'Family Section Complete!',
-    subtitle: 'Only 2 more sections left',
   },
   lifestyle: {
     title: 'Lifestyle Section Complete!',
-    subtitle: 'Only 1 more section left',
   },
   nutrition: {
     title: 'Nutrition Section Complete!',
-    subtitle: 'Only 1 more section left',
   },
   vitals: {
     title: 'Vitals Section Complete!',
   },
+}
+
+/** Family GIF reused for anthro + vitals until dedicated clips exist. */
+const VARIANT_SUCCESS_GIF: Record<SectionCompleteVariant, string> = {
+  anthropometry: sectionSuccessGif,
+  family: sectionSuccessGif,
+  lifestyle: lifestyleSuccessGif,
+  nutrition: nutritionSuccessGif,
+  vitals: sectionSuccessGif,
 }
 
 /** Shared section-complete hub — categories come from /assessments/{id}/status */
@@ -78,14 +83,28 @@ export function SectionCompleteHub({
 
   return (
     <div className="flex min-h-full w-full flex-1 flex-col overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [overflow-clip-margin:12px]">
-      <div className={`my-auto flex w-full flex-col items-center gap-11 py-10 ${PAGE_GUTTER_X}`}>
+      <div
+        className={`flex w-full flex-col items-center gap-11 py-10 ${PAGE_GUTTER_X} ${
+          allComplete ? 'mt-4 mb-auto' : 'my-auto'
+        }`}
+      >
         <div className="flex flex-col items-center gap-3">
-          <SectionCompleteCelebration key={variant} tone={variant} />
+          {allComplete ? (
+            <SectionCompleteCelebration key="end" tone="booking" />
+          ) : (
+            <img
+              key={variant}
+              src={VARIANT_SUCCESS_GIF[variant]}
+              alt=""
+              draggable={false}
+              className="mx-auto -mt-4 h-[280px] w-[280px] object-contain"
+            />
+          )}
           <div className="flex flex-col items-center gap-1 pb-1">
             <h2 className="text-center text-[18px] font-semibold tracking-[0.2px] text-white">
-              {copy.title}
+              {allComplete ? 'Assessment Complete!' : copy.title}
             </h2>
-            {copy.subtitle && !allComplete ? (
+            {!allComplete ? (
               <p className="text-center text-[12px] leading-4 text-[#9a9a9a]">
                 {remaining === 1 ? 'Only 1 more section left' : `Only ${remaining} more sections left`}
               </p>

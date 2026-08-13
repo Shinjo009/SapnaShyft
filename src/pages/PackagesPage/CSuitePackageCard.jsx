@@ -6,9 +6,8 @@ import { getComplimentaryConsultationContent } from '../../utils/complimentaryCo
 import { buildPackageFaceBadges } from '../../utils/diagnosticPackageCardMapper';
 import { getPackageGenderSuitability } from '../../utils/packageGenderIcon';
 import {
-  ComplimentaryConsultationPromoIcon,
   normalizePackageTitle,
-  PackageFaceCardMetrics,
+  PackageFaceCardDetails,
   PackageFaceCardPricing,
   PackageFaceCardTitleRow,
 } from './PackageFaceCard';
@@ -77,15 +76,6 @@ const CSuitePackageCard = ({
         aria-hidden="true"
       />
 
-      {consultation ? (
-        <div className="packages-card__elite-promo">
-          <span className="packages-card__elite-promo-icon-wrap" aria-hidden="true">
-            <ComplimentaryConsultationPromoIcon />
-          </span>
-          <span className="packages-card__elite-promo-label">{consultation.topPillLabel}</span>
-        </div>
-      ) : null}
-
       <div className="packages-card__elite-content">
         <div className="packages-card__elite-margin">
           <div className="packages-card__elite-stack">
@@ -109,7 +99,7 @@ const CSuitePackageCard = ({
               </div>
             </div>
 
-            <PackageFaceCardMetrics metrics={pkg.metrics} />
+            <PackageFaceCardDetails pkg={pkg} consultation={consultation} />
 
             <div className="packages-card__elite-footer">
               <PackageFaceCardPricing pricing={pkg.pricing} />

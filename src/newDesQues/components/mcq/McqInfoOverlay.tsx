@@ -34,7 +34,7 @@ export function McqInfoOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-[25px] py-3 backdrop-blur-[5px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-[16px] py-3 backdrop-blur-[5px]"
       onClick={onClose}
       role="presentation"
     >

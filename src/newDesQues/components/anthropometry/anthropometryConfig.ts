@@ -197,13 +197,13 @@ export function prioritizeHeightUnitOptions(options: string[] = []): string[] {
 
 export function prioritizeCircumferenceUnitOptions(options: string[] = []): string[] {
   const normalizedOptions = options.filter(Boolean)
-  if (normalizedOptions.length === 0) return ['cm', 'In']
+  if (normalizedOptions.length === 0) return ['In', 'cm']
 
   const prioritized: string[] = []
   const inchOption = normalizedOptions.find((option) => isInchUnit(option))
   const cmOption = normalizedOptions.find((option) => isCentimeterUnit(option))
-  prioritized.push(cmOption || 'cm')
   prioritized.push(inchOption || 'In')
+  prioritized.push(cmOption || 'cm')
 
   for (const option of normalizedOptions) {
     if (!prioritized.some((existing) => normalizeUnitToken(existing) === normalizeUnitToken(option))) {

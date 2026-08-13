@@ -11,9 +11,12 @@ const R_TICK_OUTER = 102
 const R_LABEL = 128
 const R_ARROW = 82
 const TRACK_WIDTH = 12
-const FRICTION = 0.92
-const MIN_FLING = 0.02
-const SNAP_EPS = 0.08
+const FRICTION = 0.98
+const MIN_FLING = 0.01
+const SNAP_EPS = 0.04
+const FLING_SPEED = 0.22
+const SETTLE_LERP = 0.07
+const MAX_VELOCITY = 0.35
 
 function roundToStep(value: number, step: number): number {
   return Math.round(value / step) * step
@@ -141,8 +144,8 @@ export function WeightGaugePicker({
         rafRef.current = 0
         return
       }
-      visualRef.current += delta * 0.28
-      velocityRef.current *= 0.65
+      visualRef.current += delta * SETTLE_LERP
+      velocityRef.current *= 0.72
       applyVisual()
       emitValue()
       rafRef.current = requestAnimationFrame(tick)
@@ -157,7 +160,7 @@ export function WeightGaugePicker({
       const dt = Math.min(32, now - previous)
       previous = now
       const { min: lo, max: hi } = rangeRef.current
-      let next = visualRef.current + velocityRef.current * dt
+      let next = visualRef.current + velocityRef.current * dt * FLING_SPEED
       if (next < lo || next > hi) {
         next = clamp(next, lo, hi)
         velocityRef.current = 0
@@ -242,7 +245,7 @@ export function WeightGaugePicker({
     if (!draggingRef.current) return
     const next = clientToValue(event.clientX, event.clientY)
     const dt = Math.max(8, event.timeStamp - lastTsRef.current)
-    velocityRef.current = clamp((next - lastValueRef.current) / dt, -1.4, 1.4)
+    velocityRef.current = clamp((next - lastValueRef.current) / dt, -MAX_VELOCITY, MAX_VELOCITY)
     lastValueRef.current = next
     lastTsRef.current = event.timeStamp
     visualRef.current = next

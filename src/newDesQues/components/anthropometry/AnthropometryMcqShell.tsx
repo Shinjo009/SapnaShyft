@@ -28,6 +28,7 @@ export function AnthropometryMcqShell({
   footer?: ReactNode
 }) {
   const clampedPercent = Math.min(100, Math.max(0, progressPercent))
+  const showNext = Boolean(onNext)
   const showNextPreview = Boolean(nextQuestionPreview && onNext)
 
   const shellClass = footer ? ANTHRO_SHELL_CLASS.replace('pb-[72px]', 'pb-0') : ANTHRO_SHELL_CLASS
@@ -50,7 +51,7 @@ export function AnthropometryMcqShell({
         </div>
       </header>
 
-      <div className="relative z-[1] flex shrink-0 flex-col gap-3 px-[25px] py-2">
+      <div className="relative z-[1] flex shrink-0 flex-col gap-3 px-[16px] py-2">
         <div className="flex w-full items-center justify-end">
           <p className="text-right text-[12px] font-normal uppercase leading-3 tracking-tight text-zinc-400">
             {clampedPercent}% COMPLETED
@@ -64,24 +65,28 @@ export function AnthropometryMcqShell({
       </div>
 
       {footer ? (
-        <div className="relative z-[1] shrink-0 px-[25px] pb-6 pt-2">{footer}</div>
-      ) : showNextPreview && nextQuestionPreview ? (
+        <div className="relative z-[1] shrink-0 px-[16px] pb-6 pt-2">{footer}</div>
+      ) : showNext ? (
         <footer className="fixed inset-x-0 bottom-0 z-10 bg-white/5 backdrop-blur-xl">
           <div className={ANTHRO_FOOTER_INNER_CLASS}>
-            <div className="min-w-0 max-w-44 flex-1">
-              <p className="text-[12px] font-medium uppercase leading-4 tracking-wide text-white/40">
-                NEXT QUESTION
-              </p>
-              <p className="mt-0.5 overflow-hidden whitespace-nowrap text-[14px] font-medium leading-5 text-white/60">
-                {formatNextQuestionPreview(nextQuestionPreview.line1, nextQuestionPreview.line2 || '')}
-              </p>
-            </div>
+            {showNextPreview && nextQuestionPreview ? (
+              <div className="min-w-0 max-w-44 flex-1">
+                <p className="text-[12px] font-medium uppercase leading-4 tracking-wide text-white/40">
+                  NEXT QUESTION
+                </p>
+                <p className="mt-0.5 overflow-hidden whitespace-nowrap text-[14px] font-medium leading-5 text-white/60">
+                  {formatNextQuestionPreview(nextQuestionPreview.line1, nextQuestionPreview.line2 || '')}
+                </p>
+              </div>
+            ) : (
+              <div className="min-w-0 flex-1" />
+            )}
             <button
               type="button"
               onClick={onNext}
               className="flex size-12 shrink-0 items-center justify-center rounded-full border border-[#969696] shadow-[0_8px_32px_0_rgba(144,223,158,0.5)]"
               style={{ backgroundImage: ANTHRO_NEXT_BUTTON_GRADIENT }}
-              aria-label="Next question"
+              aria-label={showNextPreview ? 'Next question' : 'Continue'}
             >
               <img src={nextChevronIcon} alt="" className="size-6" aria-hidden />
             </button>

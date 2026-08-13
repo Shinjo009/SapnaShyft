@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 import backIcon from '../../assets/lifestyle-habits/back-icon.svg'
 import nextChevronIcon from '../../assets/lifestyle-habits/next-chevron.svg'
 import type { LifestyleQuestionPreview } from '../../data/lifestyleHabitsQuestions'
-import { ContinueButton } from '../ContinueButton'
 import {
   MCQ_HEADER_CLASS,
   MCQ_SHELL_CLASS,
@@ -52,7 +51,7 @@ export function LifestyleHabitsMcqShell({
         </div>
       </header>
 
-      <div className="flex shrink-0 flex-col gap-2 px-[25px] py-1">
+      <div className="flex shrink-0 flex-col gap-2 px-[16px] py-1">
         <div className="flex w-full items-center justify-end">
           <p className="text-right text-[11px] font-normal uppercase tracking-[0.3px] text-[#8e8ca3] leading-[13.5px]">
             {clampedPercent}% COMPLETED
@@ -66,14 +65,10 @@ export function LifestyleHabitsMcqShell({
       </div>
 
       <footer className="fixed inset-x-0 bottom-0 z-10 bg-[rgba(255,255,255,0.05)] backdrop-blur-[25px]">
-        {isLastQuestion ? (
-          <div className={`${MCQ_SHELL_FOOTER_INNER_CLASS} !justify-center`}>
-            <ContinueButton variant="done" showChevron={false} onClick={onNext}>
-              Done
-            </ContinueButton>
-          </div>
-        ) : (
-          <div className={MCQ_SHELL_FOOTER_INNER_CLASS}>
+        <div className={MCQ_SHELL_FOOTER_INNER_CLASS}>
+          {isLastQuestion ? (
+            <div className="min-w-0 flex-1" />
+          ) : (
             <div className="min-w-0 max-w-[200px] flex-1">
               <p className="text-[10px] font-medium uppercase tracking-[1.1px] leading-[14px] text-[rgba(255,255,255,0.4)]">
                 NEXT QUESTION
@@ -82,17 +77,17 @@ export function LifestyleHabitsMcqShell({
                 {formatNextQuestionPreview(nextQuestionPreview.line1, nextQuestionPreview.line2)}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onNext}
-              className="flex size-10 shrink-0 items-center justify-center rounded-full border border-solid border-[#969696] p-px shadow-[0_8px_32px_0_rgba(255,136,0,0.25)]"
-              style={{ backgroundImage: NEXT_BUTTON_GRADIENT }}
-              aria-label="Next question"
-            >
-              <img src={nextChevronIcon} alt="" className="size-5" aria-hidden />
-            </button>
-          </div>
-        )}
+          )}
+          <button
+            type="button"
+            onClick={onNext}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-solid border-[#969696] p-px shadow-[0_8px_32px_0_rgba(255,136,0,0.25)]"
+            style={{ backgroundImage: NEXT_BUTTON_GRADIENT }}
+            aria-label={isLastQuestion ? 'Continue' : 'Next question'}
+          >
+            <img src={nextChevronIcon} alt="" className="size-5" aria-hidden />
+          </button>
+        </div>
       </footer>
     </div>
   )

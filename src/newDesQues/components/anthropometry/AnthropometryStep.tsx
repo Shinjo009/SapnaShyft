@@ -3,7 +3,6 @@ import type { CSSProperties } from 'react'
 import type { QuestionnaireQuestion } from '../../api/questionnaire'
 import hipGif from '../../../images/hip-gif.gif'
 import waistGif from '../../../images/waist-gif.gif'
-import { ContinueButton } from '../ContinueButton'
 import { AnthropometryMcqShell } from './AnthropometryMcqShell'
 import { HeightRulerPicker } from './HeightRulerPicker'
 import { HorizontalRulerPicker } from './HorizontalRulerPicker'
@@ -21,7 +20,7 @@ import {
   DEFAULT_HEIGHT_CM,
   DEFAULT_HEIGHT_FEET,
   DEFAULT_HEIGHT_INCHES,
-  DEFAULT_CIRCUMFERENCE_CM,
+  DEFAULT_CIRCUMFERENCE_INCHES,
   DEFAULT_WEIGHT_KG,
   extractUnitOptionsFromQuestion,
   findQuestionByAliasesAndHints,
@@ -63,15 +62,15 @@ export function AnthropometryStep({
   const [index, setIndex] = useState(0)
   const [height, setHeight] = useState(DEFAULT_HEIGHT_CM)
   const [weight, setWeight] = useState<number | null>(DEFAULT_WEIGHT_KG)
-  const [waist, setWaist] = useState(DEFAULT_CIRCUMFERENCE_CM)
+  const [waist, setWaist] = useState(Math.round(DEFAULT_CIRCUMFERENCE_INCHES))
   const [heightUnit, setHeightUnit] = useState('Cm')
   const [weightUnit, setWeightUnit] = useState('Kg')
-  const [waistUnit, setWaistUnit] = useState('Cm')
+  const [waistUnit, setWaistUnit] = useState('In')
   const [heightFeet, setHeightFeet] = useState(DEFAULT_HEIGHT_FEET)
   const [heightInches, setHeightInches] = useState(DEFAULT_HEIGHT_INCHES)
-  const [hipSize, setHipSize] = useState(DEFAULT_CIRCUMFERENCE_CM)
+  const [hipSize, setHipSize] = useState(Math.round(DEFAULT_CIRCUMFERENCE_INCHES))
   const [bodyFat, setBodyFat] = useState(DEFAULT_BODY_FAT)
-  const [hipUnit, setHipUnit] = useState('Cm')
+  const [hipUnit, setHipUnit] = useState('In')
   const [showWaistInfo, setShowWaistInfo] = useState(false)
   const [showHipInfo, setShowHipInfo] = useState(false)
   const [submitAttempted, setSubmitAttempted] = useState(false)
@@ -141,19 +140,8 @@ export function AnthropometryStep({
     <AnthropometryMcqShell
       progressPercent={Math.round(((index + 1) / ANTHRO_QUESTION_COUNT) * 100)}
       onBack={handleBack}
-      onNext={isLast ? undefined : handleNext}
+      onNext={handleNext}
       nextQuestionPreview={isLast ? undefined : previews[index]}
-      footer={
-        isLast ? (
-          <ContinueButton
-            variant="done"
-            showChevron={false}
-            onClick={handleNext}
-          >
-            Done
-          </ContinueButton>
-        ) : undefined
-      }
     >
       {index === 0 ? (
         <HeightQuestion
@@ -495,7 +483,7 @@ function CircumferenceQuestion({
   const unitLabel = usesCm ? 'Cms' : 'In'
 
   useEffect(() => {
-    onUnitChange(resolvePreferredUnitOption(unitOptions, unit, 'Cm'))
+    onUnitChange(resolvePreferredUnitOption(unitOptions, unit, 'In'))
   }, [unitOptions]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectUnit = (nextUnit: string) => {

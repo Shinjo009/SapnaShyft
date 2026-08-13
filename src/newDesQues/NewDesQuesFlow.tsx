@@ -24,6 +24,7 @@ import {
   SectionCompleteHub,
   type SectionCompleteVariant,
 } from './components/SectionCompleteHub'
+import { SectionCompleteCelebration } from './components/SectionCompleteCelebration'
 import { getAccessToken } from './lib/authStorage'
 import { isFrontendOnly } from './lib/frontendOnly'
 import { getMockQuestionnaireQuestions } from './data/mockApiQuestionnaires'
@@ -272,7 +273,7 @@ export function NewDesQuesFlow({ onBack, scenario = 2 }: Props) {
   if (isBootstrapping) {
     return (
       <PageBackdrop mobileBackgroundSrc={backgroundAssessmentSvg}>
-        <div className="flex h-full min-w-0 flex-col items-center justify-center gap-4 px-[25px]">
+        <div className="flex h-full min-w-0 flex-col items-center justify-center gap-4 px-[16px]">
           <p className="text-center text-[14px] text-[#ccc]">Loading NewDesQues…</p>
           <button
             type="button"
@@ -289,7 +290,7 @@ export function NewDesQuesFlow({ onBack, scenario = 2 }: Props) {
   if (uiError && assessmentCategories.length === 0) {
     return (
       <PageBackdrop mobileBackgroundSrc={backgroundAssessmentSvg}>
-        <div className="flex h-full min-w-0 flex-col items-center justify-center gap-4 px-[25px]">
+        <div className="flex h-full min-w-0 flex-col items-center justify-center gap-4 px-[16px]">
           <p className="text-center text-[14px] text-[#f5a9a9]">{uiError}</p>
           <button
             type="button"
@@ -306,17 +307,20 @@ export function NewDesQuesFlow({ onBack, scenario = 2 }: Props) {
   if (step === 'done') {
     return (
       <PageBackdrop mobileBackgroundSrc={nutritionLogBackgroundSvg}>
-        <div className="flex h-full min-w-0 flex-col items-center justify-center gap-6 px-[25px]">
-          <h2 className="text-center text-[18px] font-semibold tracking-[0.2px] text-white">
-            Questionnaire complete
-          </h2>
-          <p className="text-center text-[12px] leading-4 text-[#9a9a9a]">
-            This is a design preview only. Production Health Assessment is unchanged.
-          </p>
+        <div className="flex h-full min-w-0 flex-col items-center justify-center gap-6 overflow-y-auto px-[16px] py-8 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <SectionCompleteCelebration key="done-celebration" tone="booking" />
+          <div className="flex flex-col items-center gap-1">
+            <h2 className="text-center text-[18px] font-semibold tracking-[0.2px] text-white">
+              Questionnaire complete
+            </h2>
+            <p className="text-center text-[12px] leading-4 text-[#9a9a9a]">
+              This is a design preview only. Production Health Assessment is unchanged.
+            </p>
+          </div>
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex h-[46px] w-full items-center justify-center rounded-[36px] bg-gradient-to-r from-[#296359] to-[#41ab99] text-[14px] font-semibold text-white"
+            className="inline-flex h-[46px] w-full max-w-[340px] items-center justify-center rounded-[36px] bg-gradient-to-r from-[#296359] to-[#41ab99] text-[14px] font-semibold text-white"
           >
             Back to Profile
           </button>
@@ -332,7 +336,7 @@ export function NewDesQuesFlow({ onBack, scenario = 2 }: Props) {
     >
       <div className="flex h-full min-w-0 flex-col">
         {step === 6 ? (
-          <div className="absolute left-[25px] top-5 z-10">
+          <div className="absolute left-[16px] top-[52px] z-10">
             <button
               type="button"
               onClick={onBack}
@@ -353,7 +357,7 @@ export function NewDesQuesFlow({ onBack, scenario = 2 }: Props) {
         ) : null}
 
         {uiError ? (
-          <p className="shrink-0 px-[25px] pt-3 text-center text-[12px] text-[#f5a9a9]">{uiError}</p>
+          <p className="shrink-0 px-[16px] pt-3 text-center text-[12px] text-[#f5a9a9]">{uiError}</p>
         ) : null}
 
         {step === 6 && (

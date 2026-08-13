@@ -12,7 +12,6 @@ import {
   submitQuestionnaireResponses,
   type QuestionnaireQuestion,
 } from '../api/questionnaire'
-import { ContinueButton } from './ContinueButton'
 import { getAccessToken } from '../lib/authStorage'
 import {
   filterOutInlinedOtherQuestions,
@@ -357,7 +356,7 @@ export function ApiQuestionnaireStep({
   if (!question || total === 0) {
     return (
       <div className={MCQ_SHELL_CLASS}>
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-[25px] text-center">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-[16px] text-center">
           <p className="text-sm text-[#9a9a9a]">No questions available for this category.</p>
           <button
             type="button"
@@ -448,7 +447,7 @@ export function ApiQuestionnaireStep({
         </div>
       </header>
 
-      <div className="flex shrink-0 flex-col gap-2 px-[25px] py-1">
+      <div className="flex shrink-0 flex-col gap-2 px-[16px] py-1">
         <div className="flex w-full items-center justify-end">
           <p className="text-right text-[11px] font-normal uppercase tracking-[0.3px] text-[#8e8ca3] leading-[13.5px]">
             {percent}% COMPLETED
@@ -458,7 +457,7 @@ export function ApiQuestionnaireStep({
       </div>
 
       <div className={MCQ_SHELL_SCROLL_CLASS}>
-        <div className="flex flex-col gap-5 px-[25px] pb-4 pt-2">
+        <div className="flex flex-col gap-5 px-[16px] pb-4 pt-2">
           {saveError ? (
             <div className="rounded-lg border border-[#ff6b6b]/40 bg-[#ff6b6b]/10 px-3 py-2 text-sm text-[#ffd1d1]">
               {saveError}
@@ -883,19 +882,10 @@ export function ApiQuestionnaireStep({
       />
 
       <footer className="fixed inset-x-0 bottom-0 z-10 bg-[rgba(255,255,255,0.05)] backdrop-blur-[25px]">
-        {isLast ? (
-          <div className={`${MCQ_SHELL_FOOTER_INNER_CLASS} !justify-center`}>
-            <ContinueButton
-              variant="done"
-              showChevron={false}
-              disabled={isSaving}
-              onClick={handleNext}
-            >
-              {isSaving ? 'Saving...' : 'Done'}
-            </ContinueButton>
-          </div>
-        ) : (
-          <div className={MCQ_SHELL_FOOTER_INNER_CLASS}>
+        <div className={MCQ_SHELL_FOOTER_INNER_CLASS}>
+          {isLast ? (
+            <div className="min-w-0 flex-1" />
+          ) : (
             <div className="min-w-0 max-w-[200px] flex-1">
               <p className="text-[10px] font-medium uppercase tracking-[1.1px] leading-[14px] text-[rgba(255,255,255,0.4)]">
                 NEXT QUESTION
@@ -904,18 +894,18 @@ export function ApiQuestionnaireStep({
                 {formatNextQuestionPreview(nextPreview.line1, nextPreview.line2)}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={isSaving}
-              className={`flex size-10 shrink-0 items-center justify-center rounded-full border border-solid border-[#969696] p-px ${nextShadow} disabled:opacity-60`}
-              style={{ backgroundImage: nextGradient }}
-              aria-label={isSaving ? 'Saving answer' : 'Next question'}
-            >
-              <img src={nextChevronIcon} alt="" className="size-4" aria-hidden />
-            </button>
-          </div>
-        )}
+          )}
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={isSaving}
+            className={`flex size-10 shrink-0 items-center justify-center rounded-full border border-solid border-[#969696] p-px ${nextShadow} disabled:opacity-60`}
+            style={{ backgroundImage: nextGradient }}
+            aria-label={isSaving ? 'Saving answer' : isLast ? 'Continue' : 'Next question'}
+          >
+            <img src={nextChevronIcon} alt="" className="size-4" aria-hidden />
+          </button>
+        </div>
       </footer>
     </div>
   )

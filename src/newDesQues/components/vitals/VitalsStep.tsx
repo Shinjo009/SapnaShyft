@@ -2,9 +2,14 @@ import { useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { QuestionnaireQuestion } from '../../api/questionnaire'
 import backIcon from '../../assets/family-history/back-icon.svg'
-import { ContinueButton } from '../ContinueButton'
+import nextChevronIcon from '../../assets/family-history/next-chevron.svg'
 import { McqProgressBar } from '../mcq/McqProgressBar'
-import { MCQ_HEADER_CLASS, MCQ_SHELL_CLASS, MCQ_SHELL_SCROLL_CLASS } from '../mcq/mcqLayout'
+import {
+  ANTHRO_FOOTER_INNER_CLASS,
+  MCQ_HEADER_CLASS,
+  MCQ_SHELL_CLASS,
+  MCQ_SHELL_SCROLL_CLASS,
+} from '../mcq/mcqLayout'
 import {
   clampBloodPressure,
   formatVitalsTwoDigits,
@@ -16,6 +21,9 @@ import {
   type VitalsValues,
 } from './vitalsConfig'
 import './vitals.css'
+
+const VITALS_NEXT_BUTTON_GRADIENT =
+  "url(\"data:image/svg+xml;utf8,<svg viewBox='0 0 50 50' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'><rect x='0' y='0' height='100%' width='100%' fill='url(%23grad)' opacity='0.3'/><defs><radialGradient id='grad' gradientUnits='userSpaceOnUse' cx='0' cy='0' r='10' gradientTransform='matrix(2.5 0 0 2.5 25 25)'><stop stop-color='rgba(144,223,158,1)' offset='0'/><stop stop-color='rgba(74,222,128,1)' offset='1'/></radialGradient></defs></svg>\")"
 
 export function VitalsStep({
   questions = [],
@@ -59,7 +67,7 @@ export function VitalsStep({
   }
 
   return (
-    <div className={MCQ_SHELL_CLASS.replace('pb-[72px]', 'pb-0')}>
+    <div className={MCQ_SHELL_CLASS}>
       <div
         className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(at_-94%_-56%,rgba(74,222,128,0.72),#030712_55%)]"
         aria-hidden
@@ -80,7 +88,7 @@ export function VitalsStep({
         </div>
       </header>
 
-      <div className="relative z-[1] flex shrink-0 flex-col gap-3 px-[25px] py-2">
+      <div className="relative z-[1] flex shrink-0 flex-col gap-3 px-[16px] py-2">
         <div className="flex w-full items-center justify-end">
           <p className="text-right font-['DM_Sans'] text-xs font-normal uppercase leading-3 tracking-tight text-zinc-400">
             100% COMPLETED
@@ -90,7 +98,7 @@ export function VitalsStep({
       </div>
 
       <div className={`relative z-[1] ${MCQ_SHELL_SCROLL_CLASS}`}>
-        <div className="flex w-full flex-col items-center gap-6 px-[25px] pb-4 pt-6">
+        <div className="flex w-full flex-col items-center gap-6 px-[16px] pb-4 pt-6">
           <VitalsReadingField
             label={systolicLabel}
             value={systolic}
@@ -113,11 +121,20 @@ export function VitalsStep({
         </div>
       </div>
 
-      <div className="relative z-[1] flex shrink-0 justify-center px-[25px] pb-6 pt-2">
-        <ContinueButton variant="done" showChevron={false} onClick={() => finish({ systolic, diastolic })}>
-          Done
-        </ContinueButton>
-      </div>
+      <footer className="fixed inset-x-0 bottom-0 z-10 bg-white/5 backdrop-blur-xl">
+        <div className={ANTHRO_FOOTER_INNER_CLASS}>
+          <div className="min-w-0 flex-1" />
+          <button
+            type="button"
+            onClick={() => finish({ systolic, diastolic })}
+            className="flex size-12 shrink-0 items-center justify-center rounded-full border border-[#969696] shadow-[0_8px_32px_0_rgba(144,223,158,0.5)]"
+            style={{ backgroundImage: VITALS_NEXT_BUTTON_GRADIENT }}
+            aria-label="Continue"
+          >
+            <img src={nextChevronIcon} alt="" className="size-6" aria-hidden />
+          </button>
+        </div>
+      </footer>
     </div>
   )
 }
