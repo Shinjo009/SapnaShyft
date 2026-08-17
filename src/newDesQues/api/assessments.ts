@@ -1,5 +1,6 @@
 import { isFrontendOnly } from '../lib/frontendOnly'
 import { authorizedGet, authorizedPost } from './http'
+import { markFitprintGapQuestionnaireSubmitted } from '../../services/questionnaireService'
 
 export type AssessmentRow = {
   assessment_instance_id?: number
@@ -243,6 +244,7 @@ export async function submitCompletedAssessmentFlow(
 
   if (fitprintId) {
     await submitAssessmentCategory(accessToken, fitprintId, 'fitness-parameters')
+    markFitprintGapQuestionnaireSubmitted(fitprintId)
     fitprintSubmitted = true
   }
 

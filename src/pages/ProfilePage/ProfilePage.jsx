@@ -29,6 +29,12 @@ import {
 } from '../../utils/profilePrimaryContact';
 
 /**
+ * Flip to true to show Scenario 1 / 2 / 3 under Profile → Settings.
+ * Can also be overridden by the `showNewDesQuesScenarios` prop.
+ */
+const SHOW_NEW_DES_QUES_SCENARIOS = false;
+
+/**
  * ProfilePage - User profile management screen
  */
 const ProfilePage = ({
@@ -45,6 +51,7 @@ const ProfilePage = ({
   onOpenPrivacy,
   onAccountSwitched,
   onLogout,
+  showNewDesQuesScenarios = SHOW_NEW_DES_QUES_SCENARIOS,
 }) => {
   const [activeModal, setActiveModal] = useState(null);
   const [logoutLoading, setLogoutLoading] = useState(false);
@@ -522,24 +529,28 @@ const ProfilePage = ({
                   <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
-              <button type="button" className="profile-page__menu-sub-item" onClick={() => onOpenNewDesQuesScenario?.(1)} data-tour="profile-new-des-ques">
-                <span data-tour="profile-new-des-ques-text">Scenario 1</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
-                  <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-              <button type="button" className="profile-page__menu-sub-item" onClick={() => onOpenNewDesQuesScenario?.(2)}>
-                <span>Scenario 2</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
-                  <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-              <button type="button" className="profile-page__menu-sub-item" onClick={() => onOpenNewDesQuesScenario?.(3)}>
-                <span>Scenario 3</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
-                  <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+              {showNewDesQuesScenarios ? (
+                <>
+                  <button type="button" className="profile-page__menu-sub-item" onClick={() => onOpenNewDesQuesScenario?.(1)} data-tour="profile-new-des-ques">
+                    <span data-tour="profile-new-des-ques-text">Scenario 1</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
+                      <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <button type="button" className="profile-page__menu-sub-item" onClick={() => onOpenNewDesQuesScenario?.(2)}>
+                    <span>Scenario 2</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
+                      <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <button type="button" className="profile-page__menu-sub-item" onClick={() => onOpenNewDesQuesScenario?.(3)}>
+                    <span>Scenario 3</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="5" height="8" viewBox="0 0 5 8" fill="none" aria-hidden="true">
+                      <path d="M0.75 6.75L3.75 3.75L0.75 0.75" stroke="#9A9A9A" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                </>
+              ) : null}
             </div>
           </div>
 
