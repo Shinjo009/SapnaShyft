@@ -16,22 +16,12 @@ export const getMyPreferences = () =>
 export const updateMyPreferences = (preferences) =>
   authorizedUsersRequest('/users/me/preferences', 'PUT', preferences).then((response) => response?.data || response);
 
-export const buildSuperclubPreferencesPayload = (sportsPlaylists, existingPreferences = {}) => {
-  const existing = existingPreferences && typeof existingPreferences === 'object'
-    ? existingPreferences
-    : {};
+export const buildSuperclubPreferencesPayload = (sportsPlaylists) => {
   const sports = sportsPlaylists && typeof sportsPlaylists === 'object'
     ? sportsPlaylists
     : {};
 
   return {
-    push_enabled: existing.push_enabled ?? true,
-    email_enabled: existing.email_enabled ?? true,
-    sms_enabled: existing.sms_enabled ?? false,
-    access_to_files: existing.access_to_files ?? true,
-    store_downloaded_files: existing.store_downloaded_files ?? true,
-    diet_preference: typeof existing.diet_preference === 'string' ? existing.diet_preference : '',
-    allergies: Array.isArray(existing.allergies) ? existing.allergies : [],
     sports_playlists: {
       sportIds: Array.isArray(sports.sportIds) ? sports.sportIds : [],
       otherSelected: Boolean(sports.otherSelected),
@@ -41,8 +31,7 @@ export const buildSuperclubPreferencesPayload = (sportsPlaylists, existingPrefer
 };
 
 export const saveSuperclubMcqPreferences = async (sportsPlaylists) => {
-  const existing = await getMyPreferences().catch(() => ({}));
-  const payload = buildSuperclubPreferencesPayload(sportsPlaylists, existing);
+  const payload = buildSuperclubPreferencesPayload(sportsPlaylists);
   return updateMyPreferences(payload);
 };
 
