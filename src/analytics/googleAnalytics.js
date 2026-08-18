@@ -26,7 +26,11 @@ export function initGoogleAnalytics() {
 
   const script = document.createElement('script');
   script.async = true;
+  script.crossOrigin = 'anonymous';
   script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA_MEASUREMENT_ID)}`;
+  script.onerror = () => {
+    console.warn('Google Analytics failed to load');
+  };
   script.onload = () => {
     gtagReady = true;
     if (pendingPagePath != null) {

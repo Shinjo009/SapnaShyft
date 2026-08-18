@@ -602,8 +602,8 @@ const DotBullet = () => (
   </svg>
 );
 
-const RiskTrendIcon = ({ type }) => {
-  const color = getRiskColorByType(type);
+const RiskTrendIcon = ({ type, color: colorOverride }) => {
+  const color = colorOverride || getRiskColorByType(type);
 
   if (type === 'low') {
     return (
@@ -730,70 +730,150 @@ const flattenCardsForListView = (cards) => {
   return rows;
 };
 
-const LIST_RISK_PILL_THEME = {
+const VIEW_ALL_STATUS_STYLE = {
   low: {
-    color: '#4ade80',
-    background: 'rgba(74, 222, 128, 0.1)',
-    border: 'rgba(74, 222, 128, 0.2)',
+    bar: '#90DF9E',
+    glow: '0 0 10px rgba(144, 223, 158, 0.20)',
+    text: '#4ADE80',
   },
   moderate: {
-    color: 'rgb(218, 193, 90)',
-    background: 'rgba(218, 193, 90, 0.1)',
-    border: 'rgba(218, 193, 90, 0.2)',
+    bar: '#DAC15A',
+    glow: '0 0 10px rgba(218, 193, 90, 0.20)',
+    text: '#DAC15A',
   },
   increased: {
-    color: '#ff6b6b',
-    background: 'rgba(255, 107, 107, 0.1)',
-    border: 'rgba(255, 107, 107, 0.2)',
+    bar: '#DAC15A',
+    glow: '0 0 10px rgba(218, 193, 90, 0.20)',
+    text: '#DAC15A',
   },
   high: {
-    color: '#ff6b6b',
-    background: 'rgba(255, 107, 107, 0.1)',
-    border: 'rgba(255, 107, 107, 0.2)',
+    bar: '#EF4444',
+    glow: '0 0 10px rgba(233, 93, 92, 0.20)',
+    text: '#EF4444',
   },
 };
 
-const BloodMarkersViewAllList = ({ rows, section, onOpenDetail }) => (
-  <div className={`blood-markers-page__view-all-card blood-markers-page__view-all-card--${section.theme}`}>
-    <div className="blood-markers-page__view-all-card-inner">
-      {rows.map((row, index) => {
-        const displayRisk = getDisplayRiskType(row.riskType);
-        const riskMeta = RISK_META[displayRisk] || RISK_META.low;
-        const pillTheme = LIST_RISK_PILL_THEME[row.riskType] || LIST_RISK_PILL_THEME[displayRisk] || LIST_RISK_PILL_THEME.low;
-        const valueText = [row.value, row.unit].filter(Boolean).join(' ').trim();
-
-        return (
-          <React.Fragment key={row.id}>
-            {index > 0 ? <div className="blood-markers-page__view-all-divider" aria-hidden="true" /> : null}
-            <button
-              type="button"
-              className="blood-markers-page__view-all-row"
-              onClick={() => onOpenDetail({ ...row, organ: section.organ, parameters: section.parameters })}
-            >
-              <div className="blood-markers-page__view-all-row-copy">
-                <span className="blood-markers-page__view-all-marker">{row.marker}</span>
-                {valueText ? (
-                  <span className="blood-markers-page__view-all-value">{valueText}</span>
-                ) : null}
-              </div>
-              <span
-                className={`blood-markers-page__view-all-risk-pill blood-markers-page__view-all-risk-pill--${displayRisk}`}
-                style={{
-                  color: pillTheme.color,
-                  background: pillTheme.background,
-                  borderColor: pillTheme.border,
-                }}
-              >
-                <span className="blood-markers-page__view-all-risk-text">{riskMeta.label}</span>
-                <RiskTrendIcon type={row.riskType} />
-              </span>
-            </button>
-          </React.Fragment>
-        );
-      })}
-    </div>
-  </div>
+const ViewAllOverlayCloseIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+    <rect width="32" height="32" rx="16" fill="#063533" />
+    <path d="M23.1992 8.75C23.2127 8.75003 23.2258 8.75513 23.2354 8.76465C23.2449 8.77417 23.25 8.78732 23.25 8.80078C23.25 8.81422 23.2448 8.82738 23.2354 8.83691L16.6006 15.4697L16.0703 16L16.6006 16.5303L23.2354 23.1631C23.2448 23.1726 23.25 23.1858 23.25 23.1992C23.25 23.2127 23.2449 23.2258 23.2354 23.2354C23.2258 23.2449 23.2127 23.25 23.1992 23.25C23.1858 23.25 23.1726 23.2448 23.1631 23.2354L16.5303 16.6006L16 16.0703L15.4697 16.6006L8.83691 23.2354C8.82738 23.2448 8.81422 23.25 8.80078 23.25C8.78732 23.25 8.77417 23.2449 8.76465 23.2354C8.75513 23.2258 8.75003 23.2127 8.75 23.1992C8.75 23.1858 8.75518 23.1726 8.76465 23.1631L15.3994 16.5303L15.9297 16L15.3994 15.4697L8.76465 8.83691C8.75998 8.83221 8.75644 8.82643 8.75391 8.82031C8.75136 8.81415 8.75 8.80745 8.75 8.80078C8.75002 8.79414 8.75136 8.78739 8.75391 8.78125C8.75646 8.77514 8.75996 8.76933 8.76465 8.76465C8.76933 8.75996 8.77514 8.75646 8.78125 8.75391C8.78739 8.75136 8.79414 8.75002 8.80078 8.75C8.80745 8.75 8.81415 8.75136 8.82031 8.75391C8.82643 8.75644 8.83221 8.75998 8.83691 8.76465L15.4697 15.3994L16 15.9297L16.5303 15.3994L23.1631 8.76465C23.1726 8.75518 23.1858 8.75 23.1992 8.75Z" fill="white" stroke="white" strokeWidth="1.5" />
+  </svg>
 );
+
+const BloodMarkersViewAllPopup = ({ rows, section, organIcon, onClose, onOpenDetail }) => {
+  useEffect(() => {
+    const page = document.querySelector('.blood-markers-page');
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousPageOverflow = page ? page.style.overflow : '';
+    document.body.style.overflow = 'hidden';
+    if (page) {
+      page.style.overflow = 'hidden';
+    }
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      if (page) {
+        page.style.overflow = previousPageOverflow;
+      }
+    };
+  }, []);
+
+  const theme = getDisplayRiskType(section.theme);
+
+  return (
+    <div
+      className="blood-markers-page__view-all-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${section.organ} parameters`}
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        className="blood-markers-page__view-all-overlay-close"
+        aria-label="Close"
+        onClick={onClose}
+      >
+        <ViewAllOverlayCloseIcon />
+      </button>
+
+      <div
+        className="blood-markers-page__view-all-sheet"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="blood-markers-page__view-all-sheet-header">
+          <div className={`blood-markers-page__organ-icon-box blood-markers-page__organ-icon-box--${section.theme}`}>
+            <img
+              src={organIcon}
+              alt=""
+              aria-hidden="true"
+              className={`blood-markers-page__organ-icon blood-markers-page__organ-icon--${theme}`}
+            />
+          </div>
+          <div className="blood-markers-page__view-all-sheet-copy">
+            <h2 className="blood-markers-page__view-all-sheet-title">{section.organ}</h2>
+            <p className="blood-markers-page__view-all-sheet-subtitle">{section.parameters}</p>
+          </div>
+        </div>
+
+        <div className="blood-markers-page__view-all-list">
+          {rows.map((row, index) => {
+            const displayRisk = getDisplayRiskType(row.riskType);
+            const riskMeta = RISK_META[displayRisk] || RISK_META.low;
+            const statusStyle = VIEW_ALL_STATUS_STYLE[row.riskType]
+              || VIEW_ALL_STATUS_STYLE[displayRisk]
+              || VIEW_ALL_STATUS_STYLE.low;
+            const markerName = String(row.marker || '').trim();
+            const valueText = String(row.value || '').trim();
+            const unitText = String(row.unit || '').trim();
+
+            return (
+              <React.Fragment key={row.id}>
+                {index > 0 ? <div className="blood-markers-page__view-all-divider" aria-hidden="true" /> : null}
+                <button
+                  type="button"
+                  className="blood-markers-page__view-all-row"
+                  onClick={() => {
+                    onClose();
+                    onOpenDetail({ ...row, organ: section.organ, parameters: section.parameters });
+                  }}
+                >
+                  <div className="blood-markers-page__view-all-row-main">
+                    <span
+                      className="blood-markers-page__view-all-status-bar"
+                      style={{ background: statusStyle.bar, boxShadow: statusStyle.glow }}
+                      aria-hidden="true"
+                    />
+                    <div className="blood-markers-page__view-all-row-copy">
+                      {markerName ? (
+                        <span className="blood-markers-page__view-all-marker">{markerName}</span>
+                      ) : null}
+                      {valueText || unitText ? (
+                        <div className="blood-markers-page__view-all-value-row">
+                          {valueText ? (
+                            <span className="blood-markers-page__view-all-value">{valueText}</span>
+                          ) : null}
+                          {unitText ? (
+                            <span className="blood-markers-page__view-all-unit">{unitText}</span>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                  <span className="blood-markers-page__view-all-risk-pill">
+                    <span className="blood-markers-page__view-all-risk-text" style={{ color: statusStyle.text }}>
+                      {riskMeta.label}
+                    </span>
+                    <RiskTrendIcon type={row.riskType} color={statusStyle.text} />
+                  </span>
+                </button>
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const BloodMarkersParameterRows = ({ rows, keyPrefix = '' }) => {
   const out = [];
@@ -1908,10 +1988,10 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
               <button
                 type="button"
                 className="blood-markers-page__view-all-btn"
-                onClick={() => setIsViewAllOpen((prev) => !prev)}
+                onClick={() => setIsViewAllOpen(true)}
                 aria-expanded={isViewAllOpen}
               >
-                {isViewAllOpen ? 'View less' : 'View All'}
+                View All
               </button>
             ) : null}
           </div>
@@ -1919,10 +1999,6 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
         </div>
       </div>
 
-      {isViewAllOpen && showViewAllToggle ? (
-        <BloodMarkersViewAllList rows={listRows} section={section} onOpenDetail={onOpenDetail} />
-      ) : (
-      <>
       <div
         ref={stackRef}
         className={`blood-markers-page__stack${isSingleCardStack ? ' blood-markers-page__stack--single' : ''}${isAnimating ? ` blood-markers-page__stack--moving-${swipeDirection}` : ''}`}
@@ -2094,8 +2170,16 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
           <span className="blood-markers-page__swipe-arrow"><SwipeArrow /></span>
         </div>
       ) : null}
-      </>
-      )}
+
+      {isViewAllOpen && showViewAllToggle ? (
+        <BloodMarkersViewAllPopup
+          rows={listRows}
+          section={section}
+          organIcon={organIcon}
+          onClose={() => setIsViewAllOpen(false)}
+          onOpenDetail={onOpenDetail}
+        />
+      ) : null}
     </section>
   );
 };

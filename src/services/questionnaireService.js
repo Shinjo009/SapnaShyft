@@ -877,6 +877,9 @@ const submitMetsightsCategoryJobs = async (jobs = []) => {
     lastResult = await submitAssessmentInstance(job.assessmentInstanceId, {
       category: job.category,
     });
+    if (String(job.category || '').trim().toLowerCase() === 'fitness-parameters') {
+      markFitprintGapQuestionnaireSubmitted(job.assessmentInstanceId);
+    }
   }
   return lastResult;
 };
@@ -976,6 +979,11 @@ export const submitFitprintGapQuestionnaire = async (gapAssessmentInstanceId) =>
   } catch (error) {
     if (isAssessmentAlreadyCompletedError(error)) {
       markHealthQuestionnaireSubmittedFromTargets(assessments, targets);
+      jobs.forEach((job) => {
+        if (String(job.category || '').trim().toLowerCase() === 'fitness-parameters') {
+          markFitprintGapQuestionnaireSubmitted(job.assessmentInstanceId);
+        }
+      });
       return { message: 'Assessment already submitted' };
     }
     const message = String(error?.message || error || '');
@@ -1234,26 +1242,33 @@ const isCategoryStatusFinalized = (status) => {
 };
 
 /**
- * True when FitPrint Full itself has been finalized (category progress complete).
- * Do not use Basic/Pro “no unanswered questions” for this — that incorrectly shows
- * “Submitted Successfully” while FitPrint still has 0 submitted responses.
+ * True when FitPrint Full fitness-parameters was actually pushed.
+ *
+ * Do not use SuperShyft category completeness. Draft answers live on Basic/Pro;
+ * POST /assessments/{fitprintId}/submit merges engagement responses for the
+ * Metsights push, then is_category_complete() only looks at the FitPrint
+ * instance — so fitness-parameters often stays `incomplete` after a successful
+ * submit. A stale anthropometry `complete` on FitPrint also must not count.
  */
-export const isFitprintAssessmentSubmitConfirmed = async (fitprintAssessmentInstanceId) => {
+export const isFitprintAssessmentSubmitConfirmed = async (
+  fitprintAssessmentInstanceId,
+  { instanceStatus } = {},
+) => {
   const id = Number(fitprintAssessmentInstanceId);
   if (!Number.isFinite(id) || id <= 0) {
     return false;
   }
 
-  try {
-    const supershyftStatus = await getAssessmentStatus(id, { categoryOf: 'supershyft' });
-    const supershyftCategories = normalizeQuestionnaireCategoriesFromStatus(supershyftStatus, id);
-    if (
-      supershyftCategories.length > 0
-      && supershyftCategories.every((category) => isCategoryStatusFinalized(category.status))
-    ) {
-      return true;
-    }
+  if (isFitprintFitnessParametersSubmittedLocally(id)) {
+    return true;
+  }
 
+  const instanceNormalized = normalizeCategoryStatus(instanceStatus);
+  if (instanceNormalized === 'completed' || instanceNormalized === 'complete') {
+    return true;
+  }
+
+  try {
     const metsightsStatus = await getAssessmentStatus(id, { categoryOf: 'metsights' });
     const metsightsCategories = extractCategoriesFromAssessmentStatus(metsightsStatus)
       .map((category) => ({
@@ -1265,16 +1280,7 @@ export const isFitprintAssessmentSubmitConfirmed = async (fitprintAssessmentInst
       category.category_key === 'fitness-parameters'
       || category.category_key.includes('fitness')
     ));
-    if (fitnessCategory && isCategoryStatusFinalized(fitnessCategory.status)) {
-      return true;
-    }
-
-    // Fallback: any answered rows on FitPrint with at least one category marked complete.
-    if (supershyftCategories.some((category) => isCategoryStatusFinalized(category.status))) {
-      return true;
-    }
-
-    return false;
+    return Boolean(fitnessCategory && isCategoryStatusFinalized(fitnessCategory.status));
   } catch {
     return false;
   }
@@ -1525,20 +1531,59 @@ export const hasSubmittedHealthQuestionnaire = async (options = {}) => {
 
 /** Session flag: FitPrint-gap questionnaire was submitted; home shows “reports preparing” until HSI unlocks. */
 export const FITPRINT_GAP_QUESTIONNAIRE_SUBMITTED_SESSION_KEY = 'ss_fitprint_gap_questionnaire_submitted';
+/** FitPrint instance ids that successfully POSTed fitness-parameters (survives refresh). */
+const FITPRINT_FITNESS_SUBMITTED_IDS_KEY = 'ss_fitprint_fitness_parameters_submitted_ids';
 
-export function markFitprintGapQuestionnaireSubmitted() {
+const readFitprintFitnessSubmittedIds = () => {
+  try {
+    const raw = localStorage.getItem(FITPRINT_FITNESS_SUBMITTED_IDS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return new Set(
+      (Array.isArray(parsed) ? parsed : [])
+        .map((value) => Number(value))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    );
+  } catch {
+    return new Set();
+  }
+};
+
+const writeFitprintFitnessSubmittedIds = (ids) => {
+  try {
+    localStorage.setItem(FITPRINT_FITNESS_SUBMITTED_IDS_KEY, JSON.stringify([...ids]));
+  } catch {
+    // private mode / disabled storage
+  }
+};
+
+export function markFitprintGapQuestionnaireSubmitted(fitprintAssessmentId) {
   try {
     sessionStorage.setItem(FITPRINT_GAP_QUESTIONNAIRE_SUBMITTED_SESSION_KEY, '1');
   } catch {
     // private mode / disabled storage
   }
+  const id = Number(fitprintAssessmentId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return;
+  }
+  const ids = readFitprintFitnessSubmittedIds();
+  ids.add(id);
+  writeFitprintFitnessSubmittedIds(ids);
 }
 
-export function clearFitprintGapQuestionnaireSubmittedFlag() {
+export function clearFitprintGapQuestionnaireSubmittedFlag(fitprintAssessmentId) {
   try {
     sessionStorage.removeItem(FITPRINT_GAP_QUESTIONNAIRE_SUBMITTED_SESSION_KEY);
   } catch {
     // ignore
+  }
+  const id = Number(fitprintAssessmentId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return;
+  }
+  const ids = readFitprintFitnessSubmittedIds();
+  if (ids.delete(id)) {
+    writeFitprintFitnessSubmittedIds(ids);
   }
 }
 
@@ -1548,4 +1593,12 @@ export function isFitprintGapQuestionnaireSubmittedFlagSet() {
   } catch {
     return false;
   }
+}
+
+export function isFitprintFitnessParametersSubmittedLocally(fitprintAssessmentId) {
+  const id = Number(fitprintAssessmentId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return false;
+  }
+  return readFitprintFitnessSubmittedIds().has(id);
 }

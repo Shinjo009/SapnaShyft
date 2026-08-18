@@ -79,6 +79,7 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const HealthScanIndexPage = lazy(() => import('./pages/HealthScanIndexPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AllAppointmentsPage = lazy(() => import('./pages/AllAppointmentsPage'));
+const NewDesQuesPage = lazy(() => import('./pages/NewDesQuesPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const NutritionPage = lazy(() => import('./pages/NutritionPage'));
 const CustomerSupportPage = lazy(() => import('./pages/CustomerSupportPage'));
@@ -271,6 +272,7 @@ const deriveEmployerOrganizerName = (profile) => {
 function App() {
   const PACKAGE_ONBOARDING_NEW_USER_SESSION_KEY = 'ss_package_onboarding_new_user';
   const [currentPage, setCurrentPage] = useState(getInitialAppPage);
+  const [newDesQuesScenario, setNewDesQuesScenario] = useState(2);
   const currentPageRef = useRef(currentPage);
   currentPageRef.current = currentPage;
   const [isBootstrappingSession, setIsBootstrappingSession] = useState(
@@ -1280,12 +1282,19 @@ function App() {
       return;
     }
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response: ${outcome}`);
-
-    setDeferredPrompt(null);
-    setShowInstallPrompt(false);
+    try {
+      deferredPrompt.prompt();
+      const choice = deferredPrompt.userChoice;
+      if (choice && typeof choice.then === 'function') {
+        const { outcome } = await choice;
+        console.log(`User response: ${outcome}`);
+      }
+    } catch (error) {
+      console.warn('PWA install prompt failed:', error);
+    } finally {
+      setDeferredPrompt(null);
+      setShowInstallPrompt(false);
+    }
   };
 
   const handleDismissInstall = () => {
@@ -1293,11 +1302,16 @@ function App() {
   };
 
   const handleInstallGotIt = async () => {
-    if (!isIosInstallFlow && deferredPrompt) {
-      await handleInstallClick();
-      return;
+    try {
+      if (!isIosInstallFlow && deferredPrompt) {
+        await handleInstallClick();
+        return;
+      }
+      handleDismissInstall();
+    } catch (error) {
+      console.warn('PWA install dismiss/install failed:', error);
+      handleDismissInstall();
     }
-    handleDismissInstall();
   };
 
   const handleQuestionnaireSuccessOk = () => {
@@ -2236,6 +2250,10 @@ function App() {
             console.log('Navigate to All Appointments');
             setCurrentPage('all-appointments');
           }}
+          onOpenNewDesQuesScenario={(scenario) => {
+            setNewDesQuesScenario(scenario);
+            setCurrentPage('new-des-ques');
+          }}
           onOpenAddAccount={() => {
             console.log('Navigate to Add Account');
             setCurrentPage('add-account');
@@ -2301,6 +2319,15 @@ function App() {
         <AllAppointmentsPage
           onBack={() => {
             console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'new-des-ques' && (
+        <NewDesQuesPage
+          scenario={newDesQuesScenario}
+          onBack={() => {
             setCurrentPage('profile');
           }}
         />

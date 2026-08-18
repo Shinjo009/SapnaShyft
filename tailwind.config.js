@@ -6,7 +6,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
+        sans: ['Lato', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         lato: ['Lato', 'sans-serif'],
+        sora: ['Sora', 'sans-serif'],
       },
       fontSize: {
         'heading': ['20px', { lineHeight: '24px', fontWeight: '700' }],

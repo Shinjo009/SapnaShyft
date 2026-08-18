@@ -1,0 +1,38 @@
+/* Exact playback of `just gif.gif` via transparent sprite sheet (one-shot). */
+
+.scc {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: min(100%, 320px);
+  margin: 0 auto 4px;
+  overflow: visible;
+  pointer-events: none;
+  user-select: none;
+  line-height: 0;
+  background: transparent;
+}
+
+.scc-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: transparent;
+}
+
+.scc-fallback {
+  display: none;
+  width: 100%;
+  height: auto;
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scc-canvas {
+    display: none;
+  }
+
+  .scc-fallback {
+    display: block;
+  }
+}

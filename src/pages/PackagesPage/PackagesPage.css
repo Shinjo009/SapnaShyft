@@ -462,6 +462,7 @@
   align-items: center;
   gap: 6px;
   border-radius: 999px;
+  color: #fff;
   background: linear-gradient(118deg, rgba(124, 58, 237, 0.35) 0.01%, rgba(47, 210, 176, 0.50) 99.99%);
 }
 
@@ -555,7 +556,9 @@
 /* Elite Performance Female face card (Figma 5331:6847) */
 .packages-card--elite-performance {
   position: relative;
-  min-height: 374px;
+  height: 280px;
+  max-height: 280px;
+  min-height: 0;
   padding: 0;
   gap: 0;
   overflow: hidden;
@@ -678,6 +681,7 @@
   align-items: center;
   gap: 9px;
   min-width: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
 }
 
 .packages-card__elite-gender-icon {
@@ -754,6 +758,7 @@
   width: 16px;
   height: 16px;
   display: block;
+  color: #fff;
 }
 
 .packages-card__elite-promo-label {
@@ -770,7 +775,8 @@
   position: relative;
   z-index: 2;
   display: flex;
-  min-height: 387px;
+  min-height: 0;
+  height: 100%;
   width: 100%;
   flex-direction: column;
   padding: 16px;
@@ -779,7 +785,7 @@
 
 .packages-card__elite-margin {
   display: flex;
-  min-height: 357.38px;
+  min-height: 0;
   width: 100%;
   flex-direction: column;
   justify-content: flex-end;
@@ -789,21 +795,31 @@
 .packages-card__elite-stack {
   display: flex;
   width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
   flex-direction: column;
+  justify-content: flex-start;
   gap: 8px;
 }
 
 .packages-card__elite-header-wrap {
+  display: flex;
   width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  flex-direction: column;
 }
 
 .packages-card__elite-header {
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 16px;
-  min-height: 198px;
+  flex: 1 1 0;
+  min-height: 0;
   width: 100%;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 6px;
 }
 
 .packages-card__elite-badges {
@@ -835,7 +851,6 @@
 
 .packages-card__elite-title-row {
   width: 100%;
-  min-height: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -846,11 +861,11 @@
   margin: 0;
   color: #fff;
   font-family: Lato, sans-serif;
-  font-size: 16px;
+  font-size: 24px;
   font-style: normal;
   font-weight: 700;
   line-height: normal;
-  white-space: nowrap;
+  word-wrap: break-word;
 }
 
 .packages-card__elite-open-btn {
@@ -864,6 +879,7 @@
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
 }
 
 .packages-card__elite-open-btn img {
@@ -877,7 +893,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 13px 0;
+  padding: 12px 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   box-sizing: border-box;
@@ -897,7 +913,7 @@
   color: #90df9e;
   text-align: center;
   font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   font-style: normal;
   font-weight: 700;
   line-height: 17px;
@@ -908,7 +924,7 @@
   color: #9a9a9a;
   text-align: center;
   font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 300;
   line-height: normal;
@@ -921,16 +937,60 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+.packages-card__elite-details {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.packages-card__elite-consult {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.packages-card__elite-consult-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4b8d83;
+}
+
+.packages-card__elite-consult-icon .packages-card__elite-promo-icon {
+  color: #4b8d83;
+}
+
+.packages-card__elite-consult-label {
+  color: #4b8d83;
+  font-family: Lato, sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  min-width: 0;
+  word-wrap: break-word;
+}
+
 .packages-card__elite-footer {
   display: flex;
   width: 100%;
-  min-height: 56px;
+  min-height: 0;
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.1);
   box-sizing: border-box;
+  flex-shrink: 0;
+  gap: 8px;
 }
 
 .packages-card__elite-price-wrap {
@@ -938,7 +998,6 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 0;
-  max-width: 138px;
   min-width: 0;
 }
 
@@ -996,7 +1055,7 @@
   border-radius: 36px;
   border: 1px solid #969696;
   background: linear-gradient(90deg, #296359 0%, #41ab99 100%);
-  box-shadow: 0 8px 6px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 20px 0 rgba(255, 255, 255, 0.15);
   color: #fff;
   text-align: center;
   font-family: 'DM Sans', sans-serif;

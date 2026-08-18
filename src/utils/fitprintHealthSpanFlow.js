@@ -4,7 +4,10 @@ import {
   fetchHealthSpanIndexForPair,
   getHealthSpanIndexSourceStatus,
 } from '../services/reportService';
-import { isFitprintAssessmentSubmitConfirmed } from '../services/questionnaireService';
+import {
+  clearFitprintGapQuestionnaireSubmittedFlag,
+  isFitprintAssessmentSubmitConfirmed,
+} from '../services/questionnaireService';
 import { isFitprintGapQuestionnaireFullyComplete } from './fitprintGapCatchupCompletion';
 
 /** No published scores yet (null or all zero). */
@@ -109,9 +112,11 @@ const resolveSourcesWithOptionalAssign = async ({ ttlMs, assignFitprintIfMissing
  * Resolve Health Span Index UI from assessments + report + FitPrint submit state.
  *
  * 1. Has FitPrint report (scores) → show_scores
- * 2. No scores, FitPrint submit confirmed → locked_submitted (awaiting reports)
+ * 2. No scores, FitPrint fitness-parameters submitted (instance completed,
+ *    Metsights category complete, or this device POSTed fitness-parameters)
+ *    → locked_submitted (awaiting reports)
  * 3. No scores, FitPrint not submitted → locked_questionnaire + Complete Assessment CTA
- *    (even if Basic/Pro already has answers)
+ *    (even if Basic/Pro already has answers, or FitPrint SuperShyft cats are complete)
  */
 export async function loadFitprintHealthSpanIndexState({
   ttlMs = 45000,
@@ -144,6 +149,7 @@ export async function loadFitprintHealthSpanIndexState({
     });
 
     if (scores) {
+      clearFitprintGapQuestionnaireSubmittedFlag(fitprintAssessmentId);
       return {
         phase: HEALTH_SPAN_PHASE.SHOW_SCORES,
         isLocked: false,
@@ -161,7 +167,9 @@ export async function loadFitprintHealthSpanIndexState({
   let fitprintSubmitConfirmed = false;
   if (fitprintAssessmentId) {
     try {
-      fitprintSubmitConfirmed = await isFitprintAssessmentSubmitConfirmed(fitprintAssessmentId);
+      fitprintSubmitConfirmed = await isFitprintAssessmentSubmitConfirmed(fitprintAssessmentId, {
+        instanceStatus: resolved?.latestMatchingFitprint?.status,
+      });
     } catch {
       fitprintSubmitConfirmed = false;
     }
