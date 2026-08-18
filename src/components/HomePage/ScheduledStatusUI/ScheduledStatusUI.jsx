@@ -5,6 +5,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './ScheduledStatusUI.css';
 
+/** Same 3 prep cards for B2B camp and B2C home collection. */
 export const PREP_STEPS = [
   {
     step: 'STEP 01',
@@ -28,6 +29,9 @@ export const PREP_STEPS = [
     tone: 'pink',
   },
 ];
+
+export const PREP_STEPS_B2C = PREP_STEPS;
+export const PREP_STEPS_B2B = PREP_STEPS;
 
 const TimeRowIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -136,29 +140,43 @@ const PrepIcon = () => (
 const FastingStepIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <circle cx="12" cy="12" r="10.25" stroke="white" strokeWidth="1" />
-    <path d="M8.2 7.4V11.1M7.15 7.4V9.9C7.15 10.85 8.2 11 8.2 11V16.5M9.25 7.4V9.9C9.25 10.85 8.2 11 8.2 11" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M15.5 7.4V16.5M15.5 7.4C16.85 7.65 17.2 9.05 16.8 10.45C16.4 11.85 15.5 12.15 15.5 12.15" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M8.2 8.1V12.4" stroke="white" strokeWidth="1.05" strokeLinecap="round" />
+    <path d="M7.35 8.1V10.7C7.35 11.55 8.2 11.7 8.2 11.7V16.1" stroke="white" strokeWidth="1.05" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9.05 8.1V10.7C9.05 11.55 8.2 11.7 8.2 11.7" stroke="white" strokeWidth="1.05" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M15.85 8.1V16.1" stroke="white" strokeWidth="1.05" strokeLinecap="round" />
+    <path d="M14.95 8.1H16.75" stroke="white" strokeWidth="1.05" strokeLinecap="round" />
+    <ellipse cx="12" cy="17.15" rx="5.1" ry="1.15" stroke="white" strokeWidth="1" />
   </svg>
 );
 
 const AlcoholStepIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M6.6 6.2H11.2V7.7C11.2 9.35 10.15 10.55 9.15 11.05V14.7H8.65V11.05C7.65 10.55 6.6 9.35 6.6 7.7V6.2Z" stroke="white" strokeWidth="1" strokeLinejoin="round" />
-    <path d="M8.9 14.7V17.4M7.4 17.4H10.4" stroke="white" strokeWidth="1" strokeLinecap="round" />
-    <path d="M14.55 5.8H17.15V7.15H14.55V5.8Z" stroke="white" strokeWidth="1" strokeLinejoin="round" />
-    <path d="M13.85 7.15H17.85V16.2C17.85 17.05 17.15 17.7 16.35 17.7H15.35C14.55 17.7 13.85 17.05 13.85 16.2V7.15Z" stroke="white" strokeWidth="1" strokeLinejoin="round" />
-    <path d="M5.4 18.2L18.6 5.8" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+    <circle cx="12" cy="12" r="10.25" stroke="white" strokeWidth="1" />
+    <path
+      d="M8 7.55H11.35L11 11.05C11 12.2 10.15 13.05 9.675 13.05C9.2 13.05 8.35 12.2 8.35 11.05L8 7.55Z"
+      stroke="white"
+      strokeWidth="1"
+      strokeLinejoin="round"
+    />
+    <path d="M9.675 13.05V16.15M8.5 16.15H10.85" stroke="white" strokeWidth="1" strokeLinecap="round" />
+    <path
+      d="M13.85 7.55H16.4V8.85H16.95V16.2H13.3V8.85H13.85V7.55Z"
+      stroke="white"
+      strokeWidth="1"
+      strokeLinejoin="round"
+    />
+    <path d="M13.3 8.85H16.95" stroke="white" strokeWidth="1" />
+    <path d="M7.15 16.55L16.85 7.45" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
   </svg>
 );
 
 const MedsStepIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path
-      d="M10.2 19.4L19.4 10.2a4.5 4.5 0 1 0-6.36-6.36L4.84 13.04a4.5 4.5 0 1 0 6.36 6.36Z"
-      stroke="white"
-      strokeWidth="1"
-    />
-    <path d="M8.4 9.6L14.4 15.6" stroke="white" strokeWidth="1" strokeLinecap="round" />
+    <circle cx="12" cy="12" r="10.25" stroke="white" strokeWidth="1" />
+    <g transform="rotate(-35 12 12)">
+      <rect x="7.4" y="10.15" width="9.2" height="3.7" rx="1.85" stroke="white" strokeWidth="1.05" />
+      <path d="M12 10.15V13.85" stroke="white" strokeWidth="1.05" strokeLinecap="round" />
+    </g>
   </svg>
 );
 

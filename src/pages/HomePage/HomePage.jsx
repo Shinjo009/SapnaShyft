@@ -653,7 +653,7 @@ const HomePage = ({
     setHealthSpanGapEngagementId(flowState?.engagementId ?? null);
 
     if (flowState?.phase === HEALTH_SPAN_PHASE.SHOW_SCORES) {
-      clearFitprintGapQuestionnaireSubmittedFlag(flowState.fitprintAssessmentId);
+      clearFitprintGapQuestionnaireSubmittedFlag();
       setFitprintGapQCompleteFromServer(true);
       setHealthSpanLockedNoFitprint(false);
       setHealthSpanGapBasicProAssessmentId(flowState.basicProAssessmentId);
