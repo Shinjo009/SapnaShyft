@@ -5,7 +5,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './ScheduledStatusUI.css';
 
-export const PREP_STEPS_B2C = [
+export const PREP_STEPS = [
   {
     step: 'STEP 01',
     title: 'Fasting Required (8-12 hours)',
@@ -15,83 +15,17 @@ export const PREP_STEPS_B2C = [
   },
   {
     step: 'STEP 02',
-    title: 'Carry your company ID card',
-    description: 'Keep a valid photo ID ready for verification at collection.',
-    icon: 'id',
-    tone: 'pink',
-  },
-  {
-    step: 'STEP 03',
-    title: 'Avoid alcohol 24 hours before',
-    description: 'Skip alcoholic drinks for a full day before your collection.',
+    title: 'Avoid Alcoholic Drinks',
+    description: 'Avoid drinking alcohol 24 hours before the test',
     icon: 'alcohol',
     tone: 'blue',
   },
   {
-    step: 'STEP 04',
-    title: 'Continue prescribed medication',
-    description: 'Take medicines as usual unless your doctor advises otherwise.',
-    icon: 'meds',
-    tone: 'yellow',
-  },
-  {
-    step: 'STEP 05',
-    title: 'Avoid heavy workout beforehand',
-    description: 'Skip intense exercise for at least 2 hours before the test.',
-    icon: 'workout',
-    tone: 'pink',
-  },
-  {
-    step: 'STEP 06',
-    title: 'Avoid high-fat or sugary foods',
-    description: 'Choose light meals so your sample results stay accurate.',
-    icon: 'food',
-    tone: 'blue',
-  },
-];
-
-export const PREP_STEPS_B2B = [
-  {
-    step: 'STEP 01',
-    title: 'Carry your company ID card',
-    description: 'Bring your company ID for verification at the camp.',
-    icon: 'id',
-    tone: 'yellow',
-  },
-  {
-    step: 'STEP 02',
-    title: 'Fasting Required (8-12 hours)',
-    description: 'Water is allowed. Avoid chewing gum, mints, and flavored drinks.',
-    icon: 'fasting',
-    tone: 'pink',
-  },
-  {
     step: 'STEP 03',
-    title: 'Avoid alcohol 24 hours before the test',
-    description: 'Skip alcoholic drinks for a full day before your camp slot.',
-    icon: 'alcohol',
-    tone: 'blue',
-  },
-  {
-    step: 'STEP 04',
-    title: 'Continue medication as prescribed',
-    description: 'Continue medication unless advised otherwise by your Doctor.',
+    title: 'Continue Ongoing Medication',
+    description: 'Continue medication unless advised to discontinue by your Doctor.',
     icon: 'meds',
-    tone: 'yellow',
-  },
-  {
-    step: 'STEP 05',
-    title: 'Avoid heavy workout 2 hours before',
-    description: 'Skip intense exercise for at least 2 hours before the test.',
-    icon: 'workout',
     tone: 'pink',
-  },
-  {
-    step: 'STEP 06',
-    title: 'Avoid high-fat or high-sugar foods',
-    description: 'Choose light meals so your sample results stay accurate.',
-    icon: 'food',
-    tone: 'blue',
   },
 ];
 
@@ -202,38 +136,43 @@ const PrepIcon = () => (
 const FastingStepIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <circle cx="12" cy="12" r="10.25" stroke="white" strokeWidth="1" />
-    <circle cx="12" cy="12" r="7.4" stroke="white" strokeWidth="0.75" opacity="0.35" />
-    <path
-      d="M8.4 7.6V11.2M7.35 7.6V9.8C7.35 10.7 8.4 10.85 8.4 10.85V15.4M9.45 7.6V9.8C9.45 10.7 8.4 10.85 8.4 10.85"
-      stroke="white"
-      strokeWidth="0.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M15.1 7.6V15.4M15.1 7.6C16.35 7.85 16.7 9.1 16.35 10.4C16 11.7 15.1 12 15.1 12"
-      stroke="white"
-      strokeWidth="0.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+    <path d="M8.2 7.4V11.1M7.15 7.4V9.9C7.15 10.85 8.2 11 8.2 11V16.5M9.25 7.4V9.9C9.25 10.85 8.2 11 8.2 11" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M15.5 7.4V16.5M15.5 7.4C16.85 7.65 17.2 9.05 16.8 10.45C16.4 11.85 15.5 12.15 15.5 12.15" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
-const GenericStepIcon = () => (
+const AlcoholStepIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <circle cx="12" cy="12" r="10.25" stroke="white" strokeWidth="1" />
-    <path d="M8 12.2L10.6 14.8L16.2 9.2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M6.6 6.2H11.2V7.7C11.2 9.35 10.15 10.55 9.15 11.05V14.7H8.65V11.05C7.65 10.55 6.6 9.35 6.6 7.7V6.2Z" stroke="white" strokeWidth="1" strokeLinejoin="round" />
+    <path d="M8.9 14.7V17.4M7.4 17.4H10.4" stroke="white" strokeWidth="1" strokeLinecap="round" />
+    <path d="M14.55 5.8H17.15V7.15H14.55V5.8Z" stroke="white" strokeWidth="1" strokeLinejoin="round" />
+    <path d="M13.85 7.15H17.85V16.2C17.85 17.05 17.15 17.7 16.35 17.7H15.35C14.55 17.7 13.85 17.05 13.85 16.2V7.15Z" stroke="white" strokeWidth="1" strokeLinejoin="round" />
+    <path d="M5.4 18.2L18.6 5.8" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
   </svg>
 );
 
-const StepIcon = ({ type }) => (type === 'fasting' ? <FastingStepIcon /> : <GenericStepIcon />);
+const MedsStepIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M10.2 19.4L19.4 10.2a4.5 4.5 0 1 0-6.36-6.36L4.84 13.04a4.5 4.5 0 1 0 6.36 6.36Z"
+      stroke="white"
+      strokeWidth="1"
+    />
+    <path d="M8.4 9.6L14.4 15.6" stroke="white" strokeWidth="1" strokeLinecap="round" />
+  </svg>
+);
+
+const StepIcon = ({ type }) => {
+  if (type === 'alcohol') return <AlcoholStepIcon />;
+  if (type === 'meds') return <MedsStepIcon />;
+  return <FastingStepIcon />;
+};
 
 /**
  * Stacked prep cards with continuous free-scroll (no snap).
  * One long horizontal swipe can travel first → last.
  */
-export const PrepStepsDeck = ({ steps = PREP_STEPS_B2C }) => {
+export const PrepStepsDeck = ({ steps = PREP_STEPS }) => {
   const scrollerRef = useRef(null);
   const [progress, setProgress] = useState(0);
   const stepCount = steps.length;

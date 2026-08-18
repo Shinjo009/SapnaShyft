@@ -15,8 +15,6 @@ import {
   PrepStepsDeck,
   StatusTimelineCard,
   WhatHappensNextCard,
-  PREP_STEPS_B2C,
-  PREP_STEPS_B2B,
 } from '../../components/HomePage/ScheduledStatusUI';
 import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
 import { getAccessToken } from '../../utils/authStorage';
@@ -1939,7 +1937,7 @@ const HomePage = ({
             />
           </div>
 
-          <PrepStepsDeck steps={isB2cScheduled ? PREP_STEPS_B2C : PREP_STEPS_B2B} />
+          <PrepStepsDeck />
 
           {showCampQuestionnaireCta ? (
             <div className="home-page-b2b__cta-wrap home-page-b2b__cta-wrap--camp">
