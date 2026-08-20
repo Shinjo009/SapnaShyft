@@ -9,6 +9,8 @@ import {
   SUPERCLUB_PLAYLIST_FLOW_DEV_UNLOCK,
   SUPERCLUB_V1_SCREENS_ENABLED,
 } from './utils/superclubPlaylistLock';
+import { CAMP_DOCTOR_CONSULTATION_ENABLED } from './pages/CampDoctorConsultationPage/campDoctorConsultationConfig';
+import { readCampAppointments, saveCampAppointment } from './utils/campAppointments';
 import { sendOtp, resendOtp, verifyOtp, refreshToken, logout } from './services/authService';
 import { createUser, getMyProfiles, saveSuperclubMcqPreferences, getMyUpcomingSlot } from './services/usersService';
 import { getMyProfile } from './services/profileService';
@@ -76,6 +78,8 @@ import {
 const OTPPage = lazy(() => import('./pages/OTPPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
+// Camp Doctor consultation popup — comment this lazy import + the home render block to disable.
+const CampDoctorConsultationPage = lazy(() => import('./pages/CampDoctorConsultationPage'));
 const HealthScanIndexPage = lazy(() => import('./pages/HealthScanIndexPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AllAppointmentsPage = lazy(() => import('./pages/AllAppointmentsPage'));
@@ -326,6 +330,7 @@ function App() {
   const [healthAssessmentBackPage, setHealthAssessmentBackPage] = useState('home');
   const [nullCatchupAssessmentInstanceId, setNullCatchupAssessmentInstanceId] = useState(null);
   const [superclubPlaylistPayload, setSuperclubPlaylistPayload] = useState(null);
+  const [campAppointments, setCampAppointments] = useState(() => readCampAppointments());
   // const [superClubOnboardingDone, setSuperClubOnboardingDone] = useState(() =>
   //   isSuperClubOnboardingComplete(),
   // );
@@ -1736,6 +1741,23 @@ function App() {
             </div>
         </div>
       )}
+      {/*
+        Camp Doctor consultation — compact card above the navbar (not a full-screen page).
+        To hide: set CAMP_DOCTOR_CONSULTATION_ENABLED to false, or comment this block
+        and the CampDoctorConsultationPage import above.
+      */}
+      {CAMP_DOCTOR_CONSULTATION_ENABLED && currentPage === 'home' ? (
+        <CampDoctorConsultationPage
+          onAppointmentBooked={(appointment) => {
+            if (appointment) {
+              setCampAppointments(saveCampAppointment(appointment));
+            }
+          }}
+          onViewAppointment={() => {
+            setCurrentPage('all-appointments');
+          }}
+        />
+      ) : null}
       <AppTooltipTour
         key={tooltipTourScopeKey}
         currentPage={currentPage}
@@ -2317,6 +2339,7 @@ function App() {
 
       {currentPage === 'all-appointments' && (
         <AllAppointmentsPage
+          appointments={campAppointments}
           onBack={() => {
             console.log('Back to Profile');
             setCurrentPage('profile');
