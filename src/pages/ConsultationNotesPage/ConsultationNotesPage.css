@@ -1,0 +1,436 @@
+.consultation-notes-page {
+  min-height: 100%;
+  padding: 54px 0 32px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.consultation-notes-page__header-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  box-sizing: border-box;
+  height: 32px;
+}
+
+.consultation-notes-page__header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.consultation-notes-page__back-btn {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.consultation-notes-page__title {
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+}
+
+.consultation-notes-page__icon-box {
+  display: block;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.consultation-notes-page__icon-box img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.consultation-notes-page__icon-box--back {
+  width: 16px;
+  height: 16px;
+}
+
+.consultation-notes-page__icon-box--note {
+  width: 16px;
+  height: 16px;
+}
+
+.consultation-notes-page__icon-box--chevron {
+  width: 8px;
+  height: 5px;
+}
+
+.consultation-notes-page__icon-box--download {
+  width: 20px;
+  height: 20px;
+}
+
+.consultation-notes-page__tabs-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  margin-top: 10px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.consultation-notes-page__tabs {
+  display: flex;
+  flex: 1 0 0;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px;
+  border-radius: 30px;
+  border: 1px solid rgba(153, 153, 153, 0.3);
+  box-sizing: border-box;
+}
+
+.consultation-notes-page__tab {
+  display: flex;
+  flex: 1 0 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 32px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 30px;
+  background: transparent;
+  color: #ccc;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.1px;
+  line-height: normal;
+  cursor: pointer;
+}
+
+.consultation-notes-page__tab.is-active {
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(144, 223, 158, 0.2);
+  box-shadow: 0 0 10px 0 rgba(144, 223, 158, 0.4);
+  color: #fff;
+  font-weight: 600;
+}
+
+.consultation-notes-page__content {
+  margin-top: 19px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.consultation-notes-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px 32px;
+  box-sizing: border-box;
+  gap: 8px;
+  width: 100%;
+}
+
+.consultation-notes-page__empty-title,
+.consultation-notes-page__empty-sub {
+  margin: 0;
+  font-family: Inter, 'DM Sans', sans-serif;
+  font-style: normal;
+  line-height: 1.45;
+  max-width: 280px;
+}
+
+.consultation-notes-page__empty-title {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.consultation-notes-page__empty-sub {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.consultation-notes-page__card {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 25px;
+  border-radius: 24px;
+  border: 1px solid rgba(166, 230, 255, 0.2);
+  background: linear-gradient(180deg, rgba(166, 230, 255, 0) 0%, rgba(166, 230, 255, 0.01) 60%, rgba(166, 230, 255, 0.02) 100%);
+  box-shadow:
+    0 10px 30px -10px rgba(0, 0, 0, 0.5),
+    inset 0 -20px 40px -9px rgba(166, 230, 255, 0.3);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.consultation-notes-page__card-glow {
+  position: absolute;
+  top: -40px;
+  right: -33px;
+  width: 120px;
+  height: 120px;
+  border-radius: 60px;
+  background: rgba(166, 230, 255, 0.15);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+.consultation-notes-page__card-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 241px;
+}
+
+.consultation-notes-page__when {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 13px;
+  border-radius: 9999px;
+  border: 1px solid rgba(166, 230, 255, 0.2);
+  background: rgba(166, 230, 255, 0.1);
+  color: #a6e6ff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.consultation-notes-page__doctor-name {
+  margin: 0;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  line-height: 22.5px;
+}
+
+.consultation-notes-page__divider {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.05) 100%);
+}
+
+.consultation-notes-page__notes-block {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.consultation-notes-page__notes-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.consultation-notes-page__notes-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(63, 156, 255, 0.2);
+  background: rgba(63, 156, 255, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.consultation-notes-page__notes-label {
+  margin: 0;
+  color: #3f9cff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 16.5px;
+}
+
+.consultation-notes-page__notes-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.consultation-notes-page__notes-text {
+  margin: 0;
+  width: 100%;
+  max-height: 72px;
+  overflow: hidden;
+  color: rgba(196, 196, 196, 0.9);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 21px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  text-overflow: ellipsis;
+}
+
+.consultation-notes-page__notes-text.is-expanded {
+  max-height: none;
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow: visible;
+}
+
+.consultation-notes-page__read-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 20px;
+  text-transform: uppercase;
+}
+
+.consultation-notes-page__read-chevron {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transition: transform 0.2s ease;
+}
+
+.consultation-notes-page__read-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.consultation-notes-page__prescription {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+}
+
+.consultation-notes-page__prescription-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.consultation-notes-page__prescription-title {
+  margin: 0;
+  color: #3f9cff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 16.5px;
+}
+
+.consultation-notes-page__prescription-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.consultation-notes-page__prescription-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: #c4c7c7;
+  flex-shrink: 0;
+}
+
+.consultation-notes-page__download-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.consultation-notes-page__download-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+@media (max-width: 390px) {
+  .consultation-notes-page {
+    padding-top: 48px;
+  }
+
+  .consultation-notes-page__header-row,
+  .consultation-notes-page__tabs-wrap,
+  .consultation-notes-page__content {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .consultation-notes-page__card {
+    padding: 20px;
+  }
+}

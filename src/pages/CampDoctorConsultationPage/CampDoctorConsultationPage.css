@@ -245,6 +245,15 @@
   letter-spacing: 0.35px;
 }
 
+.camp-doctor-consult__error {
+  margin: 8px 0 0;
+  width: 100%;
+  color: #ffb4ab;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+}
+
 .camp-doctor-consult__cta {
   display: flex;
   width: 100%;
@@ -270,6 +279,11 @@
 .camp-doctor-consult__cta:focus-visible {
   outline: 2px solid #90df9e;
   outline-offset: 2px;
+}
+
+.camp-doctor-consult__cta:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .camp-doctor-schedule {
@@ -528,6 +542,16 @@
   gap: 8px;
 }
 
+.camp-doctor-schedule__empty {
+  margin: 0;
+  grid-column: 1 / -1;
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+}
+
 .camp-doctor-schedule__slot {
   display: flex;
   height: 40px;
@@ -591,6 +615,14 @@
   font-weight: 600;
   line-height: normal;
   white-space: nowrap;
+}
+
+.camp-doctor-schedule__error {
+  margin: 6px 0 0;
+  color: #ffb4ab;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  line-height: 14px;
 }
 
 .camp-doctor-schedule__confirm {

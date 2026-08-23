@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './AllAppointmentsPage.css';
+import { fetchMyConsultationAppointments } from '../../utils/myConsultationsAppointments';
 import backIcon from '../../images/AllAppointments/back.svg';
 import infoIcon from '../../images/AllAppointments/info.svg';
 import homeIcon from '../../images/AllAppointments/home.svg';
@@ -204,8 +205,51 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
   const [activeStatus, setActiveStatus] = useState('scheduled');
   const [activeCategory, setActiveCategory] = useState('all');
   const [infoOpenAppointmentId, setInfoOpenAppointmentId] = useState(null);
+  const [consultationAppointments, setConsultationAppointments] = useState([]);
+  const [isLoadingConsultations, setIsLoadingConsultations] = useState(true);
+  const [hasLoadedConsultations, setHasLoadedConsultations] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadConsultations = async () => {
+      setIsLoadingConsultations(true);
+      try {
+        const items = await fetchMyConsultationAppointments();
+        if (!cancelled) {
+          setConsultationAppointments(items);
+        }
+      } catch (error) {
+        console.error('Failed to load consultation appointments:', error);
+        if (!cancelled) {
+          setConsultationAppointments([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingConsultations(false);
+          setHasLoadedConsultations(true);
+        }
+      }
+    };
+
+    void loadConsultations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const mergedAppointments = useMemo(() => {
+    const apiAppointments = consultationAppointments.map(normalizeScheduledAppointment);
+
+    if (hasLoadedConsultations) {
+      if (apiAppointments.length > 0) {
+        return apiAppointments;
+      }
+
+      return appointments.map(normalizeScheduledAppointment);
+    }
+
     let result = appointments.map(normalizeScheduledAppointment);
     if (!appointments.some((item) => (item.status || 'scheduled') === 'scheduled')) {
       result = [...result, ...SCHEDULED_SAMPLE_APPOINTMENTS];
@@ -217,7 +261,7 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
       result = [...result, ...CANCELLED_SAMPLE_APPOINTMENTS];
     }
     return result;
-  }, [appointments]);
+  }, [appointments, consultationAppointments, hasLoadedConsultations]);
 
   const visibleAppointments = useMemo(() => {
     return mergedAppointments.filter((item) => {
@@ -525,14 +569,20 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
       </div>
 
       <div className={`all-appointments-page__list${visibleAppointments.length === 0 ? ' is-empty' : ''}`}>
-        {visibleAppointments.length === 0 ? (
+        {isLoadingConsultations ? (
+          <div className="all-appointments-page__empty" role="status">
+            <p className="all-appointments-page__empty-title">Loading appointments...</p>
+          </div>
+        ) : null}
+
+        {!isLoadingConsultations && visibleAppointments.length === 0 ? (
           <div className="all-appointments-page__empty" role="status">
             <p className="all-appointments-page__empty-title">No appointments yet.</p>
             <p className="all-appointments-page__empty-sub">They will appear here when booked</p>
           </div>
         ) : null}
 
-        {visibleAppointments.map((appointment) => {
+        {!isLoadingConsultations ? visibleAppointments.map((appointment) => {
           const accent = appointment.accent || 'teal';
           const kind = appointment.kind || 'consult';
           const status = appointment.status || 'scheduled';
@@ -561,7 +611,7 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
               </article>
             </div>
           );
-        })}
+        }) : null}
       </div>
     </div>
   );

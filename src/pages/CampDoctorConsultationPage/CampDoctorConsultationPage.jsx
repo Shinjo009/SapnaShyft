@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './CampDoctorConsultationPage.css';
+import { getEngagementByCode } from '../../services/engagementsService';
+import { bookExpertConsultation } from '../../services/expertsService';
+import {
+  formatDisplaySlotToApi,
+  getOfflineCabinsForSelection,
+  parseDoctorOfflineSchedule,
+} from '../../utils/campDoctorOfflineSchedule';
 import appointmentIcon from '../../images/home-book-appointment.svg';
 import closeIcon from '../../images/camp-doctor-close.svg';
 import calendarIcon from '../../images/camp-doctor-calendar.svg';
@@ -28,6 +35,18 @@ const DAY_PARTS = [
 
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const FALLBACK_CABINS = [
+  { key: '1', label: 'Cabin 1', available: true },
+  { key: '2', label: 'Cabin 2', available: false },
+  { key: '3', label: 'Cabin 3', available: true },
+  { key: '4', label: 'Cabin 4', available: true },
+  { key: '5', label: 'Cabin 5', available: true },
+  { key: '6', label: 'Cabin 6', available: true },
+  { key: '7', label: 'Cabin 7', available: true },
+  { key: '8', label: 'Cabin 8', available: true },
+  { key: '9', label: 'Cabin 9', available: true },
+];
 
 const ordinal = (n) => {
   const v = n % 100;
@@ -100,8 +119,6 @@ const formatSlotDisplay = (slotLabel) => {
   return `${Number(match[1])}:${match[2]} ${match[3].toUpperCase()}`;
 };
 
-const SLOT_DURATION_MS = 15 * 60 * 1000;
-
 const slotToMinutes = (slotLabel) => {
   const match = String(slotLabel || '').match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
   if (!match) {
@@ -120,6 +137,14 @@ const slotToMinutes = (slotLabel) => {
 };
 
 const toAppointmentStart = (date, slotLabel) => {
+  if (date?.apiDate) {
+    const [year, month, day] = date.apiDate.split('-').map(Number);
+    const start = new Date(year, month - 1, day);
+    const minutes = slotToMinutes(slotLabel);
+    start.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+    return start;
+  }
+
   const monthIndex = MONTH_SHORT.indexOf(date?.month);
   const start = new Date(
     date?.year || new Date().getFullYear(),
@@ -139,7 +164,7 @@ const formatWhenLabel = (date, slotLabel) => {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const booked = toAppointmentStart(date, '12:00 AM');
+  const booked = toAppointmentStart(date, slotLabel);
   booked.setHours(0, 0, 0, 0);
   const diffDays = Math.round((booked.getTime() - today.getTime()) / 86400000);
 
@@ -159,17 +184,29 @@ const formatReminderDate = (date) => {
   return `${date.day}, ${date.number} ${date.month}`;
 };
 
-const formatCabinLabel = (cabinId) => {
-  const id = Number(cabinId);
-  return id > 0 ? `Cabin ${id}` : undefined;
+const getApiDate = (date) => {
+  if (date?.apiDate) {
+    return date.apiDate;
+  }
+
+  const monthIndex = MONTH_SHORT.indexOf(date?.month);
+  if (monthIndex < 0 || !date?.number) {
+    return null;
+  }
+
+  const year = date?.year || new Date().getFullYear();
+  const month = String(monthIndex + 1).padStart(2, '0');
+  const day = String(date.number).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
-const buildCampDoctorAppointment = (date, slotLabel, cabinId) => {
+const buildCampDoctorAppointment = (date, slotLabel, cabin, slotDurationMinutes = 15) => {
   const start = toAppointmentStart(date, slotLabel);
   const startsAt = start.getTime();
+  const durationMs = slotDurationMinutes * 60 * 1000;
 
   return {
-    id: `camp-doctor-${date?.id || 'slot'}-${slotLabel}`,
+    id: `camp-doctor-${date?.id || 'slot'}-${slotLabel}-${cabin?.key || 'cabin'}`,
     status: 'scheduled',
     category: 'doctor',
     kind: 'consult',
@@ -178,65 +215,87 @@ const buildCampDoctorAppointment = (date, slotLabel, cabinId) => {
     reminderTime: slotLabel,
     reminderDate: formatReminderDate(date),
     startsAt,
-    endsAt: startsAt + SLOT_DURATION_MS,
+    endsAt: startsAt + durationMs,
     title: 'Doctor Consultation',
-    cabinId,
-    cabinLabel: formatCabinLabel(cabinId),
+    cabinKey: cabin?.key,
+    cabinLabel: cabin?.label,
+    apiDate: date?.apiDate || null,
     showInfo: true,
   };
 };
 
-/**
- * Camp-only doctor booking card + Schedule Appointment sheet.
- * Enable/disable via CAMP_DOCTOR_CONSULTATION_ENABLED (or comment the App.js block).
- */
-const CABINS = [
-  { id: 1, label: 'Cabin 1', available: true },
-  { id: 2, label: 'Cabin 2', available: false },
-  { id: 3, label: 'Cabin 3', available: true },
-  { id: 4, label: 'Cabin 4', available: true },
-  { id: 5, label: 'Cabin 5', available: true },
-  { id: 6, label: 'Cabin 6', available: true },
-  { id: 7, label: 'Cabin 7', available: true },
-  { id: 8, label: 'Cabin 8', available: true },
-  { id: 9, label: 'Cabin 9', available: true },
-];
+const getFirstBookable = (dates, slots, nowMs) => {
+  for (const date of dates) {
+    const slot = slots.find((item) => toAppointmentStart(date, item).getTime() > nowMs);
+    if (slot) {
+      return { dateId: date.id, slot };
+    }
+  }
+  return { dateId: dates[0]?.id || '', slot: slots[0] || '' };
+};
 
 const CampDoctorConsultationPage = ({
+  engagementId,
+  engagementCode,
+  consultationMode,
   onAppointmentBooked,
   onViewAppointment,
 }) => {
-  const dates = useMemo(() => buildUpcomingDates(), []);
+  const fallbackDates = useMemo(() => buildUpcomingDates(), []);
+  const isOfflineMode = String(consultationMode || '').toLowerCase() === 'offline' && Boolean(engagementCode);
+
+  const [offlineSchedule, setOfflineSchedule] = useState(null);
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
+  const [scheduleError, setScheduleError] = useState('');
+  const [bookingError, setBookingError] = useState('');
+  const [bookedAppointment, setBookedAppointment] = useState(null);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [isCabinOpen, setIsCabinOpen] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
-  const [selectedCabin, setSelectedCabin] = useState(1);
+  const [selectedCabinKey, setSelectedCabinKey] = useState(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [selectedDayPart, setSelectedDayPart] = useState('morning');
 
-  const firstBookable = useMemo(() => {
-    const now = new Date();
-    for (const date of dates) {
-      const slot = TIME_SLOTS.find((item) => toAppointmentStart(date, item).getTime() > now.getTime());
-      if (slot) {
-        return { dateId: date.id, slot };
-      }
+  const dates = offlineSchedule?.dateOptions?.length ? offlineSchedule.dateOptions : fallbackDates;
+  const slotDurationMinutes = offlineSchedule?.slotDurationMinutes || 15;
+
+  const allSlotsForDates = useMemo(() => {
+    if (offlineSchedule) {
+      return dates.flatMap((date) => (
+        offlineSchedule.slotsByDate[date.apiDate] || []
+      ).map((slotItem) => slotItem.displaySlot));
     }
-    return { dateId: dates[0]?.id || '', slot: TIME_SLOTS[0] };
-  }, [dates]);
+    return TIME_SLOTS;
+  }, [dates, offlineSchedule]);
+
+  const firstBookable = useMemo(
+    () => getFirstBookable(dates, offlineSchedule ? allSlotsForDates : TIME_SLOTS, nowMs),
+    [dates, allSlotsForDates, offlineSchedule, nowMs],
+  );
 
   const [selectedDateId, setSelectedDateId] = useState(firstBookable.dateId);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(firstBookable.slot);
-  const [selectedDayPart, setSelectedDayPart] = useState('morning');
 
   useEffect(() => {
     const timerId = window.setInterval(() => setNowMs(Date.now()), 30000);
     return () => window.clearInterval(timerId);
   }, []);
 
+  useEffect(() => {
+    setSelectedDateId(firstBookable.dateId);
+    setSelectedTimeSlot(firstBookable.slot);
+  }, [firstBookable.dateId, firstBookable.slot]);
+
   const selectedDate = dates.find((item) => item.id === selectedDateId) || dates[0];
+
   const availableSlots = useMemo(() => {
     const part = DAY_PARTS.find((p) => p.id === selectedDayPart);
-    return TIME_SLOTS.filter((slot) => {
+    const sourceSlots = offlineSchedule && selectedDate?.apiDate
+      ? (offlineSchedule.slotsByDate[selectedDate.apiDate] || []).map((slotItem) => slotItem.displaySlot)
+      : TIME_SLOTS;
+
+    return sourceSlots.filter((slot) => {
       if (selectedDate && toAppointmentStart(selectedDate, slot).getTime() <= nowMs) {
         return false;
       }
@@ -249,15 +308,31 @@ const CampDoctorConsultationPage = ({
       }
       return true;
     });
-  }, [selectedDate, nowMs, selectedDayPart]);
+  }, [offlineSchedule, selectedDate, nowMs, selectedDayPart]);
 
   useEffect(() => {
     if (availableSlots.length > 0 && !availableSlots.includes(selectedTimeSlot)) {
       setSelectedTimeSlot(availableSlots[0]);
     }
   }, [availableSlots, selectedTimeSlot]);
-  const slotSummary = selectedDate
-    ? `${ordinal(selectedDate.number)} ${selectedDate.month}  |  ${formatSlotStart(selectedTimeSlot)} - ${addMinutesToSlot(selectedTimeSlot, 15)}`
+
+  const availableCabins = useMemo(() => {
+    if (offlineSchedule && selectedDate?.apiDate && selectedTimeSlot) {
+      return getOfflineCabinsForSelection(offlineSchedule, selectedDate, selectedTimeSlot);
+    }
+    return FALLBACK_CABINS;
+  }, [offlineSchedule, selectedDate, selectedTimeSlot]);
+
+  useEffect(() => {
+    if (!availableCabins.some((cabin) => cabin.key === selectedCabinKey)) {
+      setSelectedCabinKey(availableCabins[0]?.key || null);
+    }
+  }, [availableCabins, selectedCabinKey]);
+
+  const selectedCabin = availableCabins.find((cabin) => cabin.key === selectedCabinKey) || availableCabins[0] || null;
+
+  const slotSummary = selectedDate && selectedTimeSlot
+    ? `${ordinal(selectedDate.number)} ${selectedDate.month}  |  ${formatSlotStart(selectedTimeSlot)} - ${addMinutesToSlot(selectedTimeSlot, slotDurationMinutes)}`
     : '';
   const confirmedDateText = selectedDate
     ? `${selectedDate.month} ${selectedDate.number}, ${selectedDate.year}`
@@ -268,12 +343,99 @@ const CampDoctorConsultationPage = ({
     setIsScheduleOpen(false);
     setIsCabinOpen(false);
     setIsConfirmed(false);
+    setScheduleError('');
+    setBookingError('');
+    setBookedAppointment(null);
   };
 
-  const persistAppointment = () => {
-    const appointment = buildCampDoctorAppointment(selectedDate, selectedTimeSlot, selectedCabin);
-    onAppointmentBooked?.(appointment);
-    return appointment;
+  const buildLocalAppointment = () => buildCampDoctorAppointment(
+    selectedDate,
+    selectedTimeSlot,
+    selectedCabin,
+    selectedCabin?.slotDuration || slotDurationMinutes,
+  );
+
+  const handleConfirmBooking = async () => {
+    if (!selectedCabin || !selectedDate || !selectedTimeSlot) {
+      return false;
+    }
+
+    setIsBooking(true);
+    setBookingError('');
+
+    try {
+      const apiDate = getApiDate(selectedDate);
+      const apiSlot = formatDisplaySlotToApi(selectedTimeSlot);
+
+      if (engagementId) {
+        await bookExpertConsultation({
+          engagementId,
+          expertType: 'doctor',
+          date: apiDate,
+          cabin: selectedCabin.key,
+          slot: apiSlot,
+        });
+      }
+
+      setBookedAppointment(buildLocalAppointment());
+      return true;
+    } catch (error) {
+      console.error('Failed to book doctor consultation:', error);
+      setBookingError('Unable to confirm your appointment. Please try again.');
+      return false;
+    } finally {
+      setIsBooking(false);
+    }
+  };
+
+  const handleBookNow = async () => {
+    if (!isOfflineMode) {
+      setIsScheduleOpen(true);
+      return;
+    }
+
+    setIsLoadingSchedule(true);
+    setScheduleError('');
+
+    try {
+      const details = await getEngagementByCode(engagementCode);
+      const schedule = parseDoctorOfflineSchedule(details);
+
+      if (!schedule.dateOptions.length) {
+        setScheduleError('No consultation slots are available right now.');
+        return;
+      }
+
+      setOfflineSchedule(schedule);
+      const initial = getFirstBookable(
+        schedule.dateOptions,
+        schedule.dateOptions.flatMap((date) => (
+          schedule.slotsByDate[date.apiDate] || []
+        ).map((slotItem) => slotItem.displaySlot)),
+        Date.now(),
+      );
+
+      setSelectedDateId(initial.dateId);
+      setSelectedTimeSlot(initial.slot);
+      setSelectedCabinKey(null);
+      setIsScheduleOpen(true);
+    } catch (error) {
+      console.error('Failed to load offline consultation schedule:', error);
+      setScheduleError('Unable to load consultation slots. Please try again.');
+    } finally {
+      setIsLoadingSchedule(false);
+    }
+  };
+
+  const handleDateSelect = (item) => {
+    setSelectedDateId(item.id);
+    const nextSlots = offlineSchedule && item.apiDate
+      ? (offlineSchedule.slotsByDate[item.apiDate] || []).map((slotItem) => slotItem.displaySlot)
+      : TIME_SLOTS;
+    const nextSlot = nextSlots.find((slot) => toAppointmentStart(item, slot).getTime() > nowMs);
+    if (nextSlot) {
+      setSelectedTimeSlot(nextSlot);
+    }
   };
 
   return (
@@ -294,9 +456,19 @@ const CampDoctorConsultationPage = ({
               <p className="camp-doctor-consult__lede">
                 Tailored nutrition, designed around your body and lifestyle
               </p>
+              {scheduleError ? (
+                <p className="camp-doctor-consult__error" role="alert">{scheduleError}</p>
+              ) : null}
             </div>
-            <button type="button" className="camp-doctor-consult__cta" onClick={() => setIsScheduleOpen(true)}>
-              Book Now
+            <button
+              type="button"
+              className="camp-doctor-consult__cta"
+              disabled={isLoadingSchedule}
+              onClick={() => {
+                void handleBookNow();
+              }}
+            >
+              {isLoadingSchedule ? 'Loading...' : 'Book Now'}
             </button>
           </section>
         </div>
@@ -361,7 +533,9 @@ const CampDoctorConsultationPage = ({
                     type="button"
                     className="camp-doctor-confirm__cta"
                     onClick={() => {
-                      persistAppointment();
+                      if (bookedAppointment) {
+                        onAppointmentBooked?.(bookedAppointment);
+                      }
                       closeSchedule();
                       onViewAppointment?.();
                     }}
@@ -379,15 +553,15 @@ const CampDoctorConsultationPage = ({
                   </div>
 
                   <div className="camp-doctor-cabin__grid">
-                    {CABINS.map((cabin) => {
-                      const isSelected = cabin.id === selectedCabin;
+                    {availableCabins.map((cabin) => {
+                      const isSelected = cabin.key === selectedCabinKey;
                       return (
                         <button
-                          key={cabin.id}
+                          key={cabin.key}
                           type="button"
                           className={`camp-doctor-cabin__btn${isSelected ? ' is-selected' : ''}${!cabin.available ? ' is-disabled' : ''}`}
                           disabled={!cabin.available}
-                          onClick={() => setSelectedCabin(cabin.id)}
+                          onClick={() => setSelectedCabinKey(cabin.key)}
                         >
                           {cabin.label}
                         </button>
@@ -398,17 +572,25 @@ const CampDoctorConsultationPage = ({
                   <div className="camp-doctor-schedule__footer">
                     <div className="camp-doctor-schedule__footer-copy">
                       <p className="camp-doctor-schedule__footer-label">Cabin selected</p>
-                      <p className="camp-doctor-schedule__footer-value">Cabin {selectedCabin}</p>
+                      <p className="camp-doctor-schedule__footer-value">{selectedCabin?.label || '—'}</p>
+                      {bookingError ? (
+                        <p className="camp-doctor-schedule__error" role="alert">{bookingError}</p>
+                      ) : null}
                     </div>
                     <button
                       type="button"
                       className="camp-doctor-schedule__confirm"
+                      disabled={!selectedCabin || isBooking}
                       onClick={() => {
-                        persistAppointment();
-                        setIsConfirmed(true);
+                        void (async () => {
+                          const booked = await handleConfirmBooking();
+                          if (booked) {
+                            setIsConfirmed(true);
+                          }
+                        })();
                       }}
                     >
-                      Confirm
+                      {isBooking ? 'Booking...' : 'Confirm'}
                     </button>
                   </div>
                 </>
@@ -452,13 +634,7 @@ const CampDoctorConsultationPage = ({
                       key={item.id}
                       type="button"
                       className={`camp-doctor-schedule__date${isSelected ? ' is-selected' : ''}`}
-                      onClick={() => {
-                        setSelectedDateId(item.id);
-                        const nextSlot = TIME_SLOTS.find((slot) => toAppointmentStart(item, slot).getTime() > nowMs);
-                        if (nextSlot) {
-                          setSelectedTimeSlot(nextSlot);
-                        }
-                      }}
+                      onClick={() => handleDateSelect(item)}
                     >
                       <span className="camp-doctor-schedule__date-day">{item.day}</span>
                       <span className="camp-doctor-schedule__date-number">{item.number}</span>
@@ -493,12 +669,14 @@ const CampDoctorConsultationPage = ({
                   </span>
                   <span>Preferred Time Slot</span>
                 </div>
-                <p className="camp-doctor-schedule__time-note">Each appointment is around 15-minutes</p>
+                <p className="camp-doctor-schedule__time-note">
+                  Each appointment is around {slotDurationMinutes}-minutes
+                </p>
               </div>
 
               <div className="camp-doctor-schedule__slots-wrap">
                 <div className="camp-doctor-schedule__slots">
-                  {availableSlots.map((slot) => {
+                  {availableSlots.length > 0 ? availableSlots.map((slot) => {
                     const isSelected = slot === selectedTimeSlot;
                     return (
                       <button
@@ -510,7 +688,9 @@ const CampDoctorConsultationPage = ({
                         {slot}
                       </button>
                     );
-                  })}
+                  }) : (
+                    <p className="camp-doctor-schedule__empty">No slots available for this date.</p>
+                  )}
                 </div>
               </div>
 
@@ -522,6 +702,7 @@ const CampDoctorConsultationPage = ({
                 <button
                   type="button"
                   className="camp-doctor-schedule__confirm"
+                  disabled={!selectedTimeSlot || availableSlots.length === 0}
                   onClick={() => {
                     setIsScheduleOpen(false);
                     setIsCabinOpen(true);

@@ -11,6 +11,7 @@ import {
 } from './utils/superclubPlaylistLock';
 import { CAMP_DOCTOR_CONSULTATION_ENABLED } from './pages/CampDoctorConsultationPage/campDoctorConsultationConfig';
 import { readCampAppointments, saveCampAppointment } from './utils/campAppointments';
+import { fetchDoctorConsultationPopupEligibility } from './utils/campDoctorConsultationEligibility';
 import { sendOtp, resendOtp, verifyOtp, refreshToken, logout } from './services/authService';
 import { createUser, getMyProfiles, saveSuperclubMcqPreferences, getMyUpcomingSlot } from './services/usersService';
 import { getMyProfile } from './services/profileService';
@@ -83,6 +84,7 @@ const CampDoctorConsultationPage = lazy(() => import('./pages/CampDoctorConsulta
 const HealthScanIndexPage = lazy(() => import('./pages/HealthScanIndexPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AllAppointmentsPage = lazy(() => import('./pages/AllAppointmentsPage'));
+const ConsultationNotesPage = lazy(() => import('./pages/ConsultationNotesPage'));
 const NewDesQuesPage = lazy(() => import('./pages/NewDesQuesPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const NutritionPage = lazy(() => import('./pages/NutritionPage'));
@@ -331,6 +333,8 @@ function App() {
   const [nullCatchupAssessmentInstanceId, setNullCatchupAssessmentInstanceId] = useState(null);
   const [superclubPlaylistPayload, setSuperclubPlaylistPayload] = useState(null);
   const [campAppointments, setCampAppointments] = useState(() => readCampAppointments());
+  const [showCampDoctorConsultation, setShowCampDoctorConsultation] = useState(false);
+  const [doctorConsultationContext, setDoctorConsultationContext] = useState(null);
   // const [superClubOnboardingDone, setSuperClubOnboardingDone] = useState(() =>
   //   isSuperClubOnboardingComplete(),
   // );
@@ -1413,6 +1417,42 @@ function App() {
     return undefined;
   }, [preloadedHomeData]);
 
+  useEffect(() => {
+    if (!CAMP_DOCTOR_CONSULTATION_ENABLED || currentPage !== 'home' || isBootstrappingSession) {
+      setShowCampDoctorConsultation(false);
+      setDoctorConsultationContext(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const loadDoctorConsultationEligibility = async () => {
+      try {
+        const result = await fetchDoctorConsultationPopupEligibility();
+        if (!cancelled) {
+          setShowCampDoctorConsultation(Boolean(result.shouldShow));
+          setDoctorConsultationContext(result.shouldShow ? {
+            engagementId: result.engagementId,
+            engagementCode: result.engagementCode,
+            consultationMode: result.consultationMode,
+          } : null);
+        }
+      } catch (error) {
+        console.error('Failed to resolve doctor consultation popup eligibility:', error);
+        if (!cancelled) {
+          setShowCampDoctorConsultation(false);
+          setDoctorConsultationContext(null);
+        }
+      }
+    };
+
+    void loadDoctorConsultationEligibility();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPage, forceHomeApiRefresh, isBootstrappingSession]);
+
   const handleSendOtp = async (phone) => {
     await sendOtp(phone);
     setPhoneNumber(phone);
@@ -1746,11 +1786,16 @@ function App() {
         To hide: set CAMP_DOCTOR_CONSULTATION_ENABLED to false, or comment this block
         and the CampDoctorConsultationPage import above.
       */}
-      {CAMP_DOCTOR_CONSULTATION_ENABLED && currentPage === 'home' ? (
+      {CAMP_DOCTOR_CONSULTATION_ENABLED && currentPage === 'home' && showCampDoctorConsultation ? (
         <CampDoctorConsultationPage
+          engagementId={doctorConsultationContext?.engagementId}
+          engagementCode={doctorConsultationContext?.engagementCode}
+          consultationMode={doctorConsultationContext?.consultationMode}
           onAppointmentBooked={(appointment) => {
             if (appointment) {
               setCampAppointments(saveCampAppointment(appointment));
+              setShowCampDoctorConsultation(false);
+              setDoctorConsultationContext(null);
             }
           }}
           onViewAppointment={() => {
@@ -2272,6 +2317,10 @@ function App() {
             console.log('Navigate to All Appointments');
             setCurrentPage('all-appointments');
           }}
+          onOpenConsultationNotes={() => {
+            console.log('Navigate to Consultation Notes');
+            setCurrentPage('consultation-notes');
+          }}
           onOpenNewDesQuesScenario={(scenario) => {
             setNewDesQuesScenario(scenario);
             setCurrentPage('new-des-ques');
@@ -2342,6 +2391,14 @@ function App() {
           appointments={campAppointments}
           onBack={() => {
             console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'consultation-notes' && (
+        <ConsultationNotesPage
+          onBack={() => {
             setCurrentPage('profile');
           }}
         />
