@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import infoIcon from '../../assets/family-history/info-icon.svg'
+import { QuestionSubText } from './QuestionSubText'
 
 const COUNTER_CLASS_BY_THEME = {
   family: 'text-[14px] font-medium leading-5 text-[rgba(154,154,154,0.4)]',
@@ -12,19 +13,24 @@ export function McqQuestionHeader({
   questionLabel,
   theme,
   onInfoClick,
+  subText,
   children,
   titleClassName = 'mt-2 text-[16px] leading-normal tracking-[0.08px] text-white',
 }: {
   questionLabel: string
   theme: keyof typeof COUNTER_CLASS_BY_THEME
   onInfoClick?: () => void
+  subText?: string | null
   children: ReactNode
   titleClassName?: string
 }) {
   return (
     <div className="relative w-full">
       <p className={COUNTER_CLASS_BY_THEME[theme]}>{questionLabel}</p>
-      <div className={titleClassName}>{children}</div>
+      <div className={titleClassName}>
+        {children}
+        <QuestionSubText text={subText} />
+      </div>
       {onInfoClick ? (
         <button
           type="button"

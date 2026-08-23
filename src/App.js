@@ -328,7 +328,7 @@ function App() {
     }),
     [bloodMarkerDetailFromHome],
   );
-  const [, setIsB2bQuestionnaireFlow] = useState(false);
+  const [isB2bQuestionnaireFlow, setIsB2bQuestionnaireFlow] = useState(false);
   const [healthAssessmentBackPage, setHealthAssessmentBackPage] = useState('home');
   const [nullCatchupAssessmentInstanceId, setNullCatchupAssessmentInstanceId] = useState(null);
   const [superclubPlaylistPayload, setSuperclubPlaylistPayload] = useState(null);
@@ -905,8 +905,10 @@ function App() {
       }
     }
 
-    if (routeId === 'vitals') {
-      const submissionOrder = ['anthropometry', 'family-history', 'lifestyle-habits', 'nutrition-log', 'vitals'];
+    if (routeId === 'vitals' || (isB2bQuestionnaireFlow && routeId === 'anthropometry')) {
+      const submissionOrder = isB2bQuestionnaireFlow
+        ? ['family-history', 'lifestyle-habits', 'nutrition-log', 'anthropometry']
+        : ['family-history', 'lifestyle-habits', 'nutrition-log', 'anthropometry', 'vitals'];
 
       const submitPayloadPreview = submissionOrder.map((route) => {
         const targetCategory = getCategoryByRoute(route);
@@ -959,12 +961,15 @@ function App() {
     }
   };
 
-  const initializeQuestionnaire = async () => {
+  const initializeQuestionnaire = async ({ excludeVitals = false } = {}) => {
     invalidateFamilyHistoryQuestionnaireDraftCache();
     invalidateNutritionLogQuestionnaireDraftCache();
     try {
       const context = await loadQuestionnaireContext();
-      const categories = context?.categories || [];
+      const allCategories = context?.categories || [];
+      const categories = excludeVitals
+        ? allCategories.filter((category) => category?.routeId !== 'vitals')
+        : allCategories;
       const draftResponsesByRoute = getDraftResponsesByRouteFromContext(
         categories,
         context?.responsesByCategoryId || {}
@@ -1018,7 +1023,7 @@ function App() {
       setIsB2bQuestionnaireFlow(false);
       setHealthAssessmentBackPage('home');
       setCurrentPage('health-assessment');
-      initializeQuestionnaire();
+      initializeQuestionnaire({ excludeVitals: false });
     })();
   };
 
@@ -1036,7 +1041,7 @@ function App() {
       setHealthAssessmentBackPage('home');
       setCurrentPage('health-assessment');
       setIsB2bQuestionnaireFlow(true);
-      initializeQuestionnaire();
+      initializeQuestionnaire({ excludeVitals: true });
     })();
   };
 
@@ -1900,6 +1905,9 @@ function App() {
             setCurrentPage('doctors');
           }}
           onNavigateToSuperClub={navigateToSuperClubFlow}
+          onOpenAllAppointments={() => {
+            setCurrentPage('all-appointments');
+          }}
         />
       )}
 
@@ -2156,6 +2164,7 @@ function App() {
 
       {currentPage === 'health-assessment' && (
         <HealthAssessmentPage
+          isB2b={isB2bQuestionnaireFlow}
           steps={questionnaireSteps}
           progress={questionnaireProgress}
           expandedStep={expandedQuestionnaireStep}
@@ -2173,7 +2182,7 @@ function App() {
           onStepComplete={handleStepComplete}
           onStepDraftSave={handleStepDraftSave}
           onAssessmentSubmit={async () => {
-            await submitLatestEngagementAssessment();
+            await submitLatestEngagementAssessment({ excludeVitals: isB2bQuestionnaireFlow });
 
             try {
               sessionStorage.removeItem('ss_b2b_opened_questionnaire');

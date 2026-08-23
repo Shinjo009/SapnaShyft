@@ -15,6 +15,7 @@ import { EMPTY_METER_READING } from './consumptionFrequencyConfig'
 export function NutritionApiConsumptionFrequencyQuestion({
   questionLabel,
   questionText,
+  questionSubText,
   meterId,
   options,
   selectedValue,
@@ -23,6 +24,7 @@ export function NutritionApiConsumptionFrequencyQuestion({
 }: {
   questionLabel: string
   questionText: string
+  questionSubText?: string | null
   meterId: string
   options: QuestionnaireOption[]
   selectedValue: string | null
@@ -33,7 +35,7 @@ export function NutritionApiConsumptionFrequencyQuestion({
 
   return (
     <div className="flex w-full flex-col gap-8">
-      <McqQuestionHeader theme="nutrition" questionLabel={questionLabel} onInfoClick={onInfoClick}>
+      <McqQuestionHeader theme="nutrition" questionLabel={questionLabel} subText={questionSubText} onInfoClick={onInfoClick}>
         <p>{questionText}</p>
       </McqQuestionHeader>
 
@@ -52,6 +54,7 @@ export function NutritionApiConsumptionFrequencyQuestion({
 export function NutritionApiCircularMeterQuestion({
   questionLabel,
   questionText,
+  questionSubText,
   meterId,
   options,
   selectedValue,
@@ -61,6 +64,7 @@ export function NutritionApiCircularMeterQuestion({
 }: {
   questionLabel: string
   questionText: string
+  questionSubText?: string | null
   meterId: string
   options: QuestionnaireOption[]
   selectedValue: string | null
@@ -81,7 +85,7 @@ export function NutritionApiCircularMeterQuestion({
 
   return (
     <div className="flex w-full flex-col gap-8">
-      <McqQuestionHeader theme="nutrition" questionLabel={questionLabel} onInfoClick={onInfoClick}>
+      <McqQuestionHeader theme="nutrition" questionLabel={questionLabel} subText={questionSubText} onInfoClick={onInfoClick}>
         <p>{questionText}</p>
       </McqQuestionHeader>
 

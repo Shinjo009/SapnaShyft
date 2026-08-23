@@ -123,20 +123,32 @@ const roundToWholeNumber = (value, fallback = 0) => {
   return Math.round(numericValue);
 };
 
-const MIN_HEIGHT_CM = 120;
-const MAX_HEIGHT_CM = 215;
-const MIN_HEIGHT_INCHES = 47;
-const MAX_HEIGHT_INCHES = 83; // 6'11"
+const MIN_HEIGHT_CM = 50;
+const MAX_HEIGHT_CM = 250;
+const MIN_HEIGHT_INCHES = 17;
+const MAX_HEIGHT_INCHES = 101;
 const DEFAULT_HEIGHT_CM = 165;
 const DEFAULT_HEIGHT_FEET = 5;
 const DEFAULT_HEIGHT_INCHES = 5;
 
-const MIN_CIRCUMFERENCE_INCHES = 22;
-const MAX_CIRCUMFERENCE_INCHES = 45;
-const MIN_CIRCUMFERENCE_CM = 60;
-const MAX_CIRCUMFERENCE_CM = 120;
-const DEFAULT_CIRCUMFERENCE_INCHES = 32;
-const DEFAULT_CIRCUMFERENCE_CM = 80;
+const MIN_WAIST_CM = 60;
+const MAX_WAIST_CM = 150;
+const MIN_WAIST_IN = 24;
+const MAX_WAIST_IN = 59;
+const DEFAULT_WAIST_CM = 90;
+const DEFAULT_WAIST_IN = 35;
+
+const MIN_HIP_CM = 70;
+const MAX_HIP_CM = 160;
+const MIN_HIP_IN = 28;
+const MAX_HIP_IN = 62;
+const DEFAULT_HIP_CM = 95;
+const DEFAULT_HIP_IN = 37;
+
+const MIN_WEIGHT_KG = 20;
+const MAX_WEIGHT_KG = 130;
+const MIN_WEIGHT_LB = 44;
+const MAX_WEIGHT_LB = 660;
 
 const resolvePreferredUnitOption = (options = [], preferredUnit = '', fallback = '-') => {
   if (!Array.isArray(options) || options.length === 0) {
@@ -244,19 +256,46 @@ const isInchUnit = (value) => {
   return token === 'in' || token === 'inch' || token.includes('inches');
 };
 
-const getCircumferenceRangeForUnit = (unit) => {
+const isPoundUnit = (value) => {
+  const token = normalizeUnitToken(value);
+  return token === 'lb' || token === 'lbs' || token.includes('pound');
+};
+
+const getWeightRangeForUnit = (unit) => {
+  if (isPoundUnit(unit)) {
+    return { min: MIN_WEIGHT_LB, max: MAX_WEIGHT_LB };
+  }
+  return { min: MIN_WEIGHT_KG, max: MAX_WEIGHT_KG };
+};
+
+const getCircumferenceRangeForUnit = (unit, kind = 'waist') => {
   if (isCentimeterUnit(unit)) {
+    if (kind === 'hip') {
+      return {
+        min: MIN_HIP_CM,
+        max: MAX_HIP_CM,
+        defaultValue: DEFAULT_HIP_CM,
+      };
+    }
     return {
-      min: MIN_CIRCUMFERENCE_CM,
-      max: MAX_CIRCUMFERENCE_CM,
-      defaultValue: DEFAULT_CIRCUMFERENCE_CM,
+      min: MIN_WAIST_CM,
+      max: MAX_WAIST_CM,
+      defaultValue: DEFAULT_WAIST_CM,
+    };
+  }
+
+  if (kind === 'hip') {
+    return {
+      min: MIN_HIP_IN,
+      max: MAX_HIP_IN,
+      defaultValue: DEFAULT_HIP_IN,
     };
   }
 
   return {
-    min: MIN_CIRCUMFERENCE_INCHES,
-    max: MAX_CIRCUMFERENCE_INCHES,
-    defaultValue: DEFAULT_CIRCUMFERENCE_INCHES,
+    min: MIN_WAIST_IN,
+    max: MAX_WAIST_IN,
+    defaultValue: DEFAULT_WAIST_IN,
   };
 };
 
@@ -415,7 +454,7 @@ const AnthropometryQuestionLabel = ({ className = '', children, showRequired, id
 const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initialValues = {}, categoryHeading = 'Anthropometry' }) => {
   const [height, setHeight] = useState(roundToWholeNumber(initialValues?.height, DEFAULT_HEIGHT_CM));
   const [weight, setWeight] = useState(() => parseInitialAnthropometryWeight(initialValues?.weight));
-  const [waist, setWaist] = useState(roundToWholeNumber(initialValues?.waist, DEFAULT_CIRCUMFERENCE_INCHES));
+  const [waist, setWaist] = useState(roundToWholeNumber(initialValues?.waist, DEFAULT_WAIST_IN));
   const [heightUnit, setHeightUnit] = useState(initialValues?.heightUnit || '-');
   const [weightUnit, setWeightUnit] = useState(initialValues?.weightUnit || '-');
   const [waistUnit, setWaistUnit] = useState(initialValues?.waistUnit || 'in');
@@ -462,7 +501,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
   useEffect(() => {
     setHeight(roundToWholeNumber(initialValues?.height, DEFAULT_HEIGHT_CM));
     setWeight(parseInitialAnthropometryWeight(initialValues?.weight));
-    setWaist(roundToWholeNumber(initialValues?.waist, DEFAULT_CIRCUMFERENCE_INCHES));
+    setWaist(roundToWholeNumber(initialValues?.waist, DEFAULT_WAIST_IN));
     setHeightUnit(
       resolvePreferredUnitOption(
         heightUnitOptions,
@@ -569,6 +608,10 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
 
   const handleWaistTouchEnd = () => { waistTouchLastX.current = null; };
 
+  const weightRange = getWeightRangeForUnit(weightUnit);
+  const minHeightFeet = Math.floor(MIN_HEIGHT_INCHES / 12);
+  const maxHeightFeet = Math.floor(MAX_HEIGHT_INCHES / 12);
+
   const handleWeightInput = (e) => {
     const raw = String(e.target.value || '').trim();
     if (raw === '') {
@@ -586,7 +629,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
       setWeight(null);
       return;
     }
-    const nextWeight = clamp(next, 0, 250);
+    const nextWeight = clamp(next, weightRange.min, weightRange.max);
     setWeight(nextWeight);
     if (isProvidedAnthropometryNumber(nextWeight)) {
       setSubmitAttempted(false);
@@ -597,8 +640,18 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
     if (weight == null) {
       return;
     }
-    setWeight((prev) => (prev == null ? null : clamp(prev, 0, 250)));
+    setWeight((prev) => (prev == null ? null : clamp(prev, weightRange.min, weightRange.max)));
   };
+
+  useEffect(() => {
+    const range = getWeightRangeForUnit(weightUnit);
+    setWeight((prev) => {
+      if (prev == null) {
+        return prev;
+      }
+      return clamp(prev, range.min, range.max);
+    });
+  }, [weightUnit]);
 
   useEffect(() => {
     if (!usesFeetInchesHeightUnit) return;
@@ -628,7 +681,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
 
   const handleFeetChange = (e) => {
     const raw = e.target.value.replace(/[^0-9]/g, '').slice(0, 1);
-    const nextFeet = raw === '' ? 0 : clamp(Number(raw), 3, 6);
+    const nextFeet = raw === '' ? 0 : clamp(Number(raw), minHeightFeet, maxHeightFeet);
     setHeightFeet(nextFeet);
     const totalInches = clamp(nextFeet * 12 + heightInches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES);
     setHeight(Math.round(totalInches * 2.54));
@@ -636,7 +689,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
 
   const handleFeetStep = (delta) => {
     setHeightFeet((prev) => {
-      const nextFeet = clamp(prev + delta, 3, 6);
+      const nextFeet = clamp(prev + delta, minHeightFeet, maxHeightFeet);
       const totalInches = clamp(nextFeet * 12 + heightInches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES);
       setHeight(Math.round(totalInches * 2.54));
       return nextFeet;
@@ -718,8 +771,8 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
     heightInchesTouchLastY.current = null;
   };
 
-  const weightForIndicator = weight == null ? 0 : clamp(weight, 0, 100);
-  const indicatorProgress = weightForIndicator / 100;
+  const weightForIndicator = weight == null ? weightRange.min : clamp(weight, weightRange.min, weightRange.max);
+  const indicatorProgress = (weightForIndicator - weightRange.min) / (weightRange.max - weightRange.min);
   const indicatorAngle = -90 + (indicatorProgress * 180);
 
   const getQuestionText = (keys, hints, fallback) => {
@@ -743,7 +796,7 @@ const EmbeddedAnthropometryPage = ({ onBack, onContinue, questions = [], initial
     onContinue?.({
       height,
       weight,
-      waist: roundToWholeNumber(waist, DEFAULT_CIRCUMFERENCE_INCHES),
+      waist: roundToWholeNumber(waist, DEFAULT_WAIST_IN),
       heightUnit,
       weightUnit,
       waistUnit,
@@ -997,8 +1050,7 @@ const FollowupUnitDropdown = ({ value, options, onChange }) => {
 };
 
 const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], initialValues = {}, categoryHeading = 'Anthropometry' }) => {
-  const [hipSize, setHipSize] = useState(roundToWholeNumber(initialValues?.hipSize, DEFAULT_CIRCUMFERENCE_INCHES));
-  const [bodyFat, setBodyFat] = useState(initialValues?.bodyFat ?? 20);
+  const [hipSize, setHipSize] = useState(roundToWholeNumber(initialValues?.hipSize, DEFAULT_HIP_IN));
   const [hipUnit, setHipUnit] = useState(initialValues?.hipUnit || 'in');
   const [showHipInfoPopup, setShowHipInfoPopup] = useState(false);
   const hipTouchLastX = useRef(null);
@@ -1013,8 +1065,7 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
   );
 
   useEffect(() => {
-    setHipSize(roundToWholeNumber(initialValues?.hipSize, DEFAULT_CIRCUMFERENCE_INCHES));
-    setBodyFat(initialValues?.bodyFat ?? 20);
+    setHipSize(roundToWholeNumber(initialValues?.hipSize, DEFAULT_HIP_IN));
     setHipUnit(
       resolvePreferredUnitOption(
         hipUnitOptions,
@@ -1031,7 +1082,7 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
   }, [hipUnit, hipUnitOptions]);
 
   useEffect(() => {
-    const { min, max, defaultValue } = getCircumferenceRangeForUnit(hipUnit);
+    const { min, max, defaultValue } = getCircumferenceRangeForUnit(hipUnit, 'hip');
     setHipSize((prev) => {
       const safePrev = Number.isFinite(prev) ? prev : defaultValue;
       return clamp(safePrev, min, max);
@@ -1044,7 +1095,7 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
     e.preventDefault();
     const raw = e.deltaX !== 0 ? e.deltaX : e.deltaY;
     const delta = raw > 0 ? 1 : -1;
-    const { min, max } = getCircumferenceRangeForUnit(hipUnit);
+    const { min, max } = getCircumferenceRangeForUnit(hipUnit, 'hip');
     setHipSize((prev) => clamp(prev + delta, min, max));
   };
 
@@ -1056,7 +1107,7 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
     const x = e.touches[0].clientX;
     const delta = hipTouchLastX.current - x;
     if (Math.abs(delta) >= 8) {
-      const { min, max } = getCircumferenceRangeForUnit(hipUnit);
+      const { min, max } = getCircumferenceRangeForUnit(hipUnit, 'hip');
       setHipSize((prev) => clamp(prev + Math.sign(delta), min, max));
       hipTouchLastX.current = x;
     }
@@ -1115,29 +1166,6 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
         <div className="anthropometry-followup-page__arrow-wrap"><AnthropometryTriangleArrow direction="up" /></div>
       </div>
 
-      <p className="anthropometry-followup-page__question anthropometry-followup-page__question--fat">What is you body-fat percent ?</p>
-      <div className="anthropometry-followup-page__box anthropometry-followup-page__fat-box">
-        <div className="anthropometry-followup-page__fat-value">{bodyFat}%</div>
-        <div
-          className="anthropometry-followup-page__fat-slider-wrap"
-          style={{
-            '--fat-progress': (bodyFat - 5) / 65,
-            '--fat-thumb-size': '14px',
-            '--fat-red-edge-offset': '4px',
-          }}
-        >
-          <input
-            className="anthropometry-followup-page__fat-slider"
-            type="range"
-            min="5"
-            max="70"
-            value={bodyFat}
-            onChange={(e) => setBodyFat(Number(e.target.value))}
-            aria-label="Body fat percentage"
-          />
-        </div>
-      </div>
-
       <button type="button" className="anthropometry-followup-page__skip" onClick={() => onDone?.({})}>Skip</button>
       </div>
 
@@ -1146,8 +1174,7 @@ const EmbeddedAnthropometryFollowupPage = ({ onBack, onDone, questions = [], ini
         className="anthropometry-followup-page__done"
         onClick={() => {
           onDone?.({
-            hipSize: roundToWholeNumber(hipSize, DEFAULT_CIRCUMFERENCE_INCHES),
-            bodyFat,
+            hipSize: roundToWholeNumber(hipSize, DEFAULT_HIP_IN),
             hipUnit,
           });
         }}
@@ -1959,7 +1986,6 @@ const buildAnthropometryInitialValuesFromResponses = (questions = [], responses 
   const weightAnswer = getAnswer(['weight'], ['weight', 'body weight']);
   const waistAnswer = getAnswer(['waist_circumference', 'waist'], ['waist']);
   const hipAnswer = getAnswer(['hip_circumference', 'hip_size', 'hip'], ['hip']);
-  const bodyFatAnswer = getAnswer(['body_fat_percentage', 'body_fat', 'fat_percentage'], ['body fat', 'bodyfat']);
   const heightUnitAnswer = getAnswer(['height_unit', 'heightunit'], ['height unit']);
   const weightUnitAnswer = getAnswer(['weight_unit', 'weightunit'], ['weight unit']);
   const waistUnitAnswer = getAnswer(['waist_unit', 'waistunit', 'waist_circumference_unit'], ['waist unit']);
@@ -1989,9 +2015,8 @@ const buildAnthropometryInitialValuesFromResponses = (questions = [], responses 
 
   if (normalizedHeightInCm != null) primary.height = roundToWholeNumber(normalizedHeightInCm, DEFAULT_HEIGHT_CM);
   if (weightAnswer.numericValue != null) primary.weight = weightAnswer.numericValue;
-  if (waistAnswer.numericValue != null) primary.waist = roundToWholeNumber(waistAnswer.numericValue, DEFAULT_CIRCUMFERENCE_INCHES);
-  if (hipAnswer.numericValue != null) followup.hipSize = roundToWholeNumber(hipAnswer.numericValue, DEFAULT_CIRCUMFERENCE_INCHES);
-  if (bodyFatAnswer.numericValue != null) followup.bodyFat = bodyFatAnswer.numericValue;
+  if (waistAnswer.numericValue != null) primary.waist = roundToWholeNumber(waistAnswer.numericValue, DEFAULT_WAIST_IN);
+  if (hipAnswer.numericValue != null) followup.hipSize = roundToWholeNumber(hipAnswer.numericValue, DEFAULT_HIP_IN);
 
   if (heightUnit) primary.heightUnit = heightUnit;
   if (weightUnit) primary.weightUnit = weightUnit;
@@ -2699,12 +2724,6 @@ const buildAnthropometryResponses = (questions = [], primaryValues = {}, followu
       value: mergedValues.hipSize,
       unitLabel: mergedValues.hipUnit,
     },
-    {
-      aliases: ['body_fat_percentage', 'body_fat', 'fat_percentage'],
-      textHints: ['body fat', 'bodyfat'],
-      value: mergedValues.bodyFat,
-      unitLabel: '%',
-    },
   ];
 
   return fieldMap
@@ -2759,6 +2778,209 @@ const buildVitalsResponses = (questions = [], values = {}) => {
       return buildScaleResponseItem(question, value, defaultUnitLabel);
     })
     .filter(Boolean);
+};
+
+const isMetsightsScaleAnswerComplete = (answer) => {
+  if (answer == null || typeof answer !== 'object' || Array.isArray(answer)) {
+    return false;
+  }
+  const rawValue = answer.value ?? answer.numeric ?? answer.amount;
+  if (rawValue == null || rawValue === '') {
+    return false;
+  }
+  const unit = answer.unit ?? answer.unit_code ?? answer.unitCode;
+  return unit != null && String(unit).trim() !== '';
+};
+
+const getAnswerForRouteCompletion = (question, rawResponses = []) => {
+  const inline = question?.answer
+    ?? question?.response
+    ?? question?.value
+    ?? question?.selected_option
+    ?? question?.selected_options
+    ?? question?.user_answer
+    ?? question?.user_response
+    ?? question?.answers;
+  if (!isEmptyAnswer(inline)) {
+    return inline;
+  }
+  return getResponseAnswerForQuestion(question, rawResponses);
+};
+
+const questionBlocksHealthAssessmentRoute = (question, rawResponses = []) => {
+  if (!question || typeof question !== 'object') {
+    return false;
+  }
+  if (question.is_read_only || question.is_visible === false) {
+    return false;
+  }
+
+  const answer = getAnswerForRouteCompletion(question, rawResponses);
+  if (isEmptyAnswer(answer)) {
+    return true;
+  }
+
+  const qtype = String(question?.question_type || question?.type || '').trim().toLowerCase();
+  if (qtype === 'scale' || (typeof answer === 'object' && answer !== null && !Array.isArray(answer))) {
+    return !isMetsightsScaleAnswerComplete(answer);
+  }
+
+  return false;
+};
+
+const isAnthropometryPrimaryQuestionForRoute = (question) => {
+  const k = String(question?.question_key || '').toLowerCase();
+  const t = String(question?.question_text || '').toLowerCase();
+  if (k.includes('hip') || t.includes('hip size')) {
+    return false;
+  }
+  if (t.includes('body fat') || t.includes('body-fat') || k.includes('body_fat') || k.includes('fat_percent')) {
+    return false;
+  }
+  return k.includes('height') || k.includes('weight') || k.includes('waist') || t.includes('waist');
+};
+
+const isAnthropometryFollowupQuestionForRoute = (question) => {
+  const k = String(question?.question_key || '').toLowerCase();
+  const t = String(question?.question_text || '').toLowerCase();
+  return k.includes('hip') || t.includes('hip size');
+};
+
+const cardKeyForHealthAssessmentQuestion = (question) => (
+  String(question?.question_key || `question-${question?.question_id || question?.id || ''}`)
+);
+
+const isFamilyMedicationSkippedForRoute = (allQuestions, rawResponses, question) => {
+  const cards = toFamilyApiCards(allQuestions);
+  const { diagnosedKey, medicationKey } = findFamilyHistoryCardKeys(cards);
+  if (!medicationKey || !diagnosedKey) {
+    return false;
+  }
+  if (String(medicationKey) !== cardKeyForHealthAssessmentQuestion(question)) {
+    return false;
+  }
+  const selections = buildSelectionStateFromResponses(allQuestions, rawResponses);
+  const diagnosedSel = Array.isArray(selections[diagnosedKey]) ? selections[diagnosedKey] : [];
+  return diagnosedSel.length > 0 && diagnosedSel.every((item) => isNoneOptionLabel(item));
+};
+
+const isLifestyleWellnessPrioritiesQuestionForRoute = (question) => {
+  const text = String(question?.question_text || '').toLowerCase();
+  const key = String(question?.question_key || '').toLowerCase();
+  return (
+    key.includes('wellness_priorities')
+    || key.includes('wellness-priorities')
+    || key.includes('health_wellness')
+    || (text.includes('wellness') && text.includes('priorit'))
+    || (text.includes('health') && text.includes('priorit'))
+  );
+};
+
+const isQuestionFilledForHealthAssessmentRoute = (
+  routeId,
+  question,
+  allQuestions,
+  rawResponses,
+  selections,
+) => {
+  if (isWalkingDurationLifestyleQuestion(question)) {
+    const key = question?.question_key || `question-${question?.question_id || question?.id || ''}`;
+    const wheel = readWalkingWheelFromSelections(selections, key);
+    if (wheel && Number.isFinite(Number(wheel.value)) && String(wheel.unitLabel || '').trim()) {
+      return true;
+    }
+  }
+
+  if (isLifestyleWellnessPrioritiesQuestionForRoute(question)) {
+    const answer = getAnswerForRouteCompletion(question, rawResponses);
+    const count = Array.isArray(answer)
+      ? answer.length
+      : (typeof answer === 'string' || typeof answer === 'number') && String(answer).trim()
+        ? 1
+        : 0;
+    return count >= 1;
+  }
+
+  const mappedOther = findMappedOtherTextQuestion(allQuestions, question);
+  if (mappedOther) {
+    const parentAnswer = getAnswerForRouteCompletion(question, rawResponses);
+    const selected = Array.isArray(parentAnswer) ? parentAnswer : [parentAnswer];
+    const hasOther = selected.some((value) => isOtherOptionLabel(value));
+    if (hasOther) {
+      const otherAnswer = getAnswerForRouteCompletion(mappedOther, rawResponses);
+      if (isEmptyAnswer(otherAnswer)) {
+        return false;
+      }
+    }
+  }
+
+  if (routeId === 'family-history') {
+    if (!questionBlocksHealthAssessmentRoute(question, rawResponses)) {
+      return true;
+    }
+    return isFamilyMedicationSkippedForRoute(allQuestions, rawResponses, question);
+  }
+
+  return !questionBlocksHealthAssessmentRoute(question, rawResponses);
+};
+
+const isHealthAssessmentRouteFilled = (
+  routeId,
+  {
+    questions = [],
+    responses = [],
+    preferences = {},
+    anthropometryPrimary = {},
+    anthropometryFollowup = {},
+    vitalsValues = {},
+  } = {},
+) => {
+  if (routeId === 'vitals') {
+    const systolic = normalizeStoredVitalReading(vitalsValues?.systolic);
+    const diastolic = normalizeStoredVitalReading(vitalsValues?.diastolic);
+    if (systolic != null && diastolic != null) {
+      return true;
+    }
+
+    const visibleVitals = (Array.isArray(questions) ? questions : [])
+      .filter((question) => question?.is_visible !== false && !question?.is_read_only);
+    if (visibleVitals.length === 0) {
+      return false;
+    }
+    return visibleVitals.every((question) => !questionBlocksHealthAssessmentRoute(question, responses));
+  }
+
+  if (routeId === 'anthropometry') {
+    const built = buildAnthropometryResponses(questions, anthropometryPrimary, anthropometryFollowup);
+    const rawResponses = built.length > 0 ? built : responses;
+    const primaryQuestions = (Array.isArray(questions) ? questions : [])
+      .filter(isAnthropometryPrimaryQuestionForRoute);
+    const followupQuestions = (Array.isArray(questions) ? questions : [])
+      .filter(isAnthropometryFollowupQuestionForRoute);
+    const primaryComplete = primaryQuestions.length > 0
+      && primaryQuestions.every((question) => !questionBlocksHealthAssessmentRoute(question, rawResponses));
+    const followupComplete = followupQuestions.length === 0
+      || followupQuestions.every((question) => !questionBlocksHealthAssessmentRoute(question, rawResponses));
+    return primaryComplete && followupComplete;
+  }
+
+  const list = Array.isArray(questions) ? questions : [];
+  if (list.length === 0) {
+    return false;
+  }
+
+  const rawResponses = Array.isArray(responses) ? responses : [];
+  const selections = buildSelectionStateFromResponses(list, rawResponses);
+  const visibleQuestions = computeQuestionsWithVisibility(list, { selections, preferences })
+    .filter((question) => question.is_visible !== false && !question.is_read_only);
+
+  if (visibleQuestions.length === 0) {
+    return false;
+  }
+
+  return visibleQuestions.every((question) => (
+    isQuestionFilledForHealthAssessmentRoute(routeId, question, list, rawResponses, selections)
+  ));
 };
 
 /** Keeps card index on the same question when visibility removes cards; prunes hidden answers. */
@@ -4879,10 +5101,10 @@ const EmbeddedVitalsPage = ({ onBack, onDone, questions = [], initialValues = {}
 };
 
 const defaultSteps = [
-  { id: 'anthropometry', label: 'Anthropometry', detail: 'Track your height, weight & BMI', icon: ques1Icon, side: 'center' },
   { id: 'family-history', label: 'Family\nHistory', detail: 'Record hereditary health conditions', icon: ques2Icon, side: 'left' },
   { id: 'lifestyle-habits', label: 'Lifestyle &\nHabits', detail: 'Your daily routine & activities', icon: ques3Icon, side: 'right' },
   { id: 'nutrition-log', label: 'Nutrition\nLog', detail: 'Monitor your dietary intake', icon: ques4Icon, side: 'left' },
+  { id: 'anthropometry', label: 'Anthropometry', detail: 'Track your height, weight & BMI', icon: ques1Icon, side: 'center' },
   { id: 'vitals', label: 'Vitals', detail: 'Blood pressure & more', icon: ques5Icon, side: 'center' },
 ];
 
@@ -4903,6 +5125,7 @@ const HealthAssessmentPage = ({
   onStepComplete,
   onStepDraftSave,
   onAssessmentSubmit,
+  isB2b = false,
 }) => {
   const [questionnairePreferences, setQuestionnairePreferences] = useState({});
   const [activeSubPage, setActiveSubPage] = useState(null);
@@ -4936,14 +5159,20 @@ const HealthAssessmentPage = ({
   }, []);
 
   const visibleQuestionsByRoute = useMemo(() => {
-    const routes = ['anthropometry', 'family-history', 'lifestyle-habits', 'nutrition-log', 'vitals'];
+    const routes = isB2b
+      ? ['family-history', 'lifestyle-habits', 'nutrition-log', 'anthropometry']
+      : ['family-history', 'lifestyle-habits', 'nutrition-log', 'anthropometry', 'vitals'];
     return routes.reduce((acc, routeId) => {
       const qs = questionsByRouteId[routeId] || [];
       acc[routeId] = computeQuestionsWithVisibility(qs, { preferences: questionnairePreferences })
         .filter((q) => q.is_visible !== false);
       return acc;
     }, {});
-  }, [questionsByRouteId, questionnairePreferences]);
+  }, [questionsByRouteId, questionnairePreferences, isB2b]);
+
+  const hubSteps = useMemo(() => (
+    isB2b ? defaultSteps.filter((step) => step.id !== 'vitals') : defaultSteps
+  ), [isB2b]);
 
   const anthropometryInitialValues = useMemo(() => {
     return buildAnthropometryInitialValuesFromResponses(
@@ -4999,7 +5228,7 @@ const HealthAssessmentPage = ({
     vitalsInitialValues,
   ]);
 
-  const resolvedSteps = defaultSteps.map((defaultStep) => {
+  const resolvedSteps = hubSteps.map((defaultStep) => {
     const matchedStep = Array.isArray(steps)
       ? steps.find((step) => step?.routeId === defaultStep.id || step?.id === defaultStep.id)
       : null;
@@ -5016,7 +5245,9 @@ const HealthAssessmentPage = ({
 
   const allCategoriesCompleteFromApi = Array.isArray(steps)
     && steps.length > 0
-    && steps.every((step) => String(step?.status || '').trim().toLowerCase() === 'complete');
+    && steps
+      .filter((step) => !isB2b || step?.routeId !== 'vitals')
+      .every((step) => String(step?.status || '').trim().toLowerCase() === 'complete');
 
   const optimisticNutritionLogDraft = useMemo(() => {
     const responses = initialResponsesByRoute['nutrition-log'];
@@ -5077,7 +5308,6 @@ const HealthAssessmentPage = ({
 
   const [hubMode, setHubMode] = useState('intro');
   const [hubVariant, setHubVariant] = useState('anthropometry');
-  const [completedRouteIds, setCompletedRouteIds] = useState([]);
   const [isStartingAssessment, setIsStartingAssessment] = useState(false);
   const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
   const [loadingCategoryId, setLoadingCategoryId] = useState(null);
@@ -5112,65 +5342,48 @@ const HealthAssessmentPage = ({
     });
   }, [resolvedSteps, steps]);
 
-  const completedCategoryIds = useMemo(() => {
-    return hubCategories
+  const filledRouteIds = useMemo(() => (
+    hubCategories
       .filter((category) => {
-        const status = String(category.status || '').trim().toLowerCase();
-        return (
-          completedRouteIds.includes(category.routeId)
-          || status === 'complete'
-          || status === 'completed'
-        );
+        const routeId = category.routeId;
+        if (isB2b && routeId === 'vitals') {
+          return false;
+        }
+        return isHealthAssessmentRouteFilled(routeId, {
+          questions: questionsByRouteId[routeId] || [],
+          responses: initialResponsesByRoute[routeId] || [],
+          preferences: questionnairePreferences,
+          anthropometryPrimary: anthropometryPrimaryValues,
+          anthropometryFollowup: anthropometryFollowupValues,
+          vitalsValues,
+        });
       })
-      .map((category) => Number(category.category_id));
-  }, [hubCategories, completedRouteIds]);
+      .map((category) => category.routeId)
+  ), [
+    hubCategories,
+    isB2b,
+    questionsByRouteId,
+    initialResponsesByRoute,
+    questionnairePreferences,
+    anthropometryPrimaryValues,
+    anthropometryFollowupValues,
+    vitalsValues,
+  ]);
 
-  const isRouteCompleted = (routeId) => {
-    const status = String(stepRouteStatusByRouteId[routeId] || '').toLowerCase();
-    return (
-      completedRouteIds.includes(routeId)
-      || status === 'complete'
-      || status === 'completed'
-    );
-  };
+  const completedCategoryIds = useMemo(() => (
+    hubCategories
+      .filter((category) => filledRouteIds.includes(category.routeId))
+      .map((category) => Number(category.category_id))
+  ), [hubCategories, filledRouteIds]);
+
+  const isRouteCompleted = (routeId) => filledRouteIds.includes(routeId);
 
   const firstIncompleteRouteId = useMemo(() => {
-    const next = hubCategories.find((category) => {
-      const status = String(stepRouteStatusByRouteId[category.routeId] || '').toLowerCase();
-      return !(
-        completedRouteIds.includes(category.routeId)
-        || status === 'complete'
-        || status === 'completed'
-      );
-    });
+    const next = hubCategories.find((category) => !filledRouteIds.includes(category.routeId));
     return next?.routeId || null;
-  }, [hubCategories, completedRouteIds, stepRouteStatusByRouteId]);
+  }, [hubCategories, filledRouteIds]);
 
   useEffect(() => {
-    const seeded = [];
-    resolvedSteps.forEach((step, index) => {
-      if (index < Number(progress || 0)) {
-        seeded.push(step.id);
-      }
-      const status = String(stepRouteStatusByRouteId[step.id] || '').toLowerCase();
-      if (status === 'complete' || status === 'completed') {
-        seeded.push(step.id);
-      }
-    });
-    if (canOpenAllSteps || allCategoriesCompleteFromApi) {
-      resolvedSteps.forEach((step) => seeded.push(step.id));
-    }
-
-    const uniqueSeeded = [...new Set(seeded)];
-
-    setCompletedRouteIds((prev) => {
-      const next = [...new Set([...prev, ...uniqueSeeded])];
-      if (next.length === prev.length && next.every((id) => prev.includes(id))) {
-        return prev;
-      }
-      return next;
-    });
-
     if (activeSubPage || didSeedHubRef.current) {
       return;
     }
@@ -5183,28 +5396,27 @@ const HealthAssessmentPage = ({
     }
 
     didSeedHubRef.current = true;
-    if (uniqueSeeded.length === 0) {
+    if (filledRouteIds.length === 0) {
       setHubMode('intro');
       return;
     }
 
-    const lastCompleted = resolvedSteps
-      .filter((step) => uniqueSeeded.includes(step.id))
+    const lastFilled = resolvedSteps
+      .filter((step) => filledRouteIds.includes(step.id))
       .at(-1);
-    setHubVariant(HA_ROUTE_HUB_VARIANT[lastCompleted?.id] || 'anthropometry');
+    setHubVariant(HA_ROUTE_HUB_VARIANT[lastFilled?.id] || 'anthropometry');
     setHubMode('section-complete');
   }, [
     activeSubPage,
-    allCategoriesCompleteFromApi,
     canOpenAllSteps,
+    filledRouteIds,
     progress,
     resolvedSteps,
-    stepRouteStatusByRouteId,
     steps,
   ]);
 
   const openRoute = (routeId) => {
-    if (!routeId) {
+    if (!routeId || (isB2b && routeId === 'vitals')) {
       return;
     }
     const category = hubCategories.find((item) => item.routeId === routeId);
@@ -5270,7 +5482,7 @@ const HealthAssessmentPage = ({
         onBack={() => {
           setShowFollowup(false);
           setActiveSubPage(null);
-          setHubMode(completedRouteIds.length > 0 ? 'section-complete' : 'intro');
+          setHubMode(filledRouteIds.length > 0 ? 'section-complete' : 'intro');
         }}
         onStepDraftSave={(routeId, responses) => {
           onStepDraftSave?.(routeId, responses);
@@ -5290,7 +5502,6 @@ const HealthAssessmentPage = ({
             setHasNutritionLogSubmittedDraft(true);
           }
 
-          setCompletedRouteIds((prev) => (prev.includes(routeId) ? prev : [...prev, routeId]));
           setHubVariant(HA_ROUTE_HUB_VARIANT[routeId] || 'anthropometry');
           setHubMode('section-complete');
           setShowFollowup(false);
@@ -5308,7 +5519,7 @@ const HealthAssessmentPage = ({
   return (
     <PageBackdrop mobileBackgroundSrc={backdropSrc}>
       <div className="flex h-full min-w-0 flex-col">
-        {(hubMode === 'intro' || canOpenAllSteps || questionnaireSubmitLocked) ? (
+        {(hubMode === 'intro' || hubMode === 'section-complete' || canOpenAllSteps || questionnaireSubmitLocked) ? (
           <div className="absolute left-[16px] top-[52px] z-10">
             <button
               type="button"
@@ -5348,8 +5559,11 @@ const HealthAssessmentPage = ({
               }
               const routeId = category?.routeId
                 || hubCategories.find((item) => Number(item.category_id) === Number(category?.category_id))?.routeId;
-              if (!routeId || isRouteCompleted(routeId)) {
+              if (!routeId || (isB2b && routeId === 'vitals')) {
                 return false;
+              }
+              if (isRouteCompleted(routeId)) {
+                return true;
               }
               const draftBatch = initialResponsesByRoute[routeId];
               if (Array.isArray(draftBatch) && draftBatch.length > 0) {

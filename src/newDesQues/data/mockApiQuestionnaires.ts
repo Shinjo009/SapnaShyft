@@ -264,7 +264,8 @@ export const MOCK_LIFESTYLE_HABITS_QUESTIONS: QuestionnaireQuestion[] = [
     question_id: 209,
     question_key: 'wellness_priorities',
     question_text: 'What are your primary health and wellness priorities?',
-    question_type: 'single_choice',
+    sub_text: 'Choose your top two priorities.',
+    question_type: 'multi_choice',
     is_required: true,
     options: [
       { option_id: 2091, option_value: 'weight-loss', display_name: 'Weight loss' },

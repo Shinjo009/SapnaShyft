@@ -404,7 +404,7 @@ export const mapCategoryToRouteId = (category) => {
   return '';
 };
 
-const routeOrder = ['anthropometry', 'family-history', 'lifestyle-habits', 'nutrition-log', 'vitals'];
+const routeOrder = ['family-history', 'lifestyle-habits', 'nutrition-log', 'anthropometry', 'vitals'];
 
 const sortCategories = (categories) => {
   return [...categories].sort((a, b) => {
@@ -817,14 +817,16 @@ const resolveMetsightsSubmitIds = (targets, assessments = []) => {
  * Used by the full health questionnaire (camp/B2B) — not the Health Span / FitPrint gap flow.
  * Instance ids come from `/assessments/me` — never the generic path instance id.
  */
-const collectMetsightsSubmitJobs = (targets, assessments = []) => {
+const collectMetsightsSubmitJobs = (targets, assessments = [], { excludeVitals = false } = {}) => {
   const { metsightsProId, fitprintFullId } = resolveMetsightsSubmitIds(targets, assessments);
   const jobs = [];
 
   if (metsightsProId) {
     jobs.push({ assessmentInstanceId: metsightsProId, category: 'physical-measurement' });
     jobs.push({ assessmentInstanceId: metsightsProId, category: 'diet-lifestyle-parameters' });
-    jobs.push({ assessmentInstanceId: metsightsProId, category: 'vitals' });
+    if (!excludeVitals) {
+      jobs.push({ assessmentInstanceId: metsightsProId, category: 'vitals' });
+    }
   }
 
   if (fitprintFullId) {
@@ -903,7 +905,7 @@ const isAssessmentAlreadyCompletedError = (error) => {
 };
 
 /** Resolve latest-engagement submit targets and POST submit (3 or 4 Metsights strategy calls). */
-export const submitLatestEngagementAssessment = async () => {
+export const submitLatestEngagementAssessment = async ({ excludeVitals = false } = {}) => {
   const assessmentsPayload = await listMyAssessments(1, 50);
   const assessments = extractAssessmentsFromListPayload(assessmentsPayload);
   const targets = resolveAssessmentSubmitTargetsFromRows(assessments);
@@ -913,7 +915,7 @@ export const submitLatestEngagementAssessment = async () => {
     throw new Error('No Metsights Pro assessment is available to submit.');
   }
 
-  const jobs = collectMetsightsSubmitJobs(targets, assessments);
+  const jobs = collectMetsightsSubmitJobs(targets, assessments, { excludeVitals });
 
   if (jobs.length === 0) {
     throw new Error('No Metsights questionnaire categories are available to submit.');
@@ -1327,6 +1329,31 @@ const isQuestionnaireFinalizedFromStatusApi = async (assessmentInstanceId) => {
       return false;
     }
     return questionnaireCategories.every((category) => isCategoryStatusFinalized(category.status));
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * B2B questionnaire CTAs: true when any non-Vitals section is still incomplete.
+ * Vitals-only incomplete does not count. Fail closed (false) on empty/error.
+ */
+export const hasIncompleteNonVitalsQuestionnaireSection = async (assessmentInstanceId) => {
+  const id = Number(assessmentInstanceId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return false;
+  }
+
+  try {
+    const statusPayload = await getAssessmentStatus(id, { categoryOf: 'supershyft' });
+    const questionnaireCategories = normalizeQuestionnaireCategoriesFromStatus(statusPayload, id);
+    if (questionnaireCategories.length === 0) {
+      return false;
+    }
+    return questionnaireCategories.some((category) => (
+      category.routeId !== 'vitals'
+      && !isCategoryStatusFinalized(category.status)
+    ));
   } catch {
     return false;
   }

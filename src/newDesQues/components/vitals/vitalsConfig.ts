@@ -51,3 +51,11 @@ export function getVitalsQuestionText(
 ): string {
   return findVitalsQuestion(questions, aliases)?.question_text || fallback
 }
+
+export function getVitalsQuestionSubText(
+  questions: QuestionnaireQuestion[],
+  aliases: string[],
+): string | null {
+  const text = String(findVitalsQuestion(questions, aliases)?.sub_text || '').trim()
+  return text || null
+}

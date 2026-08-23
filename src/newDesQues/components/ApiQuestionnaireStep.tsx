@@ -162,6 +162,16 @@ function toggleMulti(current: string[], value: string): string[] {
   return [...withoutNone, value]
 }
 
+function toggleWellnessPriorities(current: string[], value: string, maxSelections = 2): string[] {
+  if (current.includes(value)) {
+    return current.filter((item) => item !== value)
+  }
+  if (current.length >= maxSelections) {
+    return current
+  }
+  return [...current, value]
+}
+
 function isAnswered(question: QuestionnaireQuestion, answer: AnswerValue | undefined): boolean {
   if (answer == null) return !question.is_required
   if (Array.isArray(answer)) return answer.length > 0 || !question.is_required
@@ -239,7 +249,15 @@ export function ApiQuestionnaireStep({
   const question = visibleQuestions[visibleIndex]
   const nextQuestion = visibleQuestions[visibleIndex + 1]
   const answer = question ? answers[question.question_id] : undefined
-  const answered = question ? isAnswered(question, answer) : false
+  const answered = question
+    ? isLifestyleWellnessPrioritiesQuestion(question)
+      ? (Array.isArray(answer)
+          ? answer.length >= 1
+          : typeof answer === 'string' || typeof answer === 'number'
+            ? String(answer).trim().length > 0
+            : false)
+      : isAnswered(question, answer)
+    : false
   const percent = progressPercent(visibleIndex, total, answered)
   const isLast = visibleIndex >= total - 1
   const nextPreview = useMemo(
@@ -316,6 +334,18 @@ export function ApiQuestionnaireStep({
 
   const handleNext = async () => {
     if (isSaving || !question) return
+
+    if (isLifestyleWellnessPrioritiesQuestion(question)) {
+      const selectionCount = Array.isArray(answer)
+        ? answer.length
+        : typeof answer === 'string' || typeof answer === 'number'
+          ? (String(answer).trim() ? 1 : 0)
+          : 0
+      if (selectionCount < 1) {
+        setSaveError('Please choose at least one priority.')
+        return
+      }
+    }
 
     setSaveError('')
     setIsSaving(true)
@@ -428,6 +458,8 @@ export function ApiQuestionnaireStep({
   const chipGradient = THEME_CHIP_GRADIENT[theme]
   const otherExpandedGradient = THEME_OTHER_EXPANDED_GRADIENT[theme]
   const nextShadow = THEME_NEXT_SHADOW[theme]
+  const questionLabel = `Question ${visibleIndex + 1} of ${total}`
+  const questionSubText = String(question.sub_text || '').trim() || undefined
 
   const selectedValues = Array.isArray(answer)
     ? answer.map(String)
@@ -488,8 +520,9 @@ export function ApiQuestionnaireStep({
 
           {useLocationLayout ? (
             <FamilyHistoryLocationOptions
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               disabled={Boolean(question.is_read_only) || isSaving}
@@ -504,8 +537,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useSitDurationLayout ? (
             <LifestyleSitDurationQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               onInfoClick={openInfo}
@@ -519,8 +553,9 @@ export function ApiQuestionnaireStep({
             />
           ) : usePhysicalActivityLayout ? (
             <LifestylePhysicalActivityQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               onInfoClick={openInfo}
@@ -534,8 +569,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useWeeklyLeisureLayout ? (
             <LifestyleWeeklyLeisureQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               onInfoClick={openInfo}
@@ -549,8 +585,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useActivityIntensityLayout ? (
             <LifestyleActivityIntensityQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               onInfoClick={openInfo}
@@ -564,8 +601,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useDailyWalkingLayout ? (
             <LifestyleDailyWalkingQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               onInfoClick={openInfo}
@@ -579,8 +617,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useSleepDurationLayout ? (
             <LifestyleSleepDurationQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               onInfoClick={openInfo}
@@ -594,8 +633,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useSmokingFrequencyLayout ? (
             <LifestyleSmokingFrequencyQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               onInfoClick={openInfo}
@@ -609,8 +649,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useAlcoholConsumptionLayout ? (
             <LifestyleAlcoholConsumptionQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               onInfoClick={openInfo}
@@ -624,23 +665,33 @@ export function ApiQuestionnaireStep({
             />
           ) : useWellnessPrioritiesLayout ? (
             <LifestyleWellnessPrioritiesQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
-              selectedValue={selectedValues[0] ?? null}
+              selectedValues={selectedValues}
               onInfoClick={openInfo}
-              onSelect={(value) => {
+              onToggle={(value) => {
                 setSaveError('')
-                setAnswers((prev) => ({
-                  ...prev,
-                  [question.question_id]: value,
-                }))
+                setAnswers((prev) => {
+                  const stored = prev[question.question_id]
+                  const current = Array.isArray(stored)
+                    ? stored.map(String)
+                    : typeof stored === 'string' || typeof stored === 'number'
+                      ? [String(stored)]
+                      : []
+                  return {
+                    ...prev,
+                    [question.question_id]: toggleWellnessPriorities(current, value, 2),
+                  }
+                })
               }}
             />
           ) : useLifestyleCommitmentLayout ? (
             <LifestyleCommitmentQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               onInfoClick={openInfo}
@@ -654,8 +705,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useDietTypeLayout ? (
             <NutritionDietTypeQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               disabled={Boolean(question.is_read_only) || isSaving}
@@ -670,8 +722,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useDailyFoodGroupsLayout || useCoffeeTeaTypeLayout ? (
             <NutritionApiMultiSelectQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={displayedOptions}
               selectedValues={selectedValues}
               onInfoClick={openInfo}
@@ -684,8 +737,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useBreakfastFrequencyLayout ? (
             <NutritionApiCircularMeterQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               meterId={nutritionMeterIdForQuestion(question)}
               options={options}
               selectedValue={selectedValues[0] ?? null}
@@ -701,8 +755,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useIllnessFrequencyLayout ? (
             <NutritionApiCircularMeterQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               meterId={nutritionMeterIdForQuestion(question)}
               options={options}
               selectedValue={selectedValues[0] ?? null}
@@ -718,8 +773,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useWaterIntakeLayout ? (
             <NutritionApiWaterIntakeQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               onInfoClick={openInfo}
@@ -733,8 +789,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useConsumptionFrequencyLayout ? (
             <NutritionApiConsumptionFrequencyQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               meterId={nutritionMeterIdForQuestion(question)}
               options={options}
               selectedValue={selectedValues[0] ?? null}
@@ -749,8 +806,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useIodizedSaltLayout ? (
             <NutritionApiPillRowQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               layout="row"
@@ -765,8 +823,9 @@ export function ApiQuestionnaireStep({
             />
           ) : useExtraSaltLayout || useCoffeeTeaIntakeLayout ? (
             <NutritionApiPillRowQuestion
-              questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+              questionLabel={questionLabel}
               questionText={question.question_text}
+              questionSubText={questionSubText}
               options={options}
               selectedValue={selectedValues[0] ?? null}
               layout={useCoffeeTeaIntakeLayout ? 'coffee-intake' : 'wrap'}
@@ -783,7 +842,8 @@ export function ApiQuestionnaireStep({
             <>
               <McqQuestionHeader
                 theme={theme}
-                questionLabel={`Question ${visibleIndex + 1} of ${total}`}
+                questionLabel={questionLabel}
+                subText={questionSubText}
                 onInfoClick={openInfo}
                 titleClassName="mt-2 text-[16px] font-semibold leading-6 tracking-[0.2px] text-white"
               >
@@ -920,7 +980,7 @@ export function ApiQuestionnaireStep({
           <button
             type="button"
             onClick={handleNext}
-            disabled={isSaving}
+            disabled={isSaving || (isLifestyleWellnessPrioritiesQuestion(question) && !answered)}
             className={`flex size-10 shrink-0 items-center justify-center rounded-full border border-solid border-[#969696] p-px ${nextShadow} disabled:opacity-60`}
             style={{ backgroundImage: nextGradient }}
             aria-label={isSaving ? 'Saving answer' : isLast ? 'Continue' : 'Next question'}

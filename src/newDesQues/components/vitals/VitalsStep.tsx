@@ -13,6 +13,7 @@ import {
 import {
   clampBloodPressure,
   formatVitalsTwoDigits,
+  getVitalsQuestionSubText,
   getVitalsQuestionText,
   MAX_BP,
   MIN_BP,
@@ -20,6 +21,7 @@ import {
   VITALS_PROGRESS_COLOR,
   type VitalsValues,
 } from './vitalsConfig'
+import { QuestionSubText } from '../mcq/QuestionSubText'
 import './vitals.css'
 
 const VITALS_NEXT_BUTTON_GRADIENT =
@@ -63,6 +65,14 @@ export function VitalsStep({
       ),
     [questions],
   )
+  const systolicSubText = useMemo(
+    () => getVitalsQuestionSubText(questions, ['systolic_blood_pressure', 'systolic']),
+    [questions],
+  )
+  const diastolicSubText = useMemo(
+    () => getVitalsQuestionSubText(questions, ['diastolic_blood_pressure', 'diastolic']),
+    [questions],
+  )
 
   const finish = (values: VitalsValues) => {
     onComplete(values)
@@ -103,12 +113,14 @@ export function VitalsStep({
         <div className="flex w-full flex-col items-center gap-6 px-[16px] pb-4 pt-6">
           <VitalsReadingField
             label={systolicLabel}
+            subText={systolicSubText}
             value={systolic}
             onChange={setSystolic}
             ariaLabel="Systolic blood pressure"
           />
           <VitalsReadingField
             label={diastolicLabel}
+            subText={diastolicSubText}
             value={diastolic}
             onChange={setDiastolic}
             ariaLabel="Diastolic blood pressure"
@@ -143,11 +155,13 @@ export function VitalsStep({
 
 function VitalsReadingField({
   label,
+  subText,
   value,
   onChange,
   ariaLabel,
 }: {
   label: string
+  subText?: string | null
   value: number | null
   onChange: (next: number | null) => void
   ariaLabel: string
@@ -167,7 +181,10 @@ function VitalsReadingField({
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
-      <p className="w-full text-center text-base font-normal tracking-tight text-white">{label}</p>
+      <div className="flex w-full flex-col items-center gap-1">
+        <p className="w-full text-center text-base font-normal tracking-tight text-white">{label}</p>
+        <QuestionSubText text={subText} className="text-center" />
+      </div>
       <div className="relative flex h-36 w-full items-center justify-center rounded-2xl bg-teal-400/5 outline outline-[0.84px] outline-offset-[-0.84px] outline-zinc-300/10">
         <div className="flex items-center gap-3">
           <div className="relative flex min-w-12 items-center justify-center rounded-lg border border-white/20 bg-black/20 px-2 py-3">

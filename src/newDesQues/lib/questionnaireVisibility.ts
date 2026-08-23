@@ -163,11 +163,16 @@ function readInlineAnswer(question: QuestionnaireQuestion): unknown {
 function coerceStoredAnswer(question: QuestionnaireQuestion, raw: unknown): AnswerValue | undefined {
   if (isEmptyAnswer(raw)) return undefined
 
-  if (isMultiChoiceType(question.question_type)) {
+  const questionKey = String(question.question_key || '').toLowerCase()
+  const isWellnessPriorities =
+    questionKey.includes('wellness_priorities') || questionKey.includes('wellness-priorities')
+
+  if (isWellnessPriorities || isMultiChoiceType(question.question_type)) {
     if (Array.isArray(raw)) {
       return raw.map((item) => String(item ?? '').trim()).filter(Boolean)
     }
-    return [String(raw).trim()].filter(Boolean)
+    const single = String(raw ?? '').trim()
+    return single ? [single] : []
   }
 
   if (Array.isArray(raw)) {

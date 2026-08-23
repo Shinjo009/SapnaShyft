@@ -3,6 +3,7 @@ import {
   clearReportRequestCache,
   fetchHealthSpanIndexForPair,
   getHealthSpanIndexSourceStatus,
+  listHealthSpanIndexPairsFromRows,
 } from '../services/reportService';
 import {
   clearFitprintGapQuestionnaireSubmittedFlag,
@@ -109,14 +110,51 @@ const resolveSourcesWithOptionalAssign = async ({ ttlMs, assignFitprintIfMissing
 };
 
 /**
+ * When the latest FitPrint cycle has no HSI report yet, use the newest prior
+ * Basic/Pro + FitPrint pair that already has scores. Returns null if none.
+ */
+const tryFetchPriorFilledHealthSpanScores = async ({
+  rows,
+  latestBasicProId,
+  latestFitprintAssessmentId,
+  ttlMs,
+}) => {
+  const pairs = listHealthSpanIndexPairsFromRows(rows);
+  for (const pair of pairs) {
+    const isLatestPair = pair.basicOrProAssessmentId === latestBasicProId
+      && pair.fitprintAssessmentId === latestFitprintAssessmentId;
+    if (isLatestPair) {
+      continue;
+    }
+
+    const scores = await tryFetchFitprintReportScores({
+      fitprintAssessmentId: pair.fitprintAssessmentId,
+      basicOrProAssessmentId: pair.basicOrProAssessmentId,
+      ttlMs,
+    });
+    if (scores) {
+      return {
+        scores,
+        basicOrProAssessmentId: pair.basicOrProAssessmentId,
+        fitprintAssessmentId: pair.fitprintAssessmentId,
+        engagementId: pair.engagementId,
+      };
+    }
+  }
+  return null;
+};
+
+/**
  * Resolve Health Span Index UI from assessments + report + FitPrint submit state.
  *
- * 1. Has FitPrint report (scores) → show_scores
- * 2. No scores, FitPrint fitness-parameters submitted (instance completed,
+ * 1. Latest FitPrint report (scores) → show_scores
+ * 2. Else prior filled FitPrint report (new enrollment not ready yet) → show_scores
+ * 3. No scores, FitPrint fitness-parameters submitted (instance completed,
  *    Metsights category complete, or this device POSTed fitness-parameters)
- *    → locked_submitted (awaiting reports)
- * 3. No scores, FitPrint not submitted → locked_questionnaire + Complete Assessment CTA
+ *    → locked_submitted (awaiting reports) — uses latest cycle IDs
+ * 4. No scores, FitPrint not submitted → locked_questionnaire + Complete Assessment CTA
  *    (even if Basic/Pro already has answers, or FitPrint SuperShyft cats are complete)
+ *    — uses latest cycle IDs (Pro-only / first FitPrint enrollment stays intact)
  */
 export async function loadFitprintHealthSpanIndexState({
   ttlMs = 45000,
@@ -164,6 +202,30 @@ export async function loadFitprintHealthSpanIndexState({
     }
   }
 
+  // Returning user: new enrollment has no HSI yet — keep showing last filled FitPrint.
+  const priorFilled = await tryFetchPriorFilledHealthSpanScores({
+    rows: resolved?.rows || [],
+    latestBasicProId: basicProId,
+    latestFitprintAssessmentId: fitprintAssessmentId || null,
+    ttlMs,
+  });
+  if (priorFilled?.scores) {
+    clearFitprintGapQuestionnaireSubmittedFlag(priorFilled.fitprintAssessmentId);
+    return {
+      phase: HEALTH_SPAN_PHASE.SHOW_SCORES,
+      isLocked: false,
+      basicProAssessmentId: priorFilled.basicOrProAssessmentId,
+      fitprintAssessmentId: priorFilled.fitprintAssessmentId,
+      engagementId: priorFilled.engagementId || null,
+      gapQuestionnaireComplete: true,
+      hasFitprintReport: true,
+      hasFitprintAssigned: true,
+      scores: priorFilled.scores,
+      scoresFromPriorCycle: true,
+    };
+  }
+
+  // Locked / questionnaire paths always stay on the latest cycle (not prior).
   let fitprintSubmitConfirmed = false;
   if (fitprintAssessmentId) {
     try {

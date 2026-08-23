@@ -215,10 +215,10 @@ const expandCatchupQuestionsForCardBundles = (fullQs, rawResponses, unfilledPred
 const isAnthropometryPrimaryQuestion = (question) => {
   const k = String(question?.question_key || '').toLowerCase();
   const t = String(question?.question_text || '').toLowerCase();
-  if (k.includes('hip') || k.includes('body_fat') || k.includes('fat_percent')) {
+  if (k.includes('hip') || t.includes('hip size')) {
     return false;
   }
-  if (t.includes('hip size') || t.includes('body fat') || t.includes('body-fat')) {
+  if (t.includes('body fat') || t.includes('body-fat') || k.includes('body_fat') || k.includes('fat_percent')) {
     return false;
   }
   return k.includes('height') || k.includes('weight') || k.includes('waist') || t.includes('waist');
@@ -227,8 +227,7 @@ const isAnthropometryPrimaryQuestion = (question) => {
 const isAnthropometryFollowupQuestion = (question) => {
   const k = String(question?.question_key || '').toLowerCase();
   const t = String(question?.question_text || '').toLowerCase();
-  return k.includes('hip') || k.includes('body_fat') || k.includes('fat_percent')
-    || t.includes('hip size') || t.includes('body fat') || t.includes('body-fat');
+  return k.includes('hip') || t.includes('hip size');
 };
 
 export const anthropometryPrimaryHasUnfilled = (questions, rawResponses) => (

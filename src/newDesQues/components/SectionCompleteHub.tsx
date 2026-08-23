@@ -1,6 +1,6 @@
 import tickCircleSolid from '../assets/figma/tick-circle-solid.svg'
 import assessmentRadioImg from '../assets/Ellipse 13077.svg'
-import sectionSuccessGif from '../assets/animation-gif (1).gif'
+import sectionSuccessGif from '../assets/animation-gif.gif'
 import lifestyleSuccessGif from '../assets/animation-gif-lifestyle-orange.webp'
 import nutritionSuccessGif from '../assets/animation-gif-nutrition-blue.webp'
 import {
@@ -10,7 +10,6 @@ import {
   type AssessmentCategoryStatus,
 } from '../api/assessments'
 import { ContinueButton } from './ContinueButton'
-import { SectionCompleteCelebration } from './SectionCompleteCelebration'
 import {
   ASSESSMENT_CARD_STACK_CLASS,
   ASSESSMENT_CONTENT_MAX_CLASS,
@@ -89,17 +88,13 @@ export function SectionCompleteHub({
         }`}
       >
         <div className="flex flex-col items-center gap-3">
-          {allComplete ? (
-            <SectionCompleteCelebration key="end" tone="booking" />
-          ) : (
-            <img
-              key={variant}
-              src={VARIANT_SUCCESS_GIF[variant]}
-              alt=""
-              draggable={false}
-              className="mx-auto -mt-4 h-[280px] w-[280px] object-contain"
-            />
-          )}
+          <img
+            key={allComplete ? 'all' : variant}
+            src={allComplete ? sectionSuccessGif : VARIANT_SUCCESS_GIF[variant]}
+            alt=""
+            draggable={false}
+            className="mx-auto -mt-4 h-[176px] w-[176px] object-contain"
+          />
           <div className="flex flex-col items-center gap-1 pb-1">
             <h2 className="text-center text-[18px] font-semibold tracking-[0.2px] text-white">
               {allComplete ? 'Assessment Complete!' : copy.title}
@@ -140,7 +135,7 @@ export function SectionCompleteHub({
                     type="button"
                     disabled={loading || Boolean(isLoadingCategoryId)}
                     onClick={() => onSelectCategory(category)}
-                    className={`${completedClassName} text-left disabled:opacity-70`}
+                    className={`${completedClassName} cursor-pointer text-left transition-colors hover:bg-white/10 disabled:opacity-70`}
                   >
                     {completedInner}
                   </button>

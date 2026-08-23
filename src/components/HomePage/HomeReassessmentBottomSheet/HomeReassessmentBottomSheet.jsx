@@ -1,5 +1,30 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './HomeReassessmentBottomSheet.css';
+
+const BloodVialIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <path
+      d="M5.25 1.166H8.75M5.833 1.166V3.208L3.792 6.417C3.354 7.117 3.208 7.933 3.208 8.75V10.792C3.208 11.913 4.12 12.833 5.25 12.833H8.75C9.88 12.833 10.792 11.913 10.792 10.792V8.75C10.792 7.933 10.646 7.117 10.208 6.417L8.167 3.208V1.166"
+      stroke="white"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M4.083 9.333H9.917" stroke="white" strokeWidth="1.1" strokeLinecap="round" />
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="8" height="16" viewBox="0 0 8 16" fill="none" aria-hidden="true">
+    <path
+      d="M1.5 3.5L5.5 8L1.5 12.5"
+      stroke="#9A9A9A"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
 
 const InfoIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -10,17 +35,25 @@ const InfoIcon = () => (
   </svg>
 );
 
-const CloseIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-    <path d="M1 1L13 13M13 1L1 13" stroke="#C4C4C4" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-);
-
 /**
- * Bottom sheet when user has a past report but a new Basic/Pro + FitPrint engagement needs questionnaire.
+ * Bottom sheet for returning users on a new assessment cycle.
+ * Scenario 1 (questionnaire done): blood-collection row only.
+ * Scenario 2 (questionnaire pending): blood-collection row + Update Health Assessment + info toggle.
  */
-const HomeReassessmentBottomSheet = ({ visible, onUpdateAssessment }) => {
+const HomeReassessmentBottomSheet = ({
+  visible,
+  collectionDateLabel = '',
+  showUpdateAssessment = false,
+  onUpdateAssessment,
+  onViewDetails,
+}) => {
   const [infoExpanded, setInfoExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!visible || !showUpdateAssessment) {
+      setInfoExpanded(false);
+    }
+  }, [visible, showUpdateAssessment]);
 
   if (!visible) {
     return null;
@@ -28,33 +61,59 @@ const HomeReassessmentBottomSheet = ({ visible, onUpdateAssessment }) => {
 
   return (
     <div
-      className={`home-reassessment-sheet${infoExpanded ? ' home-reassessment-sheet--expanded' : ''}`}
+      className={`home-reassessment-sheet${showUpdateAssessment ? ' home-reassessment-sheet--with-update' : ''}${infoExpanded ? ' home-reassessment-sheet--expanded' : ''}`}
       role="region"
-      aria-label="New health assessment reminder"
+      aria-label="Blood collection and health assessment"
     >
-      <div className="home-reassessment-sheet__actions">
+      <div className="home-reassessment-sheet__blood-row">
+        <div className="home-reassessment-sheet__blood-main">
+          <div className="home-reassessment-sheet__vial" aria-hidden="true">
+            <BloodVialIcon />
+          </div>
+          <div className="home-reassessment-sheet__blood-copy">
+            <p className="home-reassessment-sheet__blood-title">Blood Collection Scheduled</p>
+            {collectionDateLabel ? (
+              <p className="home-reassessment-sheet__blood-date">{collectionDateLabel}</p>
+            ) : null}
+          </div>
+        </div>
         <button
           type="button"
-          className="home-reassessment-sheet__update-btn"
-          onClick={onUpdateAssessment}
+          className="home-reassessment-sheet__view-details"
+          onClick={() => onViewDetails?.()}
         >
-          Update Health Assessment
-        </button>
-        <button
-          type="button"
-          className="home-reassessment-sheet__icon-btn"
-          onClick={() => setInfoExpanded((prev) => !prev)}
-          aria-label={infoExpanded ? 'Hide assessment information' : 'Show assessment information'}
-          aria-expanded={infoExpanded}
-        >
-          {infoExpanded ? <CloseIcon /> : <InfoIcon />}
+          <span>View Details</span>
+          <ChevronRightIcon />
         </button>
       </div>
 
-      {infoExpanded ? (
-        <p className="home-reassessment-sheet__info-text">
-          Your Bio-AI Report will be generated only after you update the Health Assessment
-        </p>
+      {showUpdateAssessment ? (
+        <>
+          <div className="home-reassessment-sheet__actions">
+            <button
+              type="button"
+              className="home-reassessment-sheet__update-btn"
+              onClick={onUpdateAssessment}
+            >
+              Update Health Assessment
+            </button>
+            <button
+              type="button"
+              className="home-reassessment-sheet__icon-btn"
+              onClick={() => setInfoExpanded((prev) => !prev)}
+              aria-label={infoExpanded ? 'Hide assessment information' : 'Show assessment information'}
+              aria-expanded={infoExpanded}
+            >
+              <InfoIcon />
+            </button>
+          </div>
+
+          {infoExpanded ? (
+            <p className="home-reassessment-sheet__info-text">
+              Your Bio-AI Report will be generated only after you update the Health Assessment
+            </p>
+          ) : null}
+        </>
       ) : null}
     </div>
   );

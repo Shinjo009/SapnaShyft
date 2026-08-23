@@ -25,6 +25,7 @@ if (typeof document !== 'undefined') {
 export function FamilyHistoryLocationOptions({
   questionLabel,
   questionText,
+  questionSubText,
   options,
   selectedValue,
   onSelect,
@@ -33,6 +34,7 @@ export function FamilyHistoryLocationOptions({
 }: {
   questionLabel: string
   questionText: string
+  questionSubText?: string | null
   options: QuestionnaireOption[]
   selectedValue: string | null
   onSelect: (value: string) => void
@@ -41,7 +43,7 @@ export function FamilyHistoryLocationOptions({
 }) {
   return (
     <div className="mx-auto flex w-full flex-col items-center gap-[32px]">
-      <FamilyHistoryQuestionHeader questionLabel={questionLabel} onInfoClick={onInfoClick}>
+      <FamilyHistoryQuestionHeader questionLabel={questionLabel} subText={questionSubText} onInfoClick={onInfoClick}>
         <p>{questionText}</p>
       </FamilyHistoryQuestionHeader>
 

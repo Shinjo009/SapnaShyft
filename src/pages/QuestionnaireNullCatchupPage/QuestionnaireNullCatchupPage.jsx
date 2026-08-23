@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './QuestionnaireNullCatchupPage.css';
 import {
   buildAnthropometryInitialValuesFromResponses,
@@ -228,8 +228,7 @@ const expandCatchupQuestionsForCardBundles = (fullQs, rawResponses, unfilledPred
 const isAnthropometryFollowupQuestion = (question) => {
   const k = String(question?.question_key || '').toLowerCase();
   const t = String(question?.question_text || '').toLowerCase();
-  return k.includes('hip') || k.includes('body_fat') || k.includes('fat_percent')
-    || t.includes('hip size') || t.includes('body fat') || t.includes('body-fat');
+  return k.includes('hip') || t.includes('hip size');
 };
 
 const anthropometryFollowupHasUnfilled = (questions, rawResponses) => (

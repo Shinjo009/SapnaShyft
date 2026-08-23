@@ -40,6 +40,7 @@ const SIT_MATCHERS = [
 export function LifestyleSitDurationQuestion({
   questionLabel,
   questionText,
+  questionSubText,
   options,
   selectedValue,
   onSelect,
@@ -47,6 +48,7 @@ export function LifestyleSitDurationQuestion({
 }: {
   questionLabel: string
   questionText: string
+  questionSubText?: string | null
   options: QuestionnaireOption[]
   selectedValue: string | null
   onSelect: (value: string) => void
@@ -81,7 +83,7 @@ export function LifestyleSitDurationQuestion({
 
   return (
     <div className="flex w-full flex-col gap-16">
-      <LifestyleHabitsQuestionHeader questionLabel={questionLabel} onInfoClick={onInfoClick}>
+      <LifestyleHabitsQuestionHeader questionLabel={questionLabel} subText={questionSubText} onInfoClick={onInfoClick}>
         <p>{questionText}</p>
       </LifestyleHabitsQuestionHeader>
 

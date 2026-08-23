@@ -2,33 +2,39 @@ import type { QuestionnaireOption } from '../../api/questionnaire'
 import { LifestyleHabitsQuestionHeader } from './LifestyleHabitsQuestionHeader'
 import { LifestyleApiPillGrid } from './LifestyleApiPillGrid'
 
-/** Designed Lifestyle Q9 — wellness priorities driven by all API options. */
+/** Designed Lifestyle Q9 — pick 1–2 wellness priorities; payload is a string list. */
 export function LifestyleWellnessPrioritiesQuestion({
   questionLabel,
   questionText,
+  questionSubText,
   options,
-  selectedValue,
-  onSelect,
+  selectedValues,
+  onToggle,
   onInfoClick,
+  maxSelections = 2,
 }: {
   questionLabel: string
   questionText: string
+  questionSubText?: string | null
   options: QuestionnaireOption[]
-  selectedValue: string | null
-  onSelect: (value: string) => void
+  selectedValues: string[]
+  onToggle: (value: string) => void
   onInfoClick?: () => void
+  maxSelections?: number
 }) {
   return (
     <div className="flex w-full flex-col gap-8">
-      <LifestyleHabitsQuestionHeader questionLabel={questionLabel} onInfoClick={onInfoClick}>
+      <LifestyleHabitsQuestionHeader questionLabel={questionLabel} subText={questionSubText} onInfoClick={onInfoClick}>
         <p>{questionText}</p>
       </LifestyleHabitsQuestionHeader>
 
       <LifestyleApiPillGrid
         options={options}
-        selectedValue={selectedValue}
-        onSelect={onSelect}
+        selectedValues={selectedValues}
+        onToggle={onToggle}
+        maxSelections={maxSelections}
         layout="wellness"
+        showTick
       />
     </div>
   )

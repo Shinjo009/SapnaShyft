@@ -260,18 +260,25 @@ function rowsFromSimplePairs(items: PillItem[]): PillRow[] {
  */
 export function LifestyleApiPillGrid({
   options,
-  selectedValue,
+  selectedValue = null,
+  selectedValues,
   onSelect,
+  onToggle,
+  maxSelections,
   layout = 'pairs',
   showTick = false,
 }: {
   options: QuestionnaireOption[]
-  selectedValue: string | null
-  onSelect: (value: string) => void
+  selectedValue?: string | null
+  selectedValues?: string[]
+  onSelect?: (value: string) => void
+  onToggle?: (value: string) => void
+  maxSelections?: number
   layout?: 'pairs' | 'stack' | 'alcohol' | 'wellness' | 'smoking'
   showTick?: boolean
 }) {
   const items = toApiPillItems(options)
+  const isMulti = Array.isArray(selectedValues)
   const rows =
     layout === 'stack'
       ? items.map((item) => ({ items: [item], width: 'full' as const }))
@@ -290,16 +297,37 @@ export function LifestyleApiPillGrid({
           key={rowIndex}
           className={`flex w-full ${row.items.length > 1 ? 'gap-4' : ''}`}
         >
-          {row.items.map((item) => (
+          {row.items.map((item) => {
+            const selected = isMulti
+              ? (selectedValues?.includes(item.value) ?? false)
+              : selectedValue === item.value
+
+            const handleClick = () => {
+              if (isMulti) {
+                if (selected) {
+                  onToggle?.(item.value)
+                  return
+                }
+                if (maxSelections != null && (selectedValues?.length ?? 0) >= maxSelections) {
+                  return
+                }
+                onToggle?.(item.value)
+                return
+              }
+              onSelect?.(item.value)
+            }
+
+            return (
             <DesignedPill
               key={item.value}
               label={item.label}
-              selected={selectedValue === item.value}
+              selected={selected}
               width={row.items.length > 1 ? 'flex' : row.width}
               showTick={showTick}
-              onClick={() => onSelect(item.value)}
+              onClick={handleClick}
             />
-          ))}
+            )
+          })}
         </div>
       ))}
     </div>

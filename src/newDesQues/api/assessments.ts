@@ -1,6 +1,6 @@
 import { isFrontendOnly } from '../lib/frontendOnly'
 import { authorizedGet, authorizedPost } from './http'
-import { markFitprintGapQuestionnaireSubmitted } from '../../services/questionnaireService'
+import { mapCategoryToRouteId, markFitprintGapQuestionnaireSubmitted } from '../../services/questionnaireService'
 
 export type AssessmentRow = {
   assessment_instance_id?: number
@@ -32,6 +32,35 @@ type AssessmentStatusResponse = {
 }
 
 const EXCLUDED_CATEGORY_KEYS = new Set(['anthropometry', 'health_vitals', 'vitals'])
+
+const QUESTIONNAIRE_UI_ROUTE_ORDER = [
+  'family-history',
+  'lifestyle-habits',
+  'nutrition-log',
+  'anthropometry',
+  'vitals',
+] as const
+
+const sortAssessmentCategoriesForUi = (
+  categories: AssessmentCategoryStatus[],
+): AssessmentCategoryStatus[] => (
+  [...categories].sort((a, b) => {
+    const aRoute = mapCategoryToRouteId(a)
+    const bRoute = mapCategoryToRouteId(b)
+    const aIndex = QUESTIONNAIRE_UI_ROUTE_ORDER.indexOf(
+      aRoute as (typeof QUESTIONNAIRE_UI_ROUTE_ORDER)[number],
+    )
+    const bIndex = QUESTIONNAIRE_UI_ROUTE_ORDER.indexOf(
+      bRoute as (typeof QUESTIONNAIRE_UI_ROUTE_ORDER)[number],
+    )
+    const safeA = aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex
+    const safeB = bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex
+    if (safeA !== safeB) {
+      return safeA - safeB
+    }
+    return Number(a.category_id || 0) - Number(b.category_id || 0)
+  })
+)
 
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   anthropometry: 'Your measurements power our AI to generate accurate metabolic and wellness scores.',
@@ -96,11 +125,7 @@ export function isCategoryCompleted(
   category: AssessmentCategoryStatus,
   completedCategoryIds: number[],
 ): boolean {
-  if (completedCategoryIds.includes(Number(category.category_id))) return true
-  const status = String(category.status || '')
-    .trim()
-    .toLowerCase()
-  return status === 'completed' || status === 'complete'
+  return completedCategoryIds.includes(Number(category.category_id))
 }
 
 function toTimestamp(value: unknown): number {
@@ -253,12 +278,14 @@ export async function submitCompletedAssessmentFlow(
 export function filterAssessmentCategoriesForUi(
   categories: AssessmentCategoryStatus[],
 ): AssessmentCategoryStatus[] {
-  return categories.filter((category) => {
-    const key = String(category.category_key || '')
-      .trim()
-      .toLowerCase()
-    return key.length > 0 && !EXCLUDED_CATEGORY_KEYS.has(key)
-  })
+  return sortAssessmentCategoriesForUi(
+    categories.filter((category) => {
+      const key = String(category.category_key || '')
+        .trim()
+        .toLowerCase()
+      return key.length > 0 && !EXCLUDED_CATEGORY_KEYS.has(key)
+    }),
+  )
 }
 
 export async function listMyAssessments(accessToken: string): Promise<AssessmentRow[]> {
@@ -289,13 +316,6 @@ export type NewDesQuesScenario = 1 | 2 | 3
 
 const MOCK_ASSESSMENT_CATEGORIES: AssessmentCategoryStatus[] = [
   {
-    id: 1,
-    category_id: 1,
-    category_key: 'anthropometry',
-    display_name: 'Anthropometry',
-    status: 'pending',
-  },
-  {
     id: 2,
     category_id: 2,
     category_key: 'family_history',
@@ -314,6 +334,13 @@ const MOCK_ASSESSMENT_CATEGORIES: AssessmentCategoryStatus[] = [
     category_id: 4,
     category_key: 'nutrition_log',
     display_name: 'Nutrition Log',
+    status: 'pending',
+  },
+  {
+    id: 1,
+    category_id: 1,
+    category_key: 'anthropometry',
+    display_name: 'Anthropometry',
     status: 'pending',
   },
   {

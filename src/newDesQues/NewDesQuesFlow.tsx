@@ -24,7 +24,7 @@ import {
   SectionCompleteHub,
   type SectionCompleteVariant,
 } from './components/SectionCompleteHub'
-import { SectionCompleteCelebration } from './components/SectionCompleteCelebration'
+import sectionSuccessGif from './assets/animation-gif.gif'
 import { getAccessToken } from './lib/authStorage'
 import { isFrontendOnly } from './lib/frontendOnly'
 import { getMockQuestionnaireQuestions } from './data/mockApiQuestionnaires'
@@ -94,11 +94,7 @@ export function NewDesQuesFlow({ onBack, scenario = 2 }: Props) {
         if (cancelled) return
         setAssessmentInstanceId(result.assessmentInstanceId)
         setAssessmentCategories(result.categories)
-        setCompletedCategoryIds(
-          result.categories
-            .filter((category) => isCategoryCompleted(category, []))
-            .map((category) => Number(category.category_id)),
-        )
+        setCompletedCategoryIds([])
         setStep(6)
       } catch (error) {
         if (!cancelled) {
@@ -308,7 +304,12 @@ export function NewDesQuesFlow({ onBack, scenario = 2 }: Props) {
     return (
       <PageBackdrop mobileBackgroundSrc={nutritionLogBackgroundSvg}>
         <div className="flex h-full min-w-0 flex-col items-center justify-center gap-6 overflow-y-auto px-[16px] py-8 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <SectionCompleteCelebration key="done-celebration" tone="booking" />
+          <img
+            src={sectionSuccessGif}
+            alt=""
+            draggable={false}
+            className="h-[176px] w-[176px] object-contain"
+          />
           <div className="flex flex-col items-center gap-1">
             <h2 className="text-center text-[18px] font-semibold tracking-[0.2px] text-white">
               Questionnaire complete

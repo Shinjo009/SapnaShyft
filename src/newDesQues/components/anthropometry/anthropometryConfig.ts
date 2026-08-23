@@ -1,25 +1,32 @@
 import type { QuestionnaireOption, QuestionnaireQuestion } from '../../api/questionnaire'
 
-export const MIN_HEIGHT_CM = 120
-export const MAX_HEIGHT_CM = 215
-export const MIN_HEIGHT_INCHES = 47
-export const MAX_HEIGHT_INCHES = 83
+export const MIN_HEIGHT_CM = 50
+export const MAX_HEIGHT_CM = 250
+/** Feet/inches display min 1.5 → 1′5″ (17 total inches). */
+export const MIN_HEIGHT_INCHES = 17
+/** Feet/inches display max 8.5 → 8′5″ (101 total inches). */
+export const MAX_HEIGHT_INCHES = 101
 export const DEFAULT_HEIGHT_CM = 165
 export const DEFAULT_HEIGHT_FEET = 5
 export const DEFAULT_HEIGHT_INCHES = 5
 
-export const MIN_CIRCUMFERENCE_INCHES = 16
-export const MAX_CIRCUMFERENCE_INCHES = 47
-export const MIN_CIRCUMFERENCE_CM = 40
-export const MAX_CIRCUMFERENCE_CM = 120
-export const DEFAULT_CIRCUMFERENCE_INCHES = 20.6
-export const DEFAULT_CIRCUMFERENCE_CM = 52.2
+export const MIN_WAIST_CM = 60
+export const MAX_WAIST_CM = 150
+export const MIN_WAIST_IN = 24
+export const MAX_WAIST_IN = 59
+export const DEFAULT_WAIST_CM = 90
+export const DEFAULT_WAIST_IN = 35
+
+export const MIN_HIP_CM = 70
+export const MAX_HIP_CM = 160
+export const MIN_HIP_IN = 28
+export const MAX_HIP_IN = 62
+export const DEFAULT_HIP_CM = 95
+export const DEFAULT_HIP_IN = 37
+
 export const IN_TO_CM = 2.54
 
-export const MIN_BODY_FAT = 5
-export const MAX_BODY_FAT = 70
-export const DEFAULT_BODY_FAT = 45
-export const ANTHRO_QUESTION_COUNT = 5
+export const ANTHRO_QUESTION_COUNT = 4
 
 export const ANTHRO_PROGRESS_COLOR = '#90DF9E'
 
@@ -39,9 +46,10 @@ export type AnthropometryPrimaryValues = {
 
 export type AnthropometryFollowupValues = {
   hipSize?: number
-  bodyFat?: number
   hipUnit?: string
 }
+
+export type CircumferenceKind = 'waist' | 'hip'
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
@@ -101,9 +109,9 @@ export function isPoundUnit(value: unknown): boolean {
 }
 
 export const MIN_WEIGHT_KG = 20
-export const MAX_WEIGHT_KG = 120
+export const MAX_WEIGHT_KG = 130
 export const MIN_WEIGHT_LB = 44
-export const MAX_WEIGHT_LB = 265
+export const MAX_WEIGHT_LB = 660
 export const DEFAULT_WEIGHT_KG = 50
 export const KG_TO_LB = 2.20462
 
@@ -134,36 +142,44 @@ export function roundToTenth(value: number): number {
   return Math.round(value * 10) / 10
 }
 
-export function convertCircumference(value: number, fromUnit: string, toUnit: string): number {
-  const toCm = isCentimeterUnit(toUnit)
-  const fromCm = isCentimeterUnit(fromUnit)
-  if (toCm === fromCm) {
-    const range = getCircumferenceRangeForUnit(toUnit)
-    return clamp(roundToTenth(value), range.min, range.max)
-  }
-  if (toCm) {
-    return clamp(roundToTenth(value * IN_TO_CM), MIN_CIRCUMFERENCE_CM, MAX_CIRCUMFERENCE_CM)
-  }
-  return clamp(roundToTenth(value / IN_TO_CM), MIN_CIRCUMFERENCE_INCHES, MAX_CIRCUMFERENCE_INCHES)
-}
-
-export function getCircumferenceRangeForUnit(unit: string): {
+export function getCircumferenceRangeForUnit(
+  unit: string,
+  kind: CircumferenceKind = 'waist',
+): {
   min: number
   max: number
   defaultValue: number
 } {
   if (isCentimeterUnit(unit)) {
-    return {
-      min: MIN_CIRCUMFERENCE_CM,
-      max: MAX_CIRCUMFERENCE_CM,
-      defaultValue: DEFAULT_CIRCUMFERENCE_CM,
+    if (kind === 'hip') {
+      return { min: MIN_HIP_CM, max: MAX_HIP_CM, defaultValue: DEFAULT_HIP_CM }
     }
+    return { min: MIN_WAIST_CM, max: MAX_WAIST_CM, defaultValue: DEFAULT_WAIST_CM }
   }
-  return {
-    min: MIN_CIRCUMFERENCE_INCHES,
-    max: MAX_CIRCUMFERENCE_INCHES,
-    defaultValue: DEFAULT_CIRCUMFERENCE_INCHES,
+  if (kind === 'hip') {
+    return { min: MIN_HIP_IN, max: MAX_HIP_IN, defaultValue: DEFAULT_HIP_IN }
   }
+  return { min: MIN_WAIST_IN, max: MAX_WAIST_IN, defaultValue: DEFAULT_WAIST_IN }
+}
+
+export function convertCircumference(
+  value: number,
+  fromUnit: string,
+  toUnit: string,
+  kind: CircumferenceKind = 'waist',
+): number {
+  const toCm = isCentimeterUnit(toUnit)
+  const fromCm = isCentimeterUnit(fromUnit)
+  if (toCm === fromCm) {
+    const range = getCircumferenceRangeForUnit(toUnit, kind)
+    return clamp(roundToTenth(value), range.min, range.max)
+  }
+  if (toCm) {
+    const hipRange = getCircumferenceRangeForUnit('cm', kind)
+    return clamp(roundToTenth(value * IN_TO_CM), hipRange.min, hipRange.max)
+  }
+  const inchRange = getCircumferenceRangeForUnit('in', kind)
+  return clamp(roundToTenth(value / IN_TO_CM), inchRange.min, inchRange.max)
 }
 
 function getQuestionOptionLabel(option: QuestionnaireOption): string {
@@ -272,4 +288,13 @@ export function getQuestionText(
   fallback: string,
 ): string {
   return findQuestionByAliasesAndHints(questions, keys, hints)?.question_text || fallback
+}
+
+export function getQuestionSubText(
+  questions: QuestionnaireQuestion[],
+  keys: string[],
+  hints: string[],
+): string | null {
+  const text = String(findQuestionByAliasesAndHints(questions, keys, hints)?.sub_text || '').trim()
+  return text || null
 }

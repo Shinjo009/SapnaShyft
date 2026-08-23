@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { CSSProperties } from 'react'
+import { QuestionSubText } from '../mcq/QuestionSubText'
 import type { QuestionnaireQuestion } from '../../api/questionnaire'
 import hipGif from '../../../images/hip-gif.gif'
 import waistGif from '../../../images/waist-gif.gif'
@@ -16,15 +16,16 @@ import {
   clamp,
   convertCircumference,
   convertWeight,
-  DEFAULT_BODY_FAT,
   DEFAULT_HEIGHT_CM,
   DEFAULT_HEIGHT_FEET,
   DEFAULT_HEIGHT_INCHES,
-  DEFAULT_CIRCUMFERENCE_INCHES,
+  DEFAULT_HIP_IN,
+  DEFAULT_WAIST_IN,
   DEFAULT_WEIGHT_KG,
   extractUnitOptionsFromQuestion,
   findQuestionByAliasesAndHints,
   getCircumferenceRangeForUnit,
+  getQuestionSubText,
   getQuestionText,
   getWeightRangeForUnit,
   isCentimeterUnit,
@@ -32,10 +33,8 @@ import {
   isKilogramUnit,
   isPoundUnit,
   isProvidedNumber,
-  MAX_BODY_FAT,
   MAX_HEIGHT_CM,
   MAX_HEIGHT_INCHES,
-  MIN_BODY_FAT,
   MIN_HEIGHT_CM,
   MIN_HEIGHT_INCHES,
   prioritizeCircumferenceUnitOptions,
@@ -44,6 +43,7 @@ import {
   roundToTenth,
   type AnthropometryFollowupValues,
   type AnthropometryPrimaryValues,
+  type CircumferenceKind,
 } from './anthropometryConfig'
 import './anthropometry.css'
 
@@ -80,7 +80,7 @@ export function AnthropometryStep({
   const [waist, setWaist] = useState(() =>
     Number.isFinite(Number(initialPrimary?.waist))
       ? Math.round(Number(initialPrimary?.waist))
-      : Math.round(DEFAULT_CIRCUMFERENCE_INCHES),
+      : DEFAULT_WAIST_IN,
   )
   const [heightUnit, setHeightUnit] = useState(() => String(initialPrimary?.heightUnit || 'Cm'))
   const [weightUnit, setWeightUnit] = useState(() => String(initialPrimary?.weightUnit || 'Kg'))
@@ -98,12 +98,7 @@ export function AnthropometryStep({
   const [hipSize, setHipSize] = useState(() =>
     Number.isFinite(Number(initialFollowup?.hipSize))
       ? Math.round(Number(initialFollowup?.hipSize))
-      : Math.round(DEFAULT_CIRCUMFERENCE_INCHES),
-  )
-  const [bodyFat, setBodyFat] = useState(() =>
-    Number.isFinite(Number(initialFollowup?.bodyFat))
-      ? Number(initialFollowup?.bodyFat)
-      : DEFAULT_BODY_FAT,
+      : DEFAULT_HIP_IN,
   )
   const [hipUnit, setHipUnit] = useState(() => String(initialFollowup?.hipUnit || 'In'))
   const [showWaistInfo, setShowWaistInfo] = useState(false)
@@ -114,19 +109,12 @@ export function AnthropometryStep({
   const weightLabel = getQuestionText(questions, ['weight'], ['weight', 'body weight'], 'What is you weight?')
   const waistLabel = getQuestionText(questions, ['waist_circumference', 'waist'], ['waist'], 'What is you waist size ?')
   const hipLabel = getQuestionText(questions, ['hip_circumference', 'hip'], ['hip'], 'What is you hip size ?')
-  const fatLabel = getQuestionText(
-    questions,
-    ['body_fat', 'bodyfat'],
-    ['body fat', 'body-fat'],
-    'What is you body-fat percent ?',
-  )
+  const heightSubText = getQuestionSubText(questions, ['height'], ['height'])
+  const weightSubText = getQuestionSubText(questions, ['weight'], ['weight', 'body weight'])
+  const waistSubText = getQuestionSubText(questions, ['waist_circumference', 'waist'], ['waist'])
+  const hipSubText = getQuestionSubText(questions, ['hip_circumference', 'hip'], ['hip'])
 
-  const previews = [
-    { line1: weightLabel },
-    { line1: waistLabel },
-    { line1: hipLabel },
-    { line1: fatLabel },
-  ]
+  const previews = [{ line1: weightLabel }, { line1: waistLabel }, { line1: hipLabel }]
 
   const isLast = index >= ANTHRO_QUESTION_COUNT - 1
   const isWeightValid = isProvidedNumber(weight)
@@ -155,7 +143,6 @@ export function AnthropometryStep({
     if (isLast) {
       finish({
         hipSize: roundToTenth(hipSize),
-        bodyFat,
         hipUnit,
       })
       return
@@ -183,6 +170,7 @@ export function AnthropometryStep({
         <HeightQuestion
           questions={questions}
           label={heightLabel}
+          subText={heightSubText}
           height={height}
           heightUnit={heightUnit}
           onHeightChange={setHeight}
@@ -199,6 +187,7 @@ export function AnthropometryStep({
         <WeightQuestion
           questions={questions}
           label={weightLabel}
+          subText={weightSubText}
           weight={weight}
           weightUnit={weightUnit}
           showRequired={submitAttempted && !isWeightValid}
@@ -214,6 +203,7 @@ export function AnthropometryStep({
         <WaistQuestion
           questions={questions}
           label={waistLabel}
+          subText={waistSubText}
           waist={waist}
           waistUnit={waistUnit}
           onWaistChange={setWaist}
@@ -226,20 +216,12 @@ export function AnthropometryStep({
         <HipQuestion
           questions={questions}
           label={hipLabel}
+          subText={hipSubText}
           hipSize={hipSize}
           hipUnit={hipUnit}
           onHipChange={setHipSize}
           onUnitChange={setHipUnit}
           onOpenInfo={() => setShowHipInfo(true)}
-          onSkip={() => setIndex(4)}
-        />
-      ) : null}
-
-      {index === 4 ? (
-        <BodyFatQuestion
-          label={fatLabel}
-          bodyFat={bodyFat}
-          onBodyFatChange={setBodyFat}
           onSkip={() => finish({})}
         />
       ) : null}
@@ -263,9 +245,11 @@ export function AnthropometryStep({
 function QuestionChrome({
   index,
   children,
+  subText,
 }: {
   index: number
   children: string
+  subText?: string | null
 }) {
   return (
     <div className="flex w-full flex-col items-start gap-2">
@@ -273,6 +257,7 @@ function QuestionChrome({
         Question {index + 1} of {ANTHRO_QUESTION_COUNT}
       </p>
       <p className="font-['Lato'] text-base font-normal tracking-tight text-white">{children}</p>
+      <QuestionSubText text={subText} />
     </div>
   )
 }
@@ -280,6 +265,7 @@ function QuestionChrome({
 function HeightQuestion({
   questions,
   label,
+  subText,
   height,
   heightUnit,
   onHeightChange,
@@ -287,6 +273,7 @@ function HeightQuestion({
 }: {
   questions: QuestionnaireQuestion[]
   label: string
+  subText?: string | null
   height: number
   heightUnit: string
   onHeightChange: (value: number) => void
@@ -328,7 +315,7 @@ function HeightQuestion({
 
   return (
     <div className="flex w-full flex-col items-center gap-7 pb-4 pt-2">
-      <QuestionChrome index={0}>{label}</QuestionChrome>
+      <QuestionChrome index={0} subText={subText}>{label}</QuestionChrome>
       <div className="flex w-full flex-col items-center gap-5">
         <div className="inline-flex items-start rounded-full bg-black/30 p-1 outline outline-1 outline-offset-[-1px] outline-white/10">
           <button
@@ -396,6 +383,7 @@ function HeightQuestion({
 function WeightQuestion({
   questions,
   label,
+  subText,
   weight,
   weightUnit,
   showRequired,
@@ -404,6 +392,7 @@ function WeightQuestion({
 }: {
   questions: QuestionnaireQuestion[]
   label: string
+  subText?: string | null
   weight: number | null
   weightUnit: string
   showRequired: boolean
@@ -438,7 +427,7 @@ function WeightQuestion({
 
   return (
     <div className="flex w-full flex-col items-center gap-7 pb-4 pt-2">
-      <QuestionChrome index={1}>{label}</QuestionChrome>
+      <QuestionChrome index={1} subText={subText}>{label}</QuestionChrome>
       <div className="flex w-full flex-col items-center gap-10">
         <div className="inline-flex items-start rounded-full bg-black/30 p-1 outline outline-1 outline-offset-[-1px] outline-white/10">
           <button
@@ -483,9 +472,11 @@ const HIP_HINTS = ['hip']
 function CircumferenceQuestion({
   questions,
   label,
+  subText,
   index,
   value,
   unit,
+  kind,
   aliases,
   hints,
   infoLabel,
@@ -496,9 +487,11 @@ function CircumferenceQuestion({
 }: {
   questions: QuestionnaireQuestion[]
   label: string
+  subText?: string | null
   index: number
   value: number
   unit: string
+  kind: CircumferenceKind
   aliases: string[]
   hints: string[]
   infoLabel: string
@@ -515,7 +508,7 @@ function CircumferenceQuestion({
   const cmOption = unitOptions.find((option) => isCentimeterUnit(option)) || 'Cm'
   const inOption = unitOptions.find((option) => !isCentimeterUnit(option)) || 'In'
   const usesCm = isCentimeterUnit(unit)
-  const range = getCircumferenceRangeForUnit(unit)
+  const range = getCircumferenceRangeForUnit(unit, kind)
   const unitLabel = usesCm ? 'Cms' : 'In'
 
   useEffect(() => {
@@ -524,14 +517,14 @@ function CircumferenceQuestion({
 
   const selectUnit = (nextUnit: string) => {
     if (nextUnit === unit) return
-    onChange(convertCircumference(value, unit, nextUnit))
+    onChange(convertCircumference(value, unit, nextUnit, kind))
     onUnitChange(nextUnit)
   }
 
   return (
     <div className="flex w-full flex-col items-center gap-7 pb-4 pt-2">
       <div className="relative w-full">
-        <QuestionChrome index={index}>{label}</QuestionChrome>
+        <QuestionChrome index={index} subText={subText}>{label}</QuestionChrome>
         <AnthropometryInfoButton label={infoLabel} onClick={onOpenInfo} />
       </div>
       <div className="flex w-full flex-col items-center gap-10">
@@ -579,6 +572,7 @@ function CircumferenceQuestion({
 function WaistQuestion({
   questions,
   label,
+  subText,
   waist,
   waistUnit,
   onWaistChange,
@@ -587,6 +581,7 @@ function WaistQuestion({
 }: {
   questions: QuestionnaireQuestion[]
   label: string
+  subText?: string | null
   waist: number
   waistUnit: string
   onWaistChange: (value: number) => void
@@ -597,9 +592,11 @@ function WaistQuestion({
     <CircumferenceQuestion
       questions={questions}
       label={label}
+      subText={subText}
       index={2}
       value={waist}
       unit={waistUnit}
+      kind="waist"
       aliases={WAIST_ALIASES}
       hints={WAIST_HINTS}
       infoLabel="Open waist size information"
@@ -613,6 +610,7 @@ function WaistQuestion({
 function HipQuestion({
   questions,
   label,
+  subText,
   hipSize,
   hipUnit,
   onHipChange,
@@ -622,6 +620,7 @@ function HipQuestion({
 }: {
   questions: QuestionnaireQuestion[]
   label: string
+  subText?: string | null
   hipSize: number
   hipUnit: string
   onHipChange: (value: number) => void
@@ -633,9 +632,11 @@ function HipQuestion({
     <CircumferenceQuestion
       questions={questions}
       label={label}
+      subText={subText}
       index={3}
       value={hipSize}
       unit={hipUnit}
+      kind="hip"
       aliases={HIP_ALIASES}
       hints={HIP_HINTS}
       infoLabel="Open hip size information"
@@ -647,44 +648,3 @@ function HipQuestion({
   )
 }
 
-function BodyFatQuestion({
-  label,
-  bodyFat,
-  onBodyFatChange,
-  onSkip,
-}: {
-  label: string
-  bodyFat: number
-  onBodyFatChange: (value: number) => void
-  onSkip: () => void
-}) {
-  const progress = (bodyFat - MIN_BODY_FAT) / (MAX_BODY_FAT - MIN_BODY_FAT)
-
-  return (
-    <div className="flex w-full flex-col items-stretch gap-7 pb-4 pt-2">
-      <QuestionChrome index={4}>{label}</QuestionChrome>
-      <div className="w-full rounded-2xl bg-teal-400/5 px-3 py-6 outline outline-[0.84px] outline-offset-[-0.84px] outline-zinc-300/10">
-        <div className="flex flex-col items-center gap-6">
-          <p className="w-full text-center font-['DM_Sans'] text-3xl font-semibold text-white">{bodyFat}%</p>
-          <div
-            className="ndq-anthro__fat-slider-wrap"
-            style={{ ['--fat-progress']: progress } as CSSProperties}
-          >
-            <input
-              className="ndq-anthro__fat-slider"
-              type="range"
-              min={MIN_BODY_FAT}
-              max={MAX_BODY_FAT}
-              value={bodyFat}
-              onChange={(event) => onBodyFatChange(Number(event.target.value))}
-              aria-label="Body fat percentage"
-            />
-          </div>
-        </div>
-      </div>
-      <button type="button" className="text-sm font-normal tracking-tight text-zinc-400 underline" onClick={onSkip}>
-        Skip
-      </button>
-    </div>
-  )
-}

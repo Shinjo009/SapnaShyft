@@ -53,6 +53,7 @@ const WALKING_MATCHERS = [
 export function LifestyleDailyWalkingQuestion({
   questionLabel,
   questionText,
+  questionSubText,
   options,
   selectedValue,
   onSelect,
@@ -60,6 +61,7 @@ export function LifestyleDailyWalkingQuestion({
 }: {
   questionLabel: string
   questionText: string
+  questionSubText?: string | null
   options: QuestionnaireOption[]
   selectedValue: string | null
   onSelect: (value: string) => void
@@ -96,7 +98,7 @@ export function LifestyleDailyWalkingQuestion({
 
   return (
     <div className="flex w-full flex-col gap-8">
-      <LifestyleHabitsQuestionHeader questionLabel={questionLabel} onInfoClick={onInfoClick}>
+      <LifestyleHabitsQuestionHeader questionLabel={questionLabel} subText={questionSubText} onInfoClick={onInfoClick}>
         <p>{questionText}</p>
       </LifestyleHabitsQuestionHeader>
 

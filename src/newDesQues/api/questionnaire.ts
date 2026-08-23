@@ -14,6 +14,7 @@ export type QuestionnaireOption = {
 export type QuestionnaireQuestion = {
   question_id: number
   question_text: string
+  sub_text?: string | null
   question_type: string
   question_key?: string
   category_id?: number
