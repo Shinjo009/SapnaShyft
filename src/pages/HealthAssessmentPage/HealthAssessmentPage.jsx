@@ -12,12 +12,44 @@ import ques2Icon from '../../images/ques-2.svg';
 import ques3Icon from '../../images/ques-3.svg';
 import ques4Icon from '../../images/ques-4.svg';
 import ques5Icon from '../../images/ques-5.svg';
-import quesArrow from '../../images/ques-arrow.svg';
 import tickIcon from '../../images/ques-tick.svg';
 import AnthInd from '../../images/Anth-Ind.svg';
 import waistGif from '../../images/waist-gif.gif';
 import hipGif from '../../images/hip-gif.gif';
 import './HealthAssessmentPage.css';
+import HealthAssessmentScenario2Category from './HealthAssessmentScenario2Category';
+import { PageBackdrop } from '../../newDesQues/components/PageBackdrop';
+import { HealthAssessmentStep } from '../../newDesQues/components/HealthAssessmentStep';
+import { SectionCompleteHub } from '../../newDesQues/components/SectionCompleteHub';
+import backgroundAssessmentSvg from '../../newDesQues/assets/Background.svg';
+import familyHistoryBackgroundSvg from '../../newDesQues/assets/family history.svg';
+import lifestyleHabitsBackgroundSvg from '../../newDesQues/assets/lifestyle-habits/background.svg';
+import nutritionLogBackgroundSvg from '../../newDesQues/assets/nutritionlogstart.svg';
+import nutritionEndBackgroundSvg from '../../newDesQues/assets/nutritionend.svg';
+
+const HA_ROUTE_CATEGORY_KEY = {
+  anthropometry: 'anthropometry',
+  'family-history': 'family_history',
+  'lifestyle-habits': 'lifestyle_habits',
+  'nutrition-log': 'nutrition_log',
+  vitals: 'vitals',
+};
+
+const HA_ROUTE_HUB_VARIANT = {
+  anthropometry: 'anthropometry',
+  'family-history': 'family',
+  'lifestyle-habits': 'lifestyle',
+  'nutrition-log': 'nutrition',
+  vitals: 'vitals',
+};
+
+const haHubBackdropForVariant = (variant) => {
+  if (variant === 'lifestyle') return lifestyleHabitsBackgroundSvg;
+  if (variant === 'nutrition') return nutritionLogBackgroundSvg;
+  if (variant === 'family') return familyHistoryBackgroundSvg;
+  if (variant === 'vitals') return nutritionEndBackgroundSvg;
+  return backgroundAssessmentSvg;
+};
 
 const AnthropometryTriangleArrow = ({ direction = 'right' }) => {
   const rotation = direction === 'left' ? '180deg' : direction === 'up' ? '-90deg' : direction === 'down' ? '90deg' : '0deg';
@@ -4854,9 +4886,6 @@ const defaultSteps = [
   { id: 'vitals', label: 'Vitals', detail: 'Blood pressure & more', icon: ques5Icon, side: 'center' },
 ];
 
-const DOT_LEVELS = [1, 2, 3];
-const SEGMENT_GLOW_DOT_LEVELS = [0, 1, 2, 3];
-
 const stepMetaByRoute = {
   anthropometry: { icon: ques1Icon, side: 'center', detail: 'Track your height, weight & BMI' },
   'family-history': { icon: ques2Icon, side: 'left', detail: 'Record hereditary health conditions' },
@@ -4865,32 +4894,8 @@ const stepMetaByRoute = {
   vitals: { icon: ques5Icon, side: 'center', detail: 'Blood pressure & more' },
 };
 
-const getCirclePositionStyle = (side, index) => {
-  const y = `var(--y${index})`;
-  if (side === 'left') {
-    return { top: y, left: 'calc(50% - var(--side-offset))' };
-  }
-  if (side === 'right') {
-    return { top: y, left: 'calc(50% + var(--side-offset))' };
-  }
-  return { top: y, left: '50%' };
-};
-
-const getPillPositionStyle = () => ({
-  top: '0',
-  left: '50%',
-});
-
-const formatTimelineStepLabel = (label) => {
-  const words = String(label || '').trim().split(/\s+/).filter(Boolean);
-  if (words.length <= 2) return String(label || '');
-  return `${words.slice(0, 2).join(' ')}\n${words.slice(2).join(' ')}`;
-};
-
 const HealthAssessmentPage = ({
   progress = 0,
-  expandedStep = null,
-  onExpandStep,
   onBack,
   steps = [],
   questionsByRouteId = {},
@@ -5069,15 +5074,14 @@ const HealthAssessmentPage = ({
 
   const canOpenAllSteps = !questionnaireSubmitLocked
     && (allCategoriesCompleteFromApi || nutritionLogSubmittedUnlock);
-  const effectiveProgress = canOpenAllSteps ? resolvedSteps.length : progress;
-  const activeIndex = effectiveProgress < resolvedSteps.length ? effectiveProgress : -1;
-  const focusedIndex = expandedStep != null ? expandedStep : activeIndex;
-  const showPill = focusedIndex !== -1 && expandedStep === focusedIndex;
-  const isEditMode = canOpenAllSteps;
-  const activeY = focusedIndex !== -1 ? `var(--y${focusedIndex})` : null;
-  const lineEndY = effectiveProgress >= 4 ? 'var(--line-bottom)' : `var(--y${Math.min(effectiveProgress, 4)})`;
-  const activeConnectorHalfHeight = showPill ? '44px' : 'var(--node-radius)';
-  const hideMiddleDotAtActivePill = showPill && focusedIndex >= 1 && focusedIndex <= 3;
+
+  const [hubMode, setHubMode] = useState('intro');
+  const [hubVariant, setHubVariant] = useState('anthropometry');
+  const [completedRouteIds, setCompletedRouteIds] = useState([]);
+  const [isStartingAssessment, setIsStartingAssessment] = useState(false);
+  const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
+  const [loadingCategoryId, setLoadingCategoryId] = useState(null);
+  const didSeedHubRef = useRef(false);
 
   const stepRouteStatusByRouteId = useMemo(() => {
     const map = Object.create(null);
@@ -5091,415 +5095,281 @@ const HealthAssessmentPage = ({
     return map;
   }, [steps]);
 
-  const stepHasResumableWork = (routeId) => {
-    const rid = String(routeId || '');
-    const batch = initialResponsesByRoute[rid];
-    if (Array.isArray(batch) && batch.length > 0) {
-      return true;
-    }
-    const st = stepRouteStatusByRouteId[rid];
-    return st === 'complete' || st === 'in_progress';
-  };
+  const hubCategories = useMemo(() => {
+    return resolvedSteps.map((step, index) => {
+      const matched = Array.isArray(steps)
+        ? steps.find((s) => s?.routeId === step.id || s?.id === step.id)
+        : null;
+      const categoryId = Number(matched?.category_id) || index + 1;
+      return {
+        id: categoryId,
+        category_id: categoryId,
+        category_key: HA_ROUTE_CATEGORY_KEY[step.id] || step.id,
+        display_name: String(step.label || '').replace(/\n/g, ' '),
+        status: matched?.status,
+        routeId: step.id,
+      };
+    });
+  }, [resolvedSteps, steps]);
 
-  /** Linear completed steps, full-assessment edit mode, or any section with autosaved / in-progress / complete status on the server. */
-  const canNavigateToTimelineStep = (index) => {
-    if (canOpenAllSteps) {
-      return true;
-    }
-    if (index < effectiveProgress) {
-      return true;
-    }
-    const routeId = resolvedSteps[index]?.id;
-    if (!routeId) {
-      return false;
-    }
-    return stepHasResumableWork(routeId);
-  };
+  const completedCategoryIds = useMemo(() => {
+    return hubCategories
+      .filter((category) => {
+        const status = String(category.status || '').trim().toLowerCase();
+        return (
+          completedRouteIds.includes(category.routeId)
+          || status === 'complete'
+          || status === 'completed'
+        );
+      })
+      .map((category) => Number(category.category_id));
+  }, [hubCategories, completedRouteIds]);
 
-  const isCompleted = (index) => index < effectiveProgress;
-  /** Match traversable steps: linear done, full edit mode, or any saved / in-progress / complete section so the ring reads as “done enough to open”. */
-  const stepShowsCompletedRing = (index) => {
-    if (canOpenAllSteps) {
-      return true;
-    }
-    const routeId = resolvedSteps[index]?.id;
-    if (!routeId) {
-      return isCompleted(index);
-    }
-    return isCompleted(index) || stepHasResumableWork(routeId);
-  };
-  useEffect(() => {
-    if (activeIndex === -1 || activeSubPage) {
-      return;
-    }
-
-    if (expandedStep != null) {
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      onExpandStep?.(activeIndex);
-    }, 240);
-
-    return () => clearTimeout(timer);
-  }, [activeIndex, activeSubPage, expandedStep, onExpandStep]);
-
-  if (activeSubPage === 'anthropometry' && !showFollowup) {
+  const isRouteCompleted = (routeId) => {
+    const status = String(stepRouteStatusByRouteId[routeId] || '').toLowerCase();
     return (
-      <EmbeddedAnthropometryPage
-        questions={visibleQuestionsByRoute.anthropometry || []}
-        initialValues={anthropometryPrimaryValues}
-        onBack={() => setActiveSubPage(null)}
-        onContinue={(values) => {
-          setAnthropometryPrimaryValues(values || {});
-          setShowFollowup(true);
-        }}
-      />
+      completedRouteIds.includes(routeId)
+      || status === 'complete'
+      || status === 'completed'
     );
-  }
+  };
 
-  if (activeSubPage === 'anthropometry' && showFollowup) {
+  const firstIncompleteRouteId = useMemo(() => {
+    const next = hubCategories.find((category) => {
+      const status = String(stepRouteStatusByRouteId[category.routeId] || '').toLowerCase();
+      return !(
+        completedRouteIds.includes(category.routeId)
+        || status === 'complete'
+        || status === 'completed'
+      );
+    });
+    return next?.routeId || null;
+  }, [hubCategories, completedRouteIds, stepRouteStatusByRouteId]);
+
+  useEffect(() => {
+    const seeded = [];
+    resolvedSteps.forEach((step, index) => {
+      if (index < Number(progress || 0)) {
+        seeded.push(step.id);
+      }
+      const status = String(stepRouteStatusByRouteId[step.id] || '').toLowerCase();
+      if (status === 'complete' || status === 'completed') {
+        seeded.push(step.id);
+      }
+    });
+    if (canOpenAllSteps || allCategoriesCompleteFromApi) {
+      resolvedSteps.forEach((step) => seeded.push(step.id));
+    }
+
+    const uniqueSeeded = [...new Set(seeded)];
+
+    setCompletedRouteIds((prev) => {
+      const next = [...new Set([...prev, ...uniqueSeeded])];
+      if (next.length === prev.length && next.every((id) => prev.includes(id))) {
+        return prev;
+      }
+      return next;
+    });
+
+    if (activeSubPage || didSeedHubRef.current) {
+      return;
+    }
+
+    // Wait until category status is available (or clearly empty) before choosing intro vs hub.
+    const hasApiStatus = Array.isArray(steps) && steps.some((step) => step?.status != null || step?.category_id != null);
+    if (!hasApiStatus && Number(progress || 0) === 0 && !canOpenAllSteps) {
+      setHubMode('intro');
+      return;
+    }
+
+    didSeedHubRef.current = true;
+    if (uniqueSeeded.length === 0) {
+      setHubMode('intro');
+      return;
+    }
+
+    const lastCompleted = resolvedSteps
+      .filter((step) => uniqueSeeded.includes(step.id))
+      .at(-1);
+    setHubVariant(HA_ROUTE_HUB_VARIANT[lastCompleted?.id] || 'anthropometry');
+    setHubMode('section-complete');
+  }, [
+    activeSubPage,
+    allCategoriesCompleteFromApi,
+    canOpenAllSteps,
+    progress,
+    resolvedSteps,
+    stepRouteStatusByRouteId,
+    steps,
+  ]);
+
+  const openRoute = (routeId) => {
+    if (!routeId) {
+      return;
+    }
+    const category = hubCategories.find((item) => item.routeId === routeId);
+    if (category) {
+      setLoadingCategoryId(Number(category.category_id));
+    }
+    setActiveSubPage(routeId);
+    setLoadingCategoryId(null);
+  };
+
+  const handleStartAssessment = () => {
+    setIsStartingAssessment(true);
+    try {
+      openRoute(firstIncompleteRouteId || hubCategories[0]?.routeId);
+    } finally {
+      setIsStartingAssessment(false);
+    }
+  };
+
+  const handleSelectHubCategory = (category) => {
+    const routeId = category?.routeId
+      || hubCategories.find((item) => Number(item.category_id) === Number(category?.category_id))?.routeId;
+    openRoute(routeId);
+  };
+
+  const handleFinalContinue = async () => {
+    if (isSubmittingFinal || questionnaireSubmitLocked) {
+      return;
+    }
+    setIsSubmittingFinal(true);
+    try {
+      await onAssessmentSubmit?.();
+      setQuestionnaireSubmitLocked(true);
+    } catch (error) {
+      console.error('Failed to submit assessment:', error);
+    } finally {
+      setIsSubmittingFinal(false);
+    }
+  };
+
+  if (activeSubPage) {
+    const matchedCategory = Array.isArray(steps)
+      ? steps.find((step) => step?.routeId === activeSubPage || step?.id === activeSubPage)
+      : null;
+    const assessmentInstanceId = Number(matchedCategory?.assessment_instance_id || 0);
+    const categoryId = Number(matchedCategory?.category_id || 0);
+    const questionsForRoute = questionsByRouteId[activeSubPage]
+      || visibleQuestionsByRoute[activeSubPage]
+      || [];
+
     return (
-      <EmbeddedAnthropometryFollowupPage
-        questions={visibleQuestionsByRoute.anthropometry || []}
-        initialValues={anthropometryFollowupValues}
-        onBack={() => setShowFollowup(false)}
-        onDone={(followupValues) => {
-          setAnthropometryFollowupValues(followupValues || {});
-          const anthropometryQuestions = visibleQuestionsByRoute.anthropometry || [];
-          const responses = buildAnthropometryResponses(
-            anthropometryQuestions,
-            anthropometryPrimaryValues,
-            followupValues || {}
-          );
-
+      <HealthAssessmentScenario2Category
+        routeId={activeSubPage}
+        questions={questionsForRoute}
+        draftResponses={initialResponsesByRoute[activeSubPage] || []}
+        assessmentInstanceId={assessmentInstanceId}
+        categoryId={categoryId}
+        anthropometryPrimary={anthropometryPrimaryValues}
+        anthropometryFollowup={anthropometryFollowupValues}
+        vitalsInitial={vitalsValues}
+        buildAnthropometryResponses={buildAnthropometryResponses}
+        buildVitalsResponses={buildVitalsResponses}
+        onBack={() => {
           setShowFollowup(false);
           setActiveSubPage(null);
-          onStepComplete?.('anthropometry', responses);
+          setHubMode(completedRouteIds.length > 0 ? 'section-complete' : 'intro');
         }}
-      />
-    );
-  }
-
-  if (activeSubPage === 'family-history') {
-    return (
-      <EmbeddedFamilyHistoryPage
-        questions={questionsByRouteId['family-history'] || []}
-        questionnairePreferences={questionnairePreferences}
-        initialSelections={familyHistorySelections}
-        onBack={() => setActiveSubPage(null)}
-        onDraftSave={(selections) => {
-          const safeSelections = selections || {};
-          const responses = buildResponsesFromSelections(
-            questionsByRouteId['family-history'] || [],
-            safeSelections,
-            questionnairePreferences,
-          );
-
-          onStepDraftSave?.('family-history', responses);
+        onStepDraftSave={(routeId, responses) => {
+          onStepDraftSave?.(routeId, responses);
         }}
-        onDone={(selections) => {
-          setFamilyHistorySelections(selections || {});
-          const responses = buildResponsesFromSelections(
-            questionsByRouteId['family-history'] || [],
-            selections || {},
-            questionnairePreferences,
-          );
+        onStepComplete={async (routeId, responses, meta) => {
+          if (routeId === 'anthropometry' && meta?.primary) {
+            setAnthropometryPrimaryValues(meta.primary || {});
+            setAnthropometryFollowupValues(meta.followup || {});
+          }
+          if (routeId === 'vitals' && meta?.vitals) {
+            setVitalsValues({
+              systolic: normalizeStoredVitalReading(meta.vitals?.systolic),
+              diastolic: normalizeStoredVitalReading(meta.vitals?.diastolic),
+            });
+          }
+          if (routeId === 'nutrition-log') {
+            setHasNutritionLogSubmittedDraft(true);
+          }
 
+          setCompletedRouteIds((prev) => (prev.includes(routeId) ? prev : [...prev, routeId]));
+          setHubVariant(HA_ROUTE_HUB_VARIANT[routeId] || 'anthropometry');
+          setHubMode('section-complete');
+          setShowFollowup(false);
           setActiveSubPage(null);
-          onStepComplete?.('family-history', responses);
+          await onStepComplete?.(routeId, responses);
         }}
       />
     );
   }
 
-  if (activeSubPage === 'lifestyle-habits') {
-    return (
-      <EmbeddedLifestyleHabitsPage
-        questions={questionsByRouteId['lifestyle-habits'] || []}
-        questionnairePreferences={questionnairePreferences}
-        initialSelections={lifestyleHabitsSelections}
-        onBack={() => setActiveSubPage(null)}
-        onDraftSave={(selections) => {
-          const safeSelections = selections || {};
-          const responses = buildResponsesFromSelections(
-            questionsByRouteId['lifestyle-habits'] || [],
-            safeSelections,
-            questionnairePreferences,
-          );
-
-          onStepDraftSave?.('lifestyle-habits', responses);
-        }}
-        onDone={(selections) => {
-          setLifestyleHabitsSelections(selections || {});
-          const responses = buildResponsesFromSelections(
-            questionsByRouteId['lifestyle-habits'] || [],
-            selections || {},
-            questionnairePreferences,
-          );
-
-          setActiveSubPage(null);
-          onStepComplete?.('lifestyle-habits', responses);
-        }}
-      />
-    );
-  }
-
-  if (activeSubPage === 'nutrition-log') {
-    return (
-      <EmbeddedNutritionLogPage
-        questions={questionsByRouteId['nutrition-log'] || []}
-        questionnairePreferences={questionnairePreferences}
-        initialSelections={nutritionLogSelections}
-        onBack={() => setActiveSubPage(null)}
-        onDraftSave={(selections) => {
-          const safeSelections = selections || {};
-          const qs = questionsByRouteId['nutrition-log'] || [];
-          const visibleQs = computeQuestionsWithVisibility(qs, {
-            selections: safeSelections,
-            preferences: questionnairePreferences,
-          });
-          const cardsForSave = visibleQs.length > 0 ? toNutritionApiCards(visibleQs) : nutritionCards;
-          const responses = buildNutritionLogResponsesForSave(
-            qs,
-            safeSelections,
-            cardsForSave,
-            questionnairePreferences,
-          );
-
-          onStepDraftSave?.('nutrition-log', responses);
-        }}
-        onDone={(selections) => {
-          setNutritionLogSelections(selections || {});
-          const qs = questionsByRouteId['nutrition-log'] || [];
-          const visibleQs = computeQuestionsWithVisibility(qs, {
-            selections: selections || {},
-            preferences: questionnairePreferences,
-          });
-          const cardsForSave = visibleQs.length > 0 ? toNutritionApiCards(visibleQs) : nutritionCards;
-          const responses = buildNutritionLogResponsesForSave(
-            qs,
-            selections || {},
-            cardsForSave,
-            questionnairePreferences,
-          );
-
-          setActiveSubPage(null);
-          onStepComplete?.('nutrition-log', responses);
-        }}
-      />
-    );
-  }
-
-  if (activeSubPage === 'vitals') {
-    const finishVitalsAndAssessment = async (values) => {
-      const sanitizedVitals = {
-        systolic: normalizeStoredVitalReading(values?.systolic),
-        diastolic: normalizeStoredVitalReading(values?.diastolic),
-      };
-      setVitalsValues(sanitizedVitals);
-      const responses = buildVitalsResponses(visibleQuestionsByRoute.vitals || [], sanitizedVitals);
-
-      setActiveSubPage(null);
-      try {
-        await onStepComplete?.('vitals', responses);
-        await onAssessmentSubmit?.();
-        setQuestionnaireSubmitLocked(true);
-      } catch (error) {
-        console.error('Failed to submit assessment:', error);
-      }
-    };
-
-    return (
-      <EmbeddedVitalsPage
-        questions={visibleQuestionsByRoute.vitals || []}
-        initialValues={vitalsValues}
-        onBack={() => setActiveSubPage(null)}
-        onDone={finishVitalsAndAssessment}
-      />
-    );
-  }
+  const backdropSrc = hubMode === 'section-complete'
+    ? haHubBackdropForVariant(hubVariant)
+    : backgroundAssessmentSvg;
 
   return (
-    <div className="health-assessment-page">
-      <div className="health-assessment-page__header">
-        {isEditMode ? (
-          <button
-            type="button"
-            className="health-assessment-page__back"
-            onClick={onBack}
-            aria-label="Go back"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        ) : (
-          <div className="health-assessment-page__header-spacer" aria-hidden="true" />
-        )}
-        <h1 className="health-assessment-page__title">Health Assessment</h1>
-        <div className="health-assessment-page__header-spacer" aria-hidden="true" />
-      </div>
-
-      <div className="health-assessment-page__timeline-wrap">
-        <div className="health-assessment-page__timeline" role="list" aria-label="Health assessment steps">
-        {!showPill && <div className="health-assessment-page__line-base" />}
-
-        {showPill && focusedIndex > 0 && (
-          <div
-            className="health-assessment-page__line-base health-assessment-page__line-segment"
-            style={{
-              top: 'var(--line-top)',
-              height: `calc(${activeY} - ${activeConnectorHalfHeight} - var(--line-top))`,
-            }}
-          />
-        )}
-
-        {showPill && focusedIndex < 4 && (
-          <div
-            className="health-assessment-page__line-base health-assessment-page__line-segment"
-            style={{
-              top: `calc(${activeY} + ${activeConnectorHalfHeight})`,
-              height: `calc(var(--line-bottom) - (${activeY} + ${activeConnectorHalfHeight}))`,
-            }}
-          />
-        )}
-
-        {effectiveProgress > 0 && (
-          <>
-            {!showPill && (
-              <div
-                className="health-assessment-page__line-glow"
-                style={{ '--line-end-y': lineEndY }}
-              />
-            )}
-
-            {showPill && (
-              <div
-                className="health-assessment-page__line-glow health-assessment-page__line-segment"
-                style={{
-                  top: 'var(--line-top)',
-                  '--line-end-y': `calc(${activeY} - ${activeConnectorHalfHeight})`,
-                }}
-              />
-            )}
-          </>
-        )}
-
-        {!(hideMiddleDotAtActivePill && focusedIndex === 1) && <div className="health-assessment-page__dot-base dot--1" />}
-        {!(hideMiddleDotAtActivePill && focusedIndex === 2) && <div className="health-assessment-page__dot-base dot--2" />}
-        {!(hideMiddleDotAtActivePill && focusedIndex === 3) && <div className="health-assessment-page__dot-base dot--3" />}
-
-        {DOT_LEVELS.map((level) => (
-          isCompleted(level) && !(hideMiddleDotAtActivePill && focusedIndex === level) ? (
-            <div key={level} className={`health-assessment-page__dot-glow dot--${level}`} />
-          ) : null
-        ))}
-
-        {SEGMENT_GLOW_DOT_LEVELS.map((level) => (
-          effectiveProgress >= level + 1 ? (
-            <div key={`segment-glow-${level}`} className={`health-assessment-page__segment-dot-glow seg-dot--${level}`} />
-          ) : null
-        ))}
-
-        {!(hideMiddleDotAtActivePill && focusedIndex === 1) && <div className="health-assessment-page__branch branch--left-1" />}
-        {!(hideMiddleDotAtActivePill && focusedIndex === 2) && <div className="health-assessment-page__branch branch--right-2" />}
-        {!(hideMiddleDotAtActivePill && focusedIndex === 3) && <div className="health-assessment-page__branch branch--left-3" />}
-
-        {isCompleted(1) && !(hideMiddleDotAtActivePill && focusedIndex === 1) && <div className="health-assessment-page__branch-glow branch--left-1" />}
-        {isCompleted(2) && !(hideMiddleDotAtActivePill && focusedIndex === 2) && <div className="health-assessment-page__branch-glow branch--right-2" />}
-        {isCompleted(3) && !(hideMiddleDotAtActivePill && focusedIndex === 3) && <div className="health-assessment-page__branch-glow branch--left-3" />}
-
-        {resolvedSteps.map((step, index) => {
-          const completed = stepShowsCompletedRing(index);
-          const active = index === activeIndex || index === focusedIndex;
-          const isPillVisibleForStep = showPill && focusedIndex === index;
-          if (active) {
-            const activeCircleStyle = {
-              top: '0',
-              left: step.side === 'left'
-                ? 'calc(50% - var(--side-offset))'
-                : step.side === 'right'
-                  ? 'calc(50% + var(--side-offset))'
-                  : '50%',
-            };
-
-            return (
-              <div
-                key={step.id}
-                className="health-assessment-page__active-layer"
-                style={{ top: `var(--y${index})` }}
-              >
-                <button
-                  type="button"
-                  className={`health-assessment-page__circle health-assessment-page__circle--active-glow health-assessment-page__circle--button health-assessment-page__active-circle ${isPillVisibleForStep ? 'is-hidden' : 'is-visible'}`}
-                  style={activeCircleStyle}
-                  onClick={() => onExpandStep?.(index)}
-                  aria-label={`Expand ${step.label}`}
-                >
-                  <img src={step.icon} alt="" aria-hidden="true" className={`health-assessment-page__icon ${step.id === 'family-history' ? 'health-assessment-page__icon--family' : ''}`} />
-                  <span className="health-assessment-page__step-label">{formatTimelineStepLabel(step.label)}</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`health-assessment-page__pill health-assessment-page__active-pill ${isPillVisibleForStep ? 'is-visible' : 'is-hidden'}`}
-                  onClick={() => setActiveSubPage(step.id)}
-                  style={getPillPositionStyle()}
-                  aria-label={`Open ${step.label} questionnaire`}
-                >
-                  <div className="health-assessment-page__pill-left">
-                    <img src={step.icon} alt="" aria-hidden="true" className={`health-assessment-page__icon ${step.id === 'family-history' ? 'health-assessment-page__icon--family' : ''}`} />
-                    <span className="health-assessment-page__step-label">{formatTimelineStepLabel(step.label)}</span>
-                  </div>
-
-                  <span className="health-assessment-page__detail-text">{step.detail}</span>
-
-                  <img src={quesArrow} alt="" aria-hidden="true" className="health-assessment-page__arrow" />
-                </button>
-              </div>
-            );
-          }
-
-          const inactiveCircleContent = (
-            <>
-              <img src={step.icon} alt="" aria-hidden="true" className={`health-assessment-page__icon ${step.id === 'family-history' ? 'health-assessment-page__icon--family' : ''}`} />
-              <span className="health-assessment-page__step-label">{formatTimelineStepLabel(step.label)}</span>
-            </>
-          );
-
-          if (canNavigateToTimelineStep(index)) {
-            return (
-              <button
-                key={step.id}
-                type="button"
-                role="listitem"
-                className={`health-assessment-page__circle ${completed ? 'health-assessment-page__circle--completed' : ''} health-assessment-page__circle--button`}
-                style={getCirclePositionStyle(step.side, index)}
-                onClick={() => onExpandStep?.(index)}
-                aria-label={`Open ${step.label} questionnaire`}
-              >
-                {inactiveCircleContent}
-              </button>
-            );
-          }
-
-          return (
-            <div
-              key={step.id}
-              role="listitem"
-              className="health-assessment-page__circle"
-              style={getCirclePositionStyle(step.side, index)}
+    <PageBackdrop mobileBackgroundSrc={backdropSrc}>
+      <div className="flex h-full min-w-0 flex-col">
+        {(hubMode === 'intro' || canOpenAllSteps || questionnaireSubmitLocked) ? (
+          <div className="absolute left-[16px] top-[52px] z-10">
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex size-8 items-center justify-start text-white"
+              aria-label="Go back"
             >
-              {inactiveCircleContent}
-            </div>
-          );
-        })}
-        </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M19 12H5M5 12L12 19M5 12L12 5"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+        ) : null}
+
+        {hubMode === 'intro' ? (
+          <HealthAssessmentStep
+            categories={hubCategories}
+            isStarting={isStartingAssessment}
+            onStartAssessment={handleStartAssessment}
+          />
+        ) : (
+          <SectionCompleteHub
+            variant={hubVariant}
+            categories={hubCategories}
+            completedCategoryIds={completedCategoryIds}
+            isLoadingCategoryId={loadingCategoryId}
+            isContinuing={isSubmittingFinal}
+            canSelectCategory={(category) => {
+              if (canOpenAllSteps || questionnaireSubmitLocked) {
+                return true;
+              }
+              const routeId = category?.routeId
+                || hubCategories.find((item) => Number(item.category_id) === Number(category?.category_id))?.routeId;
+              if (!routeId || isRouteCompleted(routeId)) {
+                return false;
+              }
+              const draftBatch = initialResponsesByRoute[routeId];
+              if (Array.isArray(draftBatch) && draftBatch.length > 0) {
+                return true;
+              }
+              const status = String(stepRouteStatusByRouteId[routeId] || '').toLowerCase();
+              if (status === 'in_progress') {
+                return true;
+              }
+              return routeId === firstIncompleteRouteId;
+            }}
+            onSelectCategory={handleSelectHubCategory}
+            onContinue={handleFinalContinue}
+          />
+        )}
       </div>
-    </div>
+    </PageBackdrop>
   );
 };
+
 
 export {
   EmbeddedAnthropometryPage,

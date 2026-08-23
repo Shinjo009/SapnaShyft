@@ -19,6 +19,7 @@ export function AnthropometryMcqShell({
   nextQuestionPreview,
   progressPercent,
   footer,
+  title = 'Anthropometry',
 }: {
   children: ReactNode
   onBack?: () => void
@@ -26,6 +27,7 @@ export function AnthropometryMcqShell({
   nextQuestionPreview?: { line1: string; line2?: string }
   progressPercent: number
   footer?: ReactNode
+  title?: string
 }) {
   const clampedPercent = Math.min(100, Math.max(0, progressPercent))
   const showNext = Boolean(onNext)
@@ -46,7 +48,7 @@ export function AnthropometryMcqShell({
             <img src={backIcon} alt="" className="absolute inset-0 size-full" aria-hidden />
           </button>
           <h1 className="shrink-0 whitespace-nowrap text-[18px] font-normal tracking-tight text-white">
-            Anthropometry
+            {title}
           </h1>
         </div>
       </header>

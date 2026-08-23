@@ -32,7 +32,7 @@ import {
  * Flip to true to show Scenario 1 / 2 / 3 under Profile → Settings.
  * Can also be overridden by the `showNewDesQuesScenarios` prop.
  */
-const SHOW_NEW_DES_QUES_SCENARIOS = false;
+const SHOW_NEW_DES_QUES_SCENARIOS = true;
 
 /**
  * ProfilePage - User profile management screen

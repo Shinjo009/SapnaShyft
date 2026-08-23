@@ -334,6 +334,7 @@ function App() {
   const [superclubPlaylistPayload, setSuperclubPlaylistPayload] = useState(null);
   const [campAppointments, setCampAppointments] = useState(() => readCampAppointments());
   const [showCampDoctorConsultation, setShowCampDoctorConsultation] = useState(false);
+  const campDoctorPopupDismissedRef = useRef(false);
   const [doctorConsultationContext, setDoctorConsultationContext] = useState(null);
   // const [superClubOnboardingDone, setSuperClubOnboardingDone] = useState(() =>
   //   isSuperClubOnboardingComplete(),
@@ -1424,12 +1425,21 @@ function App() {
       return undefined;
     }
 
+    if (campDoctorPopupDismissedRef.current) {
+      setShowCampDoctorConsultation(false);
+      return undefined;
+    }
+
     let cancelled = false;
 
     const loadDoctorConsultationEligibility = async () => {
       try {
         const result = await fetchDoctorConsultationPopupEligibility();
         if (!cancelled) {
+          if (campDoctorPopupDismissedRef.current) {
+            setShowCampDoctorConsultation(false);
+            return;
+          }
           setShowCampDoctorConsultation(Boolean(result.shouldShow));
           setDoctorConsultationContext(result.shouldShow ? {
             engagementId: result.engagementId,
@@ -1791,9 +1801,15 @@ function App() {
           engagementId={doctorConsultationContext?.engagementId}
           engagementCode={doctorConsultationContext?.engagementCode}
           consultationMode={doctorConsultationContext?.consultationMode}
+          onClose={() => {
+            campDoctorPopupDismissedRef.current = true;
+            setShowCampDoctorConsultation(false);
+            setDoctorConsultationContext(null);
+          }}
           onAppointmentBooked={(appointment) => {
             if (appointment) {
               setCampAppointments(saveCampAppointment(appointment));
+              campDoctorPopupDismissedRef.current = true;
               setShowCampDoctorConsultation(false);
               setDoctorConsultationContext(null);
             }

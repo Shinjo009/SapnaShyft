@@ -240,6 +240,7 @@ const CampDoctorConsultationPage = ({
   consultationMode,
   onAppointmentBooked,
   onViewAppointment,
+  onClose,
 }) => {
   const fallbackDates = useMemo(() => buildUpcomingDates(), []);
   const isOfflineMode = String(consultationMode || '').toLowerCase() === 'offline' && Boolean(engagementCode);
@@ -443,6 +444,16 @@ const CampDoctorConsultationPage = ({
       {!isScheduleOpen ? (
         <div className="camp-doctor-consult" role="dialog" aria-label="Camp doctor consultation">
           <section className="camp-doctor-consult__card">
+            <button
+              type="button"
+              className="camp-doctor-consult__close"
+              aria-label="Close"
+              onClick={() => {
+                onClose?.();
+              }}
+            >
+              <img src={closeIcon} alt="" className="camp-doctor-consult__close-img" />
+            </button>
             <div className="camp-doctor-consult__copy">
               <div className="camp-doctor-consult__headline">
                 <span className="camp-doctor-consult__icon" aria-hidden="true">

@@ -30,11 +30,13 @@ export function VitalsStep({
   onBack,
   onComplete,
   initialValues,
+  title = 'Vitals',
 }: {
   questions?: QuestionnaireQuestion[]
   onBack: () => void
   onComplete: (values: VitalsValues) => void
   initialValues?: Partial<VitalsValues>
+  title?: string
 }) {
   const [systolic, setSystolic] = useState(() =>
     normalizeStoredVitalReading(initialValues?.systolic),
@@ -83,7 +85,7 @@ export function VitalsStep({
             <img src={backIcon} alt="" className="absolute inset-0 size-full" aria-hidden />
           </button>
           <h1 className="shrink-0 whitespace-nowrap text-lg font-normal tracking-tight text-white">
-            Vitals
+            {title}
           </h1>
         </div>
       </header>

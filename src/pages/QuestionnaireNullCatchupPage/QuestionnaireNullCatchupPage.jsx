@@ -1,28 +1,22 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './QuestionnaireNullCatchupPage.css';
 import {
-  EmbeddedAnthropometryPage,
-  EmbeddedAnthropometryFollowupPage,
-  EmbeddedFamilyHistoryPage,
-  EmbeddedLifestyleHabitsPage,
-  EmbeddedNutritionLogPage,
-  EmbeddedVitalsPage,
   buildAnthropometryInitialValuesFromResponses,
   buildAnthropometryResponses,
-  buildNutritionLogResponsesForSave,
-  buildResponsesFromSelections,
   coerceResponsesToOptionKeys,
   buildSelectionStateFromResponses,
   buildVitalsInitialValuesFromResponses,
   buildVitalsResponses,
   findMappedOtherTextQuestion,
   isLikelyOtherTextQuestion,
-  normalizeStoredVitalReading,
-  toNutritionApiCards,
   toFamilyApiCards,
   findFamilyHistoryCardKeys,
   isNoneOptionLabel,
 } from '../HealthAssessmentPage/HealthAssessmentPage';
+import HealthAssessmentScenario2Category from '../HealthAssessmentPage/HealthAssessmentScenario2Category';
+import { PageBackdrop } from '../../newDesQues/components/PageBackdrop';
+import { AnthropometryStep } from '../../newDesQues/components/anthropometry/AnthropometryStep';
+import backgroundAssessmentSvg from '../../newDesQues/assets/Background.svg';
 import { getMyProfileCached } from '../../services/profileService';
 import {
   computeQuestionsWithVisibility,
@@ -317,7 +311,7 @@ const routesWithAnyUnfilled = (
  * Health Span Index / FitPrint gap flow: remaining questions come from
  * GET /questionnaire/{id}/category/{cid}?question=unanswered.
  * Anthropometry first (primary then follow-up when needed), then remaining categories in order
- * (family → lifestyle → nutrition → vitals). Each swipe section lists the unanswered questions
+ * (family â†’ lifestyle â†’ nutrition â†’ vitals). Each swipe section lists the unanswered questions
  * returned by that API (order preserved, deck does not shrink while answering). Responses are saved
  * only when you tap Done on that section. Final Continue/submit calls POST /assessments/{id}/submit.
  */
@@ -338,7 +332,7 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
   const [anthroPhase, setAnthroPhase] = useState(null);
   const [anthroPrimaryValues, setAnthroPrimaryValues] = useState({});
   const [anthroFollowupValues, setAnthroFollowupValues] = useState({});
-  const [showAnthroFollowup, setShowAnthroFollowup] = useState(false);
+  const [, setShowAnthroFollowup] = useState(false);
 
   const [swipeRoutes, setSwipeRoutes] = useState([]);
   /** route -> frozen embed payload for this visit (questions + initial UI state at entry). */
@@ -368,7 +362,7 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
     [categories, questionsByCategoryId],
   );
 
-  /** Answered + unanswered definitions — used for visibility / family skip, not for the listed deck. */
+  /** Answered + unanswered definitions â€” used for visibility / family skip, not for the listed deck. */
   const contextQuestionsByRoute = useMemo(
     () => buildQuestionsByRoute(categories, contextQuestionsByCategoryId),
     [categories, contextQuestionsByCategoryId],
@@ -746,7 +740,7 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         <h1 className="questionnaire-null-catchup__brand">{FITPRINT_CATCHUP_HEADING}</h1>
         {loadState === 'loading' || isFinalizing ? (
           <p className="questionnaire-null-catchup__text">
-            {isFinalizing ? 'Submitting questionnaire…' : 'Loading questionnaire…'}
+            {isFinalizing ? 'Submitting questionnaireâ€¦' : 'Loading questionnaireâ€¦'}
           </p>
         ) : (
           <>
@@ -760,61 +754,49 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
     );
   }
 
-  if (anthroPhase === 'primary') {
-    return (
-      <EmbeddedAnthropometryPage
-        questions={anthroQuestions}
-        initialValues={anthroPrimaryValues}
-        categoryHeading={FITPRINT_CATCHUP_HEADING}
-        onBack={onBack}
-        onContinue={(values) => {
-          setAnthroPrimaryValues(values || {});
-          const raw = mergeResponsesForRoute(categories, responsesMapRef.current, 'anthropometry');
-          if (anthropometryFollowupHasUnfilled(anthroQuestions, raw)) {
-            setShowAnthroFollowup(true);
-            setAnthroPhase('followup_after_primary');
-          } else {
-            void saveAnthropometryAndContinue(values || {}, anthroFollowupValues);
-          }
-        }}
-      />
-    );
-  }
 
-  if (anthroPhase === 'followup_after_primary' && showAnthroFollowup) {
+  if (anthroPhase === 'primary' || anthroPhase === 'followup_after_primary' || anthroPhase === 'followup_only') {
+    const startAtHip = anthroPhase === 'followup_only';
     return (
-      <EmbeddedAnthropometryFollowupPage
-        questions={anthroQuestions}
-        initialValues={anthroFollowupValues}
-        categoryHeading={FITPRINT_CATCHUP_HEADING}
-        onBack={() => {
-          setShowAnthroFollowup(false);
-          setAnthroPhase('primary');
-        }}
-        onDone={(followupVals) => {
-          setAnthroFollowupValues(followupVals || {});
-          void saveAnthropometryAndContinue(anthroPrimaryValues, followupVals || {});
-        }}
-      />
-    );
-  }
-
-  if (anthroPhase === 'followup_only' && showAnthroFollowup) {
-    return (
-      <EmbeddedAnthropometryFollowupPage
-        questions={anthroQuestions}
-        initialValues={anthroFollowupValues}
-        categoryHeading={FITPRINT_CATCHUP_HEADING}
-        onBack={onBack}
-        onDone={(followupVals) => {
-          setAnthroFollowupValues(followupVals || {});
-          void saveAnthropometryAndContinue(anthroPrimaryValues, followupVals || {});
-        }}
-      />
+      <PageBackdrop mobileBackgroundSrc={backgroundAssessmentSvg}>
+        <AnthropometryStep
+          title={FITPRINT_CATCHUP_HEADING}
+          questions={anthroQuestions}
+          initialPrimary={anthroPrimaryValues}
+          initialFollowup={anthroFollowupValues}
+          initialIndex={startAtHip ? 3 : 0}
+          onBack={() => {
+            if (anthroPhase === 'followup_after_primary') {
+              setShowAnthroFollowup(false);
+              setAnthroPhase('primary');
+              return;
+            }
+            onBack?.();
+          }}
+          onComplete={({ primary, followup }) => {
+            setAnthroPrimaryValues(primary || {});
+            setAnthroFollowupValues(followup || {});
+            void saveAnthropometryAndContinue(primary || {}, followup || {});
+          }}
+        />
+      </PageBackdrop>
     );
   }
 
   const currentSwipeRoute = swipeRoutes[0] || null;
+  const swipeCategory = currentSwipeRoute
+    ? (Array.isArray(categories) ? categories : []).find((cat) => mapCategoryToRouteId(cat) === currentSwipeRoute)
+    : null;
+  const swipeCategoryId = Number(swipeCategory?.category_id || 0);
+  const swipeAssessmentInstanceId = Number(
+    swipeCategory?.assessment_instance_id
+    || swipeCategory?.assessment_id
+    || instanceId
+    || 0,
+  );
+  const swipeDraftResponses = currentSwipeRoute
+    ? mergeResponsesForRoute(categories, responsesMapRef.current, currentSwipeRoute)
+    : [];
 
   if (currentSwipeRoute === 'family-history') {
     const snap = catchupRouteSnapshots['family-history'];
@@ -826,43 +808,26 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         </div>
       );
     }
-    const { questions: nullQs, initialSelections } = snap;
+    const { questions: nullQs } = snap;
     return (
-      <EmbeddedFamilyHistoryPage
+      <HealthAssessmentScenario2Category
+        key="fitprint-family-history"
+        routeId="family-history"
         questions={nullQs}
-        questionnairePreferences={questionnairePreferences}
-        initialSelections={initialSelections}
-        categoryHeading={FITPRINT_CATCHUP_HEADING}
+        draftResponses={swipeDraftResponses}
+        assessmentInstanceId={swipeAssessmentInstanceId}
+        categoryId={swipeCategoryId}
+        headingOverride={FITPRINT_CATCHUP_HEADING}
         onBack={onBack}
-        onDone={(selections) => {
-          void (async () => {
-            try {
-              if (familyVisibleCardCount(nullQs, selections || {}) === 0) {
-                const nextRoutes = swipeRoutes[0] === 'family-history'
-                  ? swipeRoutes.slice(1)
-                  : swipeRoutes.filter((r) => r !== 'family-history');
-                setSwipeRoutes(nextRoutes);
-                if (nextRoutes.length === 0) {
-                  await finalizeAndExit();
-                }
-                return;
-              }
-              const routeQs = contextQuestionsByRoute['family-history']
-                || questionsByRoute['family-history']
-                || nullQs;
-              const responses = coerceResponsesToOptionKeys(
-                routeQs,
-                buildResponsesFromSelections(
-                  routeQs,
-                  selections || {},
-                  questionnairePreferences,
-                ),
-              );
-              await handleRouteDone('family-history', responses);
-            } catch (error) {
-              reportCatchupError(error);
-            }
-          })();
+        onStepDraftSave={async (routeId, responses) => {
+          await persistCategoryResponses(routeId, responses);
+        }}
+        onStepComplete={async (routeId, responses) => {
+          try {
+            await handleRouteDone(routeId, responses);
+          } catch (error) {
+            reportCatchupError(error);
+          }
         }}
       />
     );
@@ -878,27 +843,22 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         </div>
       );
     }
-    const { questions: nullQs, initialSelections } = snap;
+    const { questions: nullQs } = snap;
     return (
-      <EmbeddedLifestyleHabitsPage
+      <HealthAssessmentScenario2Category
+        key="fitprint-lifestyle-habits"
+        routeId="lifestyle-habits"
         questions={nullQs}
-        questionnairePreferences={questionnairePreferences}
-        initialSelections={initialSelections}
-        categoryHeading={FITPRINT_CATCHUP_HEADING}
+        draftResponses={swipeDraftResponses}
+        assessmentInstanceId={swipeAssessmentInstanceId}
+        categoryId={swipeCategoryId}
+        headingOverride={FITPRINT_CATCHUP_HEADING}
         onBack={onBack}
-        onDone={(selections) => {
-          const routeQs = contextQuestionsByRoute['lifestyle-habits']
-            || questionsByRoute['lifestyle-habits']
-            || nullQs;
-          const responses = coerceResponsesToOptionKeys(
-            routeQs,
-            buildResponsesFromSelections(
-              routeQs,
-              selections || {},
-              questionnairePreferences,
-            ),
-          );
-          void handleRouteDone('lifestyle-habits', responses);
+        onStepDraftSave={async (routeId, responses) => {
+          await persistCategoryResponses(routeId, responses);
+        }}
+        onStepComplete={async (routeId, responses) => {
+          await handleRouteDone(routeId, responses);
         }}
       />
     );
@@ -914,33 +874,22 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
         </div>
       );
     }
-    const { questions: nullQs, initialSelections } = snap;
+    const { questions: nullQs } = snap;
     return (
-      <EmbeddedNutritionLogPage
+      <HealthAssessmentScenario2Category
+        key="fitprint-nutrition-log"
+        routeId="nutrition-log"
         questions={nullQs}
-        questionnairePreferences={questionnairePreferences}
-        initialSelections={initialSelections}
-        categoryHeading={FITPRINT_CATCHUP_HEADING}
+        draftResponses={swipeDraftResponses}
+        assessmentInstanceId={swipeAssessmentInstanceId}
+        categoryId={swipeCategoryId}
+        headingOverride={FITPRINT_CATCHUP_HEADING}
         onBack={onBack}
-        onDone={(selections) => {
-          const routeQs = contextQuestionsByRoute['nutrition-log']
-            || questionsByRoute['nutrition-log']
-            || nullQs;
-          const visibleQs = computeQuestionsWithVisibility(routeQs, {
-            selections: selections || {},
-            preferences: questionnairePreferences,
-          }).filter((q) => q.is_visible !== false);
-          const cardsForSave = visibleQs.length > 0 ? toNutritionApiCards(visibleQs) : [];
-          const responses = coerceResponsesToOptionKeys(
-            routeQs,
-            buildNutritionLogResponsesForSave(
-              routeQs,
-              selections || {},
-              cardsForSave,
-              questionnairePreferences,
-            ),
-          );
-          void handleRouteDone('nutrition-log', responses);
+        onStepDraftSave={async (routeId, responses) => {
+          await persistCategoryResponses(routeId, responses);
+        }}
+        onStepComplete={async (routeId, responses) => {
+          await handleRouteDone(routeId, responses);
         }}
       />
     );
@@ -958,18 +907,19 @@ const QuestionnaireNullCatchupPage = ({ assessmentInstanceId, onBack, onDone }) 
     }
     const { questions: nullQs, initialValues: vitalsFrozenInitial } = snap;
     return (
-      <EmbeddedVitalsPage
+      <HealthAssessmentScenario2Category
+        key="fitprint-vitals"
+        routeId="vitals"
         questions={nullQs}
-        initialValues={vitalsFrozenInitial}
-        categoryHeading={FITPRINT_CATCHUP_HEADING}
+        draftResponses={swipeDraftResponses}
+        assessmentInstanceId={swipeAssessmentInstanceId}
+        categoryId={swipeCategoryId}
+        vitalsInitial={vitalsFrozenInitial}
+        buildVitalsResponses={buildVitalsResponses}
+        headingOverride={FITPRINT_CATCHUP_HEADING}
         onBack={onBack}
-        onDone={(values) => {
-          const sanitized = {
-            systolic: normalizeStoredVitalReading(values?.systolic),
-            diastolic: normalizeStoredVitalReading(values?.diastolic),
-          };
-          const responses = buildVitalsResponses(nullQs, sanitized);
-          void handleRouteDone('vitals', responses);
+        onStepComplete={async (routeId, responses) => {
+          await handleRouteDone(routeId, responses);
         }}
       />
     );

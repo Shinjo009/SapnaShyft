@@ -51,6 +51,10 @@ export function AnthropometryStep({
   questions = [],
   onBack,
   onComplete,
+  initialPrimary,
+  initialFollowup,
+  initialIndex = 0,
+  title = 'Anthropometry',
 }: {
   questions?: QuestionnaireQuestion[]
   onBack: () => void
@@ -58,19 +62,50 @@ export function AnthropometryStep({
     primary: AnthropometryPrimaryValues
     followup: AnthropometryFollowupValues
   }) => void
+  initialPrimary?: Partial<AnthropometryPrimaryValues>
+  initialFollowup?: Partial<AnthropometryFollowupValues>
+  /** Start at a specific screen (e.g. 3 = hip for FitPrint follow-up-only). */
+  initialIndex?: number
+  title?: string
 }) {
-  const [index, setIndex] = useState(0)
-  const [height, setHeight] = useState(DEFAULT_HEIGHT_CM)
-  const [weight, setWeight] = useState<number | null>(DEFAULT_WEIGHT_KG)
-  const [waist, setWaist] = useState(Math.round(DEFAULT_CIRCUMFERENCE_INCHES))
-  const [heightUnit, setHeightUnit] = useState('Cm')
-  const [weightUnit, setWeightUnit] = useState('Kg')
-  const [waistUnit, setWaistUnit] = useState('In')
-  const [heightFeet, setHeightFeet] = useState(DEFAULT_HEIGHT_FEET)
-  const [heightInches, setHeightInches] = useState(DEFAULT_HEIGHT_INCHES)
-  const [hipSize, setHipSize] = useState(Math.round(DEFAULT_CIRCUMFERENCE_INCHES))
-  const [bodyFat, setBodyFat] = useState(DEFAULT_BODY_FAT)
-  const [hipUnit, setHipUnit] = useState('In')
+  const [index, setIndex] = useState(() =>
+    clamp(Math.round(Number(initialIndex) || 0), 0, ANTHRO_QUESTION_COUNT - 1),
+  )
+  const [height, setHeight] = useState(() =>
+    Number.isFinite(Number(initialPrimary?.height)) ? Number(initialPrimary?.height) : DEFAULT_HEIGHT_CM,
+  )
+  const [weight, setWeight] = useState<number | null>(() =>
+    isProvidedNumber(initialPrimary?.weight) ? Number(initialPrimary?.weight) : DEFAULT_WEIGHT_KG,
+  )
+  const [waist, setWaist] = useState(() =>
+    Number.isFinite(Number(initialPrimary?.waist))
+      ? Math.round(Number(initialPrimary?.waist))
+      : Math.round(DEFAULT_CIRCUMFERENCE_INCHES),
+  )
+  const [heightUnit, setHeightUnit] = useState(() => String(initialPrimary?.heightUnit || 'Cm'))
+  const [weightUnit, setWeightUnit] = useState(() => String(initialPrimary?.weightUnit || 'Kg'))
+  const [waistUnit, setWaistUnit] = useState(() => String(initialPrimary?.waistUnit || 'In'))
+  const [heightFeet, setHeightFeet] = useState(() =>
+    Number.isFinite(Number(initialPrimary?.heightFeet))
+      ? Number(initialPrimary?.heightFeet)
+      : DEFAULT_HEIGHT_FEET,
+  )
+  const [heightInches, setHeightInches] = useState(() =>
+    Number.isFinite(Number(initialPrimary?.heightInches))
+      ? Number(initialPrimary?.heightInches)
+      : DEFAULT_HEIGHT_INCHES,
+  )
+  const [hipSize, setHipSize] = useState(() =>
+    Number.isFinite(Number(initialFollowup?.hipSize))
+      ? Math.round(Number(initialFollowup?.hipSize))
+      : Math.round(DEFAULT_CIRCUMFERENCE_INCHES),
+  )
+  const [bodyFat, setBodyFat] = useState(() =>
+    Number.isFinite(Number(initialFollowup?.bodyFat))
+      ? Number(initialFollowup?.bodyFat)
+      : DEFAULT_BODY_FAT,
+  )
+  const [hipUnit, setHipUnit] = useState(() => String(initialFollowup?.hipUnit || 'In'))
   const [showWaistInfo, setShowWaistInfo] = useState(false)
   const [showHipInfo, setShowHipInfo] = useState(false)
   const [submitAttempted, setSubmitAttempted] = useState(false)
@@ -138,6 +173,7 @@ export function AnthropometryStep({
 
   return (
     <AnthropometryMcqShell
+      title={title}
       progressPercent={Math.round(((index + 1) / ANTHRO_QUESTION_COUNT) * 100)}
       onBack={handleBack}
       onNext={handleNext}

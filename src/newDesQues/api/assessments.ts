@@ -97,11 +97,10 @@ export function isCategoryCompleted(
   completedCategoryIds: number[],
 ): boolean {
   if (completedCategoryIds.includes(Number(category.category_id))) return true
-  return (
-    String(category.status || '')
-      .trim()
-      .toLowerCase() === 'completed'
-  )
+  const status = String(category.status || '')
+    .trim()
+    .toLowerCase()
+  return status === 'completed' || status === 'complete'
 }
 
 function toTimestamp(value: unknown): number {

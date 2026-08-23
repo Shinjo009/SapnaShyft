@@ -151,6 +151,7 @@
 
 .camp-doctor-consult__card {
   pointer-events: auto;
+  position: relative;
   width: 100%;
   height: auto;
   min-height: 0;
@@ -163,6 +164,7 @@
   justify-content: flex-start;
   gap: 16px;
   padding: 17px;
+  padding-right: 40px;
   border-radius: 16px;
   border: 1px solid rgba(154, 154, 154, 0.35);
   background:
@@ -171,6 +173,25 @@
   backdrop-filter: blur(35px);
   -webkit-backdrop-filter: blur(35px);
   box-shadow: 0 0 30px 0 rgba(85, 85, 85, 0.5);
+}
+
+.camp-doctor-consult__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.camp-doctor-consult__close-img {
+  display: block;
+  width: 28px;
+  height: 28px;
 }
 
 .camp-doctor-consult__copy {

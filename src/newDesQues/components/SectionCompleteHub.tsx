@@ -121,17 +121,35 @@ export function SectionCompleteHub({
             const selectable = canSelectCategory ? canSelectCategory(category) : true
 
             if (completed) {
+              const reopenable = canSelectCategory ? canSelectCategory(category) : false
+              const completedClassName =
+                'flex w-full items-center rounded-xl border border-[rgba(218,193,90,0.5)] bg-white/5 p-4 shadow-[0_0_5px_0_rgba(218,193,90,0.2)]'
+              const completedInner = (
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <img src={tickCircleSolid} alt="" className="size-[15px] shrink-0" aria-hidden />
+                  <span className="text-[14px] font-medium text-white">
+                    {category.display_name || category.category_key}
+                  </span>
+                </div>
+              )
+
+              if (reopenable) {
+                return (
+                  <button
+                    key={category.category_id}
+                    type="button"
+                    disabled={loading || Boolean(isLoadingCategoryId)}
+                    onClick={() => onSelectCategory(category)}
+                    className={`${completedClassName} text-left disabled:opacity-70`}
+                  >
+                    {completedInner}
+                  </button>
+                )
+              }
+
               return (
-                <div
-                  key={category.category_id}
-                  className="flex w-full items-center rounded-xl border border-[rgba(218,193,90,0.5)] bg-white/5 p-4 shadow-[0_0_5px_0_rgba(218,193,90,0.2)]"
-                >
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <img src={tickCircleSolid} alt="" className="size-[15px] shrink-0" aria-hidden />
-                    <span className="text-[14px] font-medium text-white">
-                      {category.display_name || category.category_key}
-                    </span>
-                  </div>
+                <div key={category.category_id} className={completedClassName}>
+                  {completedInner}
                 </div>
               )
             }

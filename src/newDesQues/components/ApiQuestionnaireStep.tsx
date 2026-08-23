@@ -177,6 +177,8 @@ export function ApiQuestionnaireStep({
   theme = 'family',
   onBack,
   onComplete,
+  /** When set, drafts are persisted via this callback instead of newDesQues HTTP (keeps Health Assessment API path). */
+  onPersistResponses,
 }: {
   title: string
   questions: QuestionnaireQuestion[]
@@ -185,6 +187,9 @@ export function ApiQuestionnaireStep({
   theme?: QuestionnaireTheme
   onBack?: () => void
   onComplete?: (answers: Record<number, AnswerValue>) => void
+  onPersistResponses?: (
+    responses: ReturnType<typeof buildQuestionnaireResponses>,
+  ) => void | Promise<void>
 }) {
   const [visibleIndex, setVisibleIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<number, AnswerValue>>(() =>
@@ -194,12 +199,24 @@ export function ApiQuestionnaireStep({
   const [saveError, setSaveError] = useState('')
   const [infoOpen, setInfoOpen] = useState(false)
 
+  /** Stable category identity — do not reset progress when parent only refreshes draft answers on the same questions. */
+  const questionIdentity = useMemo(
+    () =>
+      questions
+        .map((item) => Number(item.question_id) || 0)
+        .filter((id) => id > 0)
+        .join(','),
+    [questions],
+  )
+
   useEffect(() => {
     setAnswers(seedAnswersFromQuestions(questions))
     setVisibleIndex(0)
     setSaveError('')
     setInfoOpen(false)
-  }, [questions])
+    // Only re-seed when the question set itself changes (new category), not on every draft-driven questions array rebuild.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: questionIdentity gates reset
+  }, [questionIdentity])
 
   const visibleQuestions = useMemo(
     () => filterOutInlinedOtherQuestions(filterVisibleQuestions(questions, answers), questions),
@@ -269,6 +286,11 @@ export function ApiQuestionnaireStep({
 
     if (responses.length === 0) return
 
+    if (onPersistResponses) {
+      await onPersistResponses(responses)
+      return
+    }
+
     const accessToken = getAccessToken()
     await submitQuestionnaireResponses(
       accessToken,
@@ -310,7 +332,7 @@ export function ApiQuestionnaireStep({
       const pruned: Record<number, AnswerValue> = {}
       for (const [id, value] of Object.entries(answers)) {
         const questionId = Number(id)
-        if (visibleIds.has(questionId)) pruned[questionId] = value
+        if (visibleIds.has(questionId)) pruned[questionId] = value as AnswerValue
       }
       onComplete?.(pruned)
     } catch (error) {
