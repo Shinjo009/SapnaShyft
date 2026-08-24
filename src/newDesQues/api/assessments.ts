@@ -125,6 +125,9 @@ export function isCategoryCompleted(
   category: AssessmentCategoryStatus,
   completedCategoryIds: number[],
 ): boolean {
+  if (String(category?.status || '').trim().toLowerCase() === 'complete') {
+    return true
+  }
   return completedCategoryIds.includes(Number(category.category_id))
 }
 

@@ -5349,6 +5349,9 @@ const HealthAssessmentPage = ({
         if (isB2b && routeId === 'vitals') {
           return false;
         }
+        if (String(category.status || '').trim().toLowerCase() === 'complete') {
+          return true;
+        }
         return isHealthAssessmentRouteFilled(routeId, {
           questions: questionsByRouteId[routeId] || [],
           responses: initialResponsesByRoute[routeId] || [],
@@ -5384,7 +5387,7 @@ const HealthAssessmentPage = ({
   }, [hubCategories, filledRouteIds]);
 
   useEffect(() => {
-    if (activeSubPage || didSeedHubRef.current) {
+    if (activeSubPage) {
       return;
     }
 
@@ -5395,9 +5398,11 @@ const HealthAssessmentPage = ({
       return;
     }
 
-    didSeedHubRef.current = true;
     if (filledRouteIds.length === 0) {
-      setHubMode('intro');
+      if (!didSeedHubRef.current) {
+        didSeedHubRef.current = true;
+        setHubMode('intro');
+      }
       return;
     }
 
@@ -5405,11 +5410,15 @@ const HealthAssessmentPage = ({
       .filter((step) => filledRouteIds.includes(step.id))
       .at(-1);
     setHubVariant(HA_ROUTE_HUB_VARIANT[lastFilled?.id] || 'anthropometry');
-    setHubMode('section-complete');
+    if (!didSeedHubRef.current || hubMode === 'intro') {
+      setHubMode('section-complete');
+    }
+    didSeedHubRef.current = true;
   }, [
     activeSubPage,
     canOpenAllSteps,
     filledRouteIds,
+    hubMode,
     progress,
     resolvedSteps,
     steps,
@@ -5543,6 +5552,7 @@ const HealthAssessmentPage = ({
         {hubMode === 'intro' ? (
           <HealthAssessmentStep
             categories={hubCategories}
+            completedCategoryIds={completedCategoryIds}
             isStarting={isStartingAssessment}
             onStartAssessment={handleStartAssessment}
           />

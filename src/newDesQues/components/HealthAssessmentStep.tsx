@@ -7,11 +7,13 @@ import {
   PAGE_GUTTER_X,
 } from './mcq/mcqLayout'
 import assessmentRadioImg from '../assets/Ellipse 13077.svg'
+import tickCircleSolid from '../assets/figma/tick-circle-solid.svg'
 import hourglassIcon from '../assets/Group.svg'
 import heartRateIcon from '../assets/figma/heart-rate-assessment.svg'
 import {
   categoryDescriptionForKey,
   hasAnthropometryAndVitals,
+  isCategoryCompleted,
   type AssessmentCategoryStatus,
 } from '../api/assessments'
 
@@ -20,13 +22,31 @@ function AssessmentCard({
   description,
   featured,
   compact,
+  completed = false,
 }: {
   title: string
   description?: string
   featured: boolean
   compact?: boolean
+  completed?: boolean
 }) {
   const radioClass = compact ? 'size-[14px] shrink-0' : 'size-[15px] shrink-0'
+
+  if (completed) {
+    return (
+      <div
+        className={[
+          'flex w-full items-center rounded-xl border border-[rgba(218,193,90,0.5)] bg-white/5 shadow-[0_0_5px_0_rgba(218,193,90,0.2)]',
+          compact ? 'p-3.5' : 'p-4',
+        ].join(' ')}
+      >
+        <div className="flex min-w-0 items-center gap-1.5">
+          <img src={tickCircleSolid} alt="" className={radioClass} aria-hidden />
+          <span className="text-[14px] font-medium text-white">{title}</span>
+        </div>
+      </div>
+    )
+  }
 
   if (featured) {
     return (
@@ -68,21 +88,28 @@ function AssessmentCard({
 /** Health Assessment intro — heart icon for all scenarios; pedals only on final complete. */
 export function HealthAssessmentStep({
   categories,
+  completedCategoryIds = [],
   onStartAssessment,
   isStarting = false,
 }: {
   categories: AssessmentCategoryStatus[]
+  completedCategoryIds?: number[]
   onStartAssessment?: () => void
   isStarting?: boolean
 }) {
   const denseCards = hasAnthropometryAndVitals(categories) || categories.length >= 5
+  const firstIncompleteIndex = categories.findIndex(
+    (category) => !isCategoryCompleted(category, completedCategoryIds),
+  )
   const sections = categories.map((category, index) => {
     const key = String(category.category_key || '').trim().toLowerCase()
+    const completed = isCategoryCompleted(category, completedCategoryIds)
     return {
       id: String(category.id || category.category_id || key || index),
       title: category.display_name || category.category_key || 'Assessment',
       description: categoryDescriptionForKey(key),
-      featured: index === 0,
+      featured: !completed && index === (firstIncompleteIndex < 0 ? 0 : firstIncompleteIndex),
+      completed,
     }
   })
 
@@ -130,6 +157,7 @@ export function HealthAssessmentStep({
                 title={section.title}
                 description={section.featured ? section.description : undefined}
                 featured={section.featured}
+                completed={section.completed}
                 compact={denseCards}
               />
             ))}

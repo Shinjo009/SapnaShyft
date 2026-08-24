@@ -179,6 +179,17 @@ function isAnswered(question: QuestionnaireQuestion, answer: AnswerValue | undef
   return String(answer).trim().length > 0 || !question.is_required
 }
 
+function hasFilledAnswer(answer: AnswerValue | undefined): boolean {
+  if (answer == null) return false
+  if (Array.isArray(answer)) return answer.length > 0
+  if (typeof answer === 'object') {
+    const value = (answer as { value?: unknown }).value
+    if (value != null && String(value).trim() !== '') return true
+    return Object.keys(answer).length > 0
+  }
+  return String(answer).trim().length > 0
+}
+
 export function ApiQuestionnaireStep({
   title,
   questions,
@@ -277,6 +288,21 @@ export function ApiQuestionnaireStep({
   const otherAnswer = otherFollowUp ? answers[otherFollowUp.question_id] : undefined
   const otherText =
     typeof otherAnswer === 'string' || typeof otherAnswer === 'number' ? String(otherAnswer) : ''
+  const selectedForOther = Array.isArray(answer)
+    ? answer.map(String)
+    : typeof answer === 'string' || typeof answer === 'number'
+      ? [String(answer)]
+      : []
+  const otherNeedsText = Boolean(
+    question
+    && otherFollowUp
+    && selectedIncludesOther(selectedForOther, Array.isArray(question.options) ? question.options : []),
+  )
+  const canGoNext = Boolean(question?.is_read_only) || ((
+    isLifestyleWellnessPrioritiesQuestion(question)
+      ? answered
+      : hasFilledAnswer(answer)
+  ) && (!otherNeedsText || otherText.trim().length > 0))
 
   const collectSaveIds = (throughIndex: number): number[] => {
     const ids: number[] = []
@@ -333,7 +359,7 @@ export function ApiQuestionnaireStep({
   }
 
   const handleNext = async () => {
-    if (isSaving || !question) return
+    if (isSaving || !question || !canGoNext) return
 
     if (isLifestyleWellnessPrioritiesQuestion(question)) {
       const selectionCount = Array.isArray(answer)
@@ -980,8 +1006,8 @@ export function ApiQuestionnaireStep({
           <button
             type="button"
             onClick={handleNext}
-            disabled={isSaving || (isLifestyleWellnessPrioritiesQuestion(question) && !answered)}
-            className={`flex size-10 shrink-0 items-center justify-center rounded-full border border-solid border-[#969696] p-px ${nextShadow} disabled:opacity-60`}
+            disabled={isSaving || !canGoNext}
+            className={`flex size-10 shrink-0 items-center justify-center rounded-full border border-solid border-[#969696] p-px ${nextShadow} disabled:cursor-not-allowed disabled:opacity-40`}
             style={{ backgroundImage: nextGradient }}
             aria-label={isSaving ? 'Saving answer' : isLast ? 'Continue' : 'Next question'}
           >
