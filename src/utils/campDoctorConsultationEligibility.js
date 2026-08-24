@@ -1,5 +1,6 @@
 import { peekMyAssessmentsRowsCached, resolveEngagementIdFromAssessmentId } from '../services/reportService';
 import { getEngagementConsultation } from '../services/engagementsService';
+import { getMyUpcomingSlot } from '../services/usersService';
 
 const extractAssessmentInstanceIdFromRow = (row) => {
   if (!row || typeof row !== 'object') {
@@ -9,6 +10,53 @@ const extractAssessmentInstanceIdFromRow = (row) => {
   const id = row.assessment_instance_id ?? row.assessment_id ?? row.id;
   const numericId = Number(id);
   return Number.isFinite(numericId) && numericId > 0 ? numericId : null;
+};
+
+/** Blood-test / camp day from GET /users/me/upcoming-slot (`slot.engagement_date`). */
+export const extractBloodTestDateFromUpcomingSlot = (root) => {
+  if (!root || typeof root !== 'object') {
+    return '';
+  }
+
+  const slots = Array.isArray(root.slots) ? root.slots : [];
+  const first = slots[0] || {};
+  const slot = first.slot && typeof first.slot === 'object' ? first.slot : {};
+  const engagement = first.engagement && typeof first.engagement === 'object'
+    ? first.engagement
+    : {};
+
+  return String(
+    slot.engagement_date
+    || slot.blood_collection_date
+    || slot.blood_test_date
+    || engagement.blood_collection_date
+    || engagement.engagement_date
+    || first.engagement_date
+    || '',
+  ).trim();
+};
+
+const parseYmdLocalDate = (raw) => {
+  const ymd = String(raw || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return null;
+  }
+  const [year, month, day] = ymd.split('-').map((part) => Number(part));
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return null;
+  }
+  return new Date(year, month - 1, day);
+};
+
+/** True when blood-test day is strictly after local today. */
+export const isBloodTestDateAfterToday = (rawDate) => {
+  const bloodDate = parseYmdLocalDate(rawDate);
+  if (!bloodDate) {
+    return false;
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return bloodDate.getTime() > today.getTime();
 };
 
 export const resolveActiveEngagementIdFromAssessments = (rawRows) => {
@@ -48,7 +96,11 @@ export const isDoctorConsultationScheduleUnfilled = (consultation) => {
   return doctorConsultations.some((item) => item?.date == null || item?.slot == null);
 };
 
-export const shouldShowDoctorConsultationPopup = (consultation) => {
+export const shouldShowDoctorConsultationPopup = (consultation, { bloodTestDate } = {}) => {
+  if (isBloodTestDateAfterToday(bloodTestDate)) {
+    return false;
+  }
+
   if (!consultation || typeof consultation !== 'object') {
     return false;
   }
@@ -74,10 +126,14 @@ export const fetchDoctorConsultationPopupEligibility = async ({ ttlMs = 45000 } 
     };
   }
 
-  const consultation = await getEngagementConsultation(engagementId);
+  const [consultation, upcomingSlot] = await Promise.all([
+    getEngagementConsultation(engagementId),
+    getMyUpcomingSlot().catch(() => null),
+  ]);
+  const bloodTestDate = extractBloodTestDateFromUpcomingSlot(upcomingSlot);
 
   return {
-    shouldShow: shouldShowDoctorConsultationPopup(consultation),
+    shouldShow: shouldShowDoctorConsultationPopup(consultation, { bloodTestDate }),
     engagementId,
     consultation,
     engagementCode: consultation?.engagement_code || null,
