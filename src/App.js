@@ -85,9 +85,7 @@ const HealthScanIndexPage = lazy(() => import('./pages/HealthScanIndexPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AllAppointmentsPage = lazy(() => import('./pages/AllAppointmentsPage'));
 const ConsultationNotesPage = lazy(() => import('./pages/ConsultationNotesPage'));
-const NewDesQuesPage = lazy(() => import('./pages/NewDesQuesPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
-const NutritionPage = lazy(() => import('./pages/NutritionPage'));
 const CustomerSupportPage = lazy(() => import('./pages/CustomerSupportPage'));
 const PermissionsPage = lazy(() => import('./pages/PermissionsPage'));
 const AddAccountPage = lazy(() => import('./pages/AddAccountPage'));
@@ -278,7 +276,6 @@ const deriveEmployerOrganizerName = (profile) => {
 function App() {
   const PACKAGE_ONBOARDING_NEW_USER_SESSION_KEY = 'ss_package_onboarding_new_user';
   const [currentPage, setCurrentPage] = useState(getInitialAppPage);
-  const [newDesQuesScenario, setNewDesQuesScenario] = useState(2);
   const currentPageRef = useRef(currentPage);
   currentPageRef.current = currentPage;
   const [isBootstrappingSession, setIsBootstrappingSession] = useState(
@@ -2330,10 +2327,6 @@ function App() {
             console.log('Navigate to Reports');
             setCurrentPage('reports');
           }}
-          onOpenNutrition={() => {
-            console.log('Navigate to Nutrition');
-            setCurrentPage('nutrition');
-          }}
           onOpenCustomerSupport={() => {
             console.log('Navigate to Customer Support');
             setCurrentPage('customer-support');
@@ -2345,10 +2338,6 @@ function App() {
           onOpenConsultationNotes={() => {
             console.log('Navigate to Consultation Notes');
             setCurrentPage('consultation-notes');
-          }}
-          onOpenNewDesQuesScenario={(scenario) => {
-            setNewDesQuesScenario(scenario);
-            setCurrentPage('new-des-ques');
           }}
           onOpenAddAccount={() => {
             console.log('Navigate to Add Account');
@@ -2376,15 +2365,6 @@ function App() {
 
       {currentPage === 'reports' && (
         <ReportsPage
-          onBack={() => {
-            console.log('Back to Profile');
-            setCurrentPage('profile');
-          }}
-        />
-      )}
-
-      {currentPage === 'nutrition' && (
-        <NutritionPage
           onBack={() => {
             console.log('Back to Profile');
             setCurrentPage('profile');
@@ -2423,15 +2403,6 @@ function App() {
 
       {currentPage === 'consultation-notes' && (
         <ConsultationNotesPage
-          onBack={() => {
-            setCurrentPage('profile');
-          }}
-        />
-      )}
-
-      {currentPage === 'new-des-ques' && (
-        <NewDesQuesPage
-          scenario={newDesQuesScenario}
           onBack={() => {
             setCurrentPage('profile');
           }}
