@@ -13,11 +13,11 @@
 }
 
 .home-page--reassessment-banner {
-  padding-bottom: 160px;
+  padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px));
 }
 
 .home-page--reassessment-banner-tall {
-  padding-bottom: 220px;
+  padding-bottom: calc(220px + env(safe-area-inset-bottom, 0px));
 }
 
 .home-page__download-overlay-backdrop {

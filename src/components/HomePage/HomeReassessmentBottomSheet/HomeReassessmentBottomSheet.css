@@ -3,10 +3,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  /* Sit behind the navbar (z-index 1000); content is lifted with bottom padding. */
+  /* Sit behind the navbar (z-index 1000); content is lifted with bottom padding.
+     NavBar2 is ~56–65px plus iOS PWA home-indicator inset — omit that and the date clips. */
   z-index: 999;
   display: flex;
-  padding: 16px 24px calc(65px + 16px);
+  padding: 16px 24px calc(65px + 16px + env(safe-area-inset-bottom, 0px));
   flex-direction: column;
   align-items: center;
   gap: 12px;
