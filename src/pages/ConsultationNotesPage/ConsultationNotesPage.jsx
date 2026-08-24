@@ -13,31 +13,10 @@ const NOTE_TABS = [
   { key: 'nutritionist', label: 'Nutritionist Notes' },
 ];
 
-const SAMPLE_NOTES = [
-  {
-    id: 'sample-doctor-note',
-    expertType: 'doctor',
-    expertName: 'Dr. Priya Nair',
-    notesWhenLabel: '12 July 2026, 7:30 AM',
-    consultationSummary:
-      'Patient reports intermittent fatigue and mild joint pain over the past 3 weeks. Sleep cycle remains irregular due to late-night work shifts. Blood pressure was recorded at 128/84 mmHg during the session check-in.',
-    attachments: [
-      {
-        id: 'sample-prescription',
-        label: 'Prescription',
-        fileType: 'PDF',
-        sizeLabel: '2Mb',
-        url: null,
-      },
-    ],
-  },
-];
-
 const ConsultationNotesPage = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState('doctor');
   const [notes, setNotes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasLoaded, setHasLoaded] = useState(false);
   const [expandedNoteIds, setExpandedNoteIds] = useState({});
 
   useEffect(() => {
@@ -69,7 +48,6 @@ const ConsultationNotesPage = ({ onBack }) => {
       } finally {
         if (!cancelled) {
           setIsLoading(false);
-          setHasLoaded(true);
         }
       }
     };
@@ -81,10 +59,9 @@ const ConsultationNotesPage = ({ onBack }) => {
     };
   }, []);
 
-  const visibleNotes = useMemo(() => {
-    const source = hasLoaded && notes.length === 0 ? SAMPLE_NOTES : notes;
-    return source.filter((item) => String(item.expertType || '').toLowerCase() === activeTab);
-  }, [activeTab, hasLoaded, notes]);
+  const visibleNotes = useMemo(() => (
+    notes.filter((item) => String(item.expertType || '').toLowerCase() === activeTab)
+  ), [activeTab, notes]);
 
   const notesSectionLabel = activeTab === 'nutritionist' ? 'Nutritionist’s Notes' : 'Doctor’s Notes';
 
