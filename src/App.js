@@ -1447,6 +1447,7 @@ function App() {
             engagementId: result.engagementId,
             engagementCode: result.engagementCode,
             consultationMode: result.consultationMode,
+            expertType: result.expertType,
           } : null);
         }
       } catch (error) {
@@ -1803,6 +1804,7 @@ function App() {
           engagementId={doctorConsultationContext?.engagementId}
           engagementCode={doctorConsultationContext?.engagementCode}
           consultationMode={doctorConsultationContext?.consultationMode}
+          expertType={doctorConsultationContext?.expertType}
           onClose={() => {
             campDoctorPopupDismissedRef.current = true;
             setShowCampDoctorConsultation(false);

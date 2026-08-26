@@ -237,13 +237,14 @@ const getFirstBookable = (dates, slots, nowMs) => {
 const CampDoctorConsultationPage = ({
   engagementId,
   engagementCode,
-  consultationMode,
+  expertType = 'doctor',
   onAppointmentBooked,
   onViewAppointment,
   onClose,
 }) => {
   const fallbackDates = useMemo(() => buildUpcomingDates(), []);
-  const isOfflineMode = String(consultationMode || '').toLowerCase() === 'offline' && Boolean(engagementCode);
+  const normalizedExpertType = String(expertType || 'doctor').toLowerCase();
+  const canLoadBackendSchedule = Boolean(engagementCode);
 
   const [offlineSchedule, setOfflineSchedule] = useState(null);
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
@@ -371,7 +372,7 @@ const CampDoctorConsultationPage = ({
       if (engagementId) {
         await bookExpertConsultation({
           engagementId,
-          expertType: 'doctor',
+          expertType: normalizedExpertType,
           date: apiDate,
           cabin: selectedCabin.key,
           slot: apiSlot,
@@ -390,7 +391,7 @@ const CampDoctorConsultationPage = ({
   };
 
   const handleBookNow = async () => {
-    if (!isOfflineMode) {
+    if (!canLoadBackendSchedule) {
       setIsScheduleOpen(true);
       return;
     }
@@ -400,7 +401,7 @@ const CampDoctorConsultationPage = ({
 
     try {
       const details = await getEngagementByCode(engagementCode);
-      const schedule = parseDoctorOfflineSchedule(details);
+      const schedule = parseDoctorOfflineSchedule(details, normalizedExpertType);
 
       if (!schedule.dateOptions.length) {
         setScheduleError('No consultation slots are available right now.');
@@ -421,7 +422,7 @@ const CampDoctorConsultationPage = ({
       setSelectedCabinKey(null);
       setIsScheduleOpen(true);
     } catch (error) {
-      console.error('Failed to load offline consultation schedule:', error);
+      console.error('Failed to load consultation schedule:', error);
       setScheduleError('Unable to load consultation slots. Please try again.');
     } finally {
       setIsLoadingSchedule(false);

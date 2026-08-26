@@ -49,12 +49,12 @@ const parseApiDate = (dateKey) => {
   };
 };
 
-const isDoctorConsultationEntry = (entry) => {
-  const expertType = String(entry?.expert_type || 'doctor').toLowerCase();
-  return expertType === 'doctor';
+const isConsultationEntryForExpertType = (entry, expertType = 'doctor') => {
+  const entryType = String(entry?.expert_type || 'doctor').toLowerCase();
+  return entryType === String(expertType || 'doctor').toLowerCase();
 };
 
-export const parseDoctorOfflineSchedule = (engagementDetails) => {
+export const parseDoctorOfflineSchedule = (engagementDetails, expertType = 'doctor') => {
   const consultationByDate = engagementDetails?.slot_detail?.consultation || {};
   const dateKeys = Object.keys(consultationByDate).sort();
   const dateOptions = dateKeys.map(parseApiDate);
@@ -64,7 +64,7 @@ export const parseDoctorOfflineSchedule = (engagementDetails) => {
 
   dateKeys.forEach((dateKey) => {
     const entries = Array.isArray(consultationByDate[dateKey]) ? consultationByDate[dateKey] : [];
-    const doctorEntries = entries.filter(isDoctorConsultationEntry);
+    const doctorEntries = entries.filter((entry) => isConsultationEntryForExpertType(entry, expertType));
 
     cabinsByDate[dateKey] = doctorEntries.map((entry, index) => ({
       key: entry.cabin_key || `cabin-${index}`,

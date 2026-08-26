@@ -125,6 +125,35 @@ export const isConsultationScheduleUnfilled = (consultation) => {
   });
 };
 
+/** True when a specific offered consultation type still needs a date/slot. */
+export const isConsultationTypeUnfilled = (consultation, type) => {
+  const normalizedType = String(type || '').toLowerCase();
+  if (!normalizedType) {
+    return false;
+  }
+
+  const myConsultations = Array.isArray(consultation?.my_consultations)
+    ? consultation.my_consultations
+    : [];
+
+  const entries = myConsultations.filter(
+    (item) => String(item?.expert_type || '').toLowerCase() === normalizedType,
+  );
+
+  if (entries.length === 0) {
+    return true;
+  }
+
+  return entries.some((item) => item?.date == null || item?.slot == null);
+};
+
+/** First offered consultation type that still needs booking (doctor, nutritionist, etc.). */
+export const resolveFirstUnfilledConsultationType = (consultation) => {
+  const offeredTypes = getOfferedConsultationTypes(consultation);
+  const unfilledType = offeredTypes.find((type) => isConsultationTypeUnfilled(consultation, type));
+  return unfilledType || offeredTypes[0] || 'doctor';
+};
+
 /** @deprecated Use isConsultationScheduleUnfilled — kept for existing imports. */
 export const isDoctorConsultationScheduleUnfilled = isConsultationScheduleUnfilled;
 
@@ -159,6 +188,7 @@ export const fetchDoctorConsultationPopupEligibility = async ({ ttlMs = 45000 } 
       consultation: null,
       engagementCode: null,
       consultationMode: null,
+      expertType: null,
     };
   }
 
@@ -174,5 +204,6 @@ export const fetchDoctorConsultationPopupEligibility = async ({ ttlMs = 45000 } 
     consultation,
     engagementCode: consultation?.engagement_code || null,
     consultationMode: consultation?.consultation_mode || null,
+    expertType: resolveFirstUnfilledConsultationType(consultation),
   };
 };
