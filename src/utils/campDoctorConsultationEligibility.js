@@ -76,7 +76,36 @@ export const resolveActiveEngagementIdFromAssessments = (rawRows) => {
   return Number.isFinite(engagementId) && engagementId > 0 ? engagementId : null;
 };
 
-export const isDoctorConsultationScheduleUnfilled = (consultation) => {
+const asTruthyConsultationFlag = (value) => (
+  value === true
+  || value === 'true'
+  || value === 'True'
+  || value === 1
+  || value === '1'
+);
+
+/** Expert types offered on the engagement (`consultations.doctor`, `.nutritionist`, etc.). */
+export const getOfferedConsultationTypes = (consultation) => {
+  const map = consultation?.consultations;
+  if (!map || typeof map !== 'object') {
+    return [];
+  }
+
+  return Object.entries(map)
+    .filter(([, value]) => asTruthyConsultationFlag(value))
+    .map(([key]) => String(key).toLowerCase());
+};
+
+/**
+ * True when any offered consultation type still needs a date/slot.
+ * Empty my_consultations, or a missing entry for an offered type, counts as unfilled.
+ */
+export const isConsultationScheduleUnfilled = (consultation) => {
+  const offeredTypes = getOfferedConsultationTypes(consultation);
+  if (offeredTypes.length === 0) {
+    return false;
+  }
+
   const myConsultations = Array.isArray(consultation?.my_consultations)
     ? consultation.my_consultations
     : [];
@@ -85,17 +114,24 @@ export const isDoctorConsultationScheduleUnfilled = (consultation) => {
     return true;
   }
 
-  const doctorConsultations = myConsultations.filter(
-    (item) => String(item?.expert_type || '').toLowerCase() === 'doctor',
-  );
-
-  if (doctorConsultations.length === 0) {
-    return true;
-  }
-
-  return doctorConsultations.some((item) => item?.date == null || item?.slot == null);
+  return offeredTypes.some((type) => {
+    const entries = myConsultations.filter(
+      (item) => String(item?.expert_type || '').toLowerCase() === type,
+    );
+    if (entries.length === 0) {
+      return true;
+    }
+    return entries.some((item) => item?.date == null || item?.slot == null);
+  });
 };
 
+/** @deprecated Use isConsultationScheduleUnfilled — kept for existing imports. */
+export const isDoctorConsultationScheduleUnfilled = isConsultationScheduleUnfilled;
+
+/**
+ * Show home consultation popup when any consultations.* flag is true
+ * and that offered type is still unfilled (not doctor-only).
+ */
 export const shouldShowDoctorConsultationPopup = (consultation, { bloodTestDate } = {}) => {
   if (isBloodTestDateAfterToday(bloodTestDate)) {
     return false;
@@ -105,11 +141,11 @@ export const shouldShowDoctorConsultationPopup = (consultation, { bloodTestDate 
     return false;
   }
 
-  if (!consultation.consultations?.doctor) {
+  if (getOfferedConsultationTypes(consultation).length === 0) {
     return false;
   }
 
-  return isDoctorConsultationScheduleUnfilled(consultation);
+  return isConsultationScheduleUnfilled(consultation);
 };
 
 export const fetchDoctorConsultationPopupEligibility = async ({ ttlMs = 45000 } = {}) => {
