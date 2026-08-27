@@ -1345,7 +1345,7 @@ function App() {
     void peekMyAssessmentsRowsCached(0).catch(() => {});
     const fitprintPreloadPromise = loadFitprintHealthSpanIndexState({
       ttlMs: 45000,
-      assignFitprintIfMissing: true,
+      assignFitprintIfMissing: false,
     })
       .then((flowState) => fitprintHealthSpanPreloadExtras(flowState))
       .catch(() => ({}));

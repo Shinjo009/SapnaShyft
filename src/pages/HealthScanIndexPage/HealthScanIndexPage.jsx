@@ -464,12 +464,25 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
     ),
   );
 
+  const waistMetric = (() => {
+    const raw = fitness?.waist;
+    if (raw && typeof raw === 'object') {
+      const value = Number(raw.value ?? raw.cm ?? raw.inches);
+      const unit = String(raw.unit ?? fitness?.ideal_waist?.unit ?? '').trim();
+      return { value, unit };
+    }
+    return {
+      value: Number(raw),
+      unit: String(fitness?.ideal_waist?.unit ?? '').trim(),
+    };
+  })();
+
   const waistIdealRangeDisplay = (() => {
     const band = fitness?.ideal_waist;
     if (!band || typeof band !== 'object') return '-';
     const low = Number(band.low);
     const high = Number(band.high);
-    const unit = String(band.unit ?? '').trim();
+    const unit = String(band.unit ?? waistMetric.unit ?? '').trim();
     if (!Number.isFinite(low) || !Number.isFinite(high)) return '-';
     const range = `${toCompactNumberText(low)}-${toCompactNumberText(high)}`;
     const normalizedUnit = /^(in|inch|inches)$/i.test(unit) ? '(in)' : unit;
@@ -477,14 +490,14 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
   })();
 
   const waistDisplayText = (() => {
-    const w = Number(fitness?.waist);
-    const unit = String(fitness?.ideal_waist?.unit ?? '').trim();
-    if (!Number.isFinite(w)) return '-';
-    return unit ? `${toCompactNumberText(w)} ${unit}` : toCompactNumberText(w);
+    if (!Number.isFinite(waistMetric.value)) return '-';
+    const unit = waistMetric.unit;
+    const valueText = toCompactNumberText(waistMetric.value);
+    return unit ? `${valueText} ${unit}` : valueText;
   })();
 
   const fitnessBpStatus = getFitnessBloodPressureStatus(fitness);
-  const fitnessWaistStatus = getFitnessIdealBandStatus(fitness?.waist, fitness?.ideal_waist);
+  const fitnessWaistStatus = getFitnessIdealBandStatus(waistMetric.value, fitness?.ideal_waist);
 
   const bmrInterpretation = {
     ...buildBmrInterpretation({

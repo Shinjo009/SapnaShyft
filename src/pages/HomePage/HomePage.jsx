@@ -65,7 +65,9 @@ const resolveFitprintGapCheckDoneFromPreload = (data) => {
   if (!data?.fitprintGapLockPreloaded) {
     return false;
   }
-  if (data.healthSpanPhase === HEALTH_SPAN_PHASE.SHOW_SCORES) {
+  if (data.healthSpanPhase === HEALTH_SPAN_PHASE.SHOW_SCORES
+    || data.healthSpanPhase === HEALTH_SPAN_PHASE.HIDDEN_NO_FITPRINT
+    || data.healthSpanPhase === HEALTH_SPAN_PHASE.NO_BASIC_PRO) {
     return true;
   }
   if (data.healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE
@@ -677,17 +679,20 @@ const HomePage = ({
       isFitprintGapQuestionnaireSubmittedFlagSet()
       && healthSpanPhase !== HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE
       && healthSpanPhase !== HEALTH_SPAN_PHASE.NO_BASIC_PRO
+      && healthSpanPhase !== HEALTH_SPAN_PHASE.HIDDEN_NO_FITPRINT
       && healthSpanPhase !== null
     );
   const showFitprintGapQuestionnaireCta = !fitprintGapAwaitingReports && (
     healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE
     || (healthSpanLockedNoFitprint && healthSpanPhase !== HEALTH_SPAN_PHASE.LOCKED_SUBMITTED)
   ) && (!slotNorm.isB2b || b2bHasIncompleteNonVitals);
-  const showHealthSpanLocked = healthSpanLockedNoFitprint && fitprintGapCheckDone;
-  const showHealthSpanScores = !healthSpanLockedNoFitprint && (
+  const hideHealthSpanIndex = healthSpanPhase === HEALTH_SPAN_PHASE.HIDDEN_NO_FITPRINT
+    || healthSpanPhase === HEALTH_SPAN_PHASE.NO_BASIC_PRO;
+  const showHealthSpanLocked = !hideHealthSpanIndex && healthSpanLockedNoFitprint && fitprintGapCheckDone;
+  const showHealthSpanScores = !hideHealthSpanIndex && !healthSpanLockedNoFitprint && (
     fitprintGapCheckDone || hasDisplayableHealthSpanScores(healthSpanScores)
   );
-  const showHealthSpanPending = !showHealthSpanLocked && !showHealthSpanScores
+  const showHealthSpanPending = !hideHealthSpanIndex && !showHealthSpanLocked && !showHealthSpanScores
     && hasStableOverviewData
     && isOverviewResolved;
 
@@ -720,6 +725,17 @@ const HomePage = ({
       setHealthSpanScores(null);
       setHealthSpanGapBasicProAssessmentId(flowState.basicProAssessmentId);
       setFitprintGapQCompleteFromServer(false);
+      setFitprintGapCheckDone(true);
+      return;
+    }
+
+    if (flowState?.phase === HEALTH_SPAN_PHASE.HIDDEN_NO_FITPRINT
+      || flowState?.phase === HEALTH_SPAN_PHASE.NO_BASIC_PRO) {
+      clearFitprintGapQuestionnaireSubmittedFlag();
+      setFitprintGapQCompleteFromServer(false);
+      setHealthSpanLockedNoFitprint(false);
+      setHealthSpanGapBasicProAssessmentId(flowState?.basicProAssessmentId ?? null);
+      setHealthSpanScores(null);
       setFitprintGapCheckDone(true);
       return;
     }
@@ -1056,7 +1072,7 @@ const HomePage = ({
       const ttlMs = forceRefreshFromProfile ? 0 : 45000;
       const flowState = await loadFitprintHealthSpanIndexState({
         ttlMs,
-        assignFitprintIfMissing: !forceRefreshFromProfile,
+        assignFitprintIfMissing: false,
       });
       if (cancelled) {
         return;

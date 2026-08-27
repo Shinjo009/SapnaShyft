@@ -112,23 +112,20 @@ const resolveSourcesWithOptionalAssign = async ({ ttlMs, assignFitprintIfMissing
 };
 
 /**
- * When the latest FitPrint cycle has no HSI report yet, use the newest prior
- * Basic/Pro + FitPrint pair that already has scores. Returns null if none.
+ * Newest FitPrint first (higher instance id). Used when several FitPrints exist
+ * so Health Span Index always prefers the latest report with scores.
  */
-const tryFetchPriorFilledHealthSpanScores = async ({
-  rows,
-  latestBasicProId,
-  latestFitprintAssessmentId,
-  ttlMs,
-}) => {
-  const pairs = listHealthSpanIndexPairsFromRows(rows);
-  for (const pair of pairs) {
-    const isLatestPair = pair.basicOrProAssessmentId === latestBasicProId
-      && pair.fitprintAssessmentId === latestFitprintAssessmentId;
-    if (isLatestPair) {
-      continue;
-    }
+const sortPairsLatestFitprintFirst = (pairs) => (
+  [...pairs].sort((a, b) => Number(b.fitprintAssessmentId || 0) - Number(a.fitprintAssessmentId || 0))
+);
 
+/**
+ * Newest FitPrint + Basic/Pro pair that already has HSI scores.
+ * Walks every engagement pair, latest FitPrint first.
+ */
+const tryFetchLatestFilledHealthSpanScores = async ({ rows, ttlMs }) => {
+  const pairs = sortPairsLatestFitprintFirst(listHealthSpanIndexPairsFromRows(rows));
+  for (const pair of pairs) {
     const scores = await tryFetchFitprintReportScores({
       fitprintAssessmentId: pair.fitprintAssessmentId,
       basicOrProAssessmentId: pair.basicOrProAssessmentId,
@@ -149,14 +146,11 @@ const tryFetchPriorFilledHealthSpanScores = async ({
 /**
  * Resolve Health Span Index UI from assessments + report + FitPrint submit state.
  *
- * 1. Latest FitPrint report (scores) → show_scores
- * 2. Else prior filled FitPrint report (new enrollment not ready yet) → show_scores
- * 3. No FitPrint instance and no prior HSI report → hidden_no_fitprint
+ * 1. Latest FitPrint that already has scores → show_scores
+ * 2. No FitPrint instance and no HSI report → hidden_no_fitprint
  *    (do not assign FitPrint or show locked HSI / Complete Assessment)
- * 4. No scores, FitPrint fitness-parameters submitted (instance completed,
- *    Metsights category complete, or this device POSTed fitness-parameters)
- *    → locked_submitted (awaiting reports) — uses latest cycle IDs
- * 5. FitPrint assigned but not submitted → locked_questionnaire + Complete Assessment CTA
+ * 3. FitPrint exists, fitness-parameters submitted, no scores yet → locked_submitted
+ * 4. FitPrint assigned but not submitted → locked_questionnaire
  */
 export async function loadFitprintHealthSpanIndexState({
   ttlMs = 45000,
@@ -181,49 +175,23 @@ export async function loadFitprintHealthSpanIndexState({
     };
   }
 
-  if (fitprintAssessmentId) {
-    const scores = await tryFetchFitprintReportScores({
-      fitprintAssessmentId,
-      basicOrProAssessmentId: basicProId,
-      ttlMs,
-    });
-
-    if (scores) {
-      clearFitprintGapQuestionnaireSubmittedFlag(fitprintAssessmentId);
-      return {
-        phase: HEALTH_SPAN_PHASE.SHOW_SCORES,
-        isLocked: false,
-        basicProAssessmentId: basicProId,
-        fitprintAssessmentId,
-        engagementId: engagementId || null,
-        gapQuestionnaireComplete: true,
-        hasFitprintReport: true,
-        hasFitprintAssigned: true,
-        scores,
-      };
-    }
-  }
-
-  // Returning user: new enrollment has no HSI yet — keep showing last filled FitPrint.
-  const priorFilled = await tryFetchPriorFilledHealthSpanScores({
+  const filled = await tryFetchLatestFilledHealthSpanScores({
     rows: resolved?.rows || [],
-    latestBasicProId: basicProId,
-    latestFitprintAssessmentId: fitprintAssessmentId || null,
     ttlMs,
   });
-  if (priorFilled?.scores) {
-    clearFitprintGapQuestionnaireSubmittedFlag(priorFilled.fitprintAssessmentId);
+  if (filled?.scores) {
+    clearFitprintGapQuestionnaireSubmittedFlag(filled.fitprintAssessmentId);
     return {
       phase: HEALTH_SPAN_PHASE.SHOW_SCORES,
       isLocked: false,
-      basicProAssessmentId: priorFilled.basicOrProAssessmentId,
-      fitprintAssessmentId: priorFilled.fitprintAssessmentId,
-      engagementId: priorFilled.engagementId || null,
+      basicProAssessmentId: filled.basicOrProAssessmentId,
+      fitprintAssessmentId: filled.fitprintAssessmentId,
+      engagementId: filled.engagementId || engagementId || null,
       gapQuestionnaireComplete: true,
       hasFitprintReport: true,
       hasFitprintAssigned: true,
-      scores: priorFilled.scores,
-      scoresFromPriorCycle: true,
+      scores: filled.scores,
+      scoresFromPriorCycle: Number(filled.fitprintAssessmentId) !== Number(fitprintAssessmentId),
     };
   }
 
@@ -241,16 +209,13 @@ export async function loadFitprintHealthSpanIndexState({
     };
   }
 
-  // Locked / questionnaire paths always stay on the latest cycle (not prior).
   let fitprintSubmitConfirmed = false;
-  if (fitprintAssessmentId) {
-    try {
-      fitprintSubmitConfirmed = await isFitprintAssessmentSubmitConfirmed(fitprintAssessmentId, {
-        instanceStatus: resolved?.latestMatchingFitprint?.status,
-      });
-    } catch {
-      fitprintSubmitConfirmed = false;
-    }
+  try {
+    fitprintSubmitConfirmed = await isFitprintAssessmentSubmitConfirmed(fitprintAssessmentId, {
+      instanceStatus: resolved?.latestMatchingFitprint?.status,
+    });
+  } catch {
+    fitprintSubmitConfirmed = false;
   }
 
   if (fitprintSubmitConfirmed) {
@@ -267,8 +232,6 @@ export async function loadFitprintHealthSpanIndexState({
     };
   }
 
-  // FitPrint not finalized — always offer Complete Assessment (do not treat Pro-only
-  // “no unanswered questions” as submitted).
   let gapQuestionnaireComplete = false;
   try {
     gapQuestionnaireComplete = await isFitprintGapQuestionnaireFullyComplete(basicProId);
