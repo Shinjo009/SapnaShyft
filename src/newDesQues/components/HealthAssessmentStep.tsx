@@ -1,6 +1,4 @@
-import { ContinueButton } from './ContinueButton'
 import {
-  APP_COLUMN_MAX,
   ASSESSMENT_CARD_STACK_CLASS,
   ASSESSMENT_FIVE_CARD_STACK_CLASS,
   ASSESSMENT_SUBTITLE_CLASS,
@@ -23,37 +21,49 @@ function AssessmentCard({
   featured,
   compact,
   completed = false,
+  onClick,
+  disabled = false,
 }: {
   title: string
   description?: string
   featured: boolean
   compact?: boolean
   completed?: boolean
+  onClick?: () => void
+  disabled?: boolean
 }) {
   const radioClass = compact ? 'size-[14px] shrink-0' : 'size-[15px] shrink-0'
+  const Wrapper = onClick ? 'button' : 'div'
+  const wrapperProps = onClick
+    ? { type: 'button' as const, onClick, disabled }
+    : {}
 
   if (completed) {
     return (
-      <div
+      <Wrapper
+        {...wrapperProps}
         className={[
           'flex w-full items-center rounded-xl border border-[rgba(218,193,90,0.5)] bg-white/5 shadow-[0_0_5px_0_rgba(218,193,90,0.2)]',
           compact ? 'p-3.5' : 'p-4',
+          onClick ? 'text-left' : '',
         ].join(' ')}
       >
         <div className="flex min-w-0 items-center gap-1.5">
           <img src={tickCircleSolid} alt="" className={radioClass} aria-hidden />
           <span className="text-[14px] font-medium text-white">{title}</span>
         </div>
-      </div>
+      </Wrapper>
     )
   }
 
   if (featured) {
     return (
-      <div
+      <Wrapper
+        {...wrapperProps}
         className={[
           'flex w-full flex-col gap-4 rounded-xl border border-[rgba(144,223,158,0.5)] bg-white/5 shadow-[0_0_10px_0_rgba(144,223,158,0.5)]',
           compact ? 'p-3.5' : 'p-4',
+          onClick ? 'text-left' : '',
         ].join(' ')}
       >
         <div className="flex items-center gap-1.5">
@@ -71,17 +81,20 @@ function AssessmentCard({
             {description}
           </p>
         ) : null}
-      </div>
+      </Wrapper>
     )
   }
 
   return (
-    <div className={`flex w-full items-center rounded-xl bg-white/5 ${compact ? 'p-3.5' : 'p-[15px]'}`}>
+    <Wrapper
+      {...wrapperProps}
+      className={`flex w-full items-center rounded-xl bg-white/5 ${compact ? 'p-3.5' : 'p-[15px]'} ${onClick ? 'text-left' : ''}`}
+    >
       <div className="flex min-w-0 items-center gap-1.5">
         <img src={assessmentRadioImg} alt="" className={radioClass} aria-hidden />
         <span className="text-[14px] font-medium text-[#ccc]">{title}</span>
       </div>
-    </div>
+    </Wrapper>
   )
 }
 
@@ -89,12 +102,13 @@ function AssessmentCard({
 export function HealthAssessmentStep({
   categories,
   completedCategoryIds = [],
-  onStartAssessment,
+  onSelectCategory,
   isStarting = false,
 }: {
   categories: AssessmentCategoryStatus[]
   completedCategoryIds?: number[]
   onStartAssessment?: () => void
+  onSelectCategory?: (category: AssessmentCategoryStatus) => void
   isStarting?: boolean
 }) {
   const denseCards = hasAnthropometryAndVitals(categories) || categories.length >= 5
@@ -104,18 +118,20 @@ export function HealthAssessmentStep({
   const sections = categories.map((category, index) => {
     const key = String(category.category_key || '').trim().toLowerCase()
     const completed = isCategoryCompleted(category, completedCategoryIds)
+    const isFamilyHistory = key.includes('family')
     return {
       id: String(category.id || category.category_id || key || index),
       title: category.display_name || category.category_key || 'Assessment',
       description: categoryDescriptionForKey(key),
       featured: !completed && index === (firstIncompleteIndex < 0 ? 0 : firstIncompleteIndex),
       completed,
+      onClick: isFamilyHistory && !completed && onSelectCategory
+        ? () => onSelectCategory(category)
+        : undefined,
     }
   })
 
-  const buttonHeight = denseCards ? 48 : 52
-  // Fixed 40px from screen bottom + button height + gap so scroll content clears the CTA.
-  const scrollBottomPad = 40 + buttonHeight + 16
+  const scrollBottomPad = 40
 
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col">
@@ -159,25 +175,11 @@ export function HealthAssessmentStep({
                 featured={section.featured}
                 completed={section.completed}
                 compact={denseCards}
+                disabled={isStarting}
+                onClick={section.onClick}
               />
             ))}
           </div>
-        </div>
-      </div>
-
-      <div className={`pointer-events-none fixed inset-x-0 bottom-10 z-10 ${PAGE_GUTTER_X}`}>
-        <div className={`pointer-events-auto mx-auto w-full ${APP_COLUMN_MAX}`}>
-          <ContinueButton
-            variant="mobileBar"
-            className={`w-full border border-[#969696] shadow-[0_12px_20px_rgba(255,255,255,0.15)] ${
-              denseCards ? '!h-12' : '!h-[52px]'
-            }`}
-            showChevron={false}
-            disabled={isStarting || categories.length === 0}
-            onClick={onStartAssessment}
-          >
-            {isStarting ? 'Loading...' : 'Start Assessment'}
-          </ContinueButton>
         </div>
       </div>
     </div>

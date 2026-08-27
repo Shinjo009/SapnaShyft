@@ -26,6 +26,8 @@ export const HEALTH_SPAN_PHASE = Object.freeze({
   LOCKED_QUESTIONNAIRE: 'locked_questionnaire',
   LOCKED_SUBMITTED: 'locked_submitted',
   NO_BASIC_PRO: 'no_basic_pro',
+  /** Basic/Pro exists, but no FitPrint instance and no HSI report to show. */
+  HIDDEN_NO_FITPRINT: 'hidden_no_fitprint',
 });
 
 const normalizeBasicProId = (resolved) => {
@@ -149,16 +151,16 @@ const tryFetchPriorFilledHealthSpanScores = async ({
  *
  * 1. Latest FitPrint report (scores) → show_scores
  * 2. Else prior filled FitPrint report (new enrollment not ready yet) → show_scores
- * 3. No scores, FitPrint fitness-parameters submitted (instance completed,
+ * 3. No FitPrint instance and no prior HSI report → hidden_no_fitprint
+ *    (do not assign FitPrint or show locked HSI / Complete Assessment)
+ * 4. No scores, FitPrint fitness-parameters submitted (instance completed,
  *    Metsights category complete, or this device POSTed fitness-parameters)
  *    → locked_submitted (awaiting reports) — uses latest cycle IDs
- * 4. No scores, FitPrint not submitted → locked_questionnaire + Complete Assessment CTA
- *    (even if Basic/Pro already has answers, or FitPrint SuperShyft cats are complete)
- *    — uses latest cycle IDs (Pro-only / first FitPrint enrollment stays intact)
+ * 5. FitPrint assigned but not submitted → locked_questionnaire + Complete Assessment CTA
  */
 export async function loadFitprintHealthSpanIndexState({
   ttlMs = 45000,
-  assignFitprintIfMissing = true,
+  assignFitprintIfMissing = false,
 } = {}) {
   const { resolved, basicProId, fitprintAssessmentId, engagementId } = await resolveSourcesWithOptionalAssign({
     ttlMs,
@@ -225,6 +227,20 @@ export async function loadFitprintHealthSpanIndexState({
     };
   }
 
+  if (!fitprintAssessmentId) {
+    return {
+      phase: HEALTH_SPAN_PHASE.HIDDEN_NO_FITPRINT,
+      isLocked: false,
+      basicProAssessmentId: basicProId,
+      fitprintAssessmentId: null,
+      engagementId: engagementId || null,
+      gapQuestionnaireComplete: false,
+      hasFitprintReport: false,
+      hasFitprintAssigned: false,
+      scores: null,
+    };
+  }
+
   // Locked / questionnaire paths always stay on the latest cycle (not prior).
   let fitprintSubmitConfirmed = false;
   if (fitprintAssessmentId) {
@@ -287,6 +303,17 @@ export function fitprintHealthSpanPreloadExtras(state) {
         fitprintGapQCompleteFromServer: true,
       };
     }
+    if (state?.phase === HEALTH_SPAN_PHASE.HIDDEN_NO_FITPRINT) {
+      return {
+        fitprintGapLockPreloaded: true,
+        healthSpanLockedNoFitprint: false,
+        healthSpanPhase: state.phase,
+        healthSpanScores: null,
+        healthSpanGapBasicProAssessmentId: state.basicProAssessmentId,
+        healthSpanGapEngagementId: state.engagementId,
+        fitprintGapQCompleteFromServer: false,
+      };
+    }
     return {};
   }
 
@@ -305,7 +332,11 @@ export function fitprintHealthSpanPreloadExtras(state) {
 /** Back-compat wrapper for existing imports. */
 export async function loadFitprintGapLockState(options = {}) {
   const state = await loadFitprintHealthSpanIndexState(options);
-  if (state.phase === HEALTH_SPAN_PHASE.SHOW_SCORES || state.phase === HEALTH_SPAN_PHASE.NO_BASIC_PRO) {
+  if (
+    state.phase === HEALTH_SPAN_PHASE.SHOW_SCORES
+    || state.phase === HEALTH_SPAN_PHASE.NO_BASIC_PRO
+    || state.phase === HEALTH_SPAN_PHASE.HIDDEN_NO_FITPRINT
+  ) {
     return {
       isLocked: false,
       basicProAssessmentId: state.basicProAssessmentId,

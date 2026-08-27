@@ -364,8 +364,12 @@ export function NewDesQuesFlow({ onBack, scenario = 2 }: Props) {
         {step === 6 && (
           <HealthAssessmentStep
             categories={assessmentCategories}
+            completedCategoryIds={completedCategoryIds}
             isStarting={isLoadingQuestionnaire}
             onStartAssessment={handleStartAssessment}
+            onSelectCategory={(category) => {
+              void handleLoadCategory(category, { returnStep: 6 })
+            }}
           />
         )}
 

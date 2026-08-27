@@ -248,6 +248,7 @@ const EMPTY_UPCOMING_SLOT = {
   locationType: '',
   locationName: '',
   locationAddress: '',
+  cabin: '',
   engagementDayLabel: 'Day 1',
 };
 
@@ -285,6 +286,7 @@ const normalizeUpcomingSlotPayload = (root) => {
     locationAddress: String(
       location.address || location.address_line || location.full_address || location.subtitle || '',
     ).trim(),
+    cabin: String(slot.cabin || slot.cabin_name || '').trim(),
     engagementDayLabel: (() => {
       const dayNumber = Number(engagement.day_number);
       if (Number.isFinite(dayNumber) && dayNumber > 0) {
@@ -332,8 +334,21 @@ const formatEngagementDateParts = (raw, dayLabel = 'Day 1') => {
   return { primary, secondary: dayLabel };
 };
 
-/** Location lines from GET /users/me/upcoming-slot (B2B venue or B2C home collection). */
+const formatSlotCabinLabel = (cabin) => {
+  const value = String(cabin || '').trim();
+  if (!value) {
+    return '';
+  }
+  return value.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+};
+
+/** Location lines from GET /users/me/upcoming-slot (cabin first, then venue / home address). */
 const formatSlotLocationLines = (slotNorm) => {
+  const cabinLabel = formatSlotCabinLabel(slotNorm?.cabin);
+  if (cabinLabel) {
+    return { primary: cabinLabel, secondary: '' };
+  }
+
   const name = String(slotNorm?.locationName || '').trim();
   const address = String(slotNorm?.locationAddress || '').trim();
   if (name && address) {

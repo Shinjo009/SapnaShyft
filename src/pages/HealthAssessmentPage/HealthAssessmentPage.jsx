@@ -5436,15 +5436,6 @@ const HealthAssessmentPage = ({
     setLoadingCategoryId(null);
   };
 
-  const handleStartAssessment = () => {
-    setIsStartingAssessment(true);
-    try {
-      openRoute(firstIncompleteRouteId || hubCategories[0]?.routeId);
-    } finally {
-      setIsStartingAssessment(false);
-    }
-  };
-
   const handleSelectHubCategory = (category) => {
     const routeId = category?.routeId
       || hubCategories.find((item) => Number(item.category_id) === Number(category?.category_id))?.routeId;
@@ -5554,7 +5545,7 @@ const HealthAssessmentPage = ({
             categories={hubCategories}
             completedCategoryIds={completedCategoryIds}
             isStarting={isStartingAssessment}
-            onStartAssessment={handleStartAssessment}
+            onSelectCategory={handleSelectHubCategory}
           />
         ) : (
           <SectionCompleteHub
