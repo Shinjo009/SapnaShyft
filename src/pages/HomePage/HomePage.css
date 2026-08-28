@@ -287,11 +287,6 @@
   margin-top: 0;
 }
 
-/* Reserve space while FitPrint lock state is verified — avoids locked-card flash. */
-.health-parameters.health-parameters--pending {
-  min-height: 220px;
-  visibility: hidden;
-}
 
 .home-page-no-data__health-box {
   display: flex;

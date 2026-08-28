@@ -692,9 +692,6 @@ const HomePage = ({
   const showHealthSpanScores = !hideHealthSpanIndex && !healthSpanLockedNoFitprint && (
     fitprintGapCheckDone || hasDisplayableHealthSpanScores(healthSpanScores)
   );
-  const showHealthSpanPending = !hideHealthSpanIndex && !showHealthSpanLocked && !showHealthSpanScores
-    && hasStableOverviewData
-    && isOverviewResolved;
 
   const applyFitprintHealthSpanState = useCallback((flowState) => {
     setHealthSpanPhase(flowState?.phase ?? null);
@@ -2102,7 +2099,7 @@ const HomePage = ({
         absoluteMetabolicAge={metabolicOrbProps.absoluteMetabolicAge}
       />
 
-      {/* Health Span Index: never flash locked while lock check is still in flight */}
+      {/* Health Span Index: omit entirely when hidden so Positive Wins sits under the orb */}
       {showHealthSpanLocked ? (
         <div className="health-parameters">
           <HomeHealthSpanIndexLockedStack
@@ -2121,12 +2118,6 @@ const HomePage = ({
           ]}
           onSeeMore={handleHealthScanSeeMore}
           onCardClick={handleHealthScanCircleClick}
-        />
-      ) : showHealthSpanPending ? (
-        <div
-          className="health-parameters health-parameters--pending"
-          aria-busy="true"
-          aria-label="Loading Health Span Index"
         />
       ) : null}
 
