@@ -56,6 +56,7 @@ import {
 import { loadReassessmentBannerState } from '../../utils/reassessmentBanner';
 import clockCircleSrc from '../../images/clock_circle.svg';
 import clockHandsSrc from '../../images/clock_hands.svg';
+import slotPassedWarningSrc from '../../images/slot-passed/warning-badge.svg';
 
 const hasDisplayableHealthSpanScores = (scores) => (
   Boolean(scores) && !areHealthSpanScoresPending(scores)
@@ -251,6 +252,40 @@ const EMPTY_UPCOMING_SLOT = {
   locationName: '',
   locationAddress: '',
   cabin: '',
+  engagementDayLabel: 'Day 1',
+};
+
+/** Local UI preview for B2C "Your Test is Scheduled" (Home Collection). */
+const PREVIEW_B2C_SCHEDULED_SLOT = {
+  hasScheduledSlot: true,
+  isB2b: false,
+  isB2c: true,
+  organizationName: '',
+  slotStart: '09:00:00',
+  slotEnd: '10:00:00',
+  engagementDateRaw: '2026-09-20',
+  engagementId: 1,
+  locationDisplay: '123 Marol Naka, Mumbai, Maharashtra',
+  locationType: 'home',
+  locationName: '',
+  locationAddress: '123 Marol Naka, Mumbai, Maharashtra',
+  engagementDayLabel: 'Day 1',
+};
+
+/** Local UI preview for B2B "Your Slot has Passed" (Collection Cabin walk-in). */
+const PREVIEW_SLOT_PASSED_SLOT = {
+  hasScheduledSlot: true,
+  isB2b: true,
+  isB2c: false,
+  organizationName: 'ABC Tech Park',
+  slotStart: '09:00:00',
+  slotEnd: '10:00:00',
+  engagementDateRaw: '2026-08-20',
+  engagementId: 1,
+  locationDisplay: 'Conference Room B – 4th Floor\nABC Tech Park, Andheri East',
+  locationType: 'cabin',
+  locationName: 'Conference Room B – 4th Floor',
+  locationAddress: 'ABC Tech Park, Andheri East',
   engagementDayLabel: 'Day 1',
 };
 
@@ -536,6 +571,8 @@ const HomePage = ({
   employerOrganizerFallback = '',
   preloadedData = null,
   forceRefreshFromProfile = false,
+  forceScheduledPreview = false,
+  forceSlotPassedPreview = false,
   onNavigateToHealthScan,
   onNavigateToHealthScanTab,
   onNavigateToProfile,
@@ -591,15 +628,30 @@ const HomePage = ({
     () => resolveFitprintGapCheckDoneFromPreload(preloadedData),
   );
   const [isNoDataHome, setIsNoDataHome] = useState(
-    () => homePreloadComplete && !hasRenderableOverviewData(preloadedData),
+    () => forceScheduledPreview
+      || forceSlotPassedPreview
+      || (homePreloadComplete && !hasRenderableOverviewData(preloadedData)),
   );
   const [isOverviewResolved, setIsOverviewResolved] = useState(
-    () => homePreloadComplete || hasRenderableOverviewData(preloadedData),
+    () => forceScheduledPreview
+      || forceSlotPassedPreview
+      || homePreloadComplete
+      || hasRenderableOverviewData(preloadedData),
   );
-  const [noDataStage, setNoDataStage] = useState('welcome');
-  const [upcomingSlotNormalized, setUpcomingSlotNormalized] = useState(null);
-  const [upcomingSlotStatus, setUpcomingSlotStatus] = useState('idle');
-  const [b2cSlotEnded, setB2cSlotEnded] = useState(false);
+  const [noDataStage, setNoDataStage] = useState(() => {
+    if (forceSlotPassedPreview) return 'slot_passed';
+    if (forceScheduledPreview) return 'camp_scheduled';
+    return 'welcome';
+  });
+  const [upcomingSlotNormalized, setUpcomingSlotNormalized] = useState(() => {
+    if (forceSlotPassedPreview) return PREVIEW_SLOT_PASSED_SLOT;
+    if (forceScheduledPreview) return PREVIEW_B2C_SCHEDULED_SLOT;
+    return null;
+  });
+  const [upcomingSlotStatus, setUpcomingSlotStatus] = useState(
+    () => ((forceScheduledPreview || forceSlotPassedPreview) ? 'ready' : 'idle'),
+  );
+  const [b2cSlotEnded, setB2cSlotEnded] = useState(() => Boolean(forceSlotPassedPreview));
   const [isQuestionnaireCompleted, setIsQuestionnaireCompleted] = useState(false);
   /** POST /assessments/.../submit finalized — hide edit / complete questionnaire CTAs (B2B + B2C). */
   const [isQuestionnaireSubmitted, setIsQuestionnaireSubmitted] = useState(false);
@@ -634,7 +686,10 @@ const HomePage = ({
     || process.env.REACT_APP_B2B_CAMP_FLOW === 'true'
     || b2cSlotLapsedSession;
 
-  const showJourneyScreens = isNoDataHome || isReturningUserJourneyView;
+  const showJourneyScreens = forceScheduledPreview
+    || forceSlotPassedPreview
+    || isNoDataHome
+    || isReturningUserJourneyView;
 
   const organizerDisplayName = String(
     slotNorm.organizationName || employerOrganizerFallback || '',
@@ -778,6 +833,14 @@ const HomePage = ({
   }, [showJourneyScreens, isOverviewResolved, forceRefreshFromProfile]);
 
   useLayoutEffect(() => {
+    if (forceSlotPassedPreview) {
+      setNoDataStage('slot_passed');
+      return;
+    }
+    if (forceScheduledPreview) {
+      setNoDataStage('camp_scheduled');
+      return;
+    }
     if (!showJourneyScreens || upcomingSlotStatus !== 'ready') {
       return;
     }
@@ -820,6 +883,24 @@ const HomePage = ({
       }
     }
 
+    // B2B: assigned collection window ended — prompt walk-in at Collection Cabin.
+    if (scheduledSlotEnded && slotNorm.isB2b) {
+      try {
+        if (isQuestionnaireCompleted) {
+          setNoDataStage('analyzing');
+          return;
+        }
+        if (sessionStorage.getItem('ss_b2b_opened_questionnaire') === '1') {
+          setNoDataStage('analyzing_questionnaire_pending');
+          return;
+        }
+      } catch {
+        // ignore
+      }
+      setNoDataStage('slot_passed');
+      return;
+    }
+
     try {
       if (isQuestionnaireCompleted) {
         setNoDataStage('analyzing');
@@ -840,14 +921,21 @@ const HomePage = ({
     isB2bCampNoDataGateResolved,
     isQuestionnaireCompleted,
     forceRefreshFromProfile,
+    forceScheduledPreview,
+    forceSlotPassedPreview,
     slotNorm.hasScheduledSlot,
     slotNorm.isB2c,
+    slotNorm.isB2b,
     b2cSlotEnded,
     b2cSlotLapsedSession,
     metsightsCycleAssigned,
   ]);
 
   useEffect(() => {
+    if (forceSlotPassedPreview || forceScheduledPreview) {
+      return undefined;
+    }
+
     if (!slotNorm.hasScheduledSlot) {
       if (!b2cSlotLapsedSession) {
         setB2cSlotEnded(false);
@@ -881,7 +969,7 @@ const HomePage = ({
         window.clearTimeout(timeoutId);
       }
     };
-  }, [slotNorm, b2cSlotLapsedSession]);
+  }, [slotNorm, b2cSlotLapsedSession, forceSlotPassedPreview, forceScheduledPreview]);
 
   useEffect(() => {
     if (isQuestionnaireCompleted) {
@@ -1255,14 +1343,33 @@ const HomePage = ({
   }, []);
 
   useEffect(() => {
+    if (forceScheduledPreview || forceSlotPassedPreview) {
+      return;
+    }
     if (!homePreloadComplete || forceRefreshFromProfile) {
       return;
     }
     applyPreloadedSnapshot(preloadedData);
-  }, [preloadedData, homePreloadComplete, forceRefreshFromProfile, applyPreloadedSnapshot]);
+  }, [
+    preloadedData,
+    homePreloadComplete,
+    forceRefreshFromProfile,
+    applyPreloadedSnapshot,
+    forceScheduledPreview,
+    forceSlotPassedPreview,
+  ]);
 
   useLayoutEffect(() => {
     let isActive = true;
+
+    if (forceScheduledPreview || forceSlotPassedPreview) {
+      setIsNoDataHome(true);
+      setIsOverviewResolved(true);
+      setNoDataStage(forceSlotPassedPreview ? 'slot_passed' : 'camp_scheduled');
+      return () => {
+        isActive = false;
+      };
+    }
 
     if (homePreloadComplete && !forceRefreshFromProfile) {
       applyPreloadedSnapshot(preloadedData);
@@ -1438,6 +1545,8 @@ const HomePage = ({
     };
   }, [
     forceRefreshFromProfile,
+    forceScheduledPreview,
+    forceSlotPassedPreview,
     hasStableOverviewData,
     homePreloadComplete,
     preloadedData,
@@ -1446,6 +1555,24 @@ const HomePage = ({
 
   useEffect(() => {
     let cancelled = false;
+
+    if (forceSlotPassedPreview) {
+      setUpcomingSlotNormalized(PREVIEW_SLOT_PASSED_SLOT);
+      setUpcomingSlotStatus('ready');
+      setB2cSlotEnded(true);
+      setIsNoDataHome(true);
+      setNoDataStage('slot_passed');
+      return undefined;
+    }
+
+    if (forceScheduledPreview) {
+      setUpcomingSlotNormalized(PREVIEW_B2C_SCHEDULED_SLOT);
+      setUpcomingSlotStatus('ready');
+      setB2cSlotEnded(false);
+      setIsNoDataHome(true);
+      setNoDataStage('camp_scheduled');
+      return undefined;
+    }
 
     if (!isOverviewResolved) {
       return undefined;
@@ -1476,7 +1603,7 @@ const HomePage = ({
     return () => {
       cancelled = true;
     };
-  }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile]);
+  }, [isOverviewResolved, isNoDataHome, forceRefreshFromProfile, forceScheduledPreview, forceSlotPassedPreview]);
 
   // New upcoming slot = new camp cycle; don't reuse stale questionnaire submitted/draft caches.
   useEffect(() => {
@@ -2053,6 +2180,93 @@ const HomePage = ({
               pill={slotNorm.isB2b ? 'Arrive 10 mins early' : null}
               rows={slotCardRows}
               statusText={isB2cScheduled ? 'Your Health Companion is on the way' : null}
+            />
+          </div>
+
+          <PrepStepsDeck />
+
+          {showCampQuestionnaireCta ? (
+            <div className="home-page-b2b__cta-wrap home-page-b2b__cta-wrap--camp">
+              <button type="button" className="home-page-b2b__cta" onClick={openB2bQuestionnaire}>
+                Complete your Health Assessment
+              </button>
+            </div>
+          ) : null}
+
+          <NavBar defaultActive="home" onNavigate={handleNavigate} />
+        </div>
+      );
+    }
+
+    if (noDataStage === 'slot_passed') {
+      const slotLocationLines = formatSlotLocationLines(slotNorm);
+      const cabinTitle = slotLocationLines.primary || 'Collection Cabin';
+      const cabinSub = slotLocationLines.secondary || '';
+      const showCampQuestionnaireCta = showHealthQuestionnaireCta;
+
+      return (
+        <div
+          className={`home-page home-page--no-data-scheduled home-page--b2b-camp home-page--slot-passed${
+            showCampQuestionnaireCta ? ' home-page--camp-scheduled-cta' : ''
+          }`}
+        >
+          <Header
+            name={userName}
+            onMenuClick={handleMenuClick}
+            leadingMode={isReturningUserJourneyView ? 'back' : 'profile'}
+            onBackClick={handleBackFromReturningJourney}
+          />
+
+          <section className="home-page-scheduled__hero">
+            <div className="home-page-scheduled__hero-inner">
+              <div
+                className="home-page-scheduled__clock-wrap home-page-scheduled__clock-wrap--camp-hero home-page-scheduled__clock-wrap--passed"
+                aria-hidden="true"
+              >
+                <span className="home-page-scheduled__clock-glow home-page-scheduled__clock-glow--passed" />
+                <div className="home-page-scheduled__clock-stack">
+                  <img
+                    src={clockCircleSrc}
+                    alt=""
+                    className="home-page-scheduled__clock-circle"
+                    width={105}
+                    height={105}
+                    decoding="async"
+                  />
+                  <img
+                    src={clockHandsSrc}
+                    alt=""
+                    className="home-page-scheduled__clock-hands"
+                    width={34}
+                    height={46}
+                    decoding="async"
+                  />
+                </div>
+                <span className="home-page-scheduled__warning-badge">
+                  <img src={slotPassedWarningSrc} alt="" width={26} height={24} decoding="async" />
+                </span>
+              </div>
+              <div className="home-page-scheduled__hero-copy">
+                <h2>Your Slot has Passed</h2>
+              </div>
+            </div>
+          </section>
+
+          <div className="home-page-scheduled__card home-page-scheduled__card--home-collection-wrap">
+            <SlotDetailsCard
+              title="Collection Cabin"
+              rows={[
+                {
+                  id: 'cabin',
+                  icon: 'cabin',
+                  title: cabinTitle,
+                  sub: cabinSub,
+                },
+              ]}
+              walkInMessage={{
+                prefix: 'Walk in & complete your health check ',
+                highlight: 'now',
+              }}
             />
           </div>
 

@@ -99,11 +99,14 @@ export const parseDoctorOfflineSchedule = (engagementDetails, expertType = 'doct
     slotsByDate[dateKey] = Array.from(slotMap.values()).sort((a, b) => a.apiSlot.localeCompare(b.apiSlot));
   });
 
+  const hasCabins = Object.values(cabinsByDate).some((cabins) => cabins.length > 0);
+
   return {
     dateOptions,
     cabinsByDate,
     slotsByDate,
     slotDurationMinutes: defaultSlotDuration,
+    hasCabins,
   };
 };
 
@@ -125,4 +128,185 @@ export const getOfflineCabinsForSelection = (schedule, selectedDate, selectedDis
       };
     })
     .filter((cabin) => cabin.available);
+};
+
+const normalizeOnlineSlotItem = (slotItem) => {
+  if (typeof slotItem === 'string') {
+    const apiSlot = slotItem.trim();
+    if (!apiSlot) {
+      return null;
+    }
+    return {
+      apiSlot,
+      displaySlot: formatApiSlotToDisplay(apiSlot),
+      spotLeft: 1,
+    };
+  }
+
+  if (!slotItem || typeof slotItem !== 'object') {
+    return null;
+  }
+
+  const apiSlot = String(slotItem.slot || slotItem.time || slotItem.start_time || '').trim();
+  if (!apiSlot) {
+    return null;
+  }
+
+  const spotLeft = slotItem.spot_left
+    ?? slotItem.spots_left
+    ?? slotItem.available_spots
+    ?? slotItem.available_slot;
+  if (spotLeft != null && Number(spotLeft) <= 0) {
+    return null;
+  }
+  if (slotItem.available === false) {
+    return null;
+  }
+
+  const durationMinutes = Number(slotItem.duration || slotItem.slot_duration) > 0
+    ? Number(slotItem.duration || slotItem.slot_duration)
+    : null;
+
+  return {
+    apiSlot,
+    displaySlot: formatApiSlotToDisplay(apiSlot),
+    spotLeft: Number(spotLeft) > 0 ? Number(spotLeft) : 1,
+    durationMinutes,
+  };
+};
+
+const buildScheduleFromDateMap = (consultationByDate, slotDurationMinutes = 30) => {
+  const dateKeys = Object.keys(consultationByDate || {})
+    .filter((key) => /^\d{4}-\d{2}-\d{2}$/.test(key))
+    .sort();
+  const slotsByDate = {};
+  const cabinsByDate = {};
+  let defaultSlotDuration = slotDurationMinutes;
+
+  dateKeys.forEach((dateKey) => {
+    const rawEntries = consultationByDate[dateKey];
+    const slotList = Array.isArray(rawEntries) ? rawEntries : [];
+    const slotMap = new Map();
+    const cabinMap = new Map();
+
+    slotList.forEach((entry) => {
+      const normalized = normalizeOnlineSlotItem(entry);
+      if (!normalized) {
+        return;
+      }
+
+      if (normalized.durationMinutes) {
+        defaultSlotDuration = normalized.durationMinutes;
+      }
+
+      slotMap.set(normalized.apiSlot, normalized);
+
+      const cabinKey = entry?.cabin_key || entry?.cabin;
+      if (cabinKey) {
+        const cabinLabel = entry?.cabin_name || entry?.cabin_label || cabinKey;
+        const cabinId = String(cabinKey);
+        if (!cabinMap.has(cabinId)) {
+          cabinMap.set(cabinId, {
+            key: cabinId,
+            label: String(cabinLabel),
+            slotDuration: normalized.durationMinutes || defaultSlotDuration,
+            availableSlots: [],
+          });
+        }
+        cabinMap.get(cabinId).availableSlots.push(normalized);
+      }
+    });
+
+    slotsByDate[dateKey] = Array.from(slotMap.values()).sort((a, b) => a.apiSlot.localeCompare(b.apiSlot));
+    if (cabinMap.size > 0) {
+      cabinsByDate[dateKey] = Array.from(cabinMap.values());
+    }
+  });
+
+  const filteredDateKeys = dateKeys.filter((dateKey) => (slotsByDate[dateKey] || []).length > 0);
+  const hasCabins = Object.values(cabinsByDate).some((cabins) => cabins.length > 0);
+
+  return {
+    dateOptions: filteredDateKeys.map(parseApiDate),
+    cabinsByDate,
+    slotsByDate,
+    slotDurationMinutes: defaultSlotDuration,
+    isOnline: true,
+    hasCabins,
+  };
+};
+
+const resolveExpertSlotsBlock = (root, expertType = 'doctor') => {
+  const normalizedType = String(expertType || 'doctor').toLowerCase();
+  const expertBlock = root?.[normalizedType];
+
+  if (!expertBlock || typeof expertBlock !== 'object' || Array.isArray(expertBlock)) {
+    return null;
+  }
+
+  const dateKeys = Object.keys(expertBlock).filter((key) => /^\d{4}-\d{2}-\d{2}$/.test(key));
+  if (dateKeys.length === 0) {
+    return null;
+  }
+
+  return expertBlock;
+};
+
+/** Parse GET /experts/consultations/slots into the shared schedule shape. */
+export const parseOnlineConsultationSchedule = (slotsResponse, expertType = 'doctor') => {
+  const root = slotsResponse?.data ?? slotsResponse ?? {};
+  const expertBlock = resolveExpertSlotsBlock(root, expertType);
+
+  if (expertBlock) {
+    return buildScheduleFromDateMap(expertBlock);
+  }
+
+  const slotDurationMinutes = Number(
+    root.slot_duration
+    || root.slot_duration_minutes
+    || root.default_slot_duration
+    || 30,
+  ) || 30;
+
+  if (root?.slot_detail?.consultation) {
+    const offline = parseDoctorOfflineSchedule({ slot_detail: root.slot_detail }, expertType);
+    return {
+      ...offline,
+      isOnline: true,
+      hasCabins: Object.values(offline.cabinsByDate || {}).some((cabins) => cabins.length > 0),
+    };
+  }
+
+  const dateMapCandidate = [root.availability, root.slots, root.consultation, root.schedule]
+    .find((candidate) => candidate && typeof candidate === 'object' && !Array.isArray(candidate));
+
+  if (dateMapCandidate) {
+    return buildScheduleFromDateMap(dateMapCandidate, slotDurationMinutes);
+  }
+
+  if (Array.isArray(root.dates)) {
+    const consultationByDate = {};
+    root.dates.forEach((entry) => {
+      const dateKey = String(entry?.date || entry?.booking_date || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+        return;
+      }
+      consultationByDate[dateKey] = entry.available_slots || entry.slots || [];
+    });
+    return buildScheduleFromDateMap(consultationByDate, slotDurationMinutes);
+  }
+
+  const directDateMap = buildScheduleFromDateMap(root, slotDurationMinutes);
+  if (directDateMap.dateOptions.length > 0) {
+    return directDateMap;
+  }
+
+  return {
+    dateOptions: [],
+    cabinsByDate: {},
+    slotsByDate: {},
+    slotDurationMinutes,
+    isOnline: true,
+    hasCabins: false,
+  };
 };

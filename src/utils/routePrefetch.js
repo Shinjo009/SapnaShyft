@@ -31,6 +31,7 @@ const APP_ROUTE_LOADERS = {
   'add-account': () => import('../pages/AddAccountPage'),
   'edit-profile': () => import('../pages/EditProfilePage'),
   faq: () => import('../pages/FAQPage'),
+  'rate-experience': () => import('../pages/RateExperiencePage'),
   terms: () => import('../pages/TermsConditionsPage'),
   'privacy-policy': () => import('../pages/PrivacyPolicyPage'),
   'health-assessment': () => import('../pages/HealthAssessmentPage'),

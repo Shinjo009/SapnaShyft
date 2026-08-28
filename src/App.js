@@ -91,6 +91,7 @@ const PermissionsPage = lazy(() => import('./pages/PermissionsPage'));
 const AddAccountPage = lazy(() => import('./pages/AddAccountPage'));
 const EditProfilePage = lazy(() => import('./pages/EditProfilePage'));
 const FAQPage = lazy(() => import('./pages/FAQPage'));
+const RateExperiencePage = lazy(() => import('./pages/RateExperiencePage'));
 const TermsConditionsPage = lazy(() => import('./pages/TermsConditionsPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const HealthAssessmentPage = lazy(() => import('./pages/HealthAssessmentPage'));
@@ -1219,6 +1220,22 @@ function App() {
   }, [currentPage, isBootstrappingSession]);
 
   useEffect(() => {
+    if (isBootstrappingSession || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const previewPage = String(params.get('page') || '').trim();
+    if (previewPage === 'rate-experience') {
+      setCurrentPage('rate-experience');
+    } else if (previewPage === 'home-scheduled' || previewPage === 'home-slot-passed') {
+      setCurrentPage('home');
+    }
+
+    return undefined;
+  }, [isBootstrappingSession]);
+
+  useEffect(() => {
     const userAgent = window.navigator.userAgent || '';
     const isIosDevice = /iPhone|iPad|iPod/i.test(userAgent)
       || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
@@ -1859,12 +1876,26 @@ function App() {
 
       {currentPage === 'home' && (
         <HomePage
-          key={`home-${selectedAccountId ?? currentUserId ?? 'guest'}`}
+          key={`home-${selectedAccountId ?? currentUserId ?? 'guest'}${
+            typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('page') === 'home-scheduled'
+              ? '-scheduled-preview'
+              : typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('page') === 'home-slot-passed'
+                ? '-slot-passed-preview'
+                : ''
+          }`}
           userName={userName}
           userAge={userAge}
           employerOrganizerFallback={employerOrganizerName}
           preloadedData={preloadedHomeData}
           forceRefreshFromProfile={forceHomeApiRefresh}
+          forceScheduledPreview={
+            typeof window !== 'undefined'
+            && new URLSearchParams(window.location.search).get('page') === 'home-scheduled'
+          }
+          forceSlotPassedPreview={
+            typeof window !== 'undefined'
+            && new URLSearchParams(window.location.search).get('page') === 'home-slot-passed'
+          }
           onNavigateToHealthScan={() => {
             console.log('Navigate to Health Span Index');
             setSelectedHealthScanTab(0);
@@ -2353,6 +2384,9 @@ function App() {
             console.log("Navigate to FAQ's");
             setCurrentPage('faq');
           }}
+          onOpenRateExperience={() => {
+            setCurrentPage('rate-experience');
+          }}
           onOpenTerms={() => {
             console.log('Navigate to Terms & Conditions');
             setCurrentPage('terms');
@@ -2435,6 +2469,15 @@ function App() {
         <FAQPage
           onBack={() => {
             console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'rate-experience' && (
+        <RateExperiencePage
+          currentUserId={currentUserId}
+          onBack={() => {
             setCurrentPage('profile');
           }}
         />

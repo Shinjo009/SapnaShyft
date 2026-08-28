@@ -48,6 +48,70 @@ export const getEngagementConsultation = async (engagementId) => {
   return parsedBody?.data ?? parsedBody;
 };
 
+export const resolveConsultationIdForExpertType = (consultationData, expertType) => {
+  const normalizedType = String(expertType || '').toLowerCase();
+  if (!normalizedType) {
+    return null;
+  }
+
+  const myConsultations = Array.isArray(consultationData?.my_consultations)
+    ? consultationData.my_consultations
+    : [];
+
+  const matches = myConsultations.filter(
+    (item) => String(item?.expert_type || '').toLowerCase() === normalizedType,
+  );
+
+  if (matches.length === 0) {
+    return null;
+  }
+
+  const withId = matches.filter((item) => {
+    const id = Number(item?.consultation_id);
+    return Number.isFinite(id) && id > 0;
+  });
+
+  const target = withId[withId.length - 1] || matches[matches.length - 1];
+  const consultationId = Number(target?.consultation_id);
+  return Number.isFinite(consultationId) && consultationId > 0 ? consultationId : null;
+};
+
+/**
+ * Record health-data sharing consent for a consultation.
+ * POST /engagements/{engagement_id}/consultation/{consultation_id}/consent
+ */
+export const submitEngagementConsultationConsent = async ({
+  engagementId,
+  consultationId,
+  bioAi = false,
+  bloodReport = false,
+  questionnaire = false,
+}) => {
+  const engagement = Number(engagementId);
+  const consultation = Number(consultationId);
+
+  if (!Number.isFinite(engagement) || engagement <= 0) {
+    throw new Error('Invalid engagement id.');
+  }
+  if (!Number.isFinite(consultation) || consultation <= 0) {
+    throw new Error('Invalid consultation id.');
+  }
+
+  const parsedBody = await authorizedRequest(
+    `/engagements/${engagement}/consultation/${consultation}/consent`,
+    {
+      method: 'POST',
+      payload: {
+        bio_ai: Boolean(bioAi),
+        blood_report: Boolean(bloodReport),
+        questionnaire: Boolean(questionnaire),
+      },
+    },
+  );
+
+  return parsedBody?.data ?? parsedBody;
+};
+
 /**
  * Engagement details by public code, including offline slot_detail.
  * GET /engagements/code/{engagement_code}

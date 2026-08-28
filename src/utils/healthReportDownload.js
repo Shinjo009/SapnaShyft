@@ -1,6 +1,9 @@
 import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../config/appConfig';
 import { getAccessToken } from './authStorage';
-import { getLatestMetsightsBasicOrProAssessmentIdCached } from '../services/reportService';
+import {
+  getLatestMetsightsBasicOrProAssessmentIdCached,
+  peekMyAssessmentsRowsCached,
+} from '../services/reportService';
 import {
   getFixedBioAiReportPdfUrl,
   getFixedBloodReportPdfUrl,
@@ -30,6 +33,43 @@ const openReportUrl = (reportUrl) => {
   link.remove();
 };
 
+const pickAssessmentRowDate = (row) => {
+  if (!row || typeof row !== 'object') {
+    return null;
+  }
+  return (
+    row.completed_at
+    || row.completedAt
+    || row.updated_at
+    || row.updatedAt
+    || row.created_at
+    || row.createdAt
+    || row.assigned_at
+    || row.assignedAt
+    || row.assessment?.completed_at
+    || row.assessment?.updated_at
+    || row.assessment?.created_at
+    || row.assessment?.assigned_at
+    || null
+  );
+};
+
+const extractAssessmentIdFromRow = (row) => {
+  if (!row || typeof row !== 'object') {
+    return null;
+  }
+  return (
+    row.assessment_instance_id
+    || row.assessmentInstanceId
+    || row.assessment_id
+    || row.assessmentId
+    || row.id
+    || row.assessment?.assessment_instance_id
+    || row.assessment?.id
+    || null
+  );
+};
+
 const resolveAssessmentId = async () => {
   const assessmentId = await getLatestMetsightsBasicOrProAssessmentIdCached();
   if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
@@ -44,6 +84,29 @@ export const hasAvailableHealthReports = async () => {
     return Number.isFinite(assessmentId) && assessmentId > 0;
   } catch {
     return false;
+  }
+};
+
+/** Latest report meta for Reports page cards (id + date). */
+export const getLatestHealthReportMeta = async () => {
+  try {
+    const assessmentId = await getLatestMetsightsBasicOrProAssessmentIdCached();
+    if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
+      return null;
+    }
+
+    const rows = await peekMyAssessmentsRowsCached(45000);
+    const matched = (Array.isArray(rows) ? rows : []).find((row) => {
+      const id = Number(extractAssessmentIdFromRow(row));
+      return id === assessmentId;
+    }) || null;
+
+    return {
+      assessmentId,
+      date: pickAssessmentRowDate(matched),
+    };
+  } catch {
+    return null;
   }
 };
 

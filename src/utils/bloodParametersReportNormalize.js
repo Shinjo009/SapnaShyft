@@ -133,6 +133,125 @@ export const getBloodParameterTestsFromGroup = (group) => {
   return [];
 };
 
+/**
+ * Historical readings embedded on a blood-parameter test row (when the backend
+ * already returns prior results with the list payload).
+ * @returns {{ date: string, value: number }[]}
+ */
+export const extractBloodParameterHistoryPoints = (test) => {
+  const t = test && typeof test === 'object' ? test : {};
+  const candidates = [
+    t.history,
+    t.history_points,
+    t.historyPoints,
+    t.data_points,
+    t.dataPoints,
+    t.previous_values,
+    t.previousValues,
+    t.past_values,
+    t.pastValues,
+    t.trend_points,
+    t.trendPoints,
+    t.values_over_time,
+    t.valuesOverTime,
+    t.readings,
+  ];
+
+  let rawList = null;
+  for (let i = 0; i < candidates.length; i += 1) {
+    if (Array.isArray(candidates[i]) && candidates[i].length > 0) {
+      rawList = candidates[i];
+      break;
+    }
+  }
+
+  const points = [];
+
+  if (rawList) {
+    rawList.forEach((item) => {
+      if (item == null) {
+        return;
+      }
+      if (typeof item === 'number' || typeof item === 'string') {
+        const value = coerceFiniteNumber(item);
+        if (value !== undefined) {
+          points.push({ date: '', value });
+        }
+        return;
+      }
+      if (typeof item !== 'object') {
+        return;
+      }
+      const value = coerceFiniteNumber(firstDefined(
+        item.value,
+        item.Value,
+        item.result,
+        item.observed_value,
+        item.observedValue,
+        item.numeric_value,
+        item.numericValue,
+        item.reading,
+      ));
+      const date = String(firstDefined(
+        item.date,
+        item.Date,
+        item.collected_at,
+        item.collectedAt,
+        item.report_date,
+        item.reportDate,
+        item.engagement_date,
+        item.engagementDate,
+        item.tested_at,
+        item.testedAt,
+        item.label,
+      ) ?? '').trim();
+      if (value === undefined) {
+        return;
+      }
+      points.push({ date, value });
+    });
+  }
+
+  // Single prior reading aliases (common on list payloads).
+  const priorValue = coerceFiniteNumber(firstDefined(
+    t.previous_value,
+    t.previousValue,
+    t.last_value,
+    t.lastValue,
+    t.prior_value,
+    t.priorValue,
+  ));
+  if (priorValue !== undefined) {
+    const priorDate = String(firstDefined(
+      t.previous_date,
+      t.previousDate,
+      t.last_date,
+      t.lastDate,
+      t.prior_date,
+      t.priorDate,
+    ) ?? '').trim();
+    const alreadyHas = points.some((point) => (
+      point.value === priorValue && (!priorDate || point.date === priorDate)
+    ));
+    if (!alreadyHas) {
+      points.unshift({ date: priorDate, value: priorValue });
+    }
+  }
+
+  return points
+    .filter((point) => Number.isFinite(point.value))
+    .sort((a, b) => {
+      const aTime = a.date ? new Date(a.date).getTime() : NaN;
+      const bTime = b.date ? new Date(b.date).getTime() : NaN;
+      if (Number.isFinite(aTime) && Number.isFinite(bTime)) {
+        return aTime - bTime;
+      }
+      if (Number.isFinite(aTime)) return -1;
+      if (Number.isFinite(bTime)) return 1;
+      return 0;
+    });
+};
+
 export const normalizeBloodParameterTestRow = (test) => {
   const t = test && typeof test === 'object' ? test : {};
   const test_name = String(firstDefined(
@@ -239,6 +358,7 @@ export const normalizeBloodParameterTestRow = (test) => {
     unit: unit || null,
     test_id: firstDefined(t.test_id, t.testId, t.id) ?? null,
     diagnostic_test_id: firstDefined(t.diagnostic_test_id, t.diagnosticTestId) ?? null,
+    history_points: extractBloodParameterHistoryPoints(t),
   };
 };
 

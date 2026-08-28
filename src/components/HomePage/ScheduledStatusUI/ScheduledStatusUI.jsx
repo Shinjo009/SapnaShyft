@@ -4,6 +4,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './ScheduledStatusUI.css';
+import cabinIconSrc from '../../../images/slot-passed/conference-room.svg';
 
 /** Same 3 prep cards for B2B camp and B2C home collection. */
 export const PREP_STEPS = [
@@ -69,17 +70,31 @@ const HouseTrackIcon = () => (
   </svg>
 );
 
+const CabinRowIcon = () => (
+  <img
+    src={cabinIconSrc}
+    alt=""
+    width={24}
+    height={24}
+    className="home-collection-card__cabin-icon"
+    decoding="async"
+  />
+);
+
 const SlotRowIcon = ({ type }) => {
   if (type === 'location') return <LocationRowIcon />;
   if (type === 'calendar') return <SlotDateCalendarIcon />;
+  if (type === 'cabin') return <CabinRowIcon />;
   return <TimeRowIcon />;
 };
 
 /**
- * Slot summary card — "Home Collection" (B2C) or "Your Assigned Slot" (B2B).
- * @param {{ id: string, icon?: 'time'|'location'|'calendar', title: string, sub?: string }[]} rows
+ * Slot summary card — "Home Collection" (B2C), "Your Assigned Slot" (B2B),
+ * or "Collection Cabin" (slot passed / walk-in).
+ * @param {{ id: string, icon?: 'time'|'location'|'calendar'|'cabin', title: string, sub?: string }[]} rows
+ * @param {{ prefix: string, highlight: string, suffix?: string }} [walkInMessage]
  */
-export const SlotDetailsCard = ({ title, pill, rows = [], statusText }) => (
+export const SlotDetailsCard = ({ title, pill, rows = [], statusText, walkInMessage = null }) => (
   <section className="home-collection-card" aria-label={title}>
     {pill ? (
       <div className="home-collection-card__head">
@@ -103,6 +118,17 @@ export const SlotDetailsCard = ({ title, pill, rows = [], statusText }) => (
         </div>
       ))}
     </div>
+
+    {walkInMessage ? (
+      <div className="home-collection-card__walk-in">
+        <hr className="home-collection-card__divider" />
+        <p className="home-collection-card__walk-in-text">
+          {walkInMessage.prefix}
+          <span className="home-collection-card__walk-in-highlight">{walkInMessage.highlight}</span>
+          {walkInMessage.suffix || ''}
+        </p>
+      </div>
+    ) : null}
 
     {statusText ? (
       <div className="home-collection-card__status">
@@ -186,35 +212,246 @@ const StepIcon = ({ type }) => {
   return <FastingStepIcon />;
 };
 
+const SNAP_DURATION_MS = 480;
+const easeOutCubic = (t) => 1 - ((1 - t) ** 3);
+
 /**
- * Stacked prep cards with continuous free-scroll (no snap).
- * One long horizontal swipe can travel first → last.
+ * Stacked prep cards with page snap.
+ * Drag freely; release past halfway (or with enough flick) and the deck
+ * settles on the next/previous card by itself.
  */
 export const PrepStepsDeck = ({ steps = PREP_STEPS }) => {
   const scrollerRef = useRef(null);
+  const dragRef = useRef({
+    active: false,
+    pointerId: null,
+    startX: 0,
+    startScrollLeft: 0,
+    lastX: 0,
+    lastTime: 0,
+    velocity: 0,
+  });
+  const snapTimeoutRef = useRef(null);
+  const isSnappingRef = useRef(false);
+  const snapAnimRef = useRef(null);
   const [progress, setProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const stepCount = steps.length;
   const maxProgress = Math.max(stepCount - 1, 1);
+
+  const cancelSnapAnimation = useCallback(() => {
+    if (snapAnimRef.current != null) {
+      window.cancelAnimationFrame(snapAnimRef.current);
+      snapAnimRef.current = null;
+    }
+  }, []);
 
   const syncProgress = useCallback(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    const maxScroll = Math.max(el.scrollWidth - el.clientWidth, 1);
-    const next = (el.scrollLeft / maxScroll) * maxProgress;
+    const pageWidth = Math.max(el.clientWidth, 1);
+    const next = el.scrollLeft / pageWidth;
     setProgress(Math.min(maxProgress, Math.max(0, next)));
   }, [maxProgress]);
+
+  const snapToIndex = useCallback((index, { smooth = true } = {}) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const target = Math.min(stepCount - 1, Math.max(0, index));
+    const pageWidth = Math.max(el.clientWidth, 1);
+    const left = target * pageWidth;
+    const startLeft = el.scrollLeft;
+    const distance = left - startLeft;
+
+    if (Math.abs(distance) < 1.5) {
+      cancelSnapAnimation();
+      isSnappingRef.current = false;
+      el.scrollLeft = left;
+      setProgress(target);
+      return;
+    }
+
+    cancelSnapAnimation();
+    isSnappingRef.current = true;
+
+    if (!smooth) {
+      el.scrollLeft = left;
+      isSnappingRef.current = false;
+      setProgress(target);
+      return;
+    }
+
+    // Duration scales a bit with remaining distance so short snaps aren't sluggish.
+    const duration = Math.min(
+      SNAP_DURATION_MS,
+      Math.max(280, Math.abs(distance / pageWidth) * SNAP_DURATION_MS),
+    );
+    const startTime = performance.now();
+
+    const tick = (now) => {
+      const elNow = scrollerRef.current;
+      if (!elNow) {
+        snapAnimRef.current = null;
+        isSnappingRef.current = false;
+        return;
+      }
+
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = easeOutCubic(t);
+      elNow.scrollLeft = startLeft + distance * eased;
+      setProgress(Math.min(maxProgress, Math.max(0, elNow.scrollLeft / pageWidth)));
+
+      if (t < 1) {
+        snapAnimRef.current = window.requestAnimationFrame(tick);
+        return;
+      }
+
+      elNow.scrollLeft = left;
+      setProgress(target);
+      snapAnimRef.current = null;
+      isSnappingRef.current = false;
+    };
+
+    snapAnimRef.current = window.requestAnimationFrame(tick);
+  }, [cancelSnapAnimation, maxProgress, stepCount]);
+
+  const resolveSnapIndex = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return 0;
+    const pageWidth = Math.max(el.clientWidth, 1);
+    const raw = el.scrollLeft / pageWidth;
+    const velocity = dragRef.current.velocity;
+    // Flick: finish the card even if still short of halfway.
+    if (velocity > 0.35) {
+      return Math.min(stepCount - 1, Math.floor(raw) + 1);
+    }
+    if (velocity < -0.35) {
+      return Math.max(0, Math.ceil(raw) - 1);
+    }
+    // Halfway threshold → nearest page.
+    return Math.min(stepCount - 1, Math.max(0, Math.round(raw)));
+  }, [stepCount]);
+
+  const scheduleSnapAfterScroll = useCallback(() => {
+    if (dragRef.current.active || isSnappingRef.current) return;
+    if (snapTimeoutRef.current) {
+      window.clearTimeout(snapTimeoutRef.current);
+    }
+    snapTimeoutRef.current = window.setTimeout(() => {
+      snapTimeoutRef.current = null;
+      if (dragRef.current.active || isSnappingRef.current) return;
+      snapToIndex(resolveSnapIndex(), { smooth: true });
+    }, 90);
+  }, [resolveSnapIndex, snapToIndex]);
 
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return undefined;
+
+    const onScroll = () => {
+      if (isSnappingRef.current) {
+        // Custom rAF snap already updates progress; avoid double work / re-snap.
+        return;
+      }
+      syncProgress();
+      if (!dragRef.current.active) {
+        scheduleSnapAfterScroll();
+      }
+    };
+
     syncProgress();
-    el.addEventListener('scroll', syncProgress, { passive: true });
+    el.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', syncProgress);
     return () => {
-      el.removeEventListener('scroll', syncProgress);
+      el.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', syncProgress);
+      if (snapTimeoutRef.current) {
+        window.clearTimeout(snapTimeoutRef.current);
+      }
+      cancelSnapAnimation();
     };
-  }, [syncProgress]);
+  }, [cancelSnapAnimation, scheduleSnapAfterScroll, syncProgress]);
+
+  const onPointerDown = (event) => {
+    const el = scrollerRef.current;
+    if (!el || event.button !== 0) {
+      return;
+    }
+
+    // Prefer custom drag for mouse; touch uses native pan + idle snap.
+    if (event.pointerType !== 'mouse') {
+      dragRef.current.velocity = 0;
+      return;
+    }
+
+    if (snapTimeoutRef.current) {
+      window.clearTimeout(snapTimeoutRef.current);
+      snapTimeoutRef.current = null;
+    }
+    cancelSnapAnimation();
+    isSnappingRef.current = false;
+
+    const now = performance.now();
+    dragRef.current = {
+      active: true,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startScrollLeft: el.scrollLeft,
+      lastX: event.clientX,
+      lastTime: now,
+      velocity: 0,
+    };
+    setIsDragging(true);
+
+    try {
+      el.setPointerCapture(event.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
+  const onPointerMove = (event) => {
+    const el = scrollerRef.current;
+    const drag = dragRef.current;
+    if (!el || !drag.active || drag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const now = performance.now();
+    const dt = Math.max(now - drag.lastTime, 1);
+    const dx = event.clientX - drag.lastX;
+    // Store as scroll direction: drag left → positive (toward next card).
+    drag.velocity = -dx / dt;
+    drag.lastX = event.clientX;
+    drag.lastTime = now;
+
+    const deltaX = event.clientX - drag.startX;
+    el.scrollLeft = drag.startScrollLeft - deltaX;
+    syncProgress();
+  };
+
+  const endPointerDrag = (event) => {
+    const drag = dragRef.current;
+    if (!drag.active || (event && drag.pointerId !== event.pointerId)) {
+      return;
+    }
+
+    const el = scrollerRef.current;
+    if (el && event?.pointerId != null) {
+      try {
+        el.releasePointerCapture(event.pointerId);
+      } catch {
+        // ignore
+      }
+    }
+
+    dragRef.current.active = false;
+    dragRef.current.pointerId = null;
+    setIsDragging(false);
+
+    snapToIndex(resolveSnapIndex(), { smooth: true });
+    dragRef.current.velocity = 0;
+  };
 
   const getCardStyle = (index) => {
     const offset = index - progress;
@@ -269,14 +506,18 @@ export const PrepStepsDeck = ({ steps = PREP_STEPS }) => {
 
         <div
           ref={scrollerRef}
-          className="prep-deck__scroller"
+          className={`prep-deck__scroller${isDragging ? ' is-dragging' : ''}`}
           role="region"
           aria-label="Swipe through preparation steps"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endPointerDrag}
+          onPointerCancel={endPointerDrag}
+          onLostPointerCapture={endPointerDrag}
         >
-          <div
-            className="prep-deck__scroll-track"
-            style={{ width: `${stepCount * 100}%` }}
-          />
+          {steps.map((item) => (
+            <div key={item.step} className="prep-deck__snap-page" />
+          ))}
         </div>
       </div>
     </section>

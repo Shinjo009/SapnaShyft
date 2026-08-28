@@ -1006,6 +1006,90 @@
   line-height: 16px;
 }
 
+.blood-markers-page__marker-unit--history {
+  margin-top: 4px;
+  display: block;
+}
+
+.blood-markers-page__stack-card--history {
+  gap: 16px;
+}
+
+.blood-markers-page__stack-card--history .blood-markers-page__card-top-row {
+  align-items: flex-start;
+}
+
+.blood-markers-page__card-bottom-row--history {
+  width: 100%;
+  align-items: stretch;
+}
+
+.blood-markers-page__history-timeline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0;
+}
+
+.blood-markers-page__history-point {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  flex: 0 0 auto;
+  z-index: 1;
+}
+
+.blood-markers-page__history-point--latest {
+  gap: 2px;
+}
+
+.blood-markers-page__history-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  padding: 7px 14px;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  box-sizing: border-box;
+}
+
+.blood-markers-page__history-point--latest .blood-markers-page__history-pill {
+  font-weight: 500;
+  transform: scale(1.08);
+  transform-origin: center bottom;
+}
+
+.blood-markers-page__history-date {
+  color: #9A9A9A;
+  font-family: "DM Sans", sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.blood-markers-page__history-date--latest {
+  color: #FFF;
+}
+
+.blood-markers-page__history-connector {
+  flex: 1 1 auto;
+  align-self: center;
+  height: 2px;
+  min-width: 12px;
+  margin: 0 2px;
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
 .blood-markers-page__risk-chip {
   display: inline-flex;
   flex-shrink: 0;

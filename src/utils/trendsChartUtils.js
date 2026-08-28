@@ -115,6 +115,84 @@ export const formatTrendDateLabel = (isoDate) => {
   return `${day} ${month} '${year}`;
 };
 
+/** Compact card timeline label, e.g. Sep'24 */
+export const formatBloodMarkerHistoryDate = (isoDate) => {
+  const raw = String(isoDate || '').trim();
+  if (!raw) {
+    return '';
+  }
+
+  const date = new Date(raw);
+  if (!Number.isNaN(date.getTime())) {
+    const month = date.toLocaleString('en-US', { month: 'short' });
+    const year = String(date.getFullYear()).slice(-2);
+    return `${month}'${year}`;
+  }
+
+  // Already-compact labels from backend (Sep'24 / Sep 24).
+  const compact = raw.match(/^([A-Za-z]{3})[^\d]*'?(\d{2})$/);
+  if (compact) {
+    return `${compact[1]}'${compact[2]}`;
+  }
+
+  return raw;
+};
+
+/**
+ * Build up to 3 timeline points for blood-marker stack cards.
+ * Prefers embedded history; otherwise uses trends points.
+ */
+export const buildBloodMarkerHistoryTimeline = ({
+  historyPoints = [],
+  currentValue = null,
+  currentDate = '',
+  maxPoints = 3,
+} = {}) => {
+  const merged = [];
+
+  (Array.isArray(historyPoints) ? historyPoints : []).forEach((point) => {
+    const value = Number(point?.value);
+    if (!Number.isFinite(value)) {
+      return;
+    }
+    merged.push({
+      date: String(point?.date || '').trim(),
+      value,
+    });
+  });
+
+  const current = Number(currentValue);
+  if (Number.isFinite(current)) {
+    const currentKey = String(currentDate || '').trim();
+    const last = merged[merged.length - 1];
+    const sameAsLast = last
+      && last.value === current
+      && (!currentKey || !last.date || last.date === currentKey);
+    if (!sameAsLast) {
+      merged.push({ date: currentKey, value: current });
+    } else if (currentKey && !last.date) {
+      last.date = currentKey;
+    }
+  }
+
+  const dated = merged
+    .map((point, index) => ({ ...point, index }))
+    .sort((a, b) => {
+      const aTime = a.date ? new Date(a.date).getTime() : NaN;
+      const bTime = b.date ? new Date(b.date).getTime() : NaN;
+      if (Number.isFinite(aTime) && Number.isFinite(bTime)) {
+        return aTime - bTime;
+      }
+      return a.index - b.index;
+    });
+
+  if (dated.length < 2) {
+    return [];
+  }
+
+  return dated.slice(-Math.max(2, maxPoints)).map(({ date, value }) => ({ date, value }));
+};
+
 export const normalizeTrendsPayload = (payload, variant = 'blood') => {
   const root = payload?.data && typeof payload.data === 'object'
     ? payload.data

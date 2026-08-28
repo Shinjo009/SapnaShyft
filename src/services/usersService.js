@@ -35,6 +35,36 @@ export const saveSuperclubMcqPreferences = async (sportsPlaylists) => {
   return updateMyPreferences(payload);
 };
 
+export const submitExperienceReview = async ({
+  userId,
+  overallMood,
+  categoryRatings,
+  improvementTags = [],
+  comments = '',
+}) => {
+  const parsedUserId = Number(userId || 0);
+
+  if (!Number.isFinite(parsedUserId) || parsedUserId <= 0) {
+    throw new Error('Unable to submit review. Please sign in again and try.');
+  }
+
+  if (!overallMood) {
+    throw new Error('Please select your overall experience.');
+  }
+
+  const response = await authorizedUsersRequest('/experience-reviews', 'POST', {
+    user_id: parsedUserId,
+    overall_mood: overallMood,
+    blood_collection_rating: Number(categoryRatings?.blood_collection || 0),
+    bio_ai_reports_rating: Number(categoryRatings?.bio_ai_reports || 0),
+    consultations_rating: Number(categoryRatings?.consultations || 0),
+    improvement_tags: Array.isArray(improvementTags) ? improvementTags : [],
+    comments: String(comments || '').trim(),
+  });
+
+  return response?.data || response;
+};
+
 export const submitSupportTicket = ({ user_id, query_text }) => {
   const parsedUserId = Number(user_id || 0);
 

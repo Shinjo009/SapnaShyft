@@ -200,6 +200,34 @@
   min-width: 0;
 }
 
+.home-collection-card__cabin-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+  object-fit: contain;
+}
+
+.home-collection-card__walk-in {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-self: stretch;
+}
+
+.home-collection-card__walk-in-text {
+  margin: 0;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.8px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.home-collection-card__walk-in-highlight {
+  color: #f7de30;
+  font-weight: 600;
+}
+
 /* —— Preparation checklist card deck —— */
 
 .prep-deck-section {
@@ -255,6 +283,7 @@
   position: absolute;
   inset: 0;
   z-index: 5;
+  display: flex;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -262,18 +291,25 @@
   scrollbar-width: none;
   overscroll-behavior-x: contain;
   cursor: grab;
+  touch-action: pan-x;
+  /* Snap is handled in JS with a custom ease — CSS snap feels instant. */
+  scroll-snap-type: none;
 }
 
 .prep-deck__scroller::-webkit-scrollbar {
   display: none;
 }
 
-.prep-deck__scroller:active {
+.prep-deck__scroller:active,
+.prep-deck__scroller.is-dragging {
   cursor: grabbing;
 }
 
-.prep-deck__scroll-track {
+.prep-deck__snap-page {
+  flex: 0 0 100%;
+  width: 100%;
   height: 100%;
+  box-sizing: border-box;
 }
 
 .prep-deck__card {

@@ -4,12 +4,18 @@ import './BloodMarkersPage.css';
 import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
 import { getAccessToken } from '../../utils/authStorage';
 import { formatApiContentDisplay } from '../../utils/formatApiContentDisplay';
-import { fetchLatestAssessmentReport } from '../../services/reportService';
+import { fetchLatestAssessmentReport, fetchReportTrends } from '../../services/reportService';
 import { buildBloodParametersGroupsForAssessment } from '../../utils/assessmentBloodMarkerSupplements';
 import TrendsChart from '../../components/TrendsChart';
-import { toBloodParameterKey } from '../../utils/trendsChartUtils';
+import {
+  buildBloodMarkerHistoryTimeline,
+  formatBloodMarkerHistoryDate,
+  normalizeTrendsPayload,
+  toBloodParameterKey,
+} from '../../utils/trendsChartUtils';
 import {
   extractBloodParameterGroupsArray,
+  extractBloodParameterHistoryPoints,
   getBloodParameterTestsFromGroup,
   normalizeBloodParameterTestRow,
   normalizeBloodParametersReportPayload,
@@ -88,12 +94,19 @@ const RISK_META = {
   },
   increased: {
     label: 'MODERATE RISK',
-    color: '#E95D5C',
+    color: '#EE8B48',
   },
   high: {
     label: 'HIGH RISK',
     color: '#E95D5C',
   },
+};
+
+const HISTORY_POINT_COLORS = {
+  low: '#4ADE80',
+  moderate: '#DAC15A',
+  increased: '#EE8B48',
+  high: '#E95D5C',
 };
 
 const RISK_DOT_BACKGROUND = {
@@ -197,6 +210,31 @@ const getDisplayRiskType = (type) => {
 const getRiskColorByType = (type) => {
   const displayType = getDisplayRiskType(type);
   return RISK_META[displayType]?.color || RISK_META.low.color;
+};
+
+const getHistoryPointColor = (type) => {
+  if (HISTORY_POINT_COLORS[type]) {
+    return HISTORY_POINT_COLORS[type];
+  }
+  return HISTORY_POINT_COLORS[getDisplayRiskType(type)] || HISTORY_POINT_COLORS.low;
+};
+
+const resolveCardHistoryPoints = (card, trendsByParameterKey = {}) => {
+  if (card?.cardRole === 'optimal-aggregate') {
+    return [];
+  }
+
+  const embedded = Array.isArray(card?.historyPoints) ? card.historyPoints : [];
+  const paramKey = toBloodParameterKey(card);
+  const fromTrends = paramKey && Array.isArray(trendsByParameterKey[paramKey])
+    ? trendsByParameterKey[paramKey]
+    : [];
+
+  return buildBloodMarkerHistoryTimeline({
+    historyPoints: embedded.length >= 2 ? embedded : fromTrends,
+    currentValue: card?.rawValue ?? card?.value,
+    maxPoints: 3,
+  });
 };
 
 const getOrganIcon = (organName) => {
@@ -514,6 +552,16 @@ const buildSectionsFromApi = (payloadOrGroups) => {
           normalMax: hasRanges ? higher : null,
           isClassifiable,
           riskType: isClassifiable ? getRiskTypeFromBounds(value, lower, higher) : null,
+          historyPoints: (() => {
+            const embedded = Array.isArray(n.history_points) && n.history_points.length > 0
+              ? n.history_points
+              : extractBloodParameterHistoryPoints(test);
+            return buildBloodMarkerHistoryTimeline({
+              historyPoints: embedded,
+              currentValue: hasValue ? value : null,
+              maxPoints: 8,
+            });
+          })(),
           causes: pickApiList(test, ['causes', 'cause', 'possible_causes', 'reason', 'reasons']),
           effects: pickApiList(test, ['effects', 'effect', 'possible_effects', 'impact', 'impacts']),
         };
@@ -620,6 +668,65 @@ const RiskTrendIcon = ({ type, color: colorOverride }) => {
   );
 };
 
+/** Figma history timeline — shown when prior readings exist for a marker. */
+const BloodMarkerHistoryTimeline = ({
+  points = [],
+  normalMin = null,
+  normalMax = null,
+  currentRiskType = 'low',
+}) => {
+  if (!Array.isArray(points) || points.length < 2) {
+    return null;
+  }
+
+  return (
+    <div className="blood-markers-page__history-timeline" aria-label="Previous results">
+      {points.map((point, index) => {
+        const isLatest = index === points.length - 1;
+        const pointRisk = (
+          Number.isFinite(Number(normalMin)) && Number.isFinite(Number(normalMax))
+            ? getRiskTypeFromBounds(point.value, normalMin, normalMax)
+            : (isLatest ? currentRiskType : 'low')
+        );
+        const color = isLatest
+          ? getRiskColorByType(currentRiskType)
+          : getHistoryPointColor(pointRisk);
+        const dateLabel = formatBloodMarkerHistoryDate(point.date) || (isLatest ? 'Now' : '—');
+
+        return (
+          <React.Fragment key={`history-${index}-${point.value}-${point.date || index}`}>
+            {index > 0 ? (
+              <span className="blood-markers-page__history-connector" aria-hidden="true" />
+            ) : null}
+            <div
+              className={`blood-markers-page__history-point${isLatest ? ' blood-markers-page__history-point--latest' : ''}`}
+            >
+              <span
+                className="blood-markers-page__history-pill"
+                style={{
+                  color,
+                  borderColor: color,
+                  background: `${color}1A`,
+                  boxShadow: isLatest
+                    ? `0 0 10px 0 ${color}40, inset 0 0 10px 0 ${color}33`
+                    : `inset 0 0 10px 0 ${color}33`,
+                }}
+              >
+                {formatValue(point.value)}
+              </span>
+              <span
+                className={`blood-markers-page__history-date${isLatest ? ' blood-markers-page__history-date--latest' : ''}`}
+              >
+                {dateLabel}
+              </span>
+            </div>
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+};
+
 const markerCards = (section) => {
   const cards = [];
 
@@ -634,6 +741,8 @@ const markerCards = (section) => {
       riskType,
       normalMin: test.normalMin,
       normalMax: test.normalMax,
+      rawValue: test.rawValue,
+      historyPoints: Array.isArray(test.historyPoints) ? test.historyPoints : [],
       title: test.title,
       causes: test.causes,
       effects: test.effects,
@@ -712,6 +821,8 @@ const flattenCardsForListView = (cards) => {
           diagnosticTestId: test.diagnosticTestId,
           normalMin: test.normalMin,
           normalMax: test.normalMax,
+          rawValue: test.rawValue,
+          historyPoints: Array.isArray(test.historyPoints) ? test.historyPoints : [],
           title: test.title,
           causes: test.causes,
           effects: test.effects,
@@ -1555,7 +1666,7 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
   );
 };
 
-const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
+const BloodMarkerStackSection = ({ section, onOpenDetail, trendsByParameterKey = {} }) => {
   const [expandedLowCardIds, setExpandedLowCardIds] = useState({});
   const [isViewAllOpen, setIsViewAllOpen] = useState(false);
   const cards = markerCards(section);
@@ -2042,6 +2153,12 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
           const aggregateDetailRows = isAggregateOptimalCard
             ? buildAggregateOptimalRows(card.aggregateTests)
             : [];
+          const historyPoints = resolveCardHistoryPoints(card, trendsByParameterKey);
+          const showHistoryTimeline = historyPoints.length >= 2 && !isAggregateOptimalCard;
+          const unitLabel = String(card.unit || '').trim();
+          const unitDisplay = unitLabel
+            ? (unitLabel.startsWith('(') ? unitLabel : `(${unitLabel})`)
+            : '';
 
           return (
             <article
@@ -2051,7 +2168,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                   frontStackCardRef.current = node;
                 }
               }}
-              className={`blood-markers-page__stack-card blood-markers-page__stack-card--${role} blood-markers-page__stack-card--theme-${card.riskType}${isOptimalPeerCard ? ' blood-markers-page__stack-card--optimal-peer' : ''}${isAggregateOptimalCard ? ' blood-markers-page__stack-card--optimal-aggregate' : ''}${isAggregateOptimalCard && isLowCardExpanded && role === 'front' ? ' blood-markers-page__stack-card--optimal-expanded' : ''}`}
+              className={`blood-markers-page__stack-card blood-markers-page__stack-card--${role} blood-markers-page__stack-card--theme-${card.riskType}${isOptimalPeerCard ? ' blood-markers-page__stack-card--optimal-peer' : ''}${isAggregateOptimalCard ? ' blood-markers-page__stack-card--optimal-aggregate' : ''}${isAggregateOptimalCard && isLowCardExpanded && role === 'front' ? ' blood-markers-page__stack-card--optimal-expanded' : ''}${showHistoryTimeline ? ' blood-markers-page__stack-card--history' : ''}`}
               onClick={() => {
                 if (isAggregateOptimalCard) {
                   setExpandedLowCardIds((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
@@ -2096,6 +2213,24 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                         </span>
                         <span className="blood-markers-page__optimal-title">{OPTIMAL_AGGREGATE_RANGE_TITLE}</span>
                       </>
+                    ) : showHistoryTimeline ? (
+                      <>
+                        <span
+                          className="blood-markers-page__marker-label"
+                          title={
+                            String(card.marker ?? '').length > BLOOD_MARKERS_STACK_CARD_NAME_MAX
+                              ? String(card.marker)
+                              : undefined
+                          }
+                        >
+                          {truncateBloodMarkersStackCardName(card.marker)}
+                        </span>
+                        {unitDisplay ? (
+                          <span className="blood-markers-page__marker-unit blood-markers-page__marker-unit--history">
+                            {unitDisplay}
+                          </span>
+                        ) : null}
+                      </>
                     ) : (
                       <>
                         <span
@@ -2117,7 +2252,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                   </div>
                 </div>
 
-                {!isOptimalPeerCard ? (
+                {!isOptimalPeerCard || showHistoryTimeline ? (
                   <span className="blood-markers-page__risk-chip">
                     <span className="blood-markers-page__risk-chip-text" style={{ color: riskMeta.color }}>{riskMeta.label}</span>
                     <RiskTrendIcon type={card.riskType} />
@@ -2125,29 +2260,40 @@ const BloodMarkerStackSection = ({ section, onOpenDetail }) => {
                 ) : null}
               </div>
 
-              <div className="blood-markers-page__card-bottom-row">
-                <div className="blood-markers-page__meter" aria-hidden="true">
-                  {segments.map((segment, segmentIndex) => (
-                    <span
-                      key={`${card.id}-seg-${segmentIndex}`}
-                      className="blood-markers-page__meter-pill"
-                      style={{ background: segment.background, boxShadow: segment.boxShadow || 'none' }}
-                    />
-                  ))}
+              {showHistoryTimeline ? (
+                <div className="blood-markers-page__card-bottom-row blood-markers-page__card-bottom-row--history">
+                  <BloodMarkerHistoryTimeline
+                    points={historyPoints}
+                    normalMin={card.normalMin}
+                    normalMax={card.normalMax}
+                    currentRiskType={card.riskType}
+                  />
                 </div>
-                {isAggregateOptimalCard ? (
-                  <span
-                    className={`blood-markers-page__optimal-chevron ${isLowCardExpanded ? 'blood-markers-page__optimal-chevron--expanded' : ''}`}
-                    aria-hidden="true"
-                  >
-                    <DownChevron />
-                  </span>
-                ) : (
-                  <span className="blood-markers-page__card-chevron" aria-hidden="true">
-                    <CardChevron />
-                  </span>
-                )}
-              </div>
+              ) : (
+                <div className="blood-markers-page__card-bottom-row">
+                  <div className="blood-markers-page__meter" aria-hidden="true">
+                    {segments.map((segment, segmentIndex) => (
+                      <span
+                        key={`${card.id}-seg-${segmentIndex}`}
+                        className="blood-markers-page__meter-pill"
+                        style={{ background: segment.background, boxShadow: segment.boxShadow || 'none' }}
+                      />
+                    ))}
+                  </div>
+                  {isAggregateOptimalCard ? (
+                    <span
+                      className={`blood-markers-page__optimal-chevron ${isLowCardExpanded ? 'blood-markers-page__optimal-chevron--expanded' : ''}`}
+                      aria-hidden="true"
+                    >
+                      <DownChevron />
+                    </span>
+                  ) : (
+                    <span className="blood-markers-page__card-chevron" aria-hidden="true">
+                      <CardChevron />
+                    </span>
+                  )}
+                </div>
+              )}
 
               {isAggregateOptimalCard ? (
                 <div
@@ -2191,6 +2337,7 @@ const BloodMarkersPage = ({ onBack, initialDetailMarker = null, onInitialDetailC
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [apiSections, setApiSections] = useState([]);
   const [hasLoadedReport, setHasLoadedReport] = useState(false);
+  const [trendsByParameterKey, setTrendsByParameterKey] = useState({});
 
   useEffect(() => {
     if (!initialDetailMarker) {
@@ -2243,6 +2390,74 @@ const BloodMarkersPage = ({ onBack, initialDetailMarker = null, onInitialDetailC
       isActive = false;
     };
   }, []);
+
+  // When list payload has no embedded history, load GET /reports/trends per parameter.
+  useEffect(() => {
+    if (!hasLoadedReport || apiSections.length === 0) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    const keysNeedingTrends = [];
+    const seen = new Set();
+
+    apiSections.forEach((section) => {
+      (section.tests || []).forEach((test) => {
+        const key = toBloodParameterKey(test);
+        if (!key || seen.has(key)) {
+          return;
+        }
+        const embeddedCount = Array.isArray(test.historyPoints) ? test.historyPoints.length : 0;
+        if (embeddedCount >= 2) {
+          return;
+        }
+        seen.add(key);
+        keysNeedingTrends.push(key);
+      });
+    });
+
+    if (keysNeedingTrends.length === 0) {
+      return undefined;
+    }
+
+    const loadTrends = async () => {
+      const next = {};
+      const batchSize = 4;
+
+      for (let i = 0; i < keysNeedingTrends.length; i += batchSize) {
+        if (cancelled) {
+          return;
+        }
+        const batch = keysNeedingTrends.slice(i, i + batchSize);
+        const results = await Promise.allSettled(
+          batch.map((bloodParameter) => fetchReportTrends({ bloodParameter, ttlMs: 60000 })),
+        );
+
+        results.forEach((result, index) => {
+          const key = batch[index];
+          if (result.status !== 'fulfilled') {
+            return;
+          }
+          const normalized = normalizeTrendsPayload(result.value, 'blood');
+          if (normalized.points.length >= 2) {
+            next[key] = normalized.points;
+          }
+        });
+
+        if (!cancelled && Object.keys(next).length > 0) {
+          setTrendsByParameterKey((prev) => ({ ...prev, ...next }));
+        }
+      }
+    };
+
+    loadTrends().catch((error) => {
+      console.warn('Failed to load blood marker history trends:', error?.message || error);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiSections, hasLoadedReport]);
 
   const sections = useMemo(() => {
     return apiSections.filter((section) => section.category === activeFilter);
@@ -2339,7 +2554,12 @@ const BloodMarkersPage = ({ onBack, initialDetailMarker = null, onInitialDetailC
           </p>
         ) : (
           filteredSections.map((section) => (
-            <BloodMarkerStackSection key={section.id} section={section} onOpenDetail={setSelectedMarker} />
+            <BloodMarkerStackSection
+              key={section.id}
+              section={section}
+              onOpenDetail={setSelectedMarker}
+              trendsByParameterKey={trendsByParameterKey}
+            />
           ))
         )}
       </div>

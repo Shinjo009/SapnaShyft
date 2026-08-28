@@ -1,11 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './ReportsPage.css';
-import pdfIcon from '../../images/pdf.svg';
+import backIcon from '../../images/reports/back-icon.svg';
+import chevronIcon from '../../images/reports/chevron-icon.svg';
+import docIcon from '../../images/reports/doc-icon.svg';
+import downloadIcon from '../../images/reports/download-icon.svg';
 import {
-  hasAvailableHealthReports,
+  getLatestHealthReportMeta,
   openBioAiHealthReport,
   openBloodHealthReport,
 } from '../../utils/healthReportDownload';
+
+const RANGE_OPTIONS = Object.freeze([
+  { id: '1y', label: '1 Year', months: 12 },
+  { id: '6m', label: '6 Months', months: 6 },
+  { id: 'all', label: 'All Time', months: null },
+]);
 
 const REPORT_ITEMS = Object.freeze([
   {
@@ -20,33 +29,72 @@ const REPORT_ITEMS = Object.freeze([
   },
 ]);
 
-const ReportEyeIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M22 12C22 12 17.522 18 12 18C6.478 18 2 12 2 12C2 12 6.478 6 12 6C17.522 6 22 12 22 12Z" stroke="white" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M12 15C12.7956 15 13.5587 14.6839 14.1213 14.1213C14.6839 13.5587 15 12.7956 15 12C15 11.2044 14.6839 10.4413 14.1213 9.87868C13.5587 9.31607 12.7956 9 12 9C11.2044 9 10.4413 9.31607 9.87868 9.87868C9.31607 10.4413 9 11.2044 9 12C9 12.7956 9.31607 13.5587 9.87868 14.1213C10.4413 14.6839 11.2044 15 12 15Z" stroke="white" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
+const MONTH_SHORT = Object.freeze([
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec',
+]);
+
+const formatReportDate = (raw) => {
+  if (!raw) {
+    return '';
+  }
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) {
+    return String(raw);
+  }
+  return `${date.getDate()} ${MONTH_SHORT[date.getMonth()]} ${date.getFullYear()}`;
+};
+
+const isWithinRange = (rawDate, months) => {
+  if (months == null) {
+    return true;
+  }
+  if (!rawDate) {
+    return true;
+  }
+  const time = new Date(rawDate).getTime();
+  if (!Number.isFinite(time)) {
+    return true;
+  }
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - months);
+  return time >= cutoff.getTime();
+};
 
 /**
- * ReportsPage — Bio-AI and Blood reports (same as home download menu).
+ * ReportsPage — Bio-AI and Blood report cards (Figma: my reports).
  */
 const ReportsPage = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
+  const [reportDate, setReportDate] = useState(null);
   const [hasReports, setHasReports] = useState(false);
   const [openingReportId, setOpeningReportId] = useState(null);
+  const [rangeId, setRangeId] = useState('1y');
+  const [isRangeOpen, setIsRangeOpen] = useState(false);
+  const rangeRef = useRef(null);
+
+  const selectedRange = RANGE_OPTIONS.find((option) => option.id === rangeId) || RANGE_OPTIONS[0];
 
   useEffect(() => {
     let mounted = true;
 
-    const loadReportsAvailability = async () => {
+    const loadReports = async () => {
       try {
-        const available = await hasAvailableHealthReports();
-        if (mounted) {
-          setHasReports(available);
+        const meta = await getLatestHealthReportMeta();
+        if (!mounted) {
+          return;
+        }
+        if (meta?.assessmentId) {
+          setHasReports(true);
+          setReportDate(meta.date || null);
+        } else {
+          setHasReports(false);
+          setReportDate(null);
         }
       } catch {
         if (mounted) {
           setHasReports(false);
+          setReportDate(null);
         }
       } finally {
         if (mounted) {
@@ -55,12 +103,42 @@ const ReportsPage = ({ onBack }) => {
       }
     };
 
-    loadReportsAvailability();
+    loadReports();
 
     return () => {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isRangeOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (rangeRef.current && !rangeRef.current.contains(event.target)) {
+        setIsRangeOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [isRangeOpen]);
+
+  const visibleReports = useMemo(() => {
+    if (!hasReports) {
+      return [];
+    }
+    if (!isWithinRange(reportDate, selectedRange.months)) {
+      return [];
+    }
+    return REPORT_ITEMS.map((item) => ({
+      ...item,
+      dateLabel: formatReportDate(reportDate) || 'Available now',
+    }));
+  }, [hasReports, reportDate, selectedRange.months]);
 
   const handleOpenReport = async (reportItem) => {
     if (openingReportId !== null) {
@@ -82,18 +160,58 @@ const ReportsPage = ({ onBack }) => {
   return (
     <div className="reports-page">
       <div className="reports-page__header">
-        <button
-          className="reports-page__back-btn"
-          onClick={onBack}
-          aria-label="Go back"
-          type="button"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+        <div className="reports-page__header-left">
+          <button
+            className="reports-page__back-btn"
+            onClick={onBack}
+            aria-label="Go back"
+            type="button"
+          >
+            <img src={backIcon} alt="" width={24} height={24} />
+          </button>
+          <h1 className="reports-page__title">Reports</h1>
+        </div>
 
-        <h1 className="reports-page__title">Reports</h1>
+        <div className="reports-page__range" ref={rangeRef}>
+          <button
+            type="button"
+            className="reports-page__range-btn"
+            onClick={() => setIsRangeOpen((prev) => !prev)}
+            aria-haspopup="listbox"
+            aria-expanded={isRangeOpen}
+          >
+            <span>{selectedRange.label}</span>
+            <img
+              src={chevronIcon}
+              alt=""
+              className={`reports-page__range-chevron${isRangeOpen ? ' is-open' : ''}`}
+              width={3}
+              height={6}
+              aria-hidden="true"
+            />
+          </button>
+
+          {isRangeOpen ? (
+            <ul className="reports-page__range-menu" role="listbox" aria-label="Report time range">
+              {RANGE_OPTIONS.map((option) => (
+                <li key={option.id}>
+                  <button
+                    type="button"
+                    className={`reports-page__range-option${option.id === rangeId ? ' is-selected' : ''}`}
+                    role="option"
+                    aria-selected={option.id === rangeId}
+                    onClick={() => {
+                      setRangeId(option.id);
+                      setIsRangeOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       </div>
 
       {loading ? (
@@ -104,9 +222,13 @@ const ReportsPage = ({ onBack }) => {
         <p className="reports-page__empty">No reports yet. They will appear here when available.</p>
       ) : null}
 
-      {!loading && hasReports ? (
+      {!loading && hasReports && visibleReports.length === 0 ? (
+        <p className="reports-page__empty">No reports in this time range.</p>
+      ) : null}
+
+      {!loading && visibleReports.length > 0 ? (
         <div className="reports-page__list">
-          {REPORT_ITEMS.map((reportItem) => {
+          {visibleReports.map((reportItem) => {
             const isOpening = openingReportId === reportItem.id;
             const isBusy = openingReportId !== null;
 
@@ -114,20 +236,22 @@ const ReportsPage = ({ onBack }) => {
               <button
                 key={reportItem.id}
                 type="button"
-                className="reports-page__row reports-page__row-btn"
+                className="reports-page__card"
                 onClick={() => handleOpenReport(reportItem)}
                 disabled={isBusy}
                 aria-busy={isOpening}
               >
-                <img src={pdfIcon} alt="" aria-hidden="true" className="reports-page__pdf-icon" />
+                <span className="reports-page__doc-wrap" aria-hidden="true">
+                  <img src={docIcon} alt="" className="reports-page__doc-icon" width={24} height={30} />
+                </span>
                 <div className="reports-page__meta">
                   <p className="reports-page__name">
                     {isOpening ? 'Opening report...' : reportItem.label}
                   </p>
-                  <p className="reports-page__date">Tap to view</p>
+                  <p className="reports-page__date">{reportItem.dateLabel}</p>
                 </div>
-                <span className="reports-page__open-icon" aria-hidden="true">
-                  <ReportEyeIcon />
+                <span className="reports-page__download-icon" aria-hidden="true">
+                  <img src={downloadIcon} alt="" width={24} height={24} />
                 </span>
               </button>
             );
