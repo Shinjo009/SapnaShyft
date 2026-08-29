@@ -99,18 +99,20 @@ function AssessmentCard({
 }
 
 /** Health Assessment intro — heart icon for all scenarios; pedals only on final complete. */
-export function HealthAssessmentStep({
-  categories,
-  completedCategoryIds = [],
-  onSelectCategory,
-  isStarting = false,
-}: {
+export type HealthAssessmentStepProps = {
   categories: AssessmentCategoryStatus[]
   completedCategoryIds?: number[]
   onStartAssessment?: () => void
   onSelectCategory?: (category: AssessmentCategoryStatus) => void
   isStarting?: boolean
-}) {
+}
+
+export function HealthAssessmentStep({
+  categories,
+  completedCategoryIds = [],
+  onSelectCategory,
+  isStarting = false,
+}: HealthAssessmentStepProps) {
   const denseCards = hasAnthropometryAndVitals(categories) || categories.length >= 5
   const firstIncompleteIndex = categories.findIndex(
     (category) => !isCategoryCompleted(category, completedCategoryIds),

@@ -2052,7 +2052,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail, trendsByParameterKey =
       return undefined;
     }
 
-    const BASE_CARD_PX = 136;
+    const BASE_CARD_PX = 156;
 
     const syncStackHeight = () => {
       if (isSwappingFromExpanded || !isAggregateFrontExpanded || !card) {
