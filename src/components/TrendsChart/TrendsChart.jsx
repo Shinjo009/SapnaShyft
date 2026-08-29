@@ -19,15 +19,32 @@ import {
 
 const getChartHorizontalInset = (plotWidth) => Math.max(14, Math.round(plotWidth * 0.1));
 
+const formatTrendPointValue = (value, unit = '') => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return '';
+  }
+
+  const rounded = Math.round(numeric * 100) / 100;
+  const text = Number.isInteger(rounded)
+    ? String(rounded)
+    : String(rounded).replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
+
+  const unitLabel = String(unit || '').trim();
+  return unitLabel ? `${text} ${unitLabel}` : text;
+};
+
 const TrendsChartPlot = ({
   points,
   variant,
   normalMin,
   normalMax,
+  unit = '',
 }) => {
   const plotRef = useRef(null);
   const gradientId = React.useId().replace(/:/g, '');
   const [plotWidth, setPlotWidth] = useState(0);
+  const [activePointIndex, setActivePointIndex] = useState(null);
 
   useEffect(() => {
     const element = plotRef.current;
@@ -48,6 +65,28 @@ const TrendsChartPlot = ({
       resizeObserver.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    setActivePointIndex(null);
+  }, [points]);
+
+  useEffect(() => {
+    if (activePointIndex == null) {
+      return undefined;
+    }
+
+    const clearActive = () => setActivePointIndex(null);
+    const handlePointerDown = (event) => {
+      if (plotRef.current && !plotRef.current.contains(event.target)) {
+        clearActive();
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [activePointIndex]);
 
   const chartPoints = useMemo(() => {
     if (!Array.isArray(points) || points.length === 0 || plotWidth <= 0) {
@@ -73,13 +112,15 @@ const TrendsChartPlot = ({
 
       return {
         ...point,
+        index,
         x,
         y: markerPercentToChartY(markerPercent, TRENDS_CHART_HEIGHT),
         markerPercent,
         color: getDotColorForMarkerPercent(markerPercent),
+        label: formatTrendPointValue(point.value, unit),
       };
     });
-  }, [normalMax, normalMin, plotWidth, points, variant]);
+  }, [normalMax, normalMin, plotWidth, points, unit, variant]);
 
   const trendPath = useMemo(() => buildSmoothTrendPath(chartPoints), [chartPoints]);
 
@@ -89,11 +130,16 @@ const TrendsChartPlot = ({
     }
 
     return chartPoints.map((point) => ({
+      key: `date-${point.index}`,
       date: point.date,
       label: formatTrendDateLabel(point.date),
       leftPercent: (point.x / plotWidth) * 100,
     }));
   }, [chartPoints, plotWidth]);
+
+  const activePoint = activePointIndex != null
+    ? chartPoints.find((point) => point.index === activePointIndex) || null
+    : null;
 
   if (!points.length) {
     return (
@@ -105,113 +151,158 @@ const TrendsChartPlot = ({
 
   return (
     <div className="trends-chart-section__plot-wrap">
-      <div className="trends-chart-section__plot" ref={plotRef} style={{ height: `${TRENDS_CHART_HEIGHT}px` }}>
+      <div
+        className="trends-chart-section__plot"
+        ref={plotRef}
+        style={{ height: `${TRENDS_CHART_HEIGHT}px` }}
+        onMouseLeave={() => setActivePointIndex(null)}
+      >
         {plotWidth > 0 ? (
-          <svg
-            className="trends-chart-section__svg"
-            style={{ height: `${TRENDS_CHART_HEIGHT}px` }}
-            viewBox={`0 0 ${plotWidth} ${TRENDS_CHART_HEIGHT}`}
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            {TRENDS_BAND_BACKGROUNDS.map((fill, index) => (
-              <rect
-                key={`band-${index}`}
-                x="0"
-                y={index * TRENDS_BAND_HEIGHT}
-                width={plotWidth}
-                height={TRENDS_BAND_HEIGHT}
-                fill={fill}
-              />
-            ))}
+          <>
+            <svg
+              className="trends-chart-section__svg"
+              style={{ height: `${TRENDS_CHART_HEIGHT}px` }}
+              viewBox={`0 0 ${plotWidth} ${TRENDS_CHART_HEIGHT}`}
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              {TRENDS_BAND_BACKGROUNDS.map((fill, index) => (
+                <rect
+                  key={`band-${index}`}
+                  x="0"
+                  y={index * TRENDS_BAND_HEIGHT}
+                  width={plotWidth}
+                  height={TRENDS_BAND_HEIGHT}
+                  fill={fill}
+                />
+              ))}
 
-            {Array.from({ length: TRENDS_BAND_BACKGROUNDS.length + 1 }, (_, index) => (
-              <line
-                key={`h-grid-${index}`}
-                x1="0"
-                y1={index * TRENDS_BAND_HEIGHT}
-                x2={plotWidth}
-                y2={index * TRENDS_BAND_HEIGHT}
-                stroke="rgba(241, 241, 241, 0.30)"
-                strokeWidth="0.657"
-                vectorEffect="non-scaling-stroke"
-              />
-            ))}
+              {Array.from({ length: TRENDS_BAND_BACKGROUNDS.length + 1 }, (_, index) => (
+                <line
+                  key={`h-grid-${index}`}
+                  x1="0"
+                  y1={index * TRENDS_BAND_HEIGHT}
+                  x2={plotWidth}
+                  y2={index * TRENDS_BAND_HEIGHT}
+                  stroke="rgba(241, 241, 241, 0.30)"
+                  strokeWidth="0.657"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
+
+              {chartPoints.map((point) => (
+                <line
+                  key={`v-grid-${point.index}`}
+                  x1={point.x}
+                  y1="0"
+                  x2={point.x}
+                  y2={TRENDS_CHART_HEIGHT}
+                  stroke="rgba(196, 196, 196, 0.30)"
+                  strokeWidth="0.657"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
+
+              {chartPoints.length > 1 ? (
+                <defs>
+                  <linearGradient
+                    id={gradientId}
+                    gradientUnits="userSpaceOnUse"
+                    x1={chartPoints[0].x}
+                    y1={chartPoints[0].y}
+                    x2={chartPoints[chartPoints.length - 1].x}
+                    y2={chartPoints[chartPoints.length - 1].y}
+                  >
+                    {chartPoints.map((point) => (
+                      <stop
+                        key={`stop-${point.index}`}
+                        offset={`${(point.index / Math.max(chartPoints.length - 1, 1)) * 100}%`}
+                        stopColor={point.color}
+                      />
+                    ))}
+                  </linearGradient>
+                </defs>
+              ) : null}
+
+              {trendPath ? (
+                <path
+                  d={trendPath}
+                  fill="none"
+                  stroke={chartPoints.length > 1 ? `url(#${gradientId})` : chartPoints[0]?.color || '#DAC15A'}
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ) : null}
+
+              {chartPoints.map((point) => (
+                <circle
+                  key={`dot-${point.index}`}
+                  cx={point.x}
+                  cy={point.y}
+                  r="4"
+                  fill={point.color}
+                />
+              ))}
+            </svg>
 
             {chartPoints.map((point) => (
-              <line
-                key={`v-grid-${point.date}`}
-                x1={point.x}
-                y1="0"
-                x2={point.x}
-                y2={TRENDS_CHART_HEIGHT}
-                stroke="rgba(196, 196, 196, 0.30)"
-                strokeWidth="0.657"
-                vectorEffect="non-scaling-stroke"
+              <button
+                key={`hit-${point.index}`}
+                type="button"
+                className={`trends-chart-section__point-hit${activePointIndex === point.index ? ' is-active' : ''}`}
+                style={{
+                  left: `${point.x}px`,
+                  top: `${point.y}px`,
+                }}
+                aria-label={point.label || `Trend value ${point.value}`}
+                onMouseEnter={() => setActivePointIndex(point.index)}
+                onFocus={() => setActivePointIndex(point.index)}
+                onBlur={() => setActivePointIndex((current) => (
+                  current === point.index ? null : current
+                ))}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setActivePointIndex((current) => (
+                    current === point.index ? null : point.index
+                  ));
+                }}
               />
             ))}
 
-            {chartPoints.length > 1 ? (
-              <defs>
-                <linearGradient
-                  id={gradientId}
-                  gradientUnits="userSpaceOnUse"
-                  x1={chartPoints[0].x}
-                  y1={chartPoints[0].y}
-                  x2={chartPoints[chartPoints.length - 1].x}
-                  y2={chartPoints[chartPoints.length - 1].y}
-                >
-                  {chartPoints.map((point, index) => (
-                    <stop
-                      key={`stop-${point.date}`}
-                      offset={`${(index / Math.max(chartPoints.length - 1, 1)) * 100}%`}
-                      stopColor={point.color}
-                    />
-                  ))}
-                </linearGradient>
-              </defs>
+            {activePoint?.label ? (
+              <div
+                className="trends-chart-section__tooltip"
+                style={{
+                  left: `${activePoint.x}px`,
+                  top: `${Math.max(activePoint.y - 10, 18)}px`,
+                }}
+                role="tooltip"
+              >
+                <span className="trends-chart-section__tooltip-label">{activePoint.label}</span>
+                <span className="trends-chart-section__tooltip-stem" aria-hidden="true" />
+              </div>
             ) : null}
-
-            {trendPath ? (
-              <path
-                d={trendPath}
-                fill="none"
-                stroke={chartPoints.length > 1 ? `url(#${gradientId})` : chartPoints[0]?.color || '#DAC15A'}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                vectorEffect="non-scaling-stroke"
-              />
-            ) : null}
-
-            {chartPoints.map((point) => (
-              <circle
-                key={`dot-${point.date}`}
-                cx={point.x}
-                cy={point.y}
-                r="4"
-                fill={point.color}
-              />
-            ))}
-          </svg>
+          </>
         ) : null}
       </div>
 
       {datePositions.length > 0 ? (
         <div className="trends-chart-section__dates" aria-hidden="true">
           {datePositions.map((item) => (
-              <span
-                key={item.date}
-                className="trends-chart-section__date"
-                style={{
-                  position: 'absolute',
-                  left: `${item.leftPercent}%`,
-                  transform: 'translateX(-50%)',
-                }}
-              >
-                {item.label}
-              </span>
-            ))}
+            <span
+              key={item.key}
+              className="trends-chart-section__date"
+              style={{
+                position: 'absolute',
+                left: `${item.leftPercent}%`,
+                transform: 'translateX(-50%)',
+              }}
+            >
+              {item.label}
+            </span>
+          ))}
         </div>
       ) : null}
     </div>
@@ -224,14 +315,20 @@ const TrendsChart = ({
   diseaseCode = null,
   normalMin = null,
   normalMax = null,
+  unit: unitProp = '',
   className = '',
   subtitle = 'We recommend testing every 16 weeks',
 }) => {
   const [points, setPoints] = useState([]);
+  const [unit, setUnit] = useState(String(unitProp || '').trim());
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
   const hasBloodRange = Number.isFinite(Number(normalMin)) && Number.isFinite(Number(normalMax));
+
+  useEffect(() => {
+    setUnit(String(unitProp || '').trim());
+  }, [unitProp]);
 
   useEffect(() => {
     let isActive = true;
@@ -265,6 +362,9 @@ const TrendsChart = ({
 
         const normalized = normalizeTrendsPayload(response, variant);
         setPoints(normalized.points);
+        if (normalized.unit) {
+          setUnit(normalized.unit);
+        }
         setLoadError(false);
       } catch {
         if (isActive) {
@@ -340,6 +440,7 @@ const TrendsChart = ({
             variant={variant}
             normalMin={Number(normalMin)}
             normalMax={Number(normalMax)}
+            unit={unit}
           />
         </div>
       </div>

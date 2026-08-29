@@ -1604,6 +1604,7 @@ const BloodMarkerDetailView = ({ marker, onBack }) => {
         bloodParameter={toBloodParameterKey(marker)}
         normalMin={detail.normalMin}
         normalMax={detail.normalMax}
+        unit={String(marker?.unit || detail.unit || '').trim()}
       />
 
       {!isOptimalMarker ? (

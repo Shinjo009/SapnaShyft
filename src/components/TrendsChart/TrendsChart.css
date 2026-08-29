@@ -82,6 +82,58 @@
   overflow: visible;
 }
 
+.trends-chart-section__point-hit {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  z-index: 2;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.trends-chart-section__point-hit.is-active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.trends-chart-section__tooltip {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, calc(-100% - 2px));
+  pointer-events: none;
+}
+
+.trends-chart-section__tooltip-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111111;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+}
+
+.trends-chart-section__tooltip-stem {
+  width: 1px;
+  height: 10px;
+  background: #ffffff;
+  margin-top: 0;
+}
+
 .trends-chart-section__dates {
   position: relative;
   margin-top: 8px;
