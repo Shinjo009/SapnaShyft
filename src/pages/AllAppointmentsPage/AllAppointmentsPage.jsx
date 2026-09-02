@@ -498,7 +498,6 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
                   aria-selected={isActive}
                   onClick={() => {
                     setActiveStatus(tab.key);
-                    setInfoOpenAppointmentId(null);
                   }}
                 >
                   {tab.label}
@@ -520,7 +519,6 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
                 aria-selected={isActive}
                 onClick={() => {
                   setActiveCategory(chip.key);
-                  setInfoOpenAppointmentId(null);
                 }}
               >
                 {chip.label}
