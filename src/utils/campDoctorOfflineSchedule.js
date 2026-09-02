@@ -49,21 +49,61 @@ const parseApiDate = (dateKey) => {
   };
 };
 
+/** Keep today and future calendar days; drop dates that are already gone. */
+export const isConsultationDateKeyBookable = (dateKey, now = new Date()) => {
+  const [year, month, day] = String(dateKey || '').split('-').map(Number);
+  if (!year || !month || !day) {
+    return false;
+  }
+  const dateStart = new Date(year, month - 1, day);
+  dateStart.setHours(0, 0, 0, 0);
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  return dateStart.getTime() >= today.getTime();
+};
+
 const isConsultationEntryForExpertType = (entry, expertType = 'doctor') => {
   const entryType = String(entry?.expert_type || 'doctor').toLowerCase();
   return entryType === String(expertType || 'doctor').toLowerCase();
 };
 
+/**
+ * Normalize per-date consultation payload.
+ * Supports:
+ * - Legacy: [ { cabin_key, available_slots, expert_type }, ... ]
+ * - Current: { is_enable, cabins: [ ... ] }
+ */
+const extractConsultationCabinEntries = (datePayload) => {
+  if (Array.isArray(datePayload)) {
+    return datePayload;
+  }
+
+  if (!datePayload || typeof datePayload !== 'object') {
+    return [];
+  }
+
+  if (datePayload.is_enable === false) {
+    return [];
+  }
+
+  if (Array.isArray(datePayload.cabins)) {
+    return datePayload.cabins;
+  }
+
+  return [];
+};
+
 export const parseDoctorOfflineSchedule = (engagementDetails, expertType = 'doctor') => {
   const consultationByDate = engagementDetails?.slot_detail?.consultation || {};
-  const dateKeys = Object.keys(consultationByDate).sort();
-  const dateOptions = dateKeys.map(parseApiDate);
+  const dateKeys = Object.keys(consultationByDate)
+    .filter((dateKey) => isConsultationDateKeyBookable(dateKey))
+    .sort();
   const cabinsByDate = {};
   const slotsByDate = {};
   let defaultSlotDuration = 30;
 
   dateKeys.forEach((dateKey) => {
-    const entries = Array.isArray(consultationByDate[dateKey]) ? consultationByDate[dateKey] : [];
+    const entries = extractConsultationCabinEntries(consultationByDate[dateKey]);
     const doctorEntries = entries.filter((entry) => isConsultationEntryForExpertType(entry, expertType));
 
     cabinsByDate[dateKey] = doctorEntries.map((entry, index) => ({
@@ -99,10 +139,11 @@ export const parseDoctorOfflineSchedule = (engagementDetails, expertType = 'doct
     slotsByDate[dateKey] = Array.from(slotMap.values()).sort((a, b) => a.apiSlot.localeCompare(b.apiSlot));
   });
 
+  const bookableDateKeys = dateKeys.filter((dateKey) => (slotsByDate[dateKey] || []).length > 0);
   const hasCabins = Object.values(cabinsByDate).some((cabins) => cabins.length > 0);
 
   return {
-    dateOptions,
+    dateOptions: bookableDateKeys.map(parseApiDate),
     cabinsByDate,
     slotsByDate,
     slotDurationMinutes: defaultSlotDuration,
@@ -178,6 +219,7 @@ const normalizeOnlineSlotItem = (slotItem) => {
 const buildScheduleFromDateMap = (consultationByDate, slotDurationMinutes = 30) => {
   const dateKeys = Object.keys(consultationByDate || {})
     .filter((key) => /^\d{4}-\d{2}-\d{2}$/.test(key))
+    .filter((key) => isConsultationDateKeyBookable(key))
     .sort();
   const slotsByDate = {};
   const cabinsByDate = {};
