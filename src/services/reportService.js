@@ -382,6 +382,30 @@ export const getLatestMetsightsBasicOrProAssessmentIdCached = async (ttlMs = 450
   return id;
 };
 
+/**
+ * Unique Metsights Basic/Pro assessments from `/assessments/me`, newest first.
+ * Used by Profile → Reports to list every assessment that may have PDFs.
+ */
+export const listMetsightsBasicOrProAssessmentsCached = async (ttlMs = 45000) => {
+  const rows = sortAssessmentRowsLatestFirst(await peekMyAssessmentsRowsCached(ttlMs));
+  const seenIds = new Set();
+  const items = [];
+
+  rows.forEach((row) => {
+    if (normalizedAssessmentFamily(row) !== 'basic_or_pro') {
+      return;
+    }
+    const assessmentId = Number(extractAssessmentIdFromRow(row));
+    if (!Number.isFinite(assessmentId) || assessmentId <= 0 || seenIds.has(assessmentId)) {
+      return;
+    }
+    seenIds.add(assessmentId);
+    items.push({ assessmentId, row });
+  });
+
+  return items;
+};
+
 export const getLatestAssessmentIdsCached = async (ttlMs = 45000) => {
   const response = await fetchMyAssessmentsPageCached(ttlMs, DEFAULT_ASSESSMENTS_ME_QUERY);
   return getSortedAssessmentIds(extractArray(response));

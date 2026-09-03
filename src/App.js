@@ -1371,17 +1371,15 @@ function App() {
       if (fitprintExtras?.healthSpanScores) {
         return fitprintExtras.healthSpanScores;
       }
-      if (fitprintExtras?.healthSpanLockedNoFitprint) {
-        return null;
-      }
       return null;
     };
 
     const mergePreloadedHomePayload = (partial, healthSpanScores, fitprintExtras) => {
-      const spanScores = fitprintExtras.healthSpanLockedNoFitprint ? null : (partial.healthSpanScores ?? healthSpanScores);
+      const spanScores = fitprintExtras.healthSpanScores ?? healthSpanScores ?? partial.healthSpanScores ?? null;
       return {
         ...partial,
         ...fitprintExtras,
+        healthSpanLockedNoFitprint: false,
         healthSpanScores: spanScores,
       };
     };

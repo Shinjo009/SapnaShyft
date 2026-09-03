@@ -3,7 +3,6 @@ import './HomePage.css';
 import Header from '../../components/HomePage/Header';
 import MetabolicAgeOrb from '../../metabolic-age-orb/MetabolicAgeOrb.jsx';
 import HealthParametersSection from '../../components/HomePage/HealthParametersSection';
-import HomeHealthSpanIndexLockedStack from '../../components/HomePage/HomeHealthSpanIndexLockedStack';
 import HomeReassessmentBottomSheet from '../../components/HomePage/HomeReassessmentBottomSheet/HomeReassessmentBottomSheet';
 import PositiveWinsSection from '../../components/HomePage/PositiveWinsSection/PositiveWinsSection';
 import RiskAnalysisSection, {
@@ -39,14 +38,12 @@ import {
   peekHealthQuestionnaireSubmittedCache,
   peekHealthQuestionnaireSubmittedForEngagement,
   clearLegacyHealthQuestionnaireSubmittedMarker,
-  isFitprintGapQuestionnaireSubmittedFlagSet,
   clearFitprintGapQuestionnaireSubmittedFlag,
 } from '../../services/questionnaireService';
 import { hasRenderableOverviewData, HOME_PRELOAD_COMPLETE_KEY } from '../../utils/homeOverviewPreload';
 import {
   areHealthSpanScoresPending,
   HEALTH_SPAN_PHASE,
-  ensureFitprintAssignedForEngagement,
   loadFitprintHealthSpanIndexState,
 } from '../../utils/fitprintHealthSpanFlow';
 import {
@@ -580,7 +577,6 @@ const HomePage = ({
   onNavigateToDiseaseDetail,
   onOpenHealthAssessment,
   onOpenB2bHealthAssessment,
-  onOpenFitprintGapQuestionnaire,
   onNavigateToBloodMarkers,
   onNavigateToBloodMarkerDetail,
   onNavigateToPackages,
@@ -593,22 +589,19 @@ const HomePage = ({
   const [metabolicAgeValue, setMetabolicAgeValue] = useState(preloadedData?.metabolicAgeValue || '-');
   const [positiveWinsData, setPositiveWinsData] = useState(preloadedData?.positiveWinsData || null);
   const [riskAnalysisData, setRiskAnalysisData] = useState(preloadedData?.riskAnalysisData || []);
-  const [healthSpanScores, setHealthSpanScores] = useState(() => {
-    if (preloadedData?.fitprintGapLockPreloaded && preloadedData?.healthSpanLockedNoFitprint) {
-      return null;
-    }
-    return preloadedData?.healthSpanScores || null;
-  });
-  const [healthSpanLockedNoFitprint, setHealthSpanLockedNoFitprint] = useState(
+  const [healthSpanScores, setHealthSpanScores] = useState(() => (
+    hasDisplayableHealthSpanScores(preloadedData?.healthSpanScores) ? preloadedData.healthSpanScores : null
+  ));
+  const [, setHealthSpanLockedNoFitprint] = useState(
     () => Boolean(preloadedData?.fitprintGapLockPreloaded && preloadedData?.healthSpanLockedNoFitprint),
   );
-  const [healthSpanGapBasicProAssessmentId, setHealthSpanGapBasicProAssessmentId] = useState(
+  const [, setHealthSpanGapBasicProAssessmentId] = useState(
     () => (preloadedData?.fitprintGapLockPreloaded ? preloadedData.healthSpanGapBasicProAssessmentId ?? null : null),
   );
-  const [healthSpanGapEngagementId, setHealthSpanGapEngagementId] = useState(
+  const [, setHealthSpanGapEngagementId] = useState(
     () => (preloadedData?.fitprintGapLockPreloaded ? preloadedData.healthSpanGapEngagementId ?? null : null),
   );
-  const [healthSpanPhase, setHealthSpanPhase] = useState(
+  const [, setHealthSpanPhase] = useState(
     () => (preloadedData?.fitprintGapLockPreloaded ? preloadedData.healthSpanPhase ?? null : null),
   );
   /** True only when FitPrint submit is confirmed (not merely Pro answers complete). */
@@ -623,8 +616,8 @@ const HomePage = ({
       && preloadedData?.healthSpanPhase !== HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE
     ),
   );
-  /** False until gap lock is verified — avoids flashing 0/0/0 scores before lock state is known. */
-  const [fitprintGapCheckDone, setFitprintGapCheckDone] = useState(
+  /** Resolved after FitPrint/HSI source check; kept to avoid duplicate in-flight work. */
+  const [, setFitprintGapCheckDone] = useState(
     () => resolveFitprintGapCheckDoneFromPreload(preloadedData),
   );
   const [isNoDataHome, setIsNoDataHome] = useState(
@@ -708,45 +701,7 @@ const HomePage = ({
   const showHealthQuestionnaireCta = !isQuestionnaireSubmitted
     && (!slotNorm.isB2b || b2bHasIncompleteNonVitals);
 
-  const openQuestionnaireFromFitprintLock = () => {
-    void (async () => {
-      const id = Number(healthSpanGapBasicProAssessmentId);
-      if (!onOpenFitprintGapQuestionnaire || !Number.isFinite(id) || id <= 0) {
-        openB2bQuestionnaire();
-        return;
-      }
-      const engagementId = Number(healthSpanGapEngagementId);
-      if (Number.isFinite(engagementId) && engagementId > 0) {
-        try {
-          await ensureFitprintAssignedForEngagement(engagementId);
-        } catch (error) {
-          console.warn('Could not assign FitPrint before questionnaire:', error?.message || error);
-        }
-      }
-      onOpenFitprintGapQuestionnaire(id);
-    })();
-  };
-
-  // Only show “Submitted Successfully” when FitPrint submit is confirmed (or optimistic
-  // session flag right after submit). Never from Pro-only completeness alone.
-  const fitprintGapAwaitingReports = healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_SUBMITTED
-    || (
-      isFitprintGapQuestionnaireSubmittedFlagSet()
-      && healthSpanPhase !== HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE
-      && healthSpanPhase !== HEALTH_SPAN_PHASE.NO_BASIC_PRO
-      && healthSpanPhase !== HEALTH_SPAN_PHASE.HIDDEN_NO_FITPRINT
-      && healthSpanPhase !== null
-    );
-  const showFitprintGapQuestionnaireCta = !fitprintGapAwaitingReports && (
-    healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE
-    || (healthSpanLockedNoFitprint && healthSpanPhase !== HEALTH_SPAN_PHASE.LOCKED_SUBMITTED)
-  ) && (!slotNorm.isB2b || b2bHasIncompleteNonVitals);
-  const hideHealthSpanIndex = healthSpanPhase === HEALTH_SPAN_PHASE.HIDDEN_NO_FITPRINT
-    || healthSpanPhase === HEALTH_SPAN_PHASE.NO_BASIC_PRO;
-  const showHealthSpanLocked = !hideHealthSpanIndex && healthSpanLockedNoFitprint && fitprintGapCheckDone;
-  const showHealthSpanScores = !hideHealthSpanIndex && !healthSpanLockedNoFitprint && (
-    fitprintGapCheckDone || hasDisplayableHealthSpanScores(healthSpanScores)
-  );
+  const showHealthSpanScores = hasDisplayableHealthSpanScores(healthSpanScores);
 
   const applyFitprintHealthSpanState = useCallback((flowState) => {
     setHealthSpanPhase(flowState?.phase ?? null);
@@ -757,31 +712,16 @@ const HomePage = ({
       setFitprintGapQCompleteFromServer(true);
       setHealthSpanLockedNoFitprint(false);
       setHealthSpanGapBasicProAssessmentId(flowState.basicProAssessmentId);
-      setHealthSpanScores(flowState.scores || null);
+      setHealthSpanScores(
+        hasDisplayableHealthSpanScores(flowState.scores) ? flowState.scores : null,
+      );
       setFitprintGapCheckDone(true);
       return;
     }
 
-    if (flowState?.phase === HEALTH_SPAN_PHASE.LOCKED_SUBMITTED) {
-      setHealthSpanLockedNoFitprint(true);
-      setHealthSpanScores(null);
-      setHealthSpanGapBasicProAssessmentId(flowState.basicProAssessmentId);
-      setFitprintGapQCompleteFromServer(true);
-      setFitprintGapCheckDone(true);
-      return;
-    }
-
-    if (flowState?.phase === HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE) {
-      clearFitprintGapQuestionnaireSubmittedFlag();
-      setHealthSpanLockedNoFitprint(true);
-      setHealthSpanScores(null);
-      setHealthSpanGapBasicProAssessmentId(flowState.basicProAssessmentId);
-      setFitprintGapQCompleteFromServer(false);
-      setFitprintGapCheckDone(true);
-      return;
-    }
-
-    if (flowState?.phase === HEALTH_SPAN_PHASE.HIDDEN_NO_FITPRINT
+    if (flowState?.phase === HEALTH_SPAN_PHASE.LOCKED_SUBMITTED
+      || flowState?.phase === HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE
+      || flowState?.phase === HEALTH_SPAN_PHASE.HIDDEN_NO_FITPRINT
       || flowState?.phase === HEALTH_SPAN_PHASE.NO_BASIC_PRO) {
       clearFitprintGapQuestionnaireSubmittedFlag();
       setFitprintGapQCompleteFromServer(false);
@@ -796,7 +736,15 @@ const HomePage = ({
     setFitprintGapQCompleteFromServer(false);
     setHealthSpanLockedNoFitprint(false);
     setHealthSpanGapBasicProAssessmentId(null);
-    setHealthSpanScores((prev) => prev ?? preloadedData?.healthSpanScores ?? null);
+    setHealthSpanScores((prev) => {
+      if (hasDisplayableHealthSpanScores(prev)) {
+        return prev;
+      }
+      if (hasDisplayableHealthSpanScores(preloadedData?.healthSpanScores)) {
+        return preloadedData.healthSpanScores;
+      }
+      return null;
+    });
     setFitprintGapCheckDone(true);
   }, [preloadedData?.healthSpanScores]);
 
@@ -1122,19 +1070,14 @@ const HomePage = ({
     if (preloadedData?.fitprintGapLockPreloaded !== true || forceRefreshFromProfile) {
       return;
     }
-    setHealthSpanLockedNoFitprint(Boolean(preloadedData.healthSpanLockedNoFitprint));
+    setHealthSpanLockedNoFitprint(false);
     setHealthSpanGapBasicProAssessmentId(preloadedData.healthSpanGapBasicProAssessmentId ?? null);
     setHealthSpanGapEngagementId(preloadedData.healthSpanGapEngagementId ?? null);
     setHealthSpanPhase(preloadedData.healthSpanPhase ?? null);
-    setFitprintGapQCompleteFromServer(
-      preloadedData.healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_SUBMITTED
-      || preloadedData.healthSpanPhase === HEALTH_SPAN_PHASE.SHOW_SCORES,
+    setFitprintGapQCompleteFromServer(preloadedData.healthSpanPhase === HEALTH_SPAN_PHASE.SHOW_SCORES);
+    setHealthSpanScores(
+      hasDisplayableHealthSpanScores(preloadedData.healthSpanScores) ? preloadedData.healthSpanScores : null,
     );
-    if (preloadedData.healthSpanLockedNoFitprint) {
-      setHealthSpanScores(null);
-    } else if (preloadedData.healthSpanScores) {
-      setHealthSpanScores(preloadedData.healthSpanScores);
-    }
   }, [
     forceRefreshFromProfile,
     preloadedData?.fitprintGapLockPreloaded,
@@ -1312,19 +1255,19 @@ const HomePage = ({
     setRiskAnalysisData(Array.isArray(data.riskAnalysisData) ? data.riskAnalysisData : []);
 
     if (data.fitprintGapLockPreloaded) {
-      const locked = Boolean(data.healthSpanLockedNoFitprint);
-      setHealthSpanLockedNoFitprint(locked);
+      setHealthSpanLockedNoFitprint(false);
       setHealthSpanGapBasicProAssessmentId(data.healthSpanGapBasicProAssessmentId ?? null);
       setHealthSpanGapEngagementId(data.healthSpanGapEngagementId ?? null);
       setHealthSpanPhase(data.healthSpanPhase ?? null);
-      setFitprintGapQCompleteFromServer(
-        data.healthSpanPhase === HEALTH_SPAN_PHASE.LOCKED_SUBMITTED
-        || data.healthSpanPhase === HEALTH_SPAN_PHASE.SHOW_SCORES,
+      setFitprintGapQCompleteFromServer(data.healthSpanPhase === HEALTH_SPAN_PHASE.SHOW_SCORES);
+      setHealthSpanScores(
+        hasDisplayableHealthSpanScores(data.healthSpanScores) ? data.healthSpanScores : null,
       );
-      setHealthSpanScores(locked ? null : (data.healthSpanScores || null));
       setFitprintGapCheckDone(resolveFitprintGapCheckDoneFromPreload(data));
     } else {
-      setHealthSpanScores(data.healthSpanScores || null);
+      setHealthSpanScores(
+        hasDisplayableHealthSpanScores(data.healthSpanScores) ? data.healthSpanScores : null,
+      );
       setFitprintGapCheckDone(false);
     }
 
@@ -1896,6 +1839,18 @@ const HomePage = ({
     }
   };
 
+  const healthSpanIndexSection = showHealthSpanScores ? (
+    <HealthParametersSection
+      data={[
+        { percentage: healthSpanScores?.fitnessScore ?? null, label: 'Fitness score' },
+        { percentage: healthSpanScores?.nutritionScore ?? null, label: 'Nutrition score' },
+        { percentage: healthSpanScores?.lifestyleScore ?? null, label: 'Lifestyle score' },
+      ]}
+      onSeeMore={handleHealthScanSeeMore}
+      onCardClick={handleHealthScanCircleClick}
+    />
+  ) : null;
+
   if (showJourneyScreens) {
     // Always wait for upcoming-slot resolution before choosing a no-data sub-screen.
     // This removes transient flashes (e.g. generic welcome) before final state is known.
@@ -1973,22 +1928,7 @@ const HomePage = ({
             </div>
           </div>
 
-          {!slotNorm.isB2b ? (
-            <HomeHealthSpanIndexLockedStack
-              onCompleteAssessment={openQuestionnaireFromFitprintLock}
-              ariaLabel="Health Span Index locked until after your test"
-              postSubmitAwaitingReports={false}
-              showCompleteAssessmentButton={false}
-              unlockMessage="Unlock your Health Scores after the Test"
-            />
-          ) : healthSpanLockedNoFitprint ? (
-            <HomeHealthSpanIndexLockedStack
-              onCompleteAssessment={openQuestionnaireFromFitprintLock}
-              ariaLabel="Health Span Index locked until FitPrint assessment is completed"
-              postSubmitAwaitingReports={fitprintGapAwaitingReports}
-              showCompleteAssessmentButton={showFitprintGapQuestionnaireCta}
-            />
-          ) : null}
+          {healthSpanIndexSection}
 
           <NavBar defaultActive="home" onNavigate={handleNavigate} />
         </div>
@@ -2313,27 +2253,8 @@ const HomePage = ({
         absoluteMetabolicAge={metabolicOrbProps.absoluteMetabolicAge}
       />
 
-      {/* Health Span Index: omit entirely when hidden so Positive Wins sits under the orb */}
-      {showHealthSpanLocked ? (
-        <div className="health-parameters">
-          <HomeHealthSpanIndexLockedStack
-            onCompleteAssessment={openQuestionnaireFromFitprintLock}
-            ariaLabel="Health Span Index locked until FitPrint assessment is completed"
-            postSubmitAwaitingReports={fitprintGapAwaitingReports}
-            showCompleteAssessmentButton={showFitprintGapQuestionnaireCta}
-          />
-        </div>
-      ) : showHealthSpanScores ? (
-        <HealthParametersSection
-          data={[
-            { percentage: healthSpanScores?.fitnessScore ?? null, label: 'Fitness score' },
-            { percentage: healthSpanScores?.nutritionScore ?? null, label: 'Nutrition score' },
-            { percentage: healthSpanScores?.lifestyleScore ?? null, label: 'Lifestyle score' },
-          ]}
-          onSeeMore={handleHealthScanSeeMore}
-          onCardClick={handleHealthScanCircleClick}
-        />
-      ) : null}
+      {/* Health Span Index: only render when scores exist; otherwise Positive Wins sits under the orb */}
+      {healthSpanIndexSection}
 
       <PositiveWinsSection apiPositiveWins={positiveWinsData} />
 

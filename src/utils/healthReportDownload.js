@@ -2,12 +2,23 @@ import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../config/appConfig';
 import { getAccessToken } from './authStorage';
 import {
   getLatestMetsightsBasicOrProAssessmentIdCached,
+  listMetsightsBasicOrProAssessmentsCached,
   peekMyAssessmentsRowsCached,
 } from '../services/reportService';
 import {
   getFixedBioAiReportPdfUrl,
   getFixedBloodReportPdfUrl,
 } from './assessmentBloodMarkerSupplements';
+
+const REPORT_KIND = Object.freeze({
+  BIO_AI: 'bio-ai',
+  BLOOD: 'blood',
+});
+
+const REPORT_KIND_ORDER = Object.freeze({
+  [REPORT_KIND.BIO_AI]: 0,
+  [REPORT_KIND.BLOOD]: 1,
+});
 
 const parseResponseBody = async (response) => {
   const contentType = response?.headers?.get?.('content-type') || '';
@@ -70,7 +81,16 @@ const extractAssessmentIdFromRow = (row) => {
   );
 };
 
-const resolveAssessmentId = async () => {
+const toTimestamp = (value) => {
+  const timestamp = new Date(value || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+const resolveAssessmentId = async (assessmentIdArg) => {
+  const fromArg = Number(assessmentIdArg);
+  if (Number.isFinite(fromArg) && fromArg > 0) {
+    return fromArg;
+  }
   const assessmentId = await getLatestMetsightsBasicOrProAssessmentIdCached();
   if (!Number.isFinite(assessmentId) || assessmentId <= 0) {
     throw new Error('No Metsights Basic or Pro report available yet.');
@@ -78,10 +98,99 @@ const resolveAssessmentId = async () => {
   return assessmentId;
 };
 
+const pdfPathForKind = (assessmentId, kind) => (
+  kind === REPORT_KIND.BLOOD
+    ? `/reports/${assessmentId}/blood-parameters/pdf`
+    : `/reports/${assessmentId}/bio-ai/pdf`
+);
+
+const fixedPdfUrlForKind = (assessmentId, kind) => (
+  kind === REPORT_KIND.BLOOD
+    ? getFixedBloodReportPdfUrl(assessmentId)
+    : getFixedBioAiReportPdfUrl(assessmentId)
+);
+
+const fetchReportPdfUrl = async (assessmentId, kind) => {
+  const id = Number(assessmentId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return null;
+  }
+
+  const fixedUrl = fixedPdfUrlForKind(id, kind);
+  if (fixedUrl) {
+    return fixedUrl;
+  }
+
+  if (!BACKEND_ENABLED) {
+    return null;
+  }
+
+  const accessToken = getAccessToken();
+  if (!accessToken) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_BASE_URL}${pdfPathForKind(id, kind)}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const body = await parseResponseBody(response);
+    if (!response.ok) {
+      return null;
+    }
+
+    const reportUrl = body?.data?.report_url || body?.report_url;
+    return typeof reportUrl === 'string' && reportUrl.trim() ? reportUrl : null;
+  } catch {
+    return null;
+  }
+};
+
+const requireReportPdfUrl = async (assessmentId, kind) => {
+  const id = await resolveAssessmentId(assessmentId);
+  const fixedUrl = fixedPdfUrlForKind(id, kind);
+  if (fixedUrl) {
+    return fixedUrl;
+  }
+
+  if (!BACKEND_ENABLED) {
+    throw new Error('Backend base URL is not configured.');
+  }
+
+  const accessToken = getAccessToken();
+  if (!accessToken) {
+    throw new Error('You are not logged in.');
+  }
+
+  const response = await fetch(`${BACKEND_BASE_URL}${pdfPathForKind(id, kind)}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  const body = await parseResponseBody(response);
+
+  if (!response.ok) {
+    throw new Error(body?.message || body?.detail || 'Failed to download report.');
+  }
+
+  const reportUrl = body?.data?.report_url || body?.report_url;
+  if (!reportUrl || typeof reportUrl !== 'string') {
+    throw new Error('Report URL is missing from API response.');
+  }
+
+  return reportUrl;
+};
+
 export const hasAvailableHealthReports = async () => {
   try {
-    const assessmentId = await getLatestMetsightsBasicOrProAssessmentIdCached();
-    return Number.isFinite(assessmentId) && assessmentId > 0;
+    const reports = await listAvailableHealthReports();
+    return reports.length > 0;
   } catch {
     return false;
   }
@@ -110,80 +219,87 @@ export const getLatestHealthReportMeta = async () => {
   }
 };
 
-export const openBioAiHealthReport = async () => {
-  const assessmentId = await resolveAssessmentId();
+/**
+ * Profile → Reports: every Basic/Pro assessment that has an available Bio-AI and/or Blood PDF.
+ * Newest assessments first; Bio-AI is listed before Blood for the same assessment.
+ */
+export const listAvailableHealthReports = async () => {
+  const assessments = await listMetsightsBasicOrProAssessmentsCached(45000);
+  const reports = [];
 
-  const fixedBioAiPdfUrl = getFixedBioAiReportPdfUrl(assessmentId);
-  if (fixedBioAiPdfUrl) {
-    openReportUrl(fixedBioAiPdfUrl);
-    return;
+  const batchSize = 4;
+  for (let index = 0; index < assessments.length; index += batchSize) {
+    const batch = assessments.slice(index, index + batchSize);
+    const batchReports = await Promise.all(batch.map(async ({ assessmentId, row }) => {
+      const date = pickAssessmentRowDate(row);
+      const [bioAiUrl, bloodUrl] = await Promise.all([
+        fetchReportPdfUrl(assessmentId, REPORT_KIND.BIO_AI),
+        fetchReportPdfUrl(assessmentId, REPORT_KIND.BLOOD),
+      ]);
+
+      const items = [];
+      if (bioAiUrl) {
+        items.push({
+          id: `${REPORT_KIND.BIO_AI}-${assessmentId}`,
+          kind: REPORT_KIND.BIO_AI,
+          label: 'Bio-AI Health Report',
+          assessmentId,
+          date,
+          reportUrl: bioAiUrl,
+        });
+      }
+      if (bloodUrl) {
+        items.push({
+          id: `${REPORT_KIND.BLOOD}-${assessmentId}`,
+          kind: REPORT_KIND.BLOOD,
+          label: 'Blood Report',
+          assessmentId,
+          date,
+          reportUrl: bloodUrl,
+        });
+      }
+      return items;
+    }));
+
+    batchReports.forEach((items) => {
+      reports.push(...items);
+    });
   }
 
-  if (!BACKEND_ENABLED) {
-    throw new Error('Backend base URL is not configured.');
-  }
-
-  const accessToken = getAccessToken();
-  if (!accessToken) {
-    throw new Error('You are not logged in.');
-  }
-
-  const response = await fetch(`${BACKEND_BASE_URL}/reports/${assessmentId}/bio-ai/pdf`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
+  reports.sort((a, b) => {
+    const dateDiff = toTimestamp(b.date) - toTimestamp(a.date);
+    if (dateDiff !== 0) {
+      return dateDiff;
+    }
+    if (a.assessmentId !== b.assessmentId) {
+      return Number(b.assessmentId) - Number(a.assessmentId);
+    }
+    return (REPORT_KIND_ORDER[a.kind] ?? 99) - (REPORT_KIND_ORDER[b.kind] ?? 99);
   });
 
-  const body = await parseResponseBody(response);
+  return reports;
+};
 
-  if (!response.ok) {
-    throw new Error(body?.message || body?.detail || 'Failed to download report.');
-  }
-
-  const reportUrl = body?.data?.report_url || body?.report_url;
-  if (!reportUrl || typeof reportUrl !== 'string') {
-    throw new Error('Report URL is missing from API response.');
-  }
-
+export const openBioAiHealthReport = async (assessmentId) => {
+  const reportUrl = await requireReportPdfUrl(assessmentId, REPORT_KIND.BIO_AI);
   openReportUrl(reportUrl);
 };
 
-export const openBloodHealthReport = async () => {
-  const assessmentId = await resolveAssessmentId();
+export const openBloodHealthReport = async (assessmentId) => {
+  const reportUrl = await requireReportPdfUrl(assessmentId, REPORT_KIND.BLOOD);
+  openReportUrl(reportUrl);
+};
 
-  const fixedBloodPdfUrl = getFixedBloodReportPdfUrl(assessmentId);
-  if (fixedBloodPdfUrl) {
-    openReportUrl(fixedBloodPdfUrl);
+export const openListedHealthReport = async (reportItem) => {
+  if (reportItem?.reportUrl && typeof reportItem.reportUrl === 'string') {
+    openReportUrl(reportItem.reportUrl);
     return;
   }
 
-  const accessToken = getAccessToken();
-  if (!accessToken) {
-    throw new Error('You are not logged in.');
+  if (reportItem?.kind === REPORT_KIND.BLOOD) {
+    await openBloodHealthReport(reportItem?.assessmentId);
+    return;
   }
 
-  if (!BACKEND_ENABLED) {
-    throw new Error('Backend base URL is not configured.');
-  }
-
-  const response = await fetch(`${BACKEND_BASE_URL}/reports/${assessmentId}/blood-parameters/pdf`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-
-  const body = await parseResponseBody(response);
-
-  if (!response.ok) {
-    throw new Error(body?.message || body?.detail || 'Failed to download report.');
-  }
-
-  const reportUrl = body?.data?.report_url || body?.report_url;
-  if (!reportUrl || typeof reportUrl !== 'string') {
-    throw new Error('Report URL is missing from API response.');
-  }
-
-  openReportUrl(reportUrl);
+  await openBioAiHealthReport(reportItem?.assessmentId);
 };

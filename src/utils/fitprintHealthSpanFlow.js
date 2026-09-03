@@ -5,11 +5,7 @@ import {
   getHealthSpanIndexSourceStatus,
   listHealthSpanIndexPairsFromRows,
 } from '../services/reportService';
-import {
-  clearFitprintGapQuestionnaireSubmittedFlag,
-  isFitprintAssessmentSubmitConfirmed,
-} from '../services/questionnaireService';
-import { isFitprintGapQuestionnaireFullyComplete } from './fitprintGapCatchupCompletion';
+import { clearFitprintGapQuestionnaireSubmittedFlag } from '../services/questionnaireService';
 
 /** No published scores yet (null or all zero). */
 export const areHealthSpanScoresPending = (scores) => {
@@ -66,7 +62,7 @@ const tryFetchFitprintReportScores = async ({ fitprintAssessmentId, basicOrProAs
       return result.scores;
     }
   } catch {
-    // Report not ready — continue to questionnaire / locked states.
+    // Report not ready — try the next older FitPrint pair.
   }
   return null;
 };
@@ -144,13 +140,11 @@ const tryFetchLatestFilledHealthSpanScores = async ({ rows, ttlMs }) => {
 };
 
 /**
- * Resolve Health Span Index UI from assessments + report + FitPrint submit state.
+ * Resolve Health Span Index UI from assessments + report.
  *
  * 1. Latest FitPrint that already has scores → show_scores
- * 2. No FitPrint instance and no HSI report → hidden_no_fitprint
- *    (do not assign FitPrint or show locked HSI / Complete Assessment)
- * 3. FitPrint exists, fitness-parameters submitted, no scores yet → locked_submitted
- * 4. FitPrint assigned but not submitted → locked_questionnaire
+ * 2. Anything else (no Basic/Pro, no FitPrint, FitPrint without scores) → hidden
+ *    Never surface locked HSI or a Complete Assessment CTA on this card.
  */
 export async function loadFitprintHealthSpanIndexState({
   ttlMs = 45000,
@@ -161,7 +155,7 @@ export async function loadFitprintHealthSpanIndexState({
     assignFitprintIfMissing,
   });
 
-  if (!basicProId || resolved.status === 'fetch_error' || resolved.status === 'no_basic_or_pro') {
+  if (resolved.status === 'fetch_error') {
     return {
       phase: HEALTH_SPAN_PHASE.NO_BASIC_PRO,
       isLocked: false,
@@ -195,13 +189,13 @@ export async function loadFitprintHealthSpanIndexState({
     };
   }
 
-  if (!fitprintAssessmentId) {
+  if (!basicProId || resolved.status === 'no_basic_or_pro') {
     return {
-      phase: HEALTH_SPAN_PHASE.HIDDEN_NO_FITPRINT,
+      phase: HEALTH_SPAN_PHASE.NO_BASIC_PRO,
       isLocked: false,
-      basicProAssessmentId: basicProId,
+      basicProAssessmentId: null,
       fitprintAssessmentId: null,
-      engagementId: engagementId || null,
+      engagementId: null,
       gapQuestionnaireComplete: false,
       hasFitprintReport: false,
       hasFitprintAssigned: false,
@@ -209,43 +203,13 @@ export async function loadFitprintHealthSpanIndexState({
     };
   }
 
-  let fitprintSubmitConfirmed = false;
-  try {
-    fitprintSubmitConfirmed = await isFitprintAssessmentSubmitConfirmed(fitprintAssessmentId, {
-      instanceStatus: resolved?.latestMatchingFitprint?.status,
-    });
-  } catch {
-    fitprintSubmitConfirmed = false;
-  }
-
-  if (fitprintSubmitConfirmed) {
-    return {
-      phase: HEALTH_SPAN_PHASE.LOCKED_SUBMITTED,
-      isLocked: true,
-      basicProAssessmentId: basicProId,
-      fitprintAssessmentId: fitprintAssessmentId || null,
-      engagementId: engagementId || null,
-      gapQuestionnaireComplete: true,
-      hasFitprintReport: false,
-      hasFitprintAssigned: Boolean(fitprintAssessmentId),
-      scores: null,
-    };
-  }
-
-  let gapQuestionnaireComplete = false;
-  try {
-    gapQuestionnaireComplete = await isFitprintGapQuestionnaireFullyComplete(basicProId);
-  } catch {
-    gapQuestionnaireComplete = false;
-  }
-
   return {
-    phase: HEALTH_SPAN_PHASE.LOCKED_QUESTIONNAIRE,
-    isLocked: true,
+    phase: HEALTH_SPAN_PHASE.HIDDEN_NO_FITPRINT,
+    isLocked: false,
     basicProAssessmentId: basicProId,
     fitprintAssessmentId: fitprintAssessmentId || null,
     engagementId: engagementId || null,
-    gapQuestionnaireComplete,
+    gapQuestionnaireComplete: false,
     hasFitprintReport: false,
     hasFitprintAssigned: Boolean(fitprintAssessmentId),
     scores: null,

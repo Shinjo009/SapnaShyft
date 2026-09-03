@@ -5,9 +5,8 @@ import chevronIcon from '../../images/reports/chevron-icon.svg';
 import docIcon from '../../images/reports/doc-icon.svg';
 import downloadIcon from '../../images/reports/download-icon.svg';
 import {
-  getLatestHealthReportMeta,
-  openBioAiHealthReport,
-  openBloodHealthReport,
+  listAvailableHealthReports,
+  openListedHealthReport,
 } from '../../utils/healthReportDownload';
 
 const RANGE_OPTIONS = Object.freeze([
@@ -16,33 +15,21 @@ const RANGE_OPTIONS = Object.freeze([
   { id: 'all', label: 'All Time', months: null },
 ]);
 
-const REPORT_ITEMS = Object.freeze([
-  {
-    id: 'bio-ai',
-    label: 'Bio-AI Health Report',
-    openReport: openBioAiHealthReport,
-  },
-  {
-    id: 'blood',
-    label: 'Blood Report',
-    openReport: openBloodHealthReport,
-  },
-]);
-
-const MONTH_SHORT = Object.freeze([
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec',
-]);
-
-const formatReportDate = (raw) => {
+const formatMmYyyy = (raw) => {
   if (!raw) {
     return '';
   }
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) {
-    return String(raw);
+    return '';
   }
-  return `${date.getDate()} ${MONTH_SHORT[date.getMonth()]} ${date.getFullYear()}`;
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${month}/${date.getFullYear()}`;
+};
+
+const formatReportTitle = (label, rawDate) => {
+  const suffix = formatMmYyyy(rawDate);
+  return suffix ? `${label}/${suffix}` : label;
 };
 
 const isWithinRange = (rawDate, months) => {
@@ -63,11 +50,11 @@ const isWithinRange = (rawDate, months) => {
 
 /**
  * ReportsPage — Bio-AI and Blood report cards (Figma: my reports).
+ * One card per available PDF, including older assessments, titled `Name/mm/yyyy`.
  */
 const ReportsPage = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
-  const [reportDate, setReportDate] = useState(null);
-  const [hasReports, setHasReports] = useState(false);
+  const [reports, setReports] = useState([]);
   const [openingReportId, setOpeningReportId] = useState(null);
   const [rangeId, setRangeId] = useState('1y');
   const [isRangeOpen, setIsRangeOpen] = useState(false);
@@ -80,21 +67,14 @@ const ReportsPage = ({ onBack }) => {
 
     const loadReports = async () => {
       try {
-        const meta = await getLatestHealthReportMeta();
+        const available = await listAvailableHealthReports();
         if (!mounted) {
           return;
         }
-        if (meta?.assessmentId) {
-          setHasReports(true);
-          setReportDate(meta.date || null);
-        } else {
-          setHasReports(false);
-          setReportDate(null);
-        }
+        setReports(Array.isArray(available) ? available : []);
       } catch {
         if (mounted) {
-          setHasReports(false);
-          setReportDate(null);
+          setReports([]);
         }
       } finally {
         if (mounted) {
@@ -127,18 +107,20 @@ const ReportsPage = ({ onBack }) => {
     };
   }, [isRangeOpen]);
 
-  const visibleReports = useMemo(() => {
-    if (!hasReports) {
-      return [];
-    }
-    if (!isWithinRange(reportDate, selectedRange.months)) {
-      return [];
-    }
-    return REPORT_ITEMS.map((item) => ({
-      ...item,
-      dateLabel: formatReportDate(reportDate) || 'Available now',
-    }));
-  }, [hasReports, reportDate, selectedRange.months]);
+  const visibleReports = useMemo(() => (
+    reports
+      .filter((reportItem) => isWithinRange(reportItem.date, selectedRange.months))
+      .map((reportItem) => {
+        const dateLabel = formatMmYyyy(reportItem.date);
+        return {
+          ...reportItem,
+          displayLabel: formatReportTitle(reportItem.label, reportItem.date),
+          dateLabel: dateLabel || 'Available now',
+        };
+      })
+  ), [reports, selectedRange.months]);
+
+  const hasReports = reports.length > 0;
 
   const handleOpenReport = async (reportItem) => {
     if (openingReportId !== null) {
@@ -148,7 +130,7 @@ const ReportsPage = ({ onBack }) => {
     setOpeningReportId(reportItem.id);
 
     try {
-      await reportItem.openReport();
+      await openListedHealthReport(reportItem);
     } catch (error) {
       console.error(`Failed to open ${reportItem.label}:`, error);
       window.alert(error?.message || 'Failed to open report. Please try again.');
@@ -246,7 +228,7 @@ const ReportsPage = ({ onBack }) => {
                 </span>
                 <div className="reports-page__meta">
                   <p className="reports-page__name">
-                    {isOpening ? 'Opening report...' : reportItem.label}
+                    {isOpening ? 'Opening report...' : reportItem.displayLabel}
                   </p>
                   <p className="reports-page__date">{reportItem.dateLabel}</p>
                 </div>

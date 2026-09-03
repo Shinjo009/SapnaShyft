@@ -5311,6 +5311,7 @@ const HealthAssessmentPage = ({
   const [isStartingAssessment, setIsStartingAssessment] = useState(false);
   const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
   const [loadingCategoryId, setLoadingCategoryId] = useState(null);
+  const [familyHistoryCompletedLocally, setFamilyHistoryCompletedLocally] = useState(false);
   const didSeedHubRef = useRef(false);
 
   const stepRouteStatusByRouteId = useMemo(() => {
@@ -5349,6 +5350,9 @@ const HealthAssessmentPage = ({
         if (isB2b && routeId === 'vitals') {
           return false;
         }
+        if (routeId === 'family-history' && familyHistoryCompletedLocally) {
+          return true;
+        }
         if (String(category.status || '').trim().toLowerCase() === 'complete') {
           return true;
         }
@@ -5365,6 +5369,7 @@ const HealthAssessmentPage = ({
   ), [
     hubCategories,
     isB2b,
+    familyHistoryCompletedLocally,
     questionsByRouteId,
     initialResponsesByRoute,
     questionnairePreferences,
@@ -5500,6 +5505,9 @@ const HealthAssessmentPage = ({
           }
           if (routeId === 'nutrition-log') {
             setHasNutritionLogSubmittedDraft(true);
+          }
+          if (routeId === 'family-history') {
+            setFamilyHistoryCompletedLocally(true);
           }
 
           setHubVariant(HA_ROUTE_HUB_VARIANT[routeId] || 'anthropometry');
