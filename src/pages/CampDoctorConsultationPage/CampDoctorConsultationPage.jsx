@@ -9,6 +9,7 @@ import {
   parseDoctorOfflineSchedule,
   parseOnlineConsultationSchedule,
 } from '../../utils/campDoctorOfflineSchedule';
+import { ONLINE_CONSULTATION_SLOTS_ENABLED } from './campDoctorConsultationConfig';
 import appointmentIcon from '../../images/home-book-appointment.svg';
 import closeIcon from '../../images/camp-doctor-close.svg';
 import calendarIcon from '../../images/camp-doctor-calendar.svg';
@@ -261,12 +262,14 @@ const resolveExpertPopupCopy = (expertType) => {
       title: 'Book Your 1:1 Nutritionist',
       appointmentTitle: 'Nutritionist Consultation',
       category: 'nutritionist',
+      lede: 'Tailored nutrition, designed around your body and lifestyle',
     };
   }
   return {
     title: 'Book Your 1:1 Doctor',
     appointmentTitle: 'Doctor Consultation',
     category: 'doctor',
+    lede: 'Expert healthcare, personalized to your health conditions and lifestyle',
   };
 };
 
@@ -281,7 +284,8 @@ const CampDoctorConsultationPage = ({
 }) => {
   const fallbackDates = useMemo(() => buildUpcomingDates(), []);
   const normalizedExpertType = String(expertType || 'doctor').toLowerCase();
-  const isOnlineMode = String(consultationMode || '').toLowerCase() === 'online';
+  const isOnlineMode = ONLINE_CONSULTATION_SLOTS_ENABLED
+    && String(consultationMode || '').toLowerCase() === 'online';
   const expertCopy = useMemo(() => resolveExpertPopupCopy(normalizedExpertType), [normalizedExpertType]);
   const canLoadBackendSchedule = isOnlineMode || Boolean(engagementCode);
 
@@ -537,7 +541,7 @@ const CampDoctorConsultationPage = ({
                 </div>
               </div>
               <p className="camp-doctor-consult__lede">
-                Tailored nutrition, designed around your body and lifestyle
+                {expertCopy.lede}
               </p>
               {scheduleError ? (
                 <p className="camp-doctor-consult__error" role="alert">{scheduleError}</p>
