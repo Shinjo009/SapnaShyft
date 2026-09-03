@@ -223,15 +223,36 @@ const buildCampDoctorAppointment = (date, slotLabel, cabin, slotDurationMinutes 
   };
 };
 
-const getFirstBookable = (dates, slots, nowMs) => {
+const getFirstBookable = (dates, scheduleOrSlots, nowMs) => {
   for (const date of dates) {
+    const slots = Array.isArray(scheduleOrSlots)
+      ? scheduleOrSlots
+      : getSlotsForDate(date, scheduleOrSlots);
     const slot = slots.find((item) => toAppointmentStart(date, item).getTime() > nowMs);
     if (slot) {
       return { dateId: date.id, slot };
     }
   }
-  return { dateId: dates[0]?.id || '', slot: slots[0] || '' };
+  const fallbackDate = dates[0];
+  const fallbackSlots = Array.isArray(scheduleOrSlots)
+    ? scheduleOrSlots
+    : getSlotsForDate(fallbackDate, scheduleOrSlots);
+  return { dateId: fallbackDate?.id || '', slot: fallbackSlots[0] || '' };
 };
+
+const getSlotsForDate = (date, schedule) => {
+  if (schedule && date?.apiDate) {
+    return (schedule.slotsByDate[date.apiDate] || []).map((slotItem) => slotItem.displaySlot);
+  }
+  return TIME_SLOTS;
+};
+
+/** Drop dates that are fully past or have no remaining future slots. */
+const filterBookableDates = (dateOptions, schedule, nowMs) => (
+  (dateOptions || []).filter((date) => (
+    getSlotsForDate(date, schedule).some((slot) => toAppointmentStart(date, slot).getTime() > nowMs)
+  ))
+);
 
 const resolveExpertPopupCopy = (expertType) => {
   const normalized = String(expertType || 'doctor').toLowerCase();
@@ -277,22 +298,16 @@ const CampDoctorConsultationPage = ({
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [selectedDayPart, setSelectedDayPart] = useState('morning');
 
-  const dates = offlineSchedule?.dateOptions?.length ? offlineSchedule.dateOptions : fallbackDates;
+  const dates = useMemo(() => {
+    const source = offlineSchedule?.dateOptions?.length ? offlineSchedule.dateOptions : fallbackDates;
+    return filterBookableDates(source, offlineSchedule, nowMs);
+  }, [offlineSchedule, fallbackDates, nowMs]);
   const slotDurationMinutes = offlineSchedule?.slotDurationMinutes || 15;
   const requiresCabinStep = offlineSchedule?.hasCabins === true;
 
-  const allSlotsForDates = useMemo(() => {
-    if (offlineSchedule) {
-      return dates.flatMap((date) => (
-        offlineSchedule.slotsByDate[date.apiDate] || []
-      ).map((slotItem) => slotItem.displaySlot));
-    }
-    return TIME_SLOTS;
-  }, [dates, offlineSchedule]);
-
   const firstBookable = useMemo(
-    () => getFirstBookable(dates, offlineSchedule ? allSlotsForDates : TIME_SLOTS, nowMs),
-    [dates, allSlotsForDates, offlineSchedule, nowMs],
+    () => getFirstBookable(dates, offlineSchedule || TIME_SLOTS, nowMs),
+    [dates, offlineSchedule, nowMs],
   );
 
   const [selectedDateId, setSelectedDateId] = useState(firstBookable.dateId);
@@ -464,14 +479,14 @@ const CampDoctorConsultationPage = ({
         return;
       }
 
+      const bookableDates = filterBookableDates(schedule.dateOptions, schedule, Date.now());
+      if (!bookableDates.length) {
+        setScheduleError('No upcoming consultation slots are available right now.');
+        return;
+      }
+
       setOfflineSchedule(schedule);
-      const initial = getFirstBookable(
-        schedule.dateOptions,
-        schedule.dateOptions.flatMap((date) => (
-          schedule.slotsByDate[date.apiDate] || []
-        ).map((slotItem) => slotItem.displaySlot)),
-        Date.now(),
-      );
+      const initial = getFirstBookable(bookableDates, schedule, Date.now());
 
       setSelectedDateId(initial.dateId);
       setSelectedTimeSlot(initial.slot);

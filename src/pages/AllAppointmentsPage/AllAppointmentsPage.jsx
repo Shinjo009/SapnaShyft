@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './AllAppointmentsPage.css';
 import { fetchMyConsultationAppointments } from '../../utils/myConsultationsAppointments';
 import backIcon from '../../images/AllAppointments/back.svg';
-import infoIcon from '../../images/AllAppointments/info.svg';
 import homeIcon from '../../images/AllAppointments/home.svg';
 import videoIcon from '../../images/AllAppointments/video.svg';
 import attachmentIcon from '../../images/AllAppointments/attachment.svg';
@@ -119,13 +118,6 @@ const COMPLETED_SAMPLE_APPOINTMENTS = [
   },
 ];
 
-const InfoBubbleShape = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="226" height="73" viewBox="0 0 226 73" fill="none" aria-hidden="true">
-    <path d="M0 21.2254C0 14.598 5.37258 9.22539 12 9.22539H200.979C200.979 9.22539 207.978 9.22539 212.978 9.22539C216.477 9.22539 218.977 6.21686 224.476 0.802322C224.981 0.305929 225.321 0.0825171 225.549 0.019497C226.257 -0.175756 225.844 1.14597 225.583 1.83194C224.719 4.09427 222.644 9.55775 221.477 12.8353C220.3 16.1388 219.977 27.2748 219.977 27.2748V61C219.977 67.6274 214.604 73 207.977 73H12C5.37257 73 0 67.6274 0 61V21.2254Z" fill="#063533"/>
-    <path d="M219.477 27.2676V61C219.477 67.3513 214.328 72.5 207.977 72.5H12C5.64873 72.5 0.500002 67.3513 0.5 61V21.2256C0.5 14.8743 5.64873 9.72559 12 9.72559H212.978C214.894 9.72559 216.504 8.89272 218.293 7.43164C220.067 5.98311 222.098 3.84487 224.827 1.1582C225.08 0.909277 225.272 0.750719 225.412 0.651367C225.356 0.963272 225.23 1.35317 225.115 1.65332C224.252 3.9146 222.175 9.38423 221.006 12.668C220.692 13.5488 220.446 14.911 220.25 16.4209C220.053 17.9428 219.901 19.6556 219.787 21.2588C219.673 22.8628 219.595 24.3625 219.546 25.4609C219.521 26.0101 219.504 26.4593 219.493 26.7715C219.488 26.9276 219.484 27.0499 219.481 27.1328C219.48 27.1743 219.479 27.2061 219.479 27.2275C219.478 27.2382 219.478 27.2465 219.478 27.252V27.2598L219.977 27.2744L219.478 27.2607L219.477 27.2676Z" stroke="white" strokeOpacity="0.3"/>
-  </svg>
-);
-
 const getStatusBadgeIcon = (icon) => {
   if (icon === 'prescription') {
     return prescriptionIcon;
@@ -204,7 +196,6 @@ const normalizeScheduledAppointment = (item) => {
 const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
   const [activeStatus, setActiveStatus] = useState('scheduled');
   const [activeCategory, setActiveCategory] = useState('all');
-  const [infoOpenAppointmentId, setInfoOpenAppointmentId] = useState(null);
   const [consultationAppointments, setConsultationAppointments] = useState([]);
   const [isLoadingConsultations, setIsLoadingConsultations] = useState(true);
   const [hasLoadedConsultations, setHasLoadedConsultations] = useState(false);
@@ -271,7 +262,7 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
     });
   }, [mergedAppointments, activeStatus, activeCategory]);
 
-  const renderScheduledCard = (appointment, accent, kind, canShowInfo, isInfoOpen) => {
+  const renderScheduledCard = (appointment, accent, kind) => {
     const detailLabel = appointment.cabinLabel || appointment.locationLabel;
 
     return (
@@ -329,22 +320,6 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
           </div>
         </div>
 
-        {isInfoOpen ? (
-          <div className="all-appointments-page__info-popup" role="status" aria-live="polite">
-            <span className="all-appointments-page__info-popup-bg" aria-hidden="true">
-              <InfoBubbleShape />
-            </span>
-            <div className="all-appointments-page__info-popup-content">
-              <span className="all-appointments-page__icon-box all-appointments-page__icon-box--info">
-                <img src={infoIcon} alt="" />
-              </span>
-              <p className="all-appointments-page__info-popup-text">
-                Rescheduling or cancellation is allowed till 4 hours before the appointment
-              </p>
-            </div>
-          </div>
-        ) : null}
-
         {kind === 'program' && typeof appointment.progressPercent === 'number' ? (
           <div className="all-appointments-page__progress">
             <div className="all-appointments-page__progress-row">
@@ -358,19 +333,6 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
               />
             </div>
           </div>
-        ) : null}
-
-        {canShowInfo ? (
-          <button
-            type="button"
-            className="all-appointments-page__info-btn all-appointments-page__info-btn--scheduled"
-            aria-label="Appointment details"
-            onClick={() => setInfoOpenAppointmentId((prev) => (prev === appointment.id ? null : appointment.id))}
-          >
-            <span className="all-appointments-page__icon-box all-appointments-page__icon-box--info">
-              <img src={infoIcon} alt="" />
-            </span>
-          </button>
         ) : null}
       </>
     );
@@ -536,7 +498,6 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
                   aria-selected={isActive}
                   onClick={() => {
                     setActiveStatus(tab.key);
-                    setInfoOpenAppointmentId(null);
                   }}
                 >
                   {tab.label}
@@ -558,7 +519,6 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
                 aria-selected={isActive}
                 onClick={() => {
                   setActiveCategory(chip.key);
-                  setInfoOpenAppointmentId(null);
                 }}
               >
                 {chip.label}
@@ -588,8 +548,6 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
           const status = appointment.status || 'scheduled';
           const isCompleted = status === 'completed';
           const isCancelled = status === 'cancelled';
-          const canShowInfo = activeStatus === 'scheduled' && appointment.showInfo;
-          const isInfoOpen = canShowInfo && infoOpenAppointmentId === appointment.id;
 
           let cardContent;
           if (isCompleted) {
@@ -597,7 +555,7 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
           } else if (isCancelled) {
             cardContent = renderCancelledCard(appointment, accent, kind);
           } else {
-            cardContent = renderScheduledCard(appointment, accent, kind, canShowInfo, isInfoOpen);
+            cardContent = renderScheduledCard(appointment, accent, kind);
           }
 
           return (
@@ -606,7 +564,7 @@ const AllAppointmentsPage = ({ onBack, appointments = [] }) => {
                 <span className={`all-appointments-page__dot all-appointments-page__dot--${accent}`} />
               </div>
 
-              <article className={`all-appointments-page__card${isInfoOpen ? ' is-info-open' : ''}${isCompleted ? ' all-appointments-page__card--completed' : ''}${isCancelled ? ' all-appointments-page__card--cancelled' : ''}${status === 'scheduled' ? ' all-appointments-page__card--scheduled' : ''}`}>
+              <article className={`all-appointments-page__card${isCompleted ? ' all-appointments-page__card--completed' : ''}${isCancelled ? ' all-appointments-page__card--cancelled' : ''}${status === 'scheduled' ? ' all-appointments-page__card--scheduled' : ''}`}>
                 {cardContent}
               </article>
             </div>

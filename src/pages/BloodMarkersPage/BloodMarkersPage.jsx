@@ -36,6 +36,9 @@ import hormonesIcon from '../../images/Hormones.svg';
 
 const FILTERS = ['Critical', 'Marginal', 'Optimal'];
 
+/** Set to `true` to show history timelines on blood marker stack cards. */
+const BLOOD_MARKER_CARD_HISTORY_ENABLED = false;
+
 const EMPTY_FILTER_MESSAGE = {
   Critical: 'No Critical Markers Detected',
   Marginal: 'No Marginal Markers Detected',
@@ -2154,8 +2157,12 @@ const BloodMarkerStackSection = ({ section, onOpenDetail, trendsByParameterKey =
           const aggregateDetailRows = isAggregateOptimalCard
             ? buildAggregateOptimalRows(card.aggregateTests)
             : [];
-          const historyPoints = resolveCardHistoryPoints(card, trendsByParameterKey);
-          const showHistoryTimeline = historyPoints.length >= 2 && !isAggregateOptimalCard;
+          const historyPoints = BLOOD_MARKER_CARD_HISTORY_ENABLED
+            ? resolveCardHistoryPoints(card, trendsByParameterKey)
+            : [];
+          const showHistoryTimeline = BLOOD_MARKER_CARD_HISTORY_ENABLED
+            && historyPoints.length >= 2
+            && !isAggregateOptimalCard;
           const unitLabel = String(card.unit || '').trim();
           const unitDisplay = unitLabel
             ? (unitLabel.startsWith('(') ? unitLabel : `(${unitLabel})`)
