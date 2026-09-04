@@ -207,3 +207,53 @@ export const fetchDoctorConsultationPopupEligibility = async ({ ttlMs = 45000 } 
     expertType: resolveFirstUnfilledConsultationType(consultation),
   };
 };
+
+const CONSULTATION_POPUP_OPT_OUT_KEY = 'campDoctorConsultationOptOutByUser';
+
+const readConsultationPopupOptOutMap = () => {
+  try {
+    const raw = window.localStorage.getItem(CONSULTATION_POPUP_OPT_OUT_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (_error) {
+    return {};
+  }
+};
+
+const optOutStorageKey = (userId, engagementId) => {
+  const user = Number(userId);
+  const engagement = Number(engagementId);
+  if (!Number.isFinite(user) || user <= 0 || !Number.isFinite(engagement) || engagement <= 0) {
+    return null;
+  }
+  return `${user}:${engagement}`;
+};
+
+/** True when this user opted out of the consultation popup for this engagement. */
+export const hasOptedOutOfConsultationPopup = (userId, engagementId) => {
+  const key = optOutStorageKey(userId, engagementId);
+  if (!key) {
+    return false;
+  }
+  const map = readConsultationPopupOptOutMap();
+  return Boolean(map[key]);
+};
+
+/** Persist opt-out so the popup does not show again for this user + engagement. */
+export const optOutOfConsultationPopup = (userId, engagementId) => {
+  const key = optOutStorageKey(userId, engagementId);
+  if (!key) {
+    return false;
+  }
+  const map = readConsultationPopupOptOutMap();
+  map[key] = true;
+  try {
+    window.localStorage.setItem(CONSULTATION_POPUP_OPT_OUT_KEY, JSON.stringify(map));
+    return true;
+  } catch (_error) {
+    return false;
+  }
+};

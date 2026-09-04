@@ -11,7 +11,7 @@ import {
 } from './utils/superclubPlaylistLock';
 import { CAMP_DOCTOR_CONSULTATION_ENABLED } from './pages/CampDoctorConsultationPage/campDoctorConsultationConfig';
 import { readCampAppointments, saveCampAppointment } from './utils/campAppointments';
-import { fetchDoctorConsultationPopupEligibility } from './utils/campDoctorConsultationEligibility';
+import { fetchDoctorConsultationPopupEligibility, hasOptedOutOfConsultationPopup, optOutOfConsultationPopup } from './utils/campDoctorConsultationEligibility';
 import { sendOtp, resendOtp, verifyOtp, refreshToken, logout } from './services/authService';
 import { createUser, getMyProfiles, saveSuperclubMcqPreferences, getMyUpcomingSlot } from './services/usersService';
 import { getMyProfile } from './services/profileService';
@@ -1457,8 +1457,11 @@ function App() {
             setShowCampDoctorConsultation(false);
             return;
           }
-          setShowCampDoctorConsultation(Boolean(result.shouldShow));
-          setDoctorConsultationContext(result.shouldShow ? {
+          const popupUserId = selectedAccountId ?? currentUserId;
+          const optedOut = hasOptedOutOfConsultationPopup(popupUserId, result.engagementId);
+          const shouldShow = Boolean(result.shouldShow) && !optedOut;
+          setShowCampDoctorConsultation(shouldShow);
+          setDoctorConsultationContext(shouldShow ? {
             engagementId: result.engagementId,
             engagementCode: result.engagementCode,
             consultationMode: result.consultationMode,
@@ -1479,7 +1482,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [currentPage, forceHomeApiRefresh, isBootstrappingSession]);
+  }, [currentPage, forceHomeApiRefresh, isBootstrappingSession, selectedAccountId, currentUserId]);
 
   const handleSendOtp = async (phone) => {
     await sendOtp(phone);
@@ -1821,6 +1824,13 @@ function App() {
           consultationMode={doctorConsultationContext?.consultationMode}
           expertType={doctorConsultationContext?.expertType}
           onClose={() => {
+            campDoctorPopupDismissedRef.current = true;
+            setShowCampDoctorConsultation(false);
+            setDoctorConsultationContext(null);
+          }}
+          onOptOut={() => {
+            const popupUserId = selectedAccountId ?? currentUserId;
+            optOutOfConsultationPopup(popupUserId, doctorConsultationContext?.engagementId);
             campDoctorPopupDismissedRef.current = true;
             setShowCampDoctorConsultation(false);
             setDoctorConsultationContext(null);

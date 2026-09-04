@@ -307,6 +307,30 @@
   cursor: wait;
 }
 
+.camp-doctor-consult__opt-out {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  font-family: Lato, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: normal;
+  text-decoration: underline;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+}
+
+.camp-doctor-consult__opt-out:hover,
+.camp-doctor-consult__opt-out:focus-visible {
+  opacity: 1;
+}
+
 .camp-doctor-schedule {
   position: fixed;
   inset: 0;
@@ -509,8 +533,10 @@
   height: auto;
   max-width: 100%;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   border-radius: 999px;
   border: 0.5px solid #4b8d83;
   background: rgba(255, 255, 255, 0.05);
@@ -527,9 +553,24 @@
   overflow-wrap: anywhere;
 }
 
+.camp-doctor-cabin__btn-label {
+  display: block;
+}
+
+.camp-doctor-cabin__btn-spots {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
 .camp-doctor-cabin__btn.is-selected {
   background: radial-gradient(ellipse at center, #11795f, #1c493d);
   color: #fff;
+}
+
+.camp-doctor-cabin__btn.is-selected .camp-doctor-cabin__btn-spots {
+  opacity: 0.9;
 }
 
 .camp-doctor-cabin__btn.is-disabled {
@@ -582,11 +623,14 @@
 }
 
 .camp-doctor-schedule__slot {
-  display: flex;
-  height: 40px;
-  padding: 4.5px 8px;
+  display: inline-flex;
+  flex-direction: column;
+  min-height: 40px;
+  height: auto;
+  padding: 6px 10px;
   justify-content: center;
   align-items: center;
+  gap: 2px;
   border-radius: 999px;
   border: 0.5px solid #4b8d83;
   background: rgba(255, 255, 255, 0.05);
@@ -596,14 +640,29 @@
   font-size: 14px;
   font-style: normal;
   font-weight: 500;
-  line-height: normal;
+  line-height: 1.2;
   white-space: nowrap;
   cursor: pointer;
+}
+
+.camp-doctor-schedule__slot-label {
+  display: block;
+}
+
+.camp-doctor-schedule__slot-spots {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.85;
 }
 
 .camp-doctor-schedule__slot.is-selected {
   background: radial-gradient(50.74% 50.76% at 50% 50%, #11795f 0%, #1c493d 100%);
   color: #fff;
+}
+
+.camp-doctor-schedule__slot.is-selected .camp-doctor-schedule__slot-spots {
+  opacity: 0.9;
 }
 
 .camp-doctor-schedule__footer {

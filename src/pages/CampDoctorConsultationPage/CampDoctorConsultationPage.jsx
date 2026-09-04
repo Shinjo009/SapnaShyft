@@ -263,6 +263,7 @@ const resolveExpertPopupCopy = (expertType) => {
       appointmentTitle: 'Nutritionist Consultation',
       category: 'nutritionist',
       lede: 'Tailored nutrition, designed around your body and lifestyle',
+      optOutLabel: "I don't want to opt for a nutritionist consultation.",
     };
   }
   return {
@@ -270,6 +271,7 @@ const resolveExpertPopupCopy = (expertType) => {
     appointmentTitle: 'Doctor Consultation',
     category: 'doctor',
     lede: 'Expert healthcare, personalized to your health conditions and lifestyle',
+    optOutLabel: "I don't want to opt for a doctor consultation.",
   };
 };
 
@@ -281,6 +283,7 @@ const CampDoctorConsultationPage = ({
   onAppointmentBooked,
   onViewAppointment,
   onClose,
+  onOptOut,
 }) => {
   const fallbackDates = useMemo(() => buildUpcomingDates(), []);
   const normalizedExpertType = String(expertType || 'doctor').toLowerCase();
@@ -295,8 +298,7 @@ const CampDoctorConsultationPage = ({
   const [scheduleError, setScheduleError] = useState('');
   const [bookingError, setBookingError] = useState('');
   const [bookedAppointment, setBookedAppointment] = useState(null);
-  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
-  const [isCabinOpen, setIsCabinOpen] = useState(false);
+  const [scheduleStep, setScheduleStep] = useState(null);
   const [isConsentOpen, setIsConsentOpen] = useState(false);
   const [selectedCabinKey, setSelectedCabinKey] = useState(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -329,43 +331,6 @@ const CampDoctorConsultationPage = ({
 
   const selectedDate = dates.find((item) => item.id === selectedDateId) || dates[0];
 
-  const selectedSlotMeta = useMemo(() => {
-    if (!offlineSchedule || !selectedDate?.apiDate || !selectedTimeSlot) {
-      return null;
-    }
-    return (offlineSchedule.slotsByDate[selectedDate.apiDate] || [])
-      .find((item) => item.displaySlot === selectedTimeSlot) || null;
-  }, [offlineSchedule, selectedDate, selectedTimeSlot]);
-
-  const effectiveSlotDuration = selectedSlotMeta?.durationMinutes || slotDurationMinutes;
-
-  const availableSlots = useMemo(() => {
-    const part = DAY_PARTS.find((p) => p.id === selectedDayPart);
-    const sourceSlots = offlineSchedule && selectedDate?.apiDate
-      ? (offlineSchedule.slotsByDate[selectedDate.apiDate] || []).map((slotItem) => slotItem.displaySlot)
-      : TIME_SLOTS;
-
-    return sourceSlots.filter((slot) => {
-      if (selectedDate && toAppointmentStart(selectedDate, slot).getTime() <= nowMs) {
-        return false;
-      }
-      if (part) {
-        const mins = slotToMinutes(slot);
-        const hour = Math.floor(mins / 60);
-        if (hour < part.startHour || hour >= part.endHour) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [offlineSchedule, selectedDate, nowMs, selectedDayPart]);
-
-  useEffect(() => {
-    if (availableSlots.length > 0 && !availableSlots.includes(selectedTimeSlot)) {
-      setSelectedTimeSlot(availableSlots[0]);
-    }
-  }, [availableSlots, selectedTimeSlot]);
-
   const availableCabins = useMemo(() => {
     if (offlineSchedule && selectedDate?.apiDate && selectedTimeSlot) {
       const cabins = getOfflineCabinsForSelection(offlineSchedule, selectedDate, selectedTimeSlot);
@@ -387,13 +352,71 @@ const CampDoctorConsultationPage = ({
 
   const selectedCabin = availableCabins.find((cabin) => cabin.key === selectedCabinKey) || availableCabins[0] || null;
 
+  const selectedSlotMeta = useMemo(() => {
+    if (!offlineSchedule || !selectedDate?.apiDate || !selectedTimeSlot) {
+      return null;
+    }
+    return (offlineSchedule.slotsByDate[selectedDate.apiDate] || [])
+      .find((item) => item.displaySlot === selectedTimeSlot) || null;
+  }, [offlineSchedule, selectedDate, selectedTimeSlot]);
+
+  const effectiveSlotDuration = selectedCabin?.slotDuration
+    || selectedSlotMeta?.durationMinutes
+    || slotDurationMinutes;
+
+  const availableSlots = useMemo(() => {
+    const part = DAY_PARTS.find((p) => p.id === selectedDayPart);
+    const sourceSlots = offlineSchedule && selectedDate?.apiDate
+      ? (offlineSchedule.slotsByDate[selectedDate.apiDate] || [])
+      : [];
+    const fallbackSlots = sourceSlots.length > 0
+      ? sourceSlots
+      : TIME_SLOTS.map((slot) => ({ displaySlot: slot, spotLeft: null }));
+
+    return fallbackSlots
+      .filter((slotItem) => {
+        const slot = slotItem.displaySlot || slotItem;
+        if (selectedDate && toAppointmentStart(selectedDate, slot).getTime() <= nowMs) {
+          return false;
+        }
+        if (part) {
+          const mins = slotToMinutes(slot);
+          const hour = Math.floor(mins / 60);
+          if (hour < part.startHour || hour >= part.endHour) {
+            return false;
+          }
+        }
+        return true;
+      })
+      .map((slotItem) => (
+        typeof slotItem === 'string'
+          ? { displaySlot: slotItem, spotLeft: null }
+          : {
+            displaySlot: slotItem.displaySlot,
+            spotLeft: slotItem.spotLeft,
+          }
+      ));
+  }, [offlineSchedule, selectedDate, nowMs, selectedDayPart]);
+
+  useEffect(() => {
+    if (
+      availableSlots.length > 0
+      && !availableSlots.some((slotItem) => slotItem.displaySlot === selectedTimeSlot)
+    ) {
+      setSelectedTimeSlot(availableSlots[0].displaySlot);
+    }
+  }, [availableSlots, selectedTimeSlot]);
+
+  const dateSummary = selectedDate
+    ? `${ordinal(selectedDate.number)} ${selectedDate.month}`
+    : '';
+
   const slotSummary = selectedDate && selectedTimeSlot
     ? `${ordinal(selectedDate.number)} ${selectedDate.month}  |  ${formatSlotStart(selectedTimeSlot)} - ${addMinutesToSlot(selectedTimeSlot, effectiveSlotDuration)}`
     : '';
 
   const closeSchedule = () => {
-    setIsScheduleOpen(false);
-    setIsCabinOpen(false);
+    setScheduleStep(null);
     setIsConsentOpen(false);
     setScheduleError('');
     setBookingError('');
@@ -417,8 +440,7 @@ const CampDoctorConsultationPage = ({
   );
 
   const openConsentAfterBooking = () => {
-    setIsCabinOpen(false);
-    setIsScheduleOpen(false);
+    setScheduleStep(null);
     setIsConsentOpen(true);
   };
 
@@ -460,7 +482,7 @@ const CampDoctorConsultationPage = ({
 
   const handleBookNow = async () => {
     if (!canLoadBackendSchedule) {
-      setIsScheduleOpen(true);
+      setScheduleStep('date');
       return;
     }
 
@@ -495,7 +517,8 @@ const CampDoctorConsultationPage = ({
       setSelectedDateId(initial.dateId);
       setSelectedTimeSlot(initial.slot);
       setSelectedCabinKey(null);
-      setIsScheduleOpen(true);
+      setSelectedDayPart('morning');
+      setScheduleStep('date');
     } catch (error) {
       console.error('Failed to load consultation schedule:', error);
       setScheduleError('Unable to load consultation slots. Please try again.');
@@ -506,6 +529,8 @@ const CampDoctorConsultationPage = ({
 
   const handleDateSelect = (item) => {
     setSelectedDateId(item.id);
+    setSelectedCabinKey(null);
+    setSelectedDayPart('morning');
     const nextSlots = offlineSchedule && item.apiDate
       ? (offlineSchedule.slotsByDate[item.apiDate] || []).map((slotItem) => slotItem.displaySlot)
       : TIME_SLOTS;
@@ -515,9 +540,45 @@ const CampDoctorConsultationPage = ({
     }
   };
 
+  const handleDateConfirm = () => {
+    if (!selectedDate) {
+      return;
+    }
+    setScheduleStep('time');
+  };
+
+  const handleTimeConfirm = () => {
+    if (!selectedTimeSlot) {
+      return;
+    }
+    if (requiresCabinStep) {
+      setSelectedCabinKey(null);
+      setScheduleStep('cabin');
+      return;
+    }
+    void (async () => {
+      const booked = await handleConfirmBooking();
+      if (booked) {
+        openConsentAfterBooking();
+      }
+    })();
+  };
+
+  const handleCabinConfirm = () => {
+    if (!selectedCabin) {
+      return;
+    }
+    void (async () => {
+      const booked = await handleConfirmBooking();
+      if (booked) {
+        openConsentAfterBooking();
+      }
+    })();
+  };
+
   return (
     <>
-      {!isScheduleOpen && !isConsentOpen ? (
+      {!scheduleStep && !isConsentOpen ? (
         <div className="camp-doctor-consult" role="dialog" aria-label="Camp doctor consultation">
           <section className="camp-doctor-consult__card">
             <button
@@ -557,11 +618,82 @@ const CampDoctorConsultationPage = ({
             >
               {isLoadingSchedule ? 'Loading...' : 'Book Now'}
             </button>
+            <button
+              type="button"
+              className="camp-doctor-consult__opt-out"
+              onClick={() => {
+                onOptOut?.();
+              }}
+            >
+              {expertCopy.optOutLabel}
+            </button>
           </section>
         </div>
       ) : null}
 
-      {isCabinOpen && requiresCabinStep ? (
+      {scheduleStep === 'date' ? (
+        <div className="camp-doctor-schedule" role="dialog" aria-modal="true" aria-label="Select date">
+          <button
+            type="button"
+            className="camp-doctor-schedule__backdrop"
+            aria-label="Close"
+            onClick={closeSchedule}
+          />
+          <div className="camp-doctor-schedule__stack">
+            <button
+              type="button"
+              className="camp-doctor-schedule__close"
+              aria-label="Close"
+              onClick={closeSchedule}
+            >
+              <img src={closeIcon} alt="" className="camp-doctor-schedule__close-img" />
+            </button>
+            <div className="camp-doctor-schedule__sheet">
+              <h2 className="camp-doctor-schedule__title">Schedule Appointment</h2>
+
+              <div className="camp-doctor-schedule__label">
+                <span className="camp-doctor-schedule__label-icon" aria-hidden="true">
+                  <img src={calendarIcon} alt="" />
+                </span>
+                <span>Preferred Date</span>
+              </div>
+              <div className="camp-doctor-schedule__dates">
+                {dates.map((item) => {
+                  const isSelected = item.id === selectedDateId;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`camp-doctor-schedule__date${isSelected ? ' is-selected' : ''}`}
+                      onClick={() => handleDateSelect(item)}
+                    >
+                      <span className="camp-doctor-schedule__date-day">{item.day}</span>
+                      <span className="camp-doctor-schedule__date-number">{item.number}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="camp-doctor-schedule__footer">
+                <div className="camp-doctor-schedule__footer-copy">
+                  <p className="camp-doctor-schedule__footer-label">Date selected</p>
+                  <p className="camp-doctor-schedule__footer-value">{dateSummary || '—'}</p>
+                </div>
+                <button
+                  type="button"
+                  className="camp-doctor-schedule__confirm"
+                  disabled={!selectedDate || dates.length === 0}
+                  onClick={handleDateConfirm}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {scheduleStep === 'cabin' && requiresCabinStep ? (
         <div className="camp-doctor-schedule" role="dialog" aria-modal="true" aria-label="Select cabin">
           <button
             type="button"
@@ -598,7 +730,7 @@ const CampDoctorConsultationPage = ({
                         disabled={!cabin.available}
                         onClick={() => setSelectedCabinKey(cabin.key)}
                       >
-                        {cabin.label}
+                        <span className="camp-doctor-cabin__btn-label">{cabin.label}</span>
                       </button>
                     );
                   })}
@@ -615,15 +747,8 @@ const CampDoctorConsultationPage = ({
                   <button
                     type="button"
                     className="camp-doctor-schedule__confirm"
-                    disabled={!selectedCabin || isBooking}
-                    onClick={() => {
-                      void (async () => {
-                        const booked = await handleConfirmBooking();
-                        if (booked) {
-                          openConsentAfterBooking();
-                        }
-                      })();
-                    }}
+                    disabled={!selectedCabin || availableCabins.length === 0 || isBooking}
+                    onClick={handleCabinConfirm}
                   >
                     {isBooking ? 'Booking...' : 'Confirm'}
                   </button>
@@ -634,8 +759,8 @@ const CampDoctorConsultationPage = ({
         </div>
       ) : null}
 
-      {isScheduleOpen ? (
-        <div className="camp-doctor-schedule" role="dialog" aria-modal="true" aria-label="Schedule appointment">
+      {scheduleStep === 'time' ? (
+        <div className="camp-doctor-schedule" role="dialog" aria-modal="true" aria-label="Select time">
           <button
             type="button"
             className="camp-doctor-schedule__backdrop"
@@ -653,29 +778,6 @@ const CampDoctorConsultationPage = ({
             </button>
             <div className="camp-doctor-schedule__sheet">
               <h2 className="camp-doctor-schedule__title">Schedule Appointment</h2>
-
-              <div className="camp-doctor-schedule__label">
-                <span className="camp-doctor-schedule__label-icon" aria-hidden="true">
-                  <img src={calendarIcon} alt="" />
-                </span>
-                <span>Preferred Date</span>
-              </div>
-              <div className="camp-doctor-schedule__dates">
-                {dates.map((item) => {
-                  const isSelected = item.id === selectedDateId;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={`camp-doctor-schedule__date${isSelected ? ' is-selected' : ''}`}
-                      onClick={() => handleDateSelect(item)}
-                    >
-                      <span className="camp-doctor-schedule__date-day">{item.day}</span>
-                      <span className="camp-doctor-schedule__date-number">{item.number}</span>
-                    </button>
-                  );
-                })}
-              </div>
 
               <div className="camp-doctor-schedule__daypart">
                 <div className="camp-doctor-schedule__label">
@@ -710,8 +812,13 @@ const CampDoctorConsultationPage = ({
 
               <div className="camp-doctor-schedule__slots-wrap">
                 <div className="camp-doctor-schedule__slots">
-                  {availableSlots.length > 0 ? availableSlots.map((slot) => {
+                  {availableSlots.length > 0 ? availableSlots.map((slotItem) => {
+                    const slot = slotItem.displaySlot;
                     const isSelected = slot === selectedTimeSlot;
+                    const spotsLeft = Number(slotItem.spotLeft);
+                    const spotsLabel = Number.isFinite(spotsLeft) && spotsLeft > 0
+                      ? `${spotsLeft} left`
+                      : null;
                     return (
                       <button
                         key={slot}
@@ -719,7 +826,10 @@ const CampDoctorConsultationPage = ({
                         className={`camp-doctor-schedule__slot${isSelected ? ' is-selected' : ''}`}
                         onClick={() => setSelectedTimeSlot(slot)}
                       >
-                        {slot}
+                        <span className="camp-doctor-schedule__slot-label">{slot}</span>
+                        {spotsLabel ? (
+                          <span className="camp-doctor-schedule__slot-spots">{spotsLabel}</span>
+                        ) : null}
                       </button>
                     );
                   }) : (
@@ -740,19 +850,7 @@ const CampDoctorConsultationPage = ({
                   type="button"
                   className="camp-doctor-schedule__confirm"
                   disabled={!selectedTimeSlot || availableSlots.length === 0 || isBooking}
-                  onClick={() => {
-                    if (!requiresCabinStep) {
-                      void (async () => {
-                        const booked = await handleConfirmBooking();
-                        if (booked) {
-                          openConsentAfterBooking();
-                        }
-                      })();
-                      return;
-                    }
-                    setIsScheduleOpen(false);
-                    setIsCabinOpen(true);
-                  }}
+                  onClick={handleTimeConfirm}
                 >
                   {!requiresCabinStep && isBooking ? 'Booking...' : 'Confirm'}
                 </button>

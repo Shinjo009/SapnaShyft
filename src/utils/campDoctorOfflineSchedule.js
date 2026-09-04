@@ -93,6 +93,29 @@ const extractConsultationCabinEntries = (datePayload) => {
   return [];
 };
 
+const resolveCabinSlotSpotLeft = (slotItem, cabinEntry) => {
+  const spotLeft = Number(
+    slotItem?.spot_left
+    ?? slotItem?.spots_left
+    ?? slotItem?.available_spots,
+  );
+  const capacity = Number(
+    slotItem?.capacity
+    ?? cabinEntry?.capacity
+    ?? cabinEntry?.max_capacity
+    ?? cabinEntry?.slot_capacity,
+  );
+
+  // Remaining spots when API sends them; otherwise cabin capacity = open slots.
+  if (Number.isFinite(spotLeft) && spotLeft > 0) {
+    return spotLeft;
+  }
+  if (Number.isFinite(capacity) && capacity > 0) {
+    return capacity;
+  }
+  return 0;
+};
+
 export const parseDoctorOfflineSchedule = (engagementDetails, expertType = 'doctor') => {
   const consultationByDate = engagementDetails?.slot_detail?.consultation || {};
   const dateKeys = Object.keys(consultationByDate)
@@ -106,18 +129,30 @@ export const parseDoctorOfflineSchedule = (engagementDetails, expertType = 'doct
     const entries = extractConsultationCabinEntries(consultationByDate[dateKey]);
     const doctorEntries = entries.filter((entry) => isConsultationEntryForExpertType(entry, expertType));
 
-    cabinsByDate[dateKey] = doctorEntries.map((entry, index) => ({
-      key: entry.cabin_key || `cabin-${index}`,
-      label: entry.cabin_name || entry.cabin_key || `Cabin ${index + 1}`,
-      slotDuration: Number(entry.slot_duration) > 0 ? Number(entry.slot_duration) : 30,
-      availableSlots: (Array.isArray(entry.available_slots) ? entry.available_slots : [])
-        .filter((slotItem) => (slotItem?.spot_left ?? 0) > 0)
-        .map((slotItem) => ({
-          apiSlot: slotItem.slot,
-          displaySlot: formatApiSlotToDisplay(slotItem.slot),
-          spotLeft: slotItem.spot_left,
-        })),
-    }));
+    cabinsByDate[dateKey] = doctorEntries.map((entry, index) => {
+      const cabinCapacity = Number(
+        entry.capacity ?? entry.max_capacity ?? entry.slot_capacity,
+      );
+      return {
+        key: entry.cabin_key || `cabin-${index}`,
+        label: entry.cabin_name || entry.cabin_key || `Cabin ${index + 1}`,
+        slotDuration: Number(entry.slot_duration) > 0 ? Number(entry.slot_duration) : 30,
+        capacity: Number.isFinite(cabinCapacity) && cabinCapacity > 0 ? cabinCapacity : null,
+        availableSlots: (Array.isArray(entry.available_slots) ? entry.available_slots : [])
+          .map((slotItem) => {
+            const spotLeft = resolveCabinSlotSpotLeft(slotItem, entry);
+            if (spotLeft <= 0 || !slotItem?.slot) {
+              return null;
+            }
+            return {
+              apiSlot: slotItem.slot,
+              displaySlot: formatApiSlotToDisplay(slotItem.slot),
+              spotLeft,
+            };
+          })
+          .filter(Boolean),
+      };
+    });
 
     if (doctorEntries[0]?.slot_duration) {
       defaultSlotDuration = Number(doctorEntries[0].slot_duration) || defaultSlotDuration;
@@ -126,13 +161,20 @@ export const parseDoctorOfflineSchedule = (engagementDetails, expertType = 'doct
     const slotMap = new Map();
     doctorEntries.forEach((entry) => {
       (Array.isArray(entry.available_slots) ? entry.available_slots : []).forEach((slotItem) => {
-        if ((slotItem?.spot_left ?? 0) > 0 && slotItem?.slot) {
-          slotMap.set(slotItem.slot, {
-            apiSlot: slotItem.slot,
-            displaySlot: formatApiSlotToDisplay(slotItem.slot),
-            spotLeft: slotItem.spot_left,
-          });
+        const spotLeft = resolveCabinSlotSpotLeft(slotItem, entry);
+        if (spotLeft <= 0 || !slotItem?.slot) {
+          return;
         }
+        const existing = slotMap.get(slotItem.slot);
+        if (existing) {
+          existing.spotLeft += spotLeft;
+          return;
+        }
+        slotMap.set(slotItem.slot, {
+          apiSlot: slotItem.slot,
+          displaySlot: formatApiSlotToDisplay(slotItem.slot),
+          spotLeft,
+        });
       });
     });
 
@@ -166,6 +208,32 @@ export const getOfflineCabinsForSelection = (schedule, selectedDate, selectedDis
         ...cabin,
         available: Boolean(matchingSlot),
         spotLeft: matchingSlot?.spotLeft ?? 0,
+      };
+    })
+    .filter((cabin) => cabin.available);
+};
+
+/** Cabins for a date that still have at least one open slot (any time). */
+export const getOfflineCabinsForDate = (schedule, selectedDate) => {
+  if (!schedule || !selectedDate?.apiDate) {
+    return [];
+  }
+
+  const cabins = schedule.cabinsByDate[selectedDate.apiDate] || [];
+
+  return cabins
+    .map((cabin) => {
+      const openSlots = (cabin.availableSlots || []).filter(
+        (slotItem) => (slotItem?.spotLeft ?? 0) > 0 && slotItem?.displaySlot,
+      );
+      const spotLeft = openSlots.reduce(
+        (sum, slotItem) => sum + (Number(slotItem.spotLeft) || 0),
+        0,
+      );
+      return {
+        ...cabin,
+        available: openSlots.length > 0,
+        spotLeft,
       };
     })
     .filter((cabin) => cabin.available);
