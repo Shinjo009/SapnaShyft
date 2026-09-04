@@ -134,13 +134,13 @@
   position: fixed;
   left: 50%;
   right: auto;
-  top: auto;
-  bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+  top: 50%;
+  bottom: auto;
   width: min(calc(100vw - 40px), 320px);
   height: auto;
   min-height: 0 !important;
   max-height: none;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   z-index: 980;
   display: block;
   padding: 0;
