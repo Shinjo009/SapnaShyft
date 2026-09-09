@@ -12,7 +12,7 @@ import {
 import { CAMP_DOCTOR_CONSULTATION_ENABLED } from './pages/CampDoctorConsultationPage/campDoctorConsultationConfig';
 import { readCampAppointments, saveCampAppointment } from './utils/campAppointments';
 import { fetchDoctorConsultationPopupEligibility, hasOptedOutOfConsultationPopup, optOutOfConsultationPopup } from './utils/campDoctorConsultationEligibility';
-import { sendOtp, resendOtp, verifyOtp, refreshToken, logout } from './services/authService';
+import { resendOtp, verifyOtp, refreshToken, logout } from './services/authService';
 import { createUser, getMyProfiles, saveSuperclubMcqPreferences, getMyUpcomingSlot } from './services/usersService';
 import { getMyProfile } from './services/profileService';
 import { invalidateDiagnosticPackagesCache } from './services/diagnosticPackagesService';
@@ -1485,7 +1485,7 @@ function App() {
   }, [currentPage, forceHomeApiRefresh, isBootstrappingSession, selectedAccountId, currentUserId]);
 
   const handleSendOtp = async (phone) => {
-    await sendOtp(phone);
+    await resendOtp(phone);
     setPhoneNumber(phone);
     setCurrentPage('otp');
   };

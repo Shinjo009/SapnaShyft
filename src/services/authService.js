@@ -67,9 +67,10 @@ export const post = async (path, payload, extraHeaders = {}) => {
 
 const normalizePhoneDigits = (phone) => String(phone || '').replace(/\D/g, '');
 
-export const sendOtp = (phone) => post('/auth/send-otp', { phone: normalizePhoneDigits(phone) });
-
 export const resendOtp = (phone) => post('/auth/resend-otp', { phone: normalizePhoneDigits(phone) });
+
+// Temporarily disabled: /auth/send-otp. Send and resend both use /auth/resend-otp with the same payload.
+export const sendOtp = (phone) => resendOtp(phone);
 
 export const verifyOtp = ({ phone, otp }) => post('/auth/verify-otp', {
   phone: normalizePhoneDigits(phone),
