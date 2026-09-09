@@ -19,7 +19,6 @@ const OTPPage = ({ phoneNumber, onVerifyOtp, onResendOtp, onBack }) => {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  const [showRegisteredEmailHint, setShowRegisteredEmailHint] = useState(false);
   const [error, setError] = useState('');
 
   const getMaskedPhone = () => {
@@ -56,7 +55,6 @@ const OTPPage = ({ phoneNumber, onVerifyOtp, onResendOtp, onBack }) => {
       setResendLoading(true);
       setError('');
       await onResendOtp(phoneNumber);
-      setShowRegisteredEmailHint(true);
     } catch (resendError) {
       setError(resendError?.message || 'Failed to resend OTP. Please try again.');
     } finally {
@@ -74,8 +72,7 @@ const OTPPage = ({ phoneNumber, onVerifyOtp, onResendOtp, onBack }) => {
         </Typography>
 
         <p className="text-center font-lato text-[11px] font-normal leading-6 text-[#9A9A9A]">
-          Code has been sent to {formattedPhone}
-          {showRegisteredEmailHint ? ' and registered email' : ''}
+          Code has been sent to {formattedPhone} and registered email
         </p>
 
         <div className="mt-8 space-y-6">
