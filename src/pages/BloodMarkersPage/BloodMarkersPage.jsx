@@ -37,7 +37,7 @@ import hormonesIcon from '../../images/Hormones.svg';
 const FILTERS = ['Critical', 'Marginal', 'Optimal'];
 
 /** Set to `true` to show history timelines on blood marker stack cards. */
-const BLOOD_MARKER_CARD_HISTORY_ENABLED = false;
+const BLOOD_MARKER_CARD_HISTORY_ENABLED = true;
 
 const EMPTY_FILTER_MESSAGE = {
   Critical: 'No Critical Markers Detected',
