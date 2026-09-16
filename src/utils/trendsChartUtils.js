@@ -1,5 +1,6 @@
-const BAND_COUNT = 7;
-export const TRENDS_BAND_HEIGHT = 16;
+/** Figma trends widget: 4 equal bands, top = 100 → bottom = 0. */
+const BAND_COUNT = 4;
+export const TRENDS_BAND_HEIGHT = 22.5;
 export const TRENDS_CHART_HEIGHT = BAND_COUNT * TRENDS_BAND_HEIGHT;
 
 export const getTrendsBandCenterY = (bandIndex) => (
@@ -12,23 +13,21 @@ export const getTrendsZoneCenterY = (startBandIndex, endBandIndex) => {
   return (startY + endY) / 2;
 };
 
-/** Y-axis labels aligned to risk zone centers (Normal spans paired bands). */
+/** Y-axis labels on horizontal grid lines (100 → 0). */
 export const TRENDS_Y_AXIS_LABELS = [
-  { label: 'High', centerY: getTrendsBandCenterY(0) },
-  { label: 'Normal', centerY: getTrendsZoneCenterY(1, 2) },
-  { label: 'Low', centerY: getTrendsBandCenterY(3) },
-  { label: 'Normal', centerY: getTrendsZoneCenterY(4, 5) },
-  { label: 'High', centerY: getTrendsBandCenterY(6) },
+  { label: '100', centerY: 0 },
+  { label: '75', centerY: TRENDS_BAND_HEIGHT },
+  { label: '50', centerY: TRENDS_BAND_HEIGHT * 2 },
+  { label: '25', centerY: TRENDS_BAND_HEIGHT * 3 },
+  { label: '0', centerY: TRENDS_CHART_HEIGHT },
 ];
 
+/** Top → bottom: high risk red → optimal green (Figma 8001:99707). */
 export const TRENDS_BAND_BACKGROUNDS = [
   'rgba(204, 32, 59, 0.20)',
   'rgba(238, 139, 72, 0.20)',
   'rgba(218, 193, 90, 0.20)',
   'rgba(144, 223, 158, 0.20)',
-  'rgba(218, 193, 90, 0.20)',
-  'rgba(238, 139, 72, 0.20)',
-  'rgba(204, 32, 59, 0.20)',
 ];
 
 export const TRENDS_BAND_DOT_COLORS = [
@@ -36,13 +35,19 @@ export const TRENDS_BAND_DOT_COLORS = [
   '#EE8B48',
   '#DAC15A',
   '#90DF9E',
-  '#DAC15A',
-  '#EE8B48',
-  '#CC203B',
 ];
+
+/** Highlight / mid / edge stops for spherical dots. */
+export const TRENDS_DOT_SPHERE_STOPS = {
+  '#CC203B': { highlight: '#FF7A8A', mid: '#CC203B', edge: '#7A1022' },
+  '#EE8B48': { highlight: '#FFC08A', mid: '#EE8B48', edge: '#8A4A1E' },
+  '#DAC15A': { highlight: '#F5E39A', mid: '#DAC15A', edge: '#7A6A28' },
+  '#90DF9E': { highlight: '#D4F7DA', mid: '#90DF9E', edge: '#3E7A48' },
+};
 
 const DETAIL_HIGH_RISK_DISPLAY_PADDING = 30;
 
+/** Legacy risk-zone mapping (kept for summary / callers that still need it). */
 export const getMarkerPercentForValue = (value, normalMin, normalMax) => {
   if (value >= normalMin && value <= normalMax) {
     const normalSpan = Math.max(1e-6, normalMax - normalMin);
@@ -75,9 +80,101 @@ export const getMarkerPercentForValue = (value, normalMin, normalMax) => {
   return 80 + (ratio * 20);
 };
 
-export const getDiseaseMarkerPercent = (score) => {
-  const clamped = Math.max(0, Math.min(100, Number(score) || 0));
-  return 50 + (clamped / 100) * 50;
+/** Disease risk score on a linear 0–100 axis (top = 100). */
+export const getDiseaseMarkerPercent = (score) => (
+  Math.max(0, Math.min(100, Number(score) || 0))
+);
+
+const formatTrendsAxisTick = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return '';
+  }
+
+  const abs = Math.abs(numeric);
+  if (abs >= 100) {
+    return String(Math.round(numeric));
+  }
+
+  const rounded = abs >= 10
+    ? Math.round(numeric * 10) / 10
+    : Math.round(numeric * 100) / 100;
+
+  return String(rounded)
+    .replace(/(\.\d*?[1-9])0+$/, '$1')
+    .replace(/\.0+$/, '');
+};
+
+/**
+ * Y-axis domain for linear plotting.
+ * Uses 0–100 when values fit (Figma); otherwise expands to the data (+ normal range).
+ */
+export const resolveTrendsValueDomain = ({
+  points = [],
+  variant = 'blood',
+  normalMin = null,
+  normalMax = null,
+} = {}) => {
+  if (variant === 'disease') {
+    return { min: 0, max: 100 };
+  }
+
+  const values = (Array.isArray(points) ? points : [])
+    .map((point) => Number(point?.value))
+    .filter((value) => Number.isFinite(value));
+
+  if (!values.length) {
+    return { min: 0, max: 100 };
+  }
+
+  let min = Math.min(...values);
+  let max = Math.max(...values);
+
+  if (Number.isFinite(Number(normalMin))) {
+    min = Math.min(min, Number(normalMin));
+  }
+  if (Number.isFinite(Number(normalMax))) {
+    max = Math.max(max, Number(normalMax));
+  }
+
+  if (min >= 0 && max <= 100) {
+    return { min: 0, max: 100 };
+  }
+
+  if (min === max) {
+    const pad = Math.max(Math.abs(min) * 0.1, 1);
+    return { min: min - pad, max: max + pad };
+  }
+
+  const pad = (max - min) * 0.12;
+  return { min: min - pad, max: max + pad };
+};
+
+/** Map a raw value onto 0–100 chart percent for the given domain (100 = top). */
+export const valueToMarkerPercent = (value, domainMin, domainMax) => {
+  const min = Number(domainMin);
+  const max = Number(domainMax);
+  const span = Math.max(max - min, 1e-6);
+  const ratio = (Number(value) - min) / span;
+  return Math.max(0, Math.min(100, ratio * 100));
+};
+
+export const buildTrendsYAxisLabels = (
+  domainMin,
+  domainMax,
+  chartHeight = TRENDS_CHART_HEIGHT,
+) => {
+  const min = Number(domainMin);
+  const max = Number(domainMax);
+  const span = Math.max(max - min, 1e-6);
+
+  return [0, 0.25, 0.5, 0.75, 1].map((tick) => {
+    const value = max - (span * tick);
+    return {
+      label: formatTrendsAxisTick(value),
+      centerY: tick * chartHeight,
+    };
+  });
 };
 
 export const getBandIndexForMarkerPercent = (markerPercent) => {
@@ -139,7 +236,7 @@ export const formatBloodMarkerHistoryDate = (isoDate) => {
 };
 
 /**
- * Build up to 3 timeline points for blood-marker stack cards.
+ * Build timeline points for blood-marker stack cards.
  * Prefers embedded history; otherwise uses trends points.
  */
 export const buildBloodMarkerHistoryTimeline = ({
@@ -147,6 +244,7 @@ export const buildBloodMarkerHistoryTimeline = ({
   currentValue = null,
   currentDate = '',
   maxPoints = 3,
+  minPoints = 2,
 } = {}) => {
   const merged = [];
 
@@ -186,11 +284,12 @@ export const buildBloodMarkerHistoryTimeline = ({
       return a.index - b.index;
     });
 
-  if (dated.length < 2) {
+  const required = Math.max(1, Number(minPoints) || 1);
+  if (dated.length < required) {
     return [];
   }
 
-  return dated.slice(-Math.max(2, maxPoints)).map(({ date, value }) => ({ date, value }));
+  return dated.slice(-Math.max(required, maxPoints)).map(({ date, value }) => ({ date, value }));
 };
 
 export const normalizeTrendsPayload = (payload, variant = 'blood') => {
@@ -278,7 +377,12 @@ export const buildSmoothTrendPath = (plotPoints) => {
   }
 
   if (plotPoints.length === 2) {
-    return `M ${plotPoints[0].x} ${plotPoints[0].y} L ${plotPoints[1].x} ${plotPoints[1].y}`;
+    const [start, end] = plotPoints;
+    const dx = (end.x - start.x) / 3;
+    return [
+      `M ${start.x} ${start.y}`,
+      `C ${start.x + dx} ${start.y}, ${end.x - dx} ${end.y}, ${end.x} ${end.y}`,
+    ].join(' ');
   }
 
   const path = [`M ${plotPoints[0].x} ${plotPoints[0].y}`];

@@ -5,20 +5,27 @@ import {
   TRENDS_BAND_BACKGROUNDS,
   TRENDS_BAND_HEIGHT,
   TRENDS_CHART_HEIGHT,
-  TRENDS_Y_AXIS_LABELS,
+  TRENDS_DOT_SPHERE_STOPS,
   buildSmoothTrendPath,
   buildTrendSummaryText,
-  clampBloodValueForTrends,
+  buildTrendsYAxisLabels,
   formatTrendDateLabel,
-  getDiseaseMarkerPercent,
   getDotColorForMarkerPercent,
-  getMarkerPercentForValue,
   markerPercentToChartY,
   normalizeTrendsPayload,
+  resolveTrendsValueDomain,
+  valueToMarkerPercent,
 } from '../../utils/trendsChartUtils';
 
 const getChartHorizontalInset = (plotWidth) => Math.max(14, Math.round(plotWidth * 0.1));
 
+const getSphereStops = (color) => (
+  TRENDS_DOT_SPHERE_STOPS[color] || {
+    highlight: '#FFFFFF',
+    mid: color,
+    edge: color,
+  }
+);
 const formatTrendPointValue = (value, unit = '') => {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
@@ -88,6 +95,15 @@ const TrendsChartPlot = ({
     };
   }, [activePointIndex]);
 
+  const valueDomain = useMemo(() => (
+    resolveTrendsValueDomain({
+      points,
+      variant,
+      normalMin,
+      normalMax,
+    })
+  ), [normalMax, normalMin, points, variant]);
+
   const chartPoints = useMemo(() => {
     if (!Array.isArray(points) || points.length === 0 || plotWidth <= 0) {
       return [];
@@ -98,13 +114,12 @@ const TrendsChartPlot = ({
     const xStep = points.length === 1 ? 0 : usableWidth / (points.length - 1);
 
     return points.map((point, index) => {
-      const markerPercent = variant === 'disease'
-        ? getDiseaseMarkerPercent(point.value)
-        : getMarkerPercentForValue(
-          clampBloodValueForTrends(point.value, normalMin, normalMax),
-          normalMin,
-          normalMax,
-        );
+      // Linear Y: tooltip value matches axis position (11 near 11, not risk-mapped).
+      const markerPercent = valueToMarkerPercent(
+        point.value,
+        valueDomain.min,
+        valueDomain.max,
+      );
 
       const x = points.length === 1
         ? plotWidth / 2
@@ -120,8 +135,7 @@ const TrendsChartPlot = ({
         label: formatTrendPointValue(point.value, unit),
       };
     });
-  }, [normalMax, normalMin, plotWidth, points, unit, variant]);
-
+  }, [plotWidth, points, unit, valueDomain.max, valueDomain.min]);
   const trendPath = useMemo(() => buildSmoothTrendPath(chartPoints), [chartPoints]);
 
   const datePositions = useMemo(() => {
@@ -203,8 +217,8 @@ const TrendsChartPlot = ({
                 />
               ))}
 
-              {chartPoints.length > 1 ? (
-                <defs>
+              <defs>
+                {chartPoints.length > 1 ? (
                   <linearGradient
                     id={gradientId}
                     gradientUnits="userSpaceOnUse"
@@ -221,15 +235,34 @@ const TrendsChartPlot = ({
                       />
                     ))}
                   </linearGradient>
-                </defs>
-              ) : null}
+                ) : null}
+
+                {chartPoints.map((point) => {
+                  const sphere = getSphereStops(point.color);
+                  return (
+                    <radialGradient
+                      key={`sphere-def-${point.index}`}
+                      id={`${gradientId}-sphere-${point.index}`}
+                      cx="32%"
+                      cy="28%"
+                      r="72%"
+                      fx="28%"
+                      fy="24%"
+                    >
+                      <stop offset="0%" stopColor={sphere.highlight} />
+                      <stop offset="45%" stopColor={sphere.mid} />
+                      <stop offset="100%" stopColor={sphere.edge} />
+                    </radialGradient>
+                  );
+                })}
+              </defs>
 
               {trendPath ? (
                 <path
                   d={trendPath}
                   fill="none"
                   stroke={chartPoints.length > 1 ? `url(#${gradientId})` : chartPoints[0]?.color || '#DAC15A'}
-                  strokeWidth="1.5"
+                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   vectorEffect="non-scaling-stroke"
@@ -242,11 +275,10 @@ const TrendsChartPlot = ({
                   cx={point.x}
                   cy={point.y}
                   r="4"
-                  fill={point.color}
+                  fill={`url(#${gradientId}-sphere-${point.index})`}
                 />
               ))}
             </svg>
-
             {chartPoints.map((point) => (
               <button
                 key={`hit-${point.index}`}
@@ -398,6 +430,19 @@ const TrendsChart = ({
     });
   }, [hasBloodRange, normalMax, normalMin, points, variant]);
 
+  const valueDomain = useMemo(() => (
+    resolveTrendsValueDomain({
+      points,
+      variant,
+      normalMin: Number(normalMin),
+      normalMax: Number(normalMax),
+    })
+  ), [normalMax, normalMin, points, variant]);
+
+  const yAxisLabels = useMemo(() => (
+    buildTrendsYAxisLabels(valueDomain.min, valueDomain.max, TRENDS_CHART_HEIGHT)
+  ), [valueDomain.max, valueDomain.min]);
+
   const queryKey = variant === 'disease' ? diseaseCode : bloodParameter;
   const canFetchTrends = Boolean(queryKey) && (variant !== 'blood' || hasBloodRange);
   const hasTrendData = !isLoading && !loadError && points.length > 1;
@@ -424,7 +469,7 @@ const TrendsChart = ({
             style={{ height: `${TRENDS_CHART_HEIGHT}px` }}
             aria-hidden="true"
           >
-            {TRENDS_Y_AXIS_LABELS.map(({ label, centerY }, index) => (
+            {yAxisLabels.map(({ label, centerY }, index) => (
               <span
                 key={`${label}-${index}`}
                 className="trends-chart-section__y-label"

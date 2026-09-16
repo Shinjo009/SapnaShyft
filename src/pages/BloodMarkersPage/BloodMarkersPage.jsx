@@ -233,10 +233,29 @@ const resolveCardHistoryPoints = (card, trendsByParameterKey = {}) => {
     ? trendsByParameterKey[paramKey]
     : [];
 
+  // Prefer the richer history (trends often has prior readings when the card
+  // only carried the current value). Fall back to a single reading when that
+  // is all either source has.
+  let source = [];
+  if (embedded.length >= 2) {
+    source = embedded;
+  } else if (fromTrends.length >= 2) {
+    source = fromTrends;
+  } else if (fromTrends.length >= 1) {
+    source = fromTrends;
+  } else if (embedded.length >= 1) {
+    source = embedded;
+  }
+
+  if (source.length === 0) {
+    return [];
+  }
+
   return buildBloodMarkerHistoryTimeline({
-    historyPoints: embedded.length >= 2 ? embedded : fromTrends,
+    historyPoints: source,
     currentValue: card?.rawValue ?? card?.value,
     maxPoints: 3,
+    minPoints: 1,
   });
 };
 
@@ -563,6 +582,7 @@ const buildSectionsFromApi = (payloadOrGroups) => {
               historyPoints: embedded,
               currentValue: hasValue ? value : null,
               maxPoints: 8,
+              minPoints: 1,
             });
           })(),
           causes: pickApiList(test, ['causes', 'cause', 'possible_causes', 'reason', 'reasons']),
@@ -678,7 +698,7 @@ const BloodMarkerHistoryTimeline = ({
   normalMax = null,
   currentRiskType = 'low',
 }) => {
-  if (!Array.isArray(points) || points.length < 2) {
+  if (!Array.isArray(points) || points.length < 1) {
     return null;
   }
 
@@ -2161,7 +2181,7 @@ const BloodMarkerStackSection = ({ section, onOpenDetail, trendsByParameterKey =
             ? resolveCardHistoryPoints(card, trendsByParameterKey)
             : [];
           const showHistoryTimeline = BLOOD_MARKER_CARD_HISTORY_ENABLED
-            && historyPoints.length >= 2
+            && historyPoints.length >= 1
             && !isAggregateOptimalCard;
           const unitLabel = String(card.unit || '').trim();
           const unitDisplay = unitLabel
@@ -2416,6 +2436,8 @@ const BloodMarkersPage = ({ onBack, initialDetailMarker = null, onInitialDetailC
           return;
         }
         const embeddedCount = Array.isArray(test.historyPoints) ? test.historyPoints.length : 0;
+        // Still fetch trends when the card only has a single reading so prior
+        // values can fill in the multi-capsule timeline.
         if (embeddedCount >= 2) {
           return;
         }
@@ -2447,7 +2469,7 @@ const BloodMarkersPage = ({ onBack, initialDetailMarker = null, onInitialDetailC
             return;
           }
           const normalized = normalizeTrendsPayload(result.value, 'blood');
-          if (normalized.points.length >= 2) {
+          if (normalized.points.length >= 1) {
             next[key] = normalized.points;
           }
         });
