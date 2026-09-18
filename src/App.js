@@ -283,6 +283,7 @@ function App() {
     () => getInitialAppPage() === SESSION_RESTORE_PAGE,
   );
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [otpEmail, setOtpEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [employerOrganizerName, setEmployerOrganizerName] = useState('');
   const [userAge, setUserAge] = useState(null);
@@ -1484,15 +1485,25 @@ function App() {
     };
   }, [currentPage, forceHomeApiRefresh, isBootstrappingSession, selectedAccountId, currentUserId]);
 
+  const readOtpDeliveryFromResponse = (response) => {
+    const payload = response?.data && typeof response.data === 'object'
+      ? response.data
+      : response;
+    const email = typeof payload?.email === 'string' ? payload.email.trim() : '';
+    return email;
+  };
+
   const handleSendOtp = async (phone) => {
-    await resendOtp(phone);
+    const response = await resendOtp(phone);
     setPhoneNumber(phone);
+    setOtpEmail(readOtpDeliveryFromResponse(response));
     setCurrentPage('otp');
   };
 
   const handleResendOtp = async (phone) => {
-    await resendOtp(phone);
+    const response = await resendOtp(phone);
     setPhoneNumber(phone);
+    setOtpEmail(readOtpDeliveryFromResponse(response));
   };
 
   const handleSignup = async (formData) => {
@@ -1632,6 +1643,7 @@ function App() {
     clearSuperclubPlaylistLock();
     setSuperclubPlaylistPayload(null);
     setPhoneNumber('');
+    setOtpEmail('');
     setUserAge(null);
     setQuestionnaireSteps([]);
     setQuestionnaireCurrentAssessment(null);
@@ -1876,6 +1888,7 @@ function App() {
       {currentPage === 'otp' && (
         <OTPPage 
           phoneNumber={phoneNumber}
+          email={otpEmail}
           onVerifyOtp={handleVerifyOtp}
           onResendOtp={handleResendOtp}
           onBack={() => setCurrentPage('login')}

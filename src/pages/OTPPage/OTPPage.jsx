@@ -6,35 +6,72 @@ import OTPInput from '../../components/OTPInput';
 import Timer from '../../components/Timer';
 import metfluxLogo from '../../images/metflux_logo.svg';
 
+const getMaskedPhone = (phoneNumber) => {
+  const digits = String(phoneNumber || '').replace(/\D/g, '');
+
+  if (!digits) return '';
+  if (digits.length <= 4) return `+91${digits}`;
+
+  const firstTwo = digits.slice(0, 2);
+  const lastTwo = digits.slice(-2);
+  const middle = '*'.repeat(digits.length - 4);
+
+  return `+91${firstTwo}${middle}${lastTwo}`;
+};
+
+const getMaskedEmail = (email) => {
+  const value = String(email || '').trim();
+  const at = value.lastIndexOf('@');
+  if (at <= 0) return '';
+
+  const local = value.slice(0, at);
+  const domain = value.slice(at + 1);
+  if (!local || !domain) return '';
+
+  if (local.length <= 4) {
+    return `${local}@${domain}`;
+  }
+
+  const firstTwo = local.slice(0, 2);
+  const lastTwo = local.slice(-2);
+  const middle = '*'.repeat(local.length - 4);
+
+  return `${firstTwo}${middle}${lastTwo}@${domain}`;
+};
+
+const getOtpSentMessage = (phoneNumber, email) => {
+  const maskedPhone = getMaskedPhone(phoneNumber);
+  const maskedEmail = getMaskedEmail(email);
+
+  if (maskedPhone && maskedEmail) {
+    return `Code has been sent to ${maskedPhone} and ${maskedEmail}`;
+  }
+  if (maskedPhone) {
+    return `Code has been sent to ${maskedPhone}`;
+  }
+  if (maskedEmail) {
+    return `Code has been sent to ${maskedEmail}`;
+  }
+  return 'Code has been sent';
+};
+
 /**
  * OTPPage - OTP verification screen
  * 
  * Props:
  * - phoneNumber: Phone number for display/context
+ * - email: Email from send/resend OTP response, shown masked
  * - onVerifyOtp: Called with OTP when OTP is verified
  * - onResendOtp: Called with phone number when resend is requested
  * - onBack: Called to go back to login
  */
-const OTPPage = ({ phoneNumber, onVerifyOtp, onResendOtp, onBack }) => {
+const OTPPage = ({ phoneNumber, email, onVerifyOtp, onResendOtp, onBack }) => {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const getMaskedPhone = () => {
-    const digits = String(phoneNumber || '');
-
-    if (!digits) return '+91';
-    if (digits.length <= 4) return `+91${digits}`;
-
-    const firstTwo = digits.slice(0, 2);
-    const lastTwo = digits.slice(-2);
-    const middle = '*'.repeat(digits.length - 4);
-
-    return `+91${firstTwo}${middle}${lastTwo}`;
-  };
-
-  const formattedPhone = getMaskedPhone();
+  const otpSentMessage = getOtpSentMessage(phoneNumber, email);
 
   const handleVerifyOTP = async () => {
     if (otp.length === 6) {
@@ -72,7 +109,7 @@ const OTPPage = ({ phoneNumber, onVerifyOtp, onResendOtp, onBack }) => {
         </Typography>
 
         <p className="text-center font-lato text-[11px] font-normal leading-6 text-[#9A9A9A]">
-          Code has been sent to {formattedPhone} and registered email
+          {otpSentMessage}
         </p>
 
         <div className="mt-8 space-y-6">
