@@ -666,28 +666,28 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--healthy" />
                   <span className="health-scan-page__legend-text">
                     <span>Optimal Score</span>
-                    <span className="health-scan-page__legend-range">(100-75)</span>
+                    <span className="health-scan-page__legend-range">(75-100)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--increased" />
                   <span className="health-scan-page__legend-text">
                     <span>Stable Score</span>
-                    <span className="health-scan-page__legend-range">(74-50)</span>
+                    <span className="health-scan-page__legend-range">(50-74)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--high" />
                   <span className="health-scan-page__legend-text">
                     <span>Vulnerable Score</span>
-                    <span className="health-scan-page__legend-range">(49-25)</span>
+                    <span className="health-scan-page__legend-range">(25-49)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--very-high" />
                   <span className="health-scan-page__legend-text">
                     <span>Critical Score</span>
-                    <span className="health-scan-page__legend-range">(24-0)</span>
+                    <span className="health-scan-page__legend-range">(0-24)</span>
                   </span>
                 </div>
               </div>
@@ -795,28 +795,28 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--healthy" />
                   <span className="health-scan-page__legend-text">
                     <span>Optimal Score</span>
-                    <span className="health-scan-page__legend-range">(100-75)</span>
+                    <span className="health-scan-page__legend-range">(75-100)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--increased" />
                   <span className="health-scan-page__legend-text">
                     <span>Stable Score</span>
-                    <span className="health-scan-page__legend-range">(74-50)</span>
+                    <span className="health-scan-page__legend-range">(50-74)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--high" />
                   <span className="health-scan-page__legend-text">
                     <span>Vulnerable Score</span>
-                    <span className="health-scan-page__legend-range">(49-25)</span>
+                    <span className="health-scan-page__legend-range">(25-49)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--very-high" />
                   <span className="health-scan-page__legend-text">
                     <span>Critical Score</span>
-                    <span className="health-scan-page__legend-range">(24-0)</span>
+                    <span className="health-scan-page__legend-range">(0-24)</span>
                   </span>
                 </div>
               </div>
@@ -958,28 +958,28 @@ const HealthScanIndexPage = ({ onBack, initialTab = 0 }) => {
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--healthy" />
                   <span className="health-scan-page__legend-text">
                     <span>Optimal Score</span>
-                    <span className="health-scan-page__legend-range">(100-75)</span>
+                    <span className="health-scan-page__legend-range">(75-100)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--increased" />
                   <span className="health-scan-page__legend-text">
                     <span>Stable Score</span>
-                    <span className="health-scan-page__legend-range">(74-50)</span>
+                    <span className="health-scan-page__legend-range">(50-74)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--high" />
                   <span className="health-scan-page__legend-text">
                     <span>Vulnerable Score</span>
-                    <span className="health-scan-page__legend-range">(49-25)</span>
+                    <span className="health-scan-page__legend-range">(25-49)</span>
                   </span>
                 </div>
                 <div className="health-scan-page__legend-item">
                   <span className="health-scan-page__legend-dot health-scan-page__legend-dot--very-high" />
                   <span className="health-scan-page__legend-text">
                     <span>Critical Score</span>
-                    <span className="health-scan-page__legend-range">(24-0)</span>
+                    <span className="health-scan-page__legend-range">(0-24)</span>
                   </span>
                 </div>
               </div>
