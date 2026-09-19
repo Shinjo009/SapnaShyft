@@ -6,6 +6,7 @@ import femaleAvatar from '../../images/female-avatar.png';
 import './EditProfilePage.css';
 import { getMyProfile, invalidateMyProfileCache, updateMyProfile } from '../../services/profileService';
 import { getMyProfiles, invalidateMyProfilesCache, updateMySubProfile } from '../../services/usersService';
+import { normalizeProfilePhone } from '../../utils/profilePrimaryContact';
 
 const genderOptions = [
   { value: 'male', label: 'Male' },
@@ -233,13 +234,10 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
   const [activeProfileUserId, setActiveProfileUserId] = useState(null);
   const [activeRelationship, setActiveRelationship] = useState('');
   const [lockedProfileFields, setLockedProfileFields] = useState({
-    email: '',
     gender: '',
     phone: '',
   });
 
-  const isPhoneEditable = isSubProfileEdit;
-  const isEmailEditable = false;
   const isGenderEditable = false;
 
   useEffect(() => {
@@ -292,12 +290,11 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
           state: profileToEdit?.state || '',
           pincode: address.pincode,
           organization_name: profileToEdit?.referred_by || '',
-          phone: profileToEdit?.phone || '',
+          phone: normalizeProfilePhone(profileToEdit?.phone),
         });
         setLockedProfileFields({
-          email: profileToEdit?.email || '',
           gender: (profileToEdit?.gender || '').toLowerCase(),
-          phone: profileToEdit?.phone || '',
+          phone: String(profileToEdit?.phone || '').trim(),
         });
         const primaryUserId = Number(profile?.user_id || profile?.id || 0);
         const isEditingOwnProfile = activeUserId > 0 && primaryUserId > 0 && activeUserId === primaryUserId;
@@ -360,10 +357,12 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
 
       const age = Number.parseInt(formData.age, 10);
       const address = buildAddressString(formData);
-      const email = lockedProfileFields.email.trim() || null;
+      const email = formData.email.trim() || null;
       const gender = lockedProfileFields.gender.trim() || null;
-      const phoneSource = isPhoneEditable ? formData.phone : lockedProfileFields.phone;
-      const phone = String(phoneSource || '').trim() || null;
+      const editedPhone = String(formData.phone || '').trim();
+      const phone = editedPhone
+        || (isSubProfileEdit ? null : String(lockedProfileFields.phone || '').trim())
+        || null;
 
       const dateOfBirth = getDateOfBirthFromAge(formData.age);
       const profilePayload = {
@@ -511,8 +510,7 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
             onChange={(e) => handleChange('email', e.target.value)}
             error={fieldErrors.email}
             className={inputTextClass}
-            disabled={loading || !isEmailEditable}
-            readOnly={!isEmailEditable}
+            disabled={loading}
           />
 
           <Input
@@ -523,8 +521,7 @@ const EditProfilePage = ({ onBack, currentUserId = null, linkedAccounts = [] }) 
             error={fieldErrors.phone}
             maxLength={10}
             className={inputTextClass}
-            disabled={loading || !isPhoneEditable}
-            readOnly={!isPhoneEditable}
+            disabled={loading}
           />
 
           <Input
