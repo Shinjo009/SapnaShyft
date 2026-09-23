@@ -286,7 +286,7 @@ const PackageFaceCard = ({
                   onBook?.();
                 }}
               >
-                View Plan
+                Book
               </button>
             </div>
           </div>

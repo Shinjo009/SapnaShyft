@@ -85,10 +85,17 @@ export const parseEngagementAddressToForm = (engagement) => {
     .map((part) => part.trim())
     .filter(Boolean);
   const landmark = String(engagement?.landmark || '').trim();
+  const subLocality = String(engagement?.sub_locality || '').trim();
+  const fullAddress = String(engagement?.address || '').trim();
+  const line2FromSubLocality = subLocality
+    && subLocality !== fullAddress
+    && !parts.includes(subLocality)
+    ? subLocality
+    : '';
 
   return {
-    house: parts[0] || '',
-    area: String(engagement?.sub_locality || '').trim() || parts[1] || '',
+    addressLine1: parts[0] || '',
+    addressLine2: parts[1] || line2FromSubLocality || '',
     landmark: landmark && landmark !== '-' ? landmark : '',
     city: String(engagement?.city || '').trim(),
     pincode: String(engagement?.pincode || '').trim(),

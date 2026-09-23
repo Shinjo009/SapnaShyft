@@ -228,10 +228,12 @@ export async function bookBioAiBatch(payload) {
 }
 
 /**
- * Build the `q` query for GET /geocode/search (house, area, city, pincode — comma separated).
+ * Build the `q` query for GET /geocode/search (address lines, city, pincode — comma separated).
  */
 export const buildGeocodeSearchQuery = (addressData) => {
-  return [addressData?.house, addressData?.area, addressData?.city, addressData?.pincode]
+  const line1 = String(addressData?.addressLine1 || addressData?.house || '').trim();
+  const line2 = String(addressData?.addressLine2 || addressData?.area || '').trim();
+  return [line1, line2, addressData?.city, addressData?.pincode]
     .map((value) => String(value || '').trim())
     .filter(Boolean)
     .join(', ');
@@ -239,11 +241,12 @@ export const buildGeocodeSearchQuery = (addressData) => {
 
 const buildGeocodeSearchQueryVariants = (addressData) => {
   const full = buildGeocodeSearchQuery(addressData);
-  const areaCityPincode = [addressData?.area, addressData?.city, addressData?.pincode]
+  const line2 = String(addressData?.addressLine2 || addressData?.area || '').trim();
+  const areaCityPincode = [line2, addressData?.city, addressData?.pincode]
     .map((value) => String(value || '').trim())
     .filter(Boolean)
     .join(', ');
-  const areaCity = [addressData?.area, addressData?.city]
+  const areaCity = [line2, addressData?.city]
     .map((value) => String(value || '').trim())
     .filter(Boolean)
     .join(', ');
@@ -266,13 +269,13 @@ const extractGeocodeRows = (response) => {
 /**
  * Resolve coordinates and normalized address fields via GET /geocode/search.
  *
- * @param {object} addressData — house, area, landmark, city, pincode
+ * @param {object} addressData — addressLine1, addressLine2, landmark, city, pincode
  * @returns {Promise<object>} First geocode match
  */
 export async function searchGeocodeByAddress(addressData) {
   const queryVariants = buildGeocodeSearchQueryVariants(addressData);
   if (!queryVariants.length) {
-    throw new Error('Enter house/flat no., building/area, city, and pincode to continue.');
+    throw new Error('Enter address line 1, city, and pincode to continue.');
   }
 
   for (const q of queryVariants) {
@@ -295,15 +298,16 @@ export async function searchGeocodeByAddress(addressData) {
  * Merge form address with geocode result for downstream booking steps.
  */
 export const buildResolvedAddressFromGeocode = (addressData, geocodeResult) => {
-  const house = String(addressData?.house || '').trim();
+  const addressLine1 = String(addressData?.addressLine1 || addressData?.house || '').trim();
+  const addressLine2 = String(addressData?.addressLine2 || addressData?.area || '').trim();
   const landmark = String(addressData?.landmark || '').trim();
   const pincode = String(addressData?.pincode || '').trim();
   const geocodeAddress = String(geocodeResult?.address || geocodeResult?.display_name || '').trim();
-  const address = [house, geocodeAddress].filter(Boolean).join(', ') || geocodeAddress;
+  const address = [addressLine1, addressLine2, geocodeAddress].filter(Boolean).join(', ') || geocodeAddress;
 
   return {
-    house,
-    area: String(addressData?.area || '').trim(),
+    addressLine1,
+    addressLine2,
     landmark: landmark || String(geocodeResult?.landmark || '').trim(),
     city: String(geocodeResult?.city || addressData?.city || '').trim(),
     pincode: pincode || String(geocodeResult?.pincode || '').trim(),
@@ -337,8 +341,17 @@ const assertServiceAvailabilityMember = (member, index) => {
 };
 
 /**
+ * Combine address lines for POST /book/check-service-availability `address_line`.
+ */
+export const buildBookingAddressLine = (addressData) => {
+  const line1 = String(addressData?.addressLine1 || addressData?.house || '').trim();
+  const line2 = String(addressData?.addressLine2 || addressData?.area || '').trim();
+  return [line1, line2].filter(Boolean).join(', ');
+};
+
+/**
  * Build POST /book/check-service-availability body.
- * Combines house + building/area into a single `address_line`.
+ * Maps Address Line 1 + Line 2 → `address_line`; landmark/city/pincode pass through.
  */
 export const buildCheckServiceAvailabilityPayload = ({
   selectedPatients,
@@ -350,15 +363,14 @@ export const buildCheckServiceAvailabilityPayload = ({
     throw new Error('Select at least one member to continue.');
   }
 
-  const house = String(addressData?.house || '').trim();
-  const area = String(addressData?.area || '').trim();
-  const address_line = [house, area].filter(Boolean).join(', ');
+  const addressLine1 = String(addressData?.addressLine1 || addressData?.house || '').trim();
+  const address_line = buildBookingAddressLine(addressData);
   const landmark = String(addressData?.landmark || '').trim();
   const city = String(addressData?.city || '').trim();
   const pincode = String(addressData?.pincode || '').trim();
 
-  if (!house || !area || !city || !pincode) {
-    throw new Error('Enter house/flat no., building/area, city, and pincode to continue.');
+  if (!addressLine1 || !city || !pincode) {
+    throw new Error('Enter address line 1, city, and pincode to continue.');
   }
 
   const members = selectedPatients.map((patient) => {
@@ -374,7 +386,7 @@ export const buildCheckServiceAvailabilityPayload = ({
     return {
       user_id,
       address_line,
-      landmark,
+      landmark: landmark || null,
       city,
       pincode,
       diagnostic_package_id,

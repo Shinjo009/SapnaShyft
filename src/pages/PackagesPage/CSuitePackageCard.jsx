@@ -111,7 +111,7 @@ const CSuitePackageCard = ({
                   onBook?.();
                 }}
               >
-                View Plan
+                Book
               </button>
             </div>
           </div>

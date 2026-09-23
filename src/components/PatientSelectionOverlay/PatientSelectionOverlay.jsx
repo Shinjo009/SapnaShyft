@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './PatientSelectionOverlay.css';
 import maleAvatar from '../../images/male-avatar.png';
 import femaleAvatar from '../../images/female-avatar.png';
-import { getMyProfiles, createMySubProfile } from '../../services/usersService';
+import { getMyProfiles, createMySubProfile, invalidateMyProfilesCache } from '../../services/usersService';
 import { getMyProfile } from '../../services/profileService';
 import {
   listDiagnosticPackages,
@@ -46,6 +46,7 @@ import {
   parseEngagementAddressToForm,
   resolveDraftResumeView,
 } from '../../utils/bookingDraftUtils';
+import { validateCityMatchesPincode } from '../../utils/pincodeCityMatch';
 import { hasPersonalizedForYouRecommendations, loadPackageOnboardingResult } from '../../utils/packageRecommendationStorage';
 import PackageDetailsPage from '../../pages/PackageDetailsPage/PackageDetailsPage';
 
@@ -461,12 +462,6 @@ const DownIcon = () => (
   </svg>
 );
 
-const UseSameCheckboxIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path fillRule="evenodd" clipRule="evenodd" d="M3.33333 2C2.97971 2 2.64057 2.14048 2.39052 2.39052C2.14048 2.64057 2 2.97971 2 3.33333V12.6667C2 13.0203 2.14048 13.3594 2.39052 13.6095C2.64057 13.8595 2.97971 14 3.33333 14H12.6667C13.0203 14 13.3594 13.8595 13.6095 13.6095C13.8595 13.3594 14 13.0203 14 12.6667V3.33333C14 2.97971 13.8595 2.64057 13.6095 2.39052C13.3594 2.14048 13.0203 2 12.6667 2H3.33333ZM3.33333 3.33333H12.6667V12.6667H3.33333V3.33333ZM11.3 6.53C11.3637 6.4685 11.4145 6.39494 11.4494 6.3136C11.4843 6.23227 11.5027 6.14479 11.5035 6.05627C11.5043 5.96775 11.4874 5.87996 11.4539 5.79803C11.4204 5.7161 11.3709 5.64166 11.3083 5.57907C11.2457 5.51647 11.1712 5.46697 11.0893 5.43345C11.0074 5.39993 10.9196 5.38306 10.8311 5.38383C10.7425 5.3846 10.6551 5.40299 10.5737 5.43793C10.4924 5.47287 10.4188 5.52366 10.3573 5.58733L7.05733 8.88733L5.64333 7.47333C5.58144 7.41139 5.50795 7.36225 5.42706 7.32871C5.34617 7.29517 5.25947 7.2779 5.1719 7.27787C4.99506 7.2778 4.82543 7.34799 4.70033 7.473C4.57524 7.59801 4.50493 7.76758 4.50487 7.94443C4.5048 8.12128 4.57499 8.29091 4.7 8.416L6.53867 10.2547C6.60677 10.3228 6.68763 10.3768 6.77662 10.4137C6.86561 10.4506 6.961 10.4696 7.05733 10.4696C7.15367 10.4696 7.24905 10.4506 7.33805 10.4137C7.42704 10.3768 7.5079 10.3228 7.576 10.2547L11.3 6.53Z" fill="#9A9A9A"/>
-  </svg>
-);
-
 const PackagePulseIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true">
     <path d="M14.418 6.854H12.713C12.0955 6.85282 11.5528 7.22226 11.3861 7.75738L9.77047 12.9301C9.74908 12.9961 9.68186 13.0415 9.60547 13.0415C9.52908 13.0415 9.46186 12.9961 9.44047 12.9301L5.64547 0.777879C5.62408 0.711879 5.55686 0.666504 5.48047 0.666504C5.40408 0.666504 5.33686 0.711879 5.31547 0.777879L3.69984 5.95063C3.53381 6.48353 2.9948 6.85242 2.37984 6.854H0.667969" stroke="white" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
@@ -589,14 +584,81 @@ const DEFAULT_FORM_DATA = {
   gender: '',
   phone: '',
   email: '',
+  city: '',
 };
 
-const RELATION_OPTIONS = ['Parent', 'Child', 'Sibling', 'Spouse', 'Friend', 'Self', 'Other'];
+/** Labels must match API SubProfileCreate.relationship literals (lowercased on submit). */
+const RELATION_OPTIONS = ['Parent', 'Child', 'Sibling', 'Spouse', 'Grandparent', 'Other'];
 const GENDER_OPTIONS = ['Male', 'Female'];
+/** Temp key so package Change on Add member binds before the profile exists. */
+const PENDING_ADD_PATIENT_ID = '__pending_add__';
+
+const ADD_REQUIRED_FIELD = 'Required Field';
+const ADD_INVALID_FORMAT = 'Invalid Format';
+const ADD_FIELD_REQUIRED = 'Field Required';
+const RE_ADD_NAME = /^(?=.*[a-zA-Z])[a-zA-Z\s'-]{1,60}$/;
+const RE_ADD_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RE_ADD_PHONE = /^\d{10}$/;
+const RE_ADD_CITY = /^(?=.*[a-zA-Z])[a-zA-Z\s,.'-]{1,100}$/;
+
+const optionalOrInvalidAddFormat = (value, pattern) => {
+  const t = String(value).trim();
+  if (!t) return null;
+  if (!pattern.test(t)) return ADD_INVALID_FORMAT;
+  return null;
+};
+
+const requiredOrInvalidAddFormat = (value, pattern) => {
+  const t = String(value).trim();
+  if (!t) return ADD_REQUIRED_FIELD;
+  if (!pattern.test(t)) return ADD_INVALID_FORMAT;
+  return null;
+};
+
+const validateAddMemberForm = (data) => {
+  const errors = {};
+  const set = (key, msg) => {
+    if (msg) errors[key] = msg;
+  };
+
+  set('firstName', requiredOrInvalidAddFormat(data.firstName, RE_ADD_NAME));
+  set('lastName', requiredOrInvalidAddFormat(data.lastName, RE_ADD_NAME));
+  set('city', requiredOrInvalidAddFormat(data.city, RE_ADD_CITY));
+  set('phone', optionalOrInvalidAddFormat(data.phone, RE_ADD_PHONE));
+  set('email', optionalOrInvalidAddFormat(data.email, RE_ADD_EMAIL));
+
+  const ageRaw = String(data.age || '').trim();
+  if (!ageRaw) {
+    errors.age = ADD_REQUIRED_FIELD;
+  } else {
+    const age = Number.parseInt(ageRaw, 10);
+    if (Number.isNaN(age) || age < 18 || age > 99) {
+      errors.age = ADD_INVALID_FORMAT;
+    }
+  }
+
+  if (!String(data.gender || '').trim()) {
+    errors.gender = ADD_FIELD_REQUIRED;
+  }
+  if (!String(data.relation || '').trim()) {
+    errors.relation = ADD_FIELD_REQUIRED;
+  }
+
+  return errors;
+};
+
+const clearAddFieldError = (setAddFieldErrors, field) => {
+  setAddFieldErrors((prev) => {
+    if (!prev[field]) return prev;
+    const next = { ...prev };
+    delete next[field];
+    return next;
+  });
+};
 
 const DEFAULT_ADDRESS_DATA = {
-  house: '',
-  area: '',
+  addressLine1: '',
+  addressLine2: '',
   landmark: '',
   city: '',
   pincode: '',
@@ -606,13 +668,29 @@ const ADDRESS_REQUIRED_MSG = 'Required Field';
 const ADDRESS_PIN_INVALID_MSG = 'Invalid Format';
 const RE_PACKAGE_ADDRESS_PINCODE = /^\d{6}$/;
 
+const ADDRESS_FIELD_ORDER = ['addressLine1', 'addressLine2', 'landmark', 'city', 'pincode'];
+
+const formatBookingAddressDisplay = (addressData) => {
+  const line1 = String(addressData?.addressLine1 || '').trim();
+  const line2 = String(addressData?.addressLine2 || '').trim();
+  const landmark = String(addressData?.landmark || '').trim();
+  return [line1, line2, landmark].filter(Boolean).join(', ') || '-';
+};
+
 const validatePackageAddressForm = (data) => {
   const errors = {};
-  ['house', 'area', 'city'].forEach((key) => {
-    if (!String(data[key] || '').trim()) {
-      errors[key] = ADDRESS_REQUIRED_MSG;
-    }
-  });
+  if (!String(data.addressLine1 || '').trim()) {
+    errors.addressLine1 = ADDRESS_REQUIRED_MSG;
+  }
+  if (!String(data.addressLine2 || '').trim()) {
+    errors.addressLine2 = ADDRESS_REQUIRED_MSG;
+  }
+  if (!String(data.landmark || '').trim()) {
+    errors.landmark = ADDRESS_REQUIRED_MSG;
+  }
+  if (!String(data.city || '').trim()) {
+    errors.city = ADDRESS_REQUIRED_MSG;
+  }
   const pin = String(data.pincode || '').trim();
   if (!pin) {
     errors.pincode = ADDRESS_REQUIRED_MSG;
@@ -723,8 +801,8 @@ const buildAddressFromProfile = (profile) => {
   const city = String(profile?.city || profile?.state || addressParts[3] || '').trim();
 
   return {
-    house: addressParts[0] || '',
-    area: addressParts[1] || '',
+    addressLine1: addressParts[0] || '',
+    addressLine2: addressParts[1] || '',
     landmark: addressParts[2] || '',
     city,
     pincode: String(profile?.pin_code || profile?.pincode || profile?.postal_code || '').trim(),
@@ -754,11 +832,12 @@ const PatientSelectionOverlay = ({
   const [selectViewReturn, setSelectViewReturn] = useState(null);
   const [packageTargetName, setPackageTargetName] = useState('User');
   const [packageTargetPatientId, setPackageTargetPatientId] = useState(null);
-  const [phoneSame, setPhoneSame] = useState(false);
-  const [emailSame, setEmailSame] = useState(false);
   const [activeField, setActiveField] = useState('firstName');
-  const [activeAddressField, setActiveAddressField] = useState('house');
+  const [activeAddressField, setActiveAddressField] = useState('addressLine1');
   const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
+  const [addFieldErrors, setAddFieldErrors] = useState({});
+  const [addSubmitError, setAddSubmitError] = useState('');
+  const [addMemberSuccess, setAddMemberSuccess] = useState('');
   const [addressData, setAddressData] = useState(DEFAULT_ADDRESS_DATA);
   const [resolvedAddressData, setResolvedAddressData] = useState(null);
   const [addressFieldErrors, setAddressFieldErrors] = useState({});
@@ -834,8 +913,9 @@ const PatientSelectionOverlay = ({
       setServiceAvailabilityByUserId({});
       setPackageDetailsCard(null);
       setFormData(DEFAULT_FORM_DATA);
-      setPhoneSame(false);
-      setEmailSame(false);
+      setAddFieldErrors({});
+      setAddSubmitError('');
+      setAddMemberSuccess('');
       setPaymentError(null);
       setPaymentSubmitting(false);
       setBioBookingError('');
@@ -1015,8 +1095,8 @@ const PatientSelectionOverlay = ({
     const fromProfile = buildAddressFromProfile(profileData);
     setAddressData((prev) => ({
       ...prev,
-      house: prev.house || fromProfile.house,
-      area: prev.area || fromProfile.area,
+      addressLine1: prev.addressLine1 || fromProfile.addressLine1,
+      addressLine2: prev.addressLine2 || fromProfile.addressLine2,
       landmark: prev.landmark || fromProfile.landmark,
       city: prev.city || fromProfile.city,
       pincode: prev.pincode || fromProfile.pincode || '',
@@ -1838,92 +1918,85 @@ const PatientSelectionOverlay = ({
   };
 
   const renderInputField = (key, label, options = {}) => {
-    const fieldClass = `patient-add__field${activeField === key ? ' is-focused' : ''}${options.half ? ' patient-add__field--half' : ''}`;
+    const errMsg = addFieldErrors[key];
+    const fieldClass = `patient-add__field${activeField === key ? ' is-focused' : ''}${errMsg ? ' is-error' : ''}`;
     const isDropdown = options.dropdown;
     const dropdownOptions = key === 'relation' ? RELATION_OPTIONS : key === 'gender' ? GENDER_OPTIONS : [];
 
+    const handleFieldChange = (rawValue) => {
+      let nextValue = rawValue;
+      if (key === 'phone') {
+        nextValue = String(rawValue || '').replace(/\D/g, '').slice(0, 10);
+      } else if (key === 'age') {
+        nextValue = String(rawValue || '').replace(/\D/g, '').slice(0, 2);
+      }
+      setFormData((prev) => ({ ...prev, [key]: nextValue }));
+      clearAddFieldError(setAddFieldErrors, key);
+      setAddSubmitError('');
+    };
+
     return (
-      <label className={fieldClass} htmlFor={`patient-${key}`}>
-        <span className="patient-add__label-chip">{label}</span>
+      <div className={`patient-add__field-wrap${options.half ? ' patient-add__field-wrap--half' : ''}`}>
+        <label className={fieldClass} htmlFor={`patient-${key}`}>
+          <span className="patient-add__label-chip">{label}</span>
 
-        <div className="patient-add__field-inner">
-          {isDropdown ? (
-            <select
-              id={`patient-${key}`}
-              ref={(node) => {
-                dropdownRefs.current[key] = node;
-              }}
-              value={formData[key]}
-              onFocus={() => setActiveField(key)}
-              onChange={(event) => setFormData((prev) => ({ ...prev, [key]: event.target.value }))}
-              className="patient-add__input patient-add__select"
-            >
-              <option value="" disabled>Select</option>
-              {dropdownOptions.map((item) => (
-                <option key={`${key}-${item}`} value={item}>{item}</option>
-              ))}
-            </select>
-          ) : (
-            <input
-              id={`patient-${key}`}
-              value={formData[key]}
-              onFocus={() => setActiveField(key)}
-              onChange={(event) => setFormData((prev) => ({ ...prev, [key]: event.target.value }))}
-              className="patient-add__input"
-            />
-          )}
+          <div className="patient-add__field-inner">
+            {isDropdown ? (
+              <select
+                id={`patient-${key}`}
+                ref={(node) => {
+                  dropdownRefs.current[key] = node;
+                }}
+                value={formData[key]}
+                onFocus={() => setActiveField(key)}
+                onChange={(event) => handleFieldChange(event.target.value)}
+                className="patient-add__input patient-add__select"
+              >
+                <option value="" disabled>Select</option>
+                {dropdownOptions.map((item) => (
+                  <option key={`${key}-${item}`} value={item}>{item}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                id={`patient-${key}`}
+                type={key === 'email' ? 'email' : 'text'}
+                inputMode={key === 'phone' || key === 'age' ? 'numeric' : undefined}
+                maxLength={key === 'phone' ? 10 : key === 'age' ? 2 : undefined}
+                value={formData[key]}
+                onFocus={() => setActiveField(key)}
+                onChange={(event) => handleFieldChange(event.target.value)}
+                className="patient-add__input"
+              />
+            )}
 
-          {isDropdown ? (
-            <button
-              type="button"
-              className="patient-add__dropdown-btn"
-              aria-label={`Open ${label} dropdown`}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
-                const selectNode = dropdownRefs.current[key];
-                if (!selectNode) {
-                  return;
-                }
-                if (typeof selectNode.showPicker === 'function') {
-                  selectNode.showPicker();
-                  return;
-                }
-                selectNode.focus();
-                selectNode.click();
-              }}
-            >
-              <DownIcon />
-            </button>
-          ) : null}
-        </div>
-      </label>
+            {isDropdown ? (
+              <button
+                type="button"
+                className="patient-add__dropdown-btn"
+                aria-label={`Open ${label} dropdown`}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  const selectNode = dropdownRefs.current[key];
+                  if (!selectNode) {
+                    return;
+                  }
+                  if (typeof selectNode.showPicker === 'function') {
+                    selectNode.showPicker();
+                    return;
+                  }
+                  selectNode.focus();
+                  selectNode.click();
+                }}
+              >
+                <DownIcon />
+              </button>
+            ) : null}
+          </div>
+        </label>
+        {errMsg ? <p className="patient-add__field-error">{errMsg}</p> : null}
+      </div>
     );
-  };
-
-  const handleTogglePhoneSame = () => {
-    setPhoneSame((prev) => {
-      const next = !prev;
-      if (next) {
-        const profilePhone = String(profileData?.phone || '').trim();
-        setFormData((current) => ({ ...current, phone: profilePhone }));
-      } else {
-        setFormData((current) => ({ ...current, phone: '' }));
-      }
-      return next;
-    });
-  };
-
-  const handleToggleEmailSame = () => {
-    setEmailSame((prev) => {
-      const next = !prev;
-      if (next) {
-        const profileEmail = String(profileData?.email || '').trim();
-        setFormData((current) => ({ ...current, email: profileEmail }));
-      } else {
-        setFormData((current) => ({ ...current, email: '' }));
-      }
-      return next;
-    });
   };
 
   const handleAddressContinue = async () => {
@@ -1935,22 +2008,28 @@ const PatientSelectionOverlay = ({
     setAddressFieldErrors({});
     setAddressSubmitError('');
 
-    if (addressViewReturn === 'details') {
-      setView('details');
-      return;
-    }
-
-    if (!BACKEND_ENABLED) {
-      setScheduleViewReturn('address');
-      setView('schedule');
-      return;
-    }
-
     setAddressSubmitting(true);
     try {
+      const mismatchErrors = await validateCityMatchesPincode(addressData);
+      if (mismatchErrors) {
+        setAddressFieldErrors(mismatchErrors);
+        return;
+      }
+
+      if (addressViewReturn === 'details') {
+        setView('details');
+        return;
+      }
+
+      if (!BACKEND_ENABLED) {
+        setScheduleViewReturn('address');
+        setView('schedule');
+        return;
+      }
+
       setResolvedAddressData({
-        house: String(addressData?.house || '').trim(),
-        area: String(addressData?.area || '').trim(),
+        addressLine1: String(addressData?.addressLine1 || '').trim(),
+        addressLine2: String(addressData?.addressLine2 || '').trim(),
         landmark: String(addressData?.landmark || '').trim(),
         city: String(addressData?.city || '').trim(),
         pincode: String(addressData?.pincode || '').trim(),
@@ -2094,6 +2173,21 @@ const PatientSelectionOverlay = ({
                   return next;
                 });
               }}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') {
+                  return;
+                }
+                event.preventDefault();
+                const currentIndex = ADDRESS_FIELD_ORDER.indexOf(key);
+                if (currentIndex < 0 || currentIndex >= ADDRESS_FIELD_ORDER.length - 1) {
+                  return;
+                }
+                const nextKey = ADDRESS_FIELD_ORDER[currentIndex + 1];
+                const nextInput = document.getElementById(`address-${nextKey}`);
+                if (nextInput) {
+                  nextInput.focus();
+                }
+              }}
               className="patient-address__input"
               inputMode={key === 'pincode' ? 'numeric' : undefined}
               maxLength={key === 'pincode' ? 6 : undefined}
@@ -2106,40 +2200,41 @@ const PatientSelectionOverlay = ({
   };
 
   const handleSavePatient = async () => {
+    const validation = validateAddMemberForm(formData);
+    setAddFieldErrors(validation);
+    setAddSubmitError('');
+    if (Object.keys(validation).length > 0) {
+      return;
+    }
+
+    const firstName = formData.firstName.trim();
+    const lastName = formData.lastName.trim();
+    const relation = formData.relation.trim();
+    const gender = formData.gender.trim();
+    const city = formData.city.trim();
+
     try {
-      const firstName = formData.firstName.trim();
-      if (!firstName) {
-        throw new Error('First name is required.');
-      }
-
-      const lastName = formData.lastName.trim();
-      if (!lastName) {
-        throw new Error('Last name is required.');
-      }
-
-      const age = Number.parseInt(formData.age, 10);
-      if (Number.isNaN(age) || age < 1 || age > 120) {
-        throw new Error('Age must be between 1 and 120.');
-      }
-
       setSavingPatient(true);
 
-      await createMySubProfile({
+      const createResponse = await createMySubProfile({
         firstName,
         lastName,
         age: formData.age,
         phone: formData.phone || '',
         email: formData.email || '',
-        city: addressData.city || '',
+        city,
         organization: '',
-        gender: formData.gender || 'Female',
-        relation: formData.relation || 'Sibling',
-      }, {
-        omitPhone: phoneSame,
-        omitEmail: emailSame,
+        gender,
+        relation,
       });
+      invalidateMyProfilesCache();
 
-      const refreshedProfilesResponse = await getMyProfiles();
+      const createdRow = createResponse?.data && typeof createResponse.data === 'object'
+        ? createResponse.data
+        : createResponse;
+      const createdUserId = Number(createdRow?.user_id || 0);
+
+      const refreshedProfilesResponse = await getMyProfiles({ forceRefresh: true });
       const refreshedProfiles = Array.isArray(refreshedProfilesResponse?.data)
         ? refreshedProfilesResponse.data
         : Array.isArray(refreshedProfilesResponse)
@@ -2166,10 +2261,13 @@ const PatientSelectionOverlay = ({
 
       setPatients(refreshedPatients);
 
-      const createdPatient = [...refreshedPatients].reverse().find((item) => {
-        const name = item.name.toLowerCase();
-        return name.startsWith(firstName.toLowerCase()) && name.includes(lastName.toLowerCase());
-      });
+      const createdPatient = createdUserId > 0
+        ? refreshedPatients.find((item) => Number(item.userId) === createdUserId)
+        : null;
+
+      const pendingPackageId = normalizePackageId(
+        selectedPackageByPatientId[PENDING_ADD_PATIENT_ID],
+      ) || selectedPackageId;
 
       if (createdPatient) {
         setSelectedIds((prev) => {
@@ -2178,11 +2276,31 @@ const PatientSelectionOverlay = ({
           }
           return [...prev, createdPatient.id];
         });
+        setSelectedPackageByPatientId((prev) => {
+          const next = { ...prev };
+          delete next[PENDING_ADD_PATIENT_ID];
+          next[createdPatient.id] = pendingPackageId;
+          return next;
+        });
+      } else {
+        setSelectedPackageByPatientId((prev) => {
+          const next = { ...prev };
+          delete next[PENDING_ADD_PATIENT_ID];
+          return next;
+        });
       }
 
+      setFormData(DEFAULT_FORM_DATA);
+      setAddFieldErrors({});
+      setAddSubmitError('');
+      setAddMemberSuccess(
+        createdPatient
+          ? `${createdPatient.name} added and selected.`
+          : 'Member added successfully.',
+      );
       setView('select');
     } catch (error) {
-      window.alert(error?.message || 'Failed to add account. Please try again.');
+      setAddSubmitError(error?.message || 'Failed to add account. Please try again.');
     } finally {
       setSavingPatient(false);
     }
@@ -2201,6 +2319,12 @@ const PatientSelectionOverlay = ({
         {view === 'select' ? (
           <>
             <h3 className="patient-select-overlay__title">Select members</h3>
+
+            {addMemberSuccess ? (
+              <p className="patient-select-overlay__success" role="status">
+                {addMemberSuccess}
+              </p>
+            ) : null}
 
             <div className="patient-select-overlay__list">
               {patients.map((patient) => {
@@ -2254,7 +2378,23 @@ const PatientSelectionOverlay = ({
               })}
             </div>
 
-            <button type="button" className="patient-select-overlay__add-btn" onClick={() => setView('add')}>+ Add new member</button>
+            <button
+              type="button"
+              className="patient-select-overlay__add-btn"
+              onClick={() => {
+                setFormData(DEFAULT_FORM_DATA);
+                setAddFieldErrors({});
+                setAddSubmitError('');
+                setAddMemberSuccess('');
+                setSelectedPackageByPatientId((prev) => ({
+                  ...prev,
+                  [PENDING_ADD_PATIENT_ID]: normalizePackageId(selectedPackageId),
+                }));
+                setView('add');
+              }}
+            >
+              + Add new member
+            </button>
 
             <div className="patient-select-overlay__footer">
               <div className="patient-select-overlay__footer-left">
@@ -2290,7 +2430,16 @@ const PatientSelectionOverlay = ({
         ) : view === 'add' ? (
           <>
             <div className="patient-add__header-row">
-              <button type="button" className="patient-add__back" aria-label="Back to select patients" onClick={() => setView('select')}>
+              <button
+                type="button"
+                className="patient-add__back"
+                aria-label="Back to select patients"
+                onClick={() => {
+                  setAddFieldErrors({});
+                  setAddSubmitError('');
+                  setView('select');
+                }}
+              >
                 <BackIcon />
               </button>
               <h3 className="patient-select-overlay__title">Add a new member</h3>
@@ -2309,27 +2458,19 @@ const PatientSelectionOverlay = ({
                 {renderInputField('gender', 'Gender', { half: true, dropdown: true })}
               </div>
 
-              <div className="patient-add__same-row">
-                <span>Use same</span>
-                <button type="button" className="patient-add__same-checkbox" onClick={handleTogglePhoneSame}>
-                  {phoneSame ? <UseSameCheckboxIcon /> : <span className="patient-add__same-checkbox-empty" />}
-                </button>
-              </div>
               {renderInputField('phone', 'Phone')}
-
-              <div className="patient-add__same-row">
-                <span>Use same</span>
-                <button type="button" className="patient-add__same-checkbox" onClick={handleToggleEmailSame}>
-                  {emailSame ? <UseSameCheckboxIcon /> : <span className="patient-add__same-checkbox-empty" />}
-                </button>
-              </div>
               {renderInputField('email', 'Email')}
+              {renderInputField('city', 'City')}
 
               <div className="patient-add__package-row">
                 <div className="patient-add__package-left">
                   <PackagePulseIcon />
                   <div>
-                    <p className="patient-add__package-title">{customFlow ? customPackageDisplayName : selectedPackage.name}</p>
+                    <p className="patient-add__package-title">
+                      {customFlow
+                        ? customPackageDisplayName
+                        : getPackageForPatient(PENDING_ADD_PATIENT_ID).name}
+                    </p>
                     <p className="patient-add__package-subtitle">Current Package</p>
                   </div>
                 </div>
@@ -2337,11 +2478,19 @@ const PatientSelectionOverlay = ({
                 <button
                   type="button"
                   className={`patient-add__change-btn${customFlow ? ' is-custom' : ''}`}
-                  onClick={() => openPackageSelector('add', formData.firstName || 'User')}
+                  onClick={() => openPackageSelector(
+                    'add',
+                    formData.firstName || 'User',
+                    PENDING_ADD_PATIENT_ID,
+                  )}
                 >
                   {customFlow ? 'Add tests' : 'Change'}
                 </button>
               </div>
+
+              {addSubmitError ? (
+                <p className="patient-add__submit-error" role="alert">{addSubmitError}</p>
+              ) : null}
 
               <button type="button" className="patient-add__save-btn" onClick={handleSavePatient} disabled={savingPatient}>
                 {savingPatient ? 'Saving...' : 'Save'}
@@ -2563,9 +2712,9 @@ const PatientSelectionOverlay = ({
             </div>
 
             <div className="patient-address__body">
-              {renderAddressField('house', 'House/ Flat No.')}
-              {renderAddressField('area', 'Building/ Area')}
-              {renderAddressField('landmark', 'Landmark (optional)')}
+              {renderAddressField('addressLine1', 'Address Line 1')}
+              {renderAddressField('addressLine2', 'Address Line 2')}
+              {renderAddressField('landmark', 'Landmark')}
 
               <div className="patient-address__split-row">
                 {renderAddressField('city', 'City', { half: true })}
@@ -2757,7 +2906,7 @@ const PatientSelectionOverlay = ({
                   <span className="patient-confirm__info-icon"><DetailLocationIcon /></span>
                   <div className="patient-confirm__info-text-wrap">
                     <p className="patient-confirm__info-label">Address</p>
-                    <p className="patient-confirm__info-value">{`${addressData.house}, ${addressData.area}, ${addressData.landmark}`}</p>
+                    <p className="patient-confirm__info-value">{formatBookingAddressDisplay(addressData)}</p>
                   </div>
                 </div>
 
@@ -2929,7 +3078,7 @@ const PatientSelectionOverlay = ({
                   <span className="patient-confirm__info-icon"><DetailLocationIcon /></span>
                   <div className="patient-confirm__info-text-wrap">
                     <p className="patient-confirm__info-label">Address</p>
-                    <p className="patient-confirm__info-value">{`${addressData.house}, ${addressData.area}, ${addressData.landmark}`}</p>
+                    <p className="patient-confirm__info-value">{formatBookingAddressDisplay(addressData)}</p>
                   </div>
                 </div>
 

@@ -106,7 +106,7 @@ const SupershyftCorePackageCard = ({
                   onBook?.();
                 }}
               >
-                View Plan
+                Book
               </button>
             </div>
           </div>

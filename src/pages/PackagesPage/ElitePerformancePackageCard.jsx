@@ -100,7 +100,7 @@ const ElitePerformancePackageCard = ({
                   onBook?.();
                 }}
               >
-                View Plan
+                Book
               </button>
             </div>
           </div>
