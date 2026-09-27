@@ -365,21 +365,26 @@
 
 .patient-payment {
   width: 100%;
-  margin-top: 12px;
+  margin-top: 6px;
   display: flex;
   flex-direction: column;
-  padding-bottom: 20px;
+  align-items: stretch;
+  gap: 6px;
+  padding-bottom: 0;
 }
-.patient-payment__box {
+.patient-payment__box,
+.patient-payment__promo-box {
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
-  padding: 8px 16px;
+  padding: 16px 24px;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
+  gap: 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(50px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
 }
 .patient-payment__row {
   width: 100%;
@@ -390,10 +395,13 @@
 .patient-payment__label {
   color: #9a9a9a;
   font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 500;
   line-height: normal;
+}
+.patient-payment__label--subtotal {
+  font-weight: 700;
 }
 .patient-payment__value {
   color: #ccc;
@@ -414,17 +422,83 @@
   height: 1px;
   background: rgba(255, 255, 255, 0.04);
 }
-.patient-payment__total-row {
-  margin-top: 16px;
+.patient-payment__promo {
+  width: 100%;
   display: flex;
-  padding: 2px 5px 4px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.patient-payment__promo-label {
+  margin: 0;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+.patient-payment__promo-box {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.patient-payment__promo-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 24px;
+}
+.patient-payment__promo-input::placeholder {
+  color: rgba(154, 154, 154, 0.50);
+}
+.patient-payment__promo-input:disabled {
+  opacity: 1;
+  color: #fff;
+}
+.patient-payment__promo-apply {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #9a9a9a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+.patient-payment__promo-apply:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.patient-payment__promo-error {
+  margin: 0;
+  color: #ffb4b4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+.patient-payment__total-row {
+  margin-top: 10px;
+  display: flex;
+  padding: 16px 5px 4px;
   justify-content: space-between;
   align-items: center;
   align-self: stretch;
 }
 .patient-payment__total-label {
   color: #fff;
-  font-family: Inter, sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 14px;
   font-style: normal;
   font-weight: 600;
@@ -432,8 +506,8 @@
 }
 .patient-payment__total-right {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-end;
+  gap: 4px;
 }
 .patient-payment__total-old {
   color: #ccc;
@@ -446,7 +520,7 @@
 }
 .patient-payment__total-new {
   color: #fff;
-  font-family: Inter, sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 14px;
   font-style: normal;
   font-weight: 600;
@@ -1527,6 +1601,85 @@
   letter-spacing: 0.28px;
   margin-top: 20px;
   margin-bottom: 20px;
+}
+
+.patient-address__picker {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 auto;
+  align-self: stretch;
+  overflow-y: auto;
+}
+
+.patient-address__option {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  text-align: left;
+}
+
+.patient-address__option.is-selected {
+  border-color: #41ab99;
+  background: rgba(65, 171, 153, 0.12);
+}
+
+.patient-address__option-badge {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(65, 171, 153, 0.24);
+  color: #90df9e;
+  font-family: Inter, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.patient-address__option-text,
+.patient-address__option-meta {
+  margin: 0;
+  font-family: Inter, sans-serif;
+}
+
+.patient-address__option-text {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.patient-address__option-meta {
+  color: #ccc;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.patient-address__add-btn {
+  display: flex;
+  height: 40px;
+  padding: 10px 24px;
+  justify-content: center;
+  align-items: center;
+  align-self: stretch;
+  border-radius: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  color: #fff;
+  font-family: Sora, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.28px;
 }
 
 .patient-schedule {

@@ -62,3 +62,36 @@ export const updateMyProfile = async (payload) => {
   invalidateMyProfileCache();
   return result;
 };
+
+const unwrapList = (response) => {
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response)) {
+    return response;
+  }
+  return [];
+};
+
+export const listMyAddresses = async () => {
+  const response = await authorizedProfileRequest('/users/me/addresses');
+  return unwrapList(response);
+};
+
+export const createMyAddress = async (payload) => {
+  const result = await authorizedProfileRequest('/users/me/addresses', 'POST', payload);
+  invalidateMyProfileCache();
+  return result?.data && typeof result.data === 'object' ? result.data : result;
+};
+
+export const updateMyAddress = async (userAddressId, payload) => {
+  const result = await authorizedProfileRequest(`/users/me/addresses/${userAddressId}`, 'PUT', payload);
+  invalidateMyProfileCache();
+  return result?.data && typeof result.data === 'object' ? result.data : result;
+};
+
+export const deleteMyAddress = async (userAddressId) => {
+  const result = await authorizedProfileRequest(`/users/me/addresses/${userAddressId}`, 'DELETE');
+  invalidateMyProfileCache();
+  return result;
+};

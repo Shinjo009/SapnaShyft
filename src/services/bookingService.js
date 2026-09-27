@@ -72,6 +72,7 @@ export const buildBookPayPayload = ({
   selectedPatients,
   getNumericPatientUserId,
   serviceAvailabilityByUserId,
+  discountCode,
 }) => {
   if (!Array.isArray(selectedPatients) || selectedPatients.length === 0) {
     throw new Error('Select at least one member to book.');
@@ -89,7 +90,12 @@ export const buildBookPayPayload = ({
 
   members.forEach(assertBookPayMember);
 
-  return { members };
+  const payload = { members };
+  const code = String(discountCode || '').trim();
+  if (code) {
+    payload.discount_code = code;
+  }
+  return payload;
 };
 
 /** @deprecated Use buildBookPayPayload */
@@ -145,6 +151,27 @@ export async function createBookPayOrder(payload) {
     missingAuthMessage: 'Please log in to complete payment.',
   });
   return normalizeBookPayOrder(response);
+}
+
+/**
+ * POST /discounts/validate — check a promo code against the current cart.
+ *
+ * @param {{ code: string, items: Array<object>, city?: string }} payload
+ */
+export async function validateDiscountCode({ code, items, city }) {
+  const response = await authorizedRequest('/discounts/validate', {
+    method: 'POST',
+    payload: {
+      code: String(code || '').trim(),
+      items,
+      context: {
+        city: String(city || '').trim() || null,
+      },
+    },
+    missingAuthMessage: 'Please log in to apply a promo code.',
+  });
+  const data = response?.data && typeof response.data === 'object' ? response.data : response;
+  return data;
 }
 
 /**

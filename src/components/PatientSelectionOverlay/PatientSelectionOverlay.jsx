@@ -3,7 +3,7 @@ import './PatientSelectionOverlay.css';
 import maleAvatar from '../../images/male-avatar.png';
 import femaleAvatar from '../../images/female-avatar.png';
 import { getMyProfiles, createMySubProfile, invalidateMyProfilesCache } from '../../services/usersService';
-import { getMyProfile } from '../../services/profileService';
+import { createMyAddress, getMyProfile, listMyAddresses } from '../../services/profileService';
 import {
   listDiagnosticPackages,
   listDiagnosticPackageFilterChips,
@@ -27,6 +27,7 @@ import {
   chunkScheduleSlots,
   createBookPayOrder,
   fetchAvailableSlots,
+  validateDiscountCode,
   formatApiSlotTimeToDisplay,
   formatBloodCollectionTimeSlot,
   isServiceAvailabilityDenied,
@@ -47,6 +48,12 @@ import {
   resolveDraftResumeView,
 } from '../../utils/bookingDraftUtils';
 import { validateCityMatchesPincode } from '../../utils/pincodeCityMatch';
+import {
+  MAX_USER_ADDRESSES,
+  bookingFormToAddressPayload,
+  formatProfileAddressDisplay,
+  savedAddressToBookingForm,
+} from '../../utils/profileAddress';
 import { hasPersonalizedForYouRecommendations, loadPackageOnboardingResult } from '../../utils/packageRecommendationStorage';
 import PackageDetailsPage from '../../pages/PackageDetailsPage/PackageDetailsPage';
 
@@ -809,6 +816,21 @@ const buildAddressFromProfile = (profile) => {
   };
 };
 
+const pickDefaultSavedAddress = (rows) => {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return null;
+  }
+  return rows.find((row) => row.is_default) || rows[0];
+};
+
+const toResolvedAddressData = (data) => ({
+  addressLine1: String(data?.addressLine1 || '').trim(),
+  addressLine2: String(data?.addressLine2 || '').trim(),
+  landmark: String(data?.landmark || '').trim(),
+  city: String(data?.city || '').trim(),
+  pincode: String(data?.pincode || '').trim(),
+});
+
 const PatientSelectionOverlay = ({
   open,
   onClose,
@@ -843,6 +865,9 @@ const PatientSelectionOverlay = ({
   const [addressFieldErrors, setAddressFieldErrors] = useState({});
   const [addressSubmitting, setAddressSubmitting] = useState(false);
   const [addressSubmitError, setAddressSubmitError] = useState('');
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedSavedAddressId, setSelectedSavedAddressId] = useState(null);
+  const [addingSavedAddress, setAddingSavedAddress] = useState(false);
   const [savingPatient, setSavingPatient] = useState(false);
   const [selectedDateId, setSelectedDateId] = useState('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
@@ -859,6 +884,10 @@ const PatientSelectionOverlay = ({
   const [customExpandedIds, setCustomExpandedIds] = useState(() => new Set(['thyroid-tests', 'liver-function']));
   const [customSelectedIds, setCustomSelectedIds] = useState(() => new Set(['thyroid-tests', 'liver-function']));
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState(null);
+  const [promoError, setPromoError] = useState('');
+  const [promoApplying, setPromoApplying] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const [bioBookingError, setBioBookingError] = useState('');
   const [confirmedBookingId, setConfirmedBookingId] = useState(null);
@@ -918,6 +947,10 @@ const PatientSelectionOverlay = ({
       setAddMemberSuccess('');
       setPaymentError(null);
       setPaymentSubmitting(false);
+      setPromoCode('');
+      setAppliedPromo(null);
+      setPromoError('');
+      setPromoApplying(false);
       setBioBookingError('');
       setConfirmedBookingId(null);
       setPaymentOutcome('success');
@@ -931,6 +964,11 @@ const PatientSelectionOverlay = ({
       setResolvedAddressData(null);
       setAddressSubmitting(false);
       setAddressSubmitError('');
+      setSavedAddresses([]);
+      setSelectedSavedAddressId(null);
+      setAddingSavedAddress(false);
+      setAddressData(DEFAULT_ADDRESS_DATA);
+      setAddressFieldErrors({});
     }
   }, [open, scheduleDates]);
 
@@ -1026,7 +1064,11 @@ const PatientSelectionOverlay = ({
 
     const loadOverlayData = async () => {
       try {
-        const [profileResponse, linkedProfilesResponse] = await Promise.all([getMyProfile(), getMyProfiles()]);
+        const [profileResponse, linkedProfilesResponse, addressesResponse] = await Promise.all([
+          getMyProfile(),
+          getMyProfiles(),
+          BACKEND_ENABLED ? listMyAddresses().catch(() => []) : Promise.resolve([]),
+        ]);
 
         const profile = profileResponse?.data && typeof profileResponse.data === 'object'
           ? profileResponse.data
@@ -1036,12 +1078,15 @@ const PatientSelectionOverlay = ({
           : Array.isArray(linkedProfilesResponse)
             ? linkedProfilesResponse
             : [];
+        const addressRows = Array.isArray(addressesResponse) ? addressesResponse : [];
 
         if (!mounted) {
           return;
         }
 
         setProfileData(profile || null);
+        setSavedAddresses(addressRows);
+        setAddingSavedAddress(addressRows.length === 0);
 
         const patientItems = [];
         const uniqueUserIds = new Set();
@@ -1063,14 +1108,24 @@ const PatientSelectionOverlay = ({
 
         setPatients(patientItems);
 
-        const defaultAddress = buildAddressFromProfile(profile);
+        const defaultSaved = pickDefaultSavedAddress(addressRows);
+        if (defaultSaved) {
+          setSelectedSavedAddressId(defaultSaved.user_address_id);
+        } else {
+          setSelectedSavedAddressId(null);
+        }
+
         await loadPackagesData();
 
         if (!draftEngagement) {
-          setAddressData((prev) => ({
-            ...prev,
-            ...defaultAddress,
-          }));
+          if (defaultSaved) {
+            setAddressData(savedAddressToBookingForm(defaultSaved));
+          } else {
+            setAddressData((prev) => ({
+              ...prev,
+              ...buildAddressFromProfile(profile),
+            }));
+          }
         }
 
       } catch (error) {
@@ -1091,6 +1146,9 @@ const PatientSelectionOverlay = ({
     if (!open || view !== 'address' || !profileData || draftEngagement) {
       return;
     }
+    if (savedAddresses.length > 0) {
+      return;
+    }
 
     const fromProfile = buildAddressFromProfile(profileData);
     setAddressData((prev) => ({
@@ -1101,7 +1159,7 @@ const PatientSelectionOverlay = ({
       city: prev.city || fromProfile.city,
       pincode: prev.pincode || fromProfile.pincode || '',
     }));
-  }, [draftEngagement, open, profileData, view]);
+  }, [draftEngagement, open, profileData, savedAddresses.length, view]);
 
   useEffect(() => {
     const { body, documentElement } = document;
@@ -1265,8 +1323,20 @@ const PatientSelectionOverlay = ({
     setSelectedPackageByPatientId(packageSelectionByPatient);
 
     if (engagementHasAddress(draftEngagement)) {
-      setAddressData(parseEngagementAddressToForm(draftEngagement));
+      const draftAddressForm = parseEngagementAddressToForm(draftEngagement);
+      setAddressData(draftAddressForm);
       setResolvedAddressData(buildResolvedAddressFromEngagement(draftEngagement));
+
+      const matchedSaved = savedAddresses.find((row) => {
+        const mapped = savedAddressToBookingForm(row);
+        return mapped.addressLine1 === String(draftAddressForm.addressLine1 || '').trim()
+          && mapped.city === String(draftAddressForm.city || '').trim()
+          && mapped.pincode === String(draftAddressForm.pincode || '').trim();
+      });
+      if (matchedSaved) {
+        setSelectedSavedAddressId(matchedSaved.user_address_id);
+        setAddingSavedAddress(false);
+      }
 
       const selectedUserIds = selectedPatientIds
         .map((patientId) => {
@@ -1300,6 +1370,7 @@ const PatientSelectionOverlay = ({
     initialPackageCard,
     open,
     patients,
+    savedAddresses,
     scheduleDates,
     selectedPackageId,
     sourcePackages,
@@ -1544,17 +1615,90 @@ const PatientSelectionOverlay = ({
     const current = pricing?.current ?? 0;
     const old = pricing?.old ?? 0;
     const discount = Math.max(old - current, 0);
+    const promoRupees = appliedPromo?.discountPaise
+      ? appliedPromo.discountPaise / 100
+      : 0;
+    const totalNew = Math.max(current - promoRupees, 0);
 
     return {
       totalMrp: old,
       platformDiscount: discount,
       subtotal: current,
       totalOld: old,
-      totalNew: current,
+      totalNew,
     };
-  }, [pricing]);
+  }, [pricing, appliedPromo]);
 
   const formatPrice = (value) => `₹ ${value.toLocaleString('en-IN')}`;
+
+  const formatBreakdownPrice = (value) => `Rs. ${Number(value || 0).toLocaleString('en-IN')}`;
+
+  const handleApplyPromo = async () => {
+    if (appliedPromo) {
+      setAppliedPromo(null);
+      setPromoCode('');
+      setPromoError('');
+      return;
+    }
+
+    const code = promoCode.trim();
+    if (!code) {
+      setPromoError('Enter a promo code');
+      return;
+    }
+
+    if (!BACKEND_ENABLED) {
+      setPromoError('Promo codes are unavailable right now.');
+      return;
+    }
+
+    const items = selectedPatients.map((patient) => {
+      const pkg = getPackageForPatient(patient.id);
+      const entityId = Number(
+        pkg?.apiData?.diagnostic_package_id
+        ?? pkg?.apiData?.id
+        ?? pkg?.id
+        ?? 0,
+      );
+      return {
+        user_id: getNumericPatientUserId(patient),
+        entity_type: 'diagnostic_package',
+        entity_id: entityId,
+        amount_paise: Math.round(Number(pkg?.currentPrice || 0) * 100),
+      };
+    }).filter((item) => item.user_id > 0 && item.entity_id > 0 && item.amount_paise > 0);
+
+    if (!items.length) {
+      setPromoError('Select a package before applying a promo code.');
+      return;
+    }
+
+    setPromoApplying(true);
+    setPromoError('');
+    try {
+      const result = await validateDiscountCode({
+        code,
+        items,
+        city: addressData?.city,
+      });
+      if (!result?.ok) {
+        setAppliedPromo(null);
+        setPromoError(result?.message || 'This promo code cannot be applied.');
+        return;
+      }
+      const appliedCode = String(result.code || code).trim().toUpperCase();
+      setAppliedPromo({
+        code: appliedCode,
+        discountPaise: Number(result.discount_paise) || 0,
+      });
+      setPromoCode(appliedCode);
+    } catch (err) {
+      setAppliedPromo(null);
+      setPromoError(err?.message || 'Could not apply promo code.');
+    } finally {
+      setPromoApplying(false);
+    }
+  };
 
   const normalizedCustomQuery = customSearchQuery.trim().toLowerCase();
 
@@ -1747,6 +1891,7 @@ const PatientSelectionOverlay = ({
         selectedPatients,
         getNumericPatientUserId,
         serviceAvailabilityByUserId,
+        discountCode: appliedPromo?.code,
       });
 
       await loadRazorpayScript();
@@ -2000,21 +2145,51 @@ const PatientSelectionOverlay = ({
   };
 
   const handleAddressContinue = async () => {
-    const nextErrors = validatePackageAddressForm(addressData);
-    setAddressFieldErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
-      return;
-    }
-    setAddressFieldErrors({});
-    setAddressSubmitError('');
+    const showSavedPicker = savedAddresses.length > 0 && !addingSavedAddress;
+    let nextAddressData = addressData;
 
+    if (showSavedPicker) {
+      const selectedRow = savedAddresses.find(
+        (row) => Number(row.user_address_id) === Number(selectedSavedAddressId),
+      );
+      if (!selectedRow) {
+        setAddressSubmitError('Select an address to continue.');
+        return;
+      }
+      nextAddressData = savedAddressToBookingForm(selectedRow);
+      setAddressData(nextAddressData);
+    } else {
+      const nextErrors = validatePackageAddressForm(addressData);
+      setAddressFieldErrors(nextErrors);
+      if (Object.keys(nextErrors).length > 0) {
+        return;
+      }
+      setAddressFieldErrors({});
+    }
+
+    setAddressSubmitError('');
     setAddressSubmitting(true);
     try {
-      const mismatchErrors = await validateCityMatchesPincode(addressData);
+      const mismatchErrors = await validateCityMatchesPincode(nextAddressData);
       if (mismatchErrors) {
         setAddressFieldErrors(mismatchErrors);
         return;
       }
+
+      if (!showSavedPicker && BACKEND_ENABLED) {
+        const created = await createMyAddress(bookingFormToAddressPayload(nextAddressData));
+        if (created?.user_address_id) {
+          setSavedAddresses((prev) => (
+            prev.some((row) => Number(row.user_address_id) === Number(created.user_address_id))
+              ? prev
+              : [...prev, created]
+          ));
+          setSelectedSavedAddressId(created.user_address_id);
+        }
+        setAddingSavedAddress(false);
+      }
+
+      setResolvedAddressData(toResolvedAddressData(nextAddressData));
 
       if (addressViewReturn === 'details') {
         setView('details');
@@ -2027,17 +2202,9 @@ const PatientSelectionOverlay = ({
         return;
       }
 
-      setResolvedAddressData({
-        addressLine1: String(addressData?.addressLine1 || '').trim(),
-        addressLine2: String(addressData?.addressLine2 || '').trim(),
-        landmark: String(addressData?.landmark || '').trim(),
-        city: String(addressData?.city || '').trim(),
-        pincode: String(addressData?.pincode || '').trim(),
-      });
-
       const availabilityPayload = buildCheckServiceAvailabilityPayload({
         selectedPatients,
-        addressData,
+        addressData: nextAddressData,
         getPackageForPatient,
         getNumericPatientUserId,
       });
@@ -2703,23 +2870,90 @@ const PatientSelectionOverlay = ({
               <button
                 type="button"
                 className="patient-add__back"
-                aria-label={addressViewReturn === 'details' ? 'Back to booking summary' : 'Back to select members'}
-                onClick={() => setView(addressViewReturn)}
+                aria-label={
+                  addingSavedAddress && savedAddresses.length > 0
+                    ? 'Back to saved addresses'
+                    : addressViewReturn === 'details'
+                      ? 'Back to booking summary'
+                      : 'Back to select members'
+                }
+                onClick={() => {
+                  if (addingSavedAddress && savedAddresses.length > 0) {
+                    setAddingSavedAddress(false);
+                    setAddressFieldErrors({});
+                    setAddressSubmitError('');
+                    const selectedRow = savedAddresses.find(
+                      (row) => Number(row.user_address_id) === Number(selectedSavedAddressId),
+                    ) || pickDefaultSavedAddress(savedAddresses);
+                    if (selectedRow) {
+                      setAddressData(savedAddressToBookingForm(selectedRow));
+                    }
+                    return;
+                  }
+                  setView(addressViewReturn);
+                }}
               >
                 <BackIcon />
               </button>
-              <h3 className="patient-select-overlay__title">Add Address</h3>
+              <h3 className="patient-select-overlay__title">
+                {savedAddresses.length > 0 && !addingSavedAddress ? 'Select Address' : 'Add Address'}
+              </h3>
             </div>
 
             <div className="patient-address__body">
-              {renderAddressField('addressLine1', 'Address Line 1')}
-              {renderAddressField('addressLine2', 'Address Line 2')}
-              {renderAddressField('landmark', 'Landmark')}
+              {savedAddresses.length > 0 && !addingSavedAddress ? (
+                <>
+                  <div className="patient-address__picker" role="listbox" aria-label="Saved addresses">
+                    {savedAddresses.map((row) => {
+                      const isSelected = Number(row.user_address_id) === Number(selectedSavedAddressId);
+                      return (
+                        <button
+                          key={row.user_address_id}
+                          type="button"
+                          role="option"
+                          aria-selected={isSelected}
+                          className={`patient-address__option${isSelected ? ' is-selected' : ''}`}
+                          onClick={() => {
+                            setSelectedSavedAddressId(row.user_address_id);
+                            setAddressData(savedAddressToBookingForm(row));
+                            setAddressSubmitError('');
+                          }}
+                        >
+                          {row.is_default ? <span className="patient-address__option-badge">Default</span> : null}
+                          <p className="patient-address__option-text">{formatProfileAddressDisplay(row)}</p>
+                          {row.pincode ? <p className="patient-address__option-meta">{row.pincode}</p> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {savedAddresses.length < MAX_USER_ADDRESSES ? (
+                    <button
+                      type="button"
+                      className="patient-address__add-btn"
+                      onClick={() => {
+                        setAddingSavedAddress(true);
+                        setAddressData(DEFAULT_ADDRESS_DATA);
+                        setAddressFieldErrors({});
+                        setAddressSubmitError('');
+                        setActiveAddressField('addressLine1');
+                      }}
+                    >
+                      Add Address
+                    </button>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  {renderAddressField('addressLine1', 'Address Line 1')}
+                  {renderAddressField('addressLine2', 'Address Line 2')}
+                  {renderAddressField('landmark', 'Landmark')}
 
-              <div className="patient-address__split-row">
-                {renderAddressField('city', 'City', { half: true })}
-                {renderAddressField('pincode', 'Pincode', { half: true })}
-              </div>
+                  <div className="patient-address__split-row">
+                    {renderAddressField('city', 'City', { half: true })}
+                    {renderAddressField('pincode', 'Pincode', { half: true })}
+                  </div>
+                </>
+              )}
 
               {addressSubmitError ? (
                 <p className="patient-address__field-error patient-address__submit-error" role="alert">
@@ -2731,7 +2965,7 @@ const PatientSelectionOverlay = ({
                 type="button"
                 className="patient-address__continue-btn"
                 onClick={handleAddressContinue}
-                disabled={addressSubmitting}
+                disabled={addressSubmitting || (savedAddresses.length > 0 && !addingSavedAddress && !selectedSavedAddressId)}
               >
                 {addressSubmitting ? 'Please wait…' : 'Continue'}
               </button>
@@ -2979,27 +3213,63 @@ const PatientSelectionOverlay = ({
               <div className="patient-payment__box">
                 <div className="patient-payment__row">
                   <span className="patient-payment__label">Total MRP</span>
-                  <span className="patient-payment__value">{formatPrice(paymentBreakdown.totalMrp)}</span>
+                  <span className="patient-payment__value">{formatBreakdownPrice(paymentBreakdown.totalMrp)}</span>
                 </div>
 
                 <div className="patient-payment__row">
                   <span className="patient-payment__label">Platform Discount</span>
-                  <span className="patient-payment__value patient-payment__value--discount">- {formatPrice(paymentBreakdown.platformDiscount)}</span>
+                  <span className="patient-payment__value patient-payment__value--discount">- {formatBreakdownPrice(paymentBreakdown.platformDiscount)}</span>
                 </div>
 
                 <div className="patient-payment__divider" />
 
                 <div className="patient-payment__row">
-                  <span className="patient-payment__label">Subtotal</span>
-                  <span className="patient-payment__value patient-payment__value--subtotal">{formatPrice(paymentBreakdown.subtotal)}</span>
+                  <span className="patient-payment__label patient-payment__label--subtotal">Subtotal</span>
+                  <span className="patient-payment__value patient-payment__value--subtotal">{formatBreakdownPrice(paymentBreakdown.subtotal)}</span>
                 </div>
+              </div>
+
+              <div className="patient-payment__promo">
+                <p className="patient-payment__promo-label">Promo Code</p>
+                <div className="patient-payment__promo-box">
+                  <input
+                    className="patient-payment__promo-input"
+                    type="text"
+                    value={promoCode}
+                    placeholder="Enter promo code here"
+                    aria-label="Promo code"
+                    autoCapitalize="characters"
+                    disabled={promoApplying || Boolean(appliedPromo)}
+                    onChange={(event) => {
+                      setPromoCode(event.target.value);
+                      setPromoError('');
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleApplyPromo();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="patient-payment__promo-apply"
+                    onClick={handleApplyPromo}
+                    disabled={promoApplying}
+                  >
+                    {promoApplying ? 'APPLY' : appliedPromo ? 'REMOVE' : 'APPLY'}
+                  </button>
+                </div>
+                {promoError ? (
+                  <p className="patient-payment__promo-error" role="alert">{promoError}</p>
+                ) : null}
               </div>
 
               <div className="patient-payment__total-row">
                 <span className="patient-payment__total-label">Total Amount</span>
                 <div className="patient-payment__total-right">
-                  <span className="patient-payment__total-old">{formatPrice(paymentBreakdown.totalOld)}/-</span>
-                  <span className="patient-payment__total-new">{formatPrice(paymentBreakdown.totalNew)}</span>
+                  <span className="patient-payment__total-old">{formatBreakdownPrice(paymentBreakdown.totalOld)}/-</span>
+                  <span className="patient-payment__total-new">{formatBreakdownPrice(paymentBreakdown.totalNew)}</span>
                 </div>
               </div>
 
@@ -3009,17 +3279,13 @@ const PatientSelectionOverlay = ({
                 </p>
               ) : null}
 
-              <p className="patient-payment__hint">
-                You will complete payment on Razorpay. Your lab appointment is confirmed after payment verification and booking with our partner.
-              </p>
-
               <button
                 type="button"
                 className="patient-payment__continue"
                 onClick={handlePayWithRazorpay}
-                disabled={paymentSubmitting}
+                disabled={paymentSubmitting || promoApplying}
               >
-                {paymentSubmitting ? 'Please wait…' : 'Pay securely'}
+                {paymentSubmitting ? 'Please wait…' : 'Continue'}
               </button>
             </div>
           </>

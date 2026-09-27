@@ -84,6 +84,7 @@ const CampDoctorConsultationPage = lazy(() => import('./pages/CampDoctorConsulta
 const HealthScanIndexPage = lazy(() => import('./pages/HealthScanIndexPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AllAppointmentsPage = lazy(() => import('./pages/AllAppointmentsPage'));
+const AddressesPage = lazy(() => import('./pages/AddressesPage'));
 const ConsultationNotesPage = lazy(() => import('./pages/ConsultationNotesPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const CustomerSupportPage = lazy(() => import('./pages/CustomerSupportPage'));
@@ -2389,6 +2390,9 @@ function App() {
             console.log('Navigate to All Appointments');
             setCurrentPage('all-appointments');
           }}
+          onOpenAddresses={() => {
+            setCurrentPage('addresses');
+          }}
           onOpenConsultationNotes={() => {
             console.log('Navigate to Consultation Notes');
             setCurrentPage('consultation-notes');
@@ -2453,6 +2457,14 @@ function App() {
           appointments={campAppointments}
           onBack={() => {
             console.log('Back to Profile');
+            setCurrentPage('profile');
+          }}
+        />
+      )}
+
+      {currentPage === 'addresses' && (
+        <AddressesPage
+          onBack={() => {
             setCurrentPage('profile');
           }}
         />
