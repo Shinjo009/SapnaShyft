@@ -36,6 +36,7 @@ import {
   getLatestAssessmentIdsCached,
   clearReportRequestCache,
   clearStoredLatestAssessmentId,
+  healthSpanScoresFromHomeSummary,
   peekMyAssessmentsRowsCached,
   resolveEngagementIdFromAssessmentId,
 } from './services/reportService';
@@ -1362,19 +1363,6 @@ function App() {
   const preloadHomeScreenData = async () => {
     prefetchRouteChunk('home');
     void peekMyAssessmentsRowsCached(0).catch(() => {});
-    const fitprintPreloadPromise = loadFitprintHealthSpanIndexState({
-      ttlMs: 45000,
-      assignFitprintIfMissing: false,
-    })
-      .then((flowState) => fitprintHealthSpanPreloadExtras(flowState))
-      .catch(() => ({}));
-
-    const resolveHealthSpanScoresForPreload = (fitprintExtras) => {
-      if (fitprintExtras?.healthSpanScores) {
-        return fitprintExtras.healthSpanScores;
-      }
-      return null;
-    };
 
     const mergePreloadedHomePayload = (partial, healthSpanScores, fitprintExtras) => {
       const spanScores = fitprintExtras.healthSpanScores ?? healthSpanScores ?? partial.healthSpanScores ?? null;
@@ -1386,13 +1374,29 @@ function App() {
       };
     };
 
+    const resolveFitprintExtras = async (healthSpanScores, anchorAssessmentId) => {
+      try {
+        const flowState = await loadFitprintHealthSpanIndexState({
+          ttlMs: 45000,
+          assignFitprintIfMissing: false,
+          useHomeSummaryScores: true,
+          homeSummaryScores: healthSpanScores,
+          anchorAssessmentId,
+        });
+        return fitprintHealthSpanPreloadExtras(flowState);
+      } catch {
+        return {};
+      }
+    };
+
     try {
       const { assessmentId, response } = await fetchLatestAssessmentReport(
-        (assessmentId) => `/reports/${assessmentId}/overview`
+        (id) => `/reports/${id}/home-summary`,
       );
       const overview = resolveOverviewPayload(response);
-      const fitprintExtras = await fitprintPreloadPromise;
-      const healthSpanScores = resolveHealthSpanScoresForPreload(fitprintExtras);
+      const anchorAssessmentId = Number(assessmentId) > 0 ? Number(assessmentId) : null;
+      const healthSpanScores = healthSpanScoresFromHomeSummary(response);
+      const fitprintExtras = await resolveFitprintExtras(healthSpanScores, anchorAssessmentId);
       const assessmentRows = await peekMyAssessmentsRowsCached(0).catch(() => []);
       const anchorEngagementId = resolveEngagementIdFromAssessmentId(assessmentRows, assessmentId);
 
@@ -1406,7 +1410,7 @@ function App() {
           positiveWinsData: resolvePositiveWinsPayload(overview),
           riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
           healthSpanScores,
-          anchorAssessmentId: Number(assessmentId) > 0 ? Number(assessmentId) : null,
+          anchorAssessmentId,
           anchorEngagementId: anchorEngagementId || null,
         }, healthSpanScores, fitprintExtras));
         return true;
@@ -1419,12 +1423,11 @@ function App() {
       return false;
     } catch (err) {
       console.error('Failed to preload home screen data:', err);
-      const fitprintExtras = await fitprintPreloadPromise;
-      const healthSpanScores = resolveHealthSpanScoresForPreload(fitprintExtras);
+      const fitprintExtras = await resolveFitprintExtras(null, null);
       setPreloadedHomeData(mergePreloadedHomePayload({
         ...createEmptyPreloadedHome(),
-        healthSpanScores,
-      }, healthSpanScores, fitprintExtras));
+        healthSpanScores: null,
+      }, null, fitprintExtras));
       return false;
     }
   };

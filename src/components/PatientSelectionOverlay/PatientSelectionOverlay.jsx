@@ -1624,7 +1624,8 @@ const PatientSelectionOverlay = ({
       totalMrp: old,
       platformDiscount: discount,
       subtotal: current,
-      totalOld: old,
+      promoDiscount: promoRupees,
+      totalOld: promoRupees > 0 ? current : old,
       totalNew,
     };
   }, [pricing, appliedPromo]);
@@ -3227,6 +3228,20 @@ const PatientSelectionOverlay = ({
                   <span className="patient-payment__label patient-payment__label--subtotal">Subtotal</span>
                   <span className="patient-payment__value patient-payment__value--subtotal">{formatBreakdownPrice(paymentBreakdown.subtotal)}</span>
                 </div>
+
+                {paymentBreakdown.promoDiscount > 0 ? (
+                  <>
+                    <div className="patient-payment__divider" />
+                    <div className="patient-payment__row">
+                      <span className="patient-payment__label">
+                        {appliedPromo?.code ? `Promo (${appliedPromo.code})` : 'Promo Discount'}
+                      </span>
+                      <span className="patient-payment__value patient-payment__value--discount">
+                        - {formatBreakdownPrice(paymentBreakdown.promoDiscount)}
+                      </span>
+                    </div>
+                  </>
+                ) : null}
               </div>
 
               <div className="patient-payment__promo">

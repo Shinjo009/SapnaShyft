@@ -301,6 +301,18 @@ const normalizeHealthSpanScores = (payload) => {
   };
 };
 
+/** Scores from `GET /reports/{id}/home-summary` → `health_span_index`. */
+export const healthSpanScoresFromHomeSummary = (payload) => {
+  const root = payload && typeof payload === 'object'
+    ? (payload.data && typeof payload.data === 'object' ? payload.data : payload)
+    : null;
+  const index = root?.health_span_index;
+  if (!index || typeof index !== 'object') {
+    return null;
+  }
+  return normalizeHealthSpanScores(index);
+};
+
 const buildQueryString = (query) => {
   if (!query || typeof query !== 'object') {
     return '';
@@ -1083,7 +1095,12 @@ export const clearReportRequestCache = () => {
   inFlightStore.clear();
 };
 
-/** GET /reports/trends — historical values for a blood parameter or disease risk. */
+/** GET /reports/trends/blood-parameters — every blood parameter trend in one response. */
+export const fetchAllBloodParameterTrends = async ({ ttlMs = 45000 } = {}) => {
+  return authorizedGetCached('/reports/trends/blood-parameters', ttlMs);
+};
+
+/** GET /reports/trends — historical values for one blood parameter or a disease risk. */
 export const fetchReportTrends = async ({
   bloodParameter = null,
   disease = null,

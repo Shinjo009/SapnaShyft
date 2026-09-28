@@ -4,13 +4,13 @@ import './BloodMarkersPage.css';
 import { BACKEND_BASE_URL, BACKEND_ENABLED } from '../../config/appConfig';
 import { getAccessToken } from '../../utils/authStorage';
 import { formatApiContentDisplay } from '../../utils/formatApiContentDisplay';
-import { fetchLatestAssessmentReport, fetchReportTrends } from '../../services/reportService';
+import { fetchAllBloodParameterTrends, fetchLatestAssessmentReport } from '../../services/reportService';
 import { buildBloodParametersGroupsForAssessment } from '../../utils/assessmentBloodMarkerSupplements';
 import TrendsChart from '../../components/TrendsChart';
 import {
   buildBloodMarkerHistoryTimeline,
   formatBloodMarkerHistoryDate,
-  normalizeTrendsPayload,
+  indexAllBloodParameterTrends,
   toBloodParameterKey,
 } from '../../utils/trendsChartUtils';
 import {
@@ -345,22 +345,6 @@ const formatValue = (value) => {
   return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2).replace(/\.00$/, '');
 };
 
-const formatOptimalPillValueLabel = (test) => {
-  const value = String(test?.value ?? '').trim();
-  const unit = String(test?.unit ?? '').trim();
-  const hasValue = value && value !== '--';
-  if (hasValue && unit) {
-    return `${value} ${unit}`;
-  }
-  if (hasValue) {
-    return value;
-  }
-  if (unit) {
-    return unit;
-  }
-  return '';
-};
-
 /** Row from homepage `RiskAnalysisSection` blood markers → `BloodMarkerDetailView` marker shape */
 const mapHomeBloodMarkerRowToDetailMarker = (row) => {
   if (!row || typeof row !== 'object') {
@@ -658,18 +642,6 @@ const SwipeArrow = () => (
 const CardChevron = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="8" height="12" viewBox="0 0 8 12" fill="none" aria-hidden="true">
     <path d="M0.765298 10.7501L6.79252 5.74121L0.750564 0.750102" stroke="#CCCCCC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const DownChevron = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" fill="none" aria-hidden="true">
-    <path d="M1 1.5L6 6.5L11 1.5" stroke="#CCCCCC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const DotBullet = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="4" height="4" viewBox="0 0 4 4" fill="none" aria-hidden="true">
-    <circle cx="2" cy="2" r="2" fill="#90DF9E"/>
   </svg>
 );
 
@@ -1007,123 +979,6 @@ const BloodMarkersViewAllPopup = ({ rows, section, organIcon, onClose, onOpenDet
       </div>
     </div>
   );
-};
-
-const BloodMarkersParameterRows = ({ rows, keyPrefix = '' }) => {
-  const out = [];
-  let detailQueue = [];
-  let detailKeyBase = '';
-
-  const flushDetails = () => {
-    if (detailQueue.length === 0) {
-      return;
-    }
-    out.push(
-      <div
-        key={`${keyPrefix}${detailKeyBase}-detail-grid`}
-        className="blood-markers-page__optimal-params-detail-grid"
-      >
-        {detailQueue}
-      </div>,
-    );
-    detailQueue = [];
-    detailKeyBase = '';
-  };
-
-  rows.forEach((row, rowIndex) => {
-    const compositeKey = `${keyPrefix}${row.key}-${rowIndex}`;
-    if (row.type === 'heading') {
-      flushDetails();
-      out.push(
-        <div key={compositeKey} className="blood-markers-page__optimal-params-heading">
-          {row.label}
-        </div>,
-      );
-      return;
-    }
-    if (row.type === 'pill-group') {
-      flushDetails();
-      const morePillCount = row.morePillCount ?? 0;
-      out.push(
-        <div
-          key={compositeKey}
-          className="blood-markers-page__optimal-pills"
-          role="list"
-          aria-label="Parameters in optimal range"
-        >
-          {row.tests.map((test, pillIndex) => {
-            const valueLabel = formatOptimalPillValueLabel(test);
-            return (
-              <span key={`${compositeKey}-${test.id}-${pillIndex}`} className="blood-markers-page__optimal-pill" role="listitem">
-                <span className="blood-markers-page__optimal-pill-name">{test.title}</span>
-                {valueLabel ? (
-                  <>
-                    <span className="blood-markers-page__optimal-pill-divider" aria-hidden="true" />
-                    <span className="blood-markers-page__optimal-pill-value">{valueLabel}</span>
-                  </>
-                ) : null}
-              </span>
-            );
-          })}
-          {morePillCount > 0 ? (
-            <span
-              key={`${compositeKey}-more`}
-              className="blood-markers-page__optimal-more-text"
-              role="listitem"
-              aria-label={`${morePillCount} additional parameter${morePillCount === 1 ? '' : 's'} not listed here`}
-            >
-              +more
-            </span>
-          ) : null}
-        </div>,
-      );
-      return;
-    }
-    if (row.type === 'more-trailing') {
-      flushDetails();
-      out.push(
-        <div key={compositeKey} className="blood-markers-page__optimal-params-more-trail">
-          <span className="blood-markers-page__optimal-more-text">+more</span>
-        </div>,
-      );
-      return;
-    }
-    if (!detailKeyBase) {
-      detailKeyBase = row.key || `row-${rowIndex}`;
-    }
-    detailQueue.push(
-      <span key={compositeKey} className="blood-markers-page__optimal-param-chunk">
-        <span className="blood-markers-page__optimal-param-dot" aria-hidden="true">
-          <DotBullet />
-        </span>
-        <span className="blood-markers-page__optimal-param-item">{row.text}</span>
-      </span>,
-    );
-  });
-
-  flushDetails();
-
-  return <>{out}</>;
-};
-
-const buildAggregateOptimalRows = (tests) => {
-  const list = tests || [];
-  if (list.length === 0) {
-    return [];
-  }
-
-  return [
-    {
-      type: 'pill-group',
-      key: 'optimal-params',
-      tests: list.map((t) => ({
-        id: t.id,
-        title: t.title,
-        value: t.value,
-        unit: t.unit,
-      })),
-    },
-  ];
 };
 
 const BLOOD_MARKER_DETAIL_CONTENT = {
@@ -2173,10 +2028,6 @@ const BloodMarkerStackSection = ({ section, onOpenDetail, trendsByParameterKey =
           const isAggregateOptimalCard = card.cardRole === 'optimal-aggregate';
           const isSingleOptimalPeerCard = card.riskType === 'low' && !isAggregateOptimalCard;
           const isOptimalPeerCard = isSingleOptimalPeerCard || isAggregateOptimalCard;
-          const isLowCardExpanded = Boolean(expandedLowCardIds[card.id]);
-          const aggregateDetailRows = isAggregateOptimalCard
-            ? buildAggregateOptimalRows(card.aggregateTests)
-            : [];
           const historyPoints = BLOOD_MARKER_CARD_HISTORY_ENABLED
             ? resolveCardHistoryPoints(card, trendsByParameterKey)
             : [];
@@ -2196,32 +2047,17 @@ const BloodMarkerStackSection = ({ section, onOpenDetail, trendsByParameterKey =
                   frontStackCardRef.current = node;
                 }
               }}
-              className={`blood-markers-page__stack-card blood-markers-page__stack-card--${role} blood-markers-page__stack-card--theme-${card.riskType}${isOptimalPeerCard ? ' blood-markers-page__stack-card--optimal-peer' : ''}${isAggregateOptimalCard ? ' blood-markers-page__stack-card--optimal-aggregate' : ''}${isAggregateOptimalCard && isLowCardExpanded && role === 'front' ? ' blood-markers-page__stack-card--optimal-expanded' : ''}${showHistoryTimeline ? ' blood-markers-page__stack-card--history' : ''}`}
+              className={`blood-markers-page__stack-card blood-markers-page__stack-card--${role} blood-markers-page__stack-card--theme-${card.riskType}${isOptimalPeerCard ? ' blood-markers-page__stack-card--optimal-peer' : ''}${isAggregateOptimalCard ? ' blood-markers-page__stack-card--optimal-aggregate' : ''}${showHistoryTimeline ? ' blood-markers-page__stack-card--history' : ''}`}
               onClick={() => {
                 if (isAggregateOptimalCard) {
-                  setExpandedLowCardIds((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
                   return;
                 }
                 onOpenDetail({ ...card, organ: section.organ, parameters: section.parameters });
               }}
-              role="button"
-              tabIndex={0}
-              aria-expanded={isAggregateOptimalCard ? isLowCardExpanded : undefined}
-              aria-label={
-                isAggregateOptimalCard
-                  ? (
-                    isLowCardExpanded
-                      ? `Hide ${formatOptimalAggregatePrefix(getOptimalAggregateParameterCount(card))} ${OPTIMAL_AGGREGATE_RANGE_TITLE}`
-                      : `Show ${formatOptimalAggregatePrefix(getOptimalAggregateParameterCount(card))} ${OPTIMAL_AGGREGATE_RANGE_TITLE}`
-                  )
-                  : undefined
-              }
+              role={isAggregateOptimalCard ? undefined : 'button'}
+              tabIndex={isAggregateOptimalCard ? undefined : 0}
               onKeyDown={(event) => {
                 if (isAggregateOptimalCard) {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    setExpandedLowCardIds((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
-                  }
                   return;
                 }
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -2308,30 +2144,13 @@ const BloodMarkerStackSection = ({ section, onOpenDetail, trendsByParameterKey =
                       />
                     ))}
                   </div>
-                  {isAggregateOptimalCard ? (
-                    <span
-                      className={`blood-markers-page__optimal-chevron ${isLowCardExpanded ? 'blood-markers-page__optimal-chevron--expanded' : ''}`}
-                      aria-hidden="true"
-                    >
-                      <DownChevron />
-                    </span>
-                  ) : (
+                  {!isAggregateOptimalCard ? (
                     <span className="blood-markers-page__card-chevron" aria-hidden="true">
                       <CardChevron />
                     </span>
-                  )}
+                  ) : null}
                 </div>
               )}
-
-              {isAggregateOptimalCard ? (
-                <div
-                  className={`blood-markers-page__optimal-params ${isLowCardExpanded ? 'blood-markers-page__optimal-params--expanded' : 'blood-markers-page__optimal-params--collapsed'}`}
-                  aria-label="Additional optimal parameters"
-                  aria-hidden={!isLowCardExpanded}
-                >
-                  <BloodMarkersParameterRows rows={aggregateDetailRows} keyPrefix={`${card.id}-agg-`} />
-                </div>
-              ) : null}
             </article>
           );
         })}
@@ -2419,14 +2238,14 @@ const BloodMarkersPage = ({ onBack, initialDetailMarker = null, onInitialDetailC
     };
   }, []);
 
-  // When list payload has no embedded history, load GET /reports/trends per parameter.
+  // When list payload has no embedded history, load every parameter from one trends call.
   useEffect(() => {
     if (!hasLoadedReport || apiSections.length === 0) {
       return undefined;
     }
 
     let cancelled = false;
-    const keysNeedingTrends = [];
+    let needsTrends = false;
     const seen = new Set();
 
     apiSections.forEach((section) => {
@@ -2442,42 +2261,27 @@ const BloodMarkersPage = ({ onBack, initialDetailMarker = null, onInitialDetailC
           return;
         }
         seen.add(key);
-        keysNeedingTrends.push(key);
+        needsTrends = true;
       });
     });
 
-    if (keysNeedingTrends.length === 0) {
+    if (!needsTrends) {
       return undefined;
     }
 
     const loadTrends = async () => {
-      const next = {};
-      const batchSize = 4;
-
-      for (let i = 0; i < keysNeedingTrends.length; i += batchSize) {
-        if (cancelled) {
-          return;
-        }
-        const batch = keysNeedingTrends.slice(i, i + batchSize);
-        const results = await Promise.allSettled(
-          batch.map((bloodParameter) => fetchReportTrends({ bloodParameter, ttlMs: 60000 })),
-        );
-
-        results.forEach((result, index) => {
-          const key = batch[index];
-          if (result.status !== 'fulfilled') {
-            return;
-          }
-          const normalized = normalizeTrendsPayload(result.value, 'blood');
-          if (normalized.points.length >= 1) {
-            next[key] = normalized.points;
-          }
-        });
-
-        if (!cancelled && Object.keys(next).length > 0) {
-          setTrendsByParameterKey((prev) => ({ ...prev, ...next }));
-        }
+      const response = await fetchAllBloodParameterTrends({ ttlMs: 60000 });
+      if (cancelled) {
+        return;
       }
+      const indexed = indexAllBloodParameterTrends(response);
+      const next = {};
+      Object.entries(indexed).forEach(([key, series]) => {
+        if (Array.isArray(series?.points) && series.points.length >= 1) {
+          next[key] = series.points;
+        }
+      });
+      setTrendsByParameterKey(next);
     };
 
     loadTrends().catch((error) => {

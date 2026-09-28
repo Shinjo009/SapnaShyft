@@ -510,11 +510,11 @@
   gap: 4px;
 }
 .patient-payment__total-old {
-  color: #ccc;
+  color: #9a9a9a;
   font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
+  font-size: 12px;
   font-style: normal;
-  font-weight: 200;
+  font-weight: 500;
   line-height: normal;
   text-decoration-line: line-through;
 }

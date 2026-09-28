@@ -20,6 +20,7 @@ import { getAccessToken } from '../../utils/authStorage';
 import {
   fetchLatestAssessmentReport,
   getLatestMetsightsBasicOrProAssessmentIdCached,
+  healthSpanScoresFromHomeSummary,
   peekMyAssessmentsRowsCached,
   resolveEngagementIdFromAssessmentId,
   resolveHealthSpanIndexSourcesFromRows,
@@ -1094,13 +1095,24 @@ const HomePage = ({
       return undefined;
     }
 
+    const homeSummaryFetchOwnsHealthSpan = !forceScheduledPreview
+      && !forceSlotPassedPreview
+      && (!homePreloadComplete || forceRefreshFromProfile);
+    if (homeSummaryFetchOwnsHealthSpan) {
+      return undefined;
+    }
+
     let cancelled = false;
 
     (async () => {
-      const ttlMs = forceRefreshFromProfile ? 0 : 45000;
       const flowState = await loadFitprintHealthSpanIndexState({
-        ttlMs,
+        ttlMs: 45000,
         assignFitprintIfMissing: false,
+        useHomeSummaryScores: true,
+        homeSummaryScores: hasDisplayableHealthSpanScores(preloadedData?.healthSpanScores)
+          ? preloadedData.healthSpanScores
+          : null,
+        anchorAssessmentId: preloadedData?.anchorAssessmentId ?? null,
       });
       if (cancelled) {
         return;
@@ -1114,7 +1126,12 @@ const HomePage = ({
   }, [
     applyFitprintHealthSpanState,
     forceRefreshFromProfile,
+    forceScheduledPreview,
+    forceSlotPassedPreview,
+    homePreloadComplete,
+    preloadedData?.anchorAssessmentId,
     preloadedData?.fitprintGapLockPreloaded,
+    preloadedData?.healthSpanScores,
   ]);
 
   useEffect(() => {
@@ -1344,6 +1361,7 @@ const HomePage = ({
         metabolicAgeValue: metabolicAgeDisplay,
         positiveWinsData: resolvePositiveWinsPayload(overview),
         riskAnalysisData: Array.isArray(overview?.risk_analysis) ? overview.risk_analysis : [],
+        healthSpanScores: healthSpanScoresFromHomeSummary(response),
       };
     };
 
@@ -1359,7 +1377,7 @@ const HomePage = ({
     const fetchOverviewParsed = async (ttlMs) => {
       try {
         const { assessmentId, response } = await fetchLatestAssessmentReport(
-          (assessmentId) => `/reports/${assessmentId}/overview`,
+          (assessmentId) => `/reports/${assessmentId}/home-summary`,
           ttlMs,
         );
         const parsed = parseOverviewResponse(response);
@@ -1370,6 +1388,20 @@ const HomePage = ({
       } catch {
         return null;
       }
+    };
+
+    const applyHealthSpanFromHomeSummary = async (parsed, ttlMs) => {
+      const flowState = await loadFitprintHealthSpanIndexState({
+        ttlMs,
+        assignFitprintIfMissing: false,
+        useHomeSummaryScores: true,
+        homeSummaryScores: parsed?.healthSpanScores ?? null,
+        anchorAssessmentId: parsed?.anchorAssessmentId ?? null,
+      });
+      if (!isActive) {
+        return;
+      }
+      applyFitprintHealthSpanState(flowState);
     };
 
     const loadOverviewData = async () => {
@@ -1413,6 +1445,7 @@ const HomePage = ({
               setHomeBloodMarkersForSection(markers);
             }
           });
+          await applyHealthSpanFromHomeSummary(parsed, 45000);
         } catch {
           /* keep showing preloaded / last-good overview */
         }
@@ -1459,6 +1492,7 @@ const HomePage = ({
             setNoDataStage('welcome');
           }
           setIsOverviewResolved(true);
+          await applyHealthSpanFromHomeSummary(parsed, primaryTtl);
         }
 
         void bloodPromise.then((markers) => {
@@ -1494,6 +1528,7 @@ const HomePage = ({
     homePreloadComplete,
     preloadedData,
     applyPreloadedSnapshot,
+    applyFitprintHealthSpanState,
   ]);
 
   useEffect(() => {

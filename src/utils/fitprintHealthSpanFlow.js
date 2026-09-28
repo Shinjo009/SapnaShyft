@@ -145,15 +145,46 @@ const tryFetchLatestFilledHealthSpanScores = async ({ rows, ttlMs }) => {
  * 1. Latest FitPrint that already has scores → show_scores
  * 2. Anything else (no Basic/Pro, no FitPrint, FitPrint without scores) → hidden
  *    Never surface locked HSI or a Complete Assessment CTA on this card.
+ *
+ * Pass `useHomeSummaryScores` when scores already came from
+ * `GET /reports/{id}/home-summary` so this does not POST health-span-index.
  */
 export async function loadFitprintHealthSpanIndexState({
   ttlMs = 45000,
   assignFitprintIfMissing = false,
+  useHomeSummaryScores = false,
+  homeSummaryScores = null,
+  anchorAssessmentId = null,
 } = {}) {
   const { resolved, basicProId, fitprintAssessmentId, engagementId } = await resolveSourcesWithOptionalAssign({
     ttlMs,
     assignFitprintIfMissing,
   });
+
+  const anchorId = Number(anchorAssessmentId);
+  const resolvedAnchorId = Number.isFinite(anchorId) && anchorId > 0 ? anchorId : null;
+
+  if (
+    useHomeSummaryScores
+    && !areHealthSpanScoresPending(homeSummaryScores)
+  ) {
+    const scoreFitprintId = fitprintAssessmentId || null;
+    if (scoreFitprintId) {
+      clearFitprintGapQuestionnaireSubmittedFlag(scoreFitprintId);
+    }
+    return {
+      phase: HEALTH_SPAN_PHASE.SHOW_SCORES,
+      isLocked: false,
+      basicProAssessmentId: resolvedAnchorId || basicProId,
+      fitprintAssessmentId: scoreFitprintId,
+      engagementId: engagementId || null,
+      gapQuestionnaireComplete: true,
+      hasFitprintReport: true,
+      hasFitprintAssigned: true,
+      scores: homeSummaryScores,
+      scoresFromPriorCycle: false,
+    };
+  }
 
   if (resolved.status === 'fetch_error') {
     return {
@@ -169,10 +200,12 @@ export async function loadFitprintHealthSpanIndexState({
     };
   }
 
-  const filled = await tryFetchLatestFilledHealthSpanScores({
-    rows: resolved?.rows || [],
-    ttlMs,
-  });
+  const filled = useHomeSummaryScores
+    ? null
+    : await tryFetchLatestFilledHealthSpanScores({
+      rows: resolved?.rows || [],
+      ttlMs,
+    });
   if (filled?.scores) {
     clearFitprintGapQuestionnaireSubmittedFlag(filled.fitprintAssessmentId);
     return {

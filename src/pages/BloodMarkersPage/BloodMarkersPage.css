@@ -663,7 +663,7 @@
 }
 
 .blood-markers-page__stack-card--optimal-aggregate {
-  cursor: pointer;
+  cursor: default;
 }
 
 .blood-markers-page__stack-card--optimal-peer .blood-markers-page__marker-line--low {

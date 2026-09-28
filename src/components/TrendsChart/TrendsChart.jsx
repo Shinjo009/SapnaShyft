@@ -1,16 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './TrendsChart.css';
-import { fetchReportTrends } from '../../services/reportService';
+import { fetchAllBloodParameterTrends, fetchReportTrends } from '../../services/reportService';
 import {
   TRENDS_BAND_BACKGROUNDS,
   TRENDS_BAND_HEIGHT,
   TRENDS_CHART_HEIGHT,
   TRENDS_DOT_SPHERE_STOPS,
+  bloodParameterTrendSeries,
   buildSmoothTrendPath,
   buildTrendSummaryText,
   buildTrendsYAxisLabels,
   formatTrendDateLabel,
   getDotColorForMarkerPercent,
+  indexAllBloodParameterTrends,
   markerPercentToChartY,
   normalizeTrendsPayload,
   resolveTrendsValueDomain,
@@ -382,20 +384,31 @@ const TrendsChart = ({
       }
 
       try {
-        const response = await fetchReportTrends(
-          variant === 'disease'
-            ? { disease: queryKey }
-            : { bloodParameter: queryKey },
-        );
+        let pointsForChart = [];
+        let unitForChart = '';
+
+        if (variant === 'disease') {
+          const response = await fetchReportTrends({ disease: queryKey });
+          const normalized = normalizeTrendsPayload(response, 'disease');
+          pointsForChart = normalized.points;
+          unitForChart = normalized.unit;
+        } else {
+          const response = await fetchAllBloodParameterTrends({ ttlMs: 60000 });
+          const series = bloodParameterTrendSeries(
+            indexAllBloodParameterTrends(response),
+            queryKey,
+          );
+          pointsForChart = series?.points || [];
+          unitForChart = series?.unit || '';
+        }
 
         if (!isActive) {
           return;
         }
 
-        const normalized = normalizeTrendsPayload(response, variant);
-        setPoints(normalized.points);
-        if (normalized.unit) {
-          setUnit(normalized.unit);
+        setPoints(pointsForChart);
+        if (unitForChart) {
+          setUnit(unitForChart);
         }
         setLoadError(false);
       } catch {

@@ -292,6 +292,120 @@ export const buildBloodMarkerHistoryTimeline = ({
   return dated.slice(-Math.max(required, maxPoints)).map(({ date, value }) => ({ date, value }));
 };
 
+/**
+ * Healthians catalog keys used on blood-marker cards → Metsights keys returned
+ * by GET /reports/trends/blood-parameters.
+ * Mirrors dev-api/db/seed/blood_parameter_key_aliases.py.
+ */
+const HEALTHIANS_TO_METSIGHTS_PARAMETER_KEY = {
+  lh: 'lh_value',
+  fsh: 'fsh_value',
+  total_testosterone: 'testosterone',
+  hemoglobin: 'haemoglobin',
+  wbc: 'wbc_value',
+  alp: 'alkaline_phosphatase',
+  sgot_ast: 'ast_value',
+  sgpt_alt: 'alt_value',
+  bilirubin_total: 'total_bilirubin',
+  bilirubin_direct: 'direct_bilirubin',
+  ggpt_value: 'ggt_value',
+  lactate_dehydrogenase: 'ldh_value',
+  proteins_serum: 'total_protein',
+  bun_urea_nitrogen: 'bun_value',
+  egfr: 'egfr_value',
+  calcium_total: 'calcium',
+  fasting_sugar: 'glucose_fasting',
+  post_prandial_sugar: 'glucose_random',
+  hba1c: 'glycated_haemoglobin',
+  cholesterol_total: 'total_cholesterol',
+  hdl_cholestrol_direct: 'hdlc_value',
+  ldl_cholestrol: 'ldlc_value',
+  t3: 'triiodothyronine',
+  t4: 'thyroxine',
+  tsh: 'tsh_value',
+  crp: 'crp_value',
+  'hs-crp': 'hscrp_value',
+  esr: 'esr_value',
+  'ck/cpk': 'cpk_value',
+  pt_inr: 'ptinr_value',
+  'vitamin_d_total-25_hydroxy': 'vitamin_d',
+  rbc: 'rbc_count',
+  red_blood_cells: 'rbc_count',
+  platelate_count: 'platelets',
+  mpv_mean_platelate_count: 'mpv_value',
+};
+
+/**
+ * Pivot `GET /reports/trends/blood-parameters` into per-parameter series.
+ * Each series matches `normalizeTrendsPayload`: date, value, engagementId.
+ * Series are indexed by the API parameter and by Healthians aliases so blood
+ * marker cards can look them up with either key.
+ */
+export const indexAllBloodParameterTrends = (payload) => {
+  const engagements = Array.isArray(payload?.data)
+    ? payload.data
+    : (Array.isArray(payload) ? payload : []);
+  const buckets = new Map();
+
+  engagements.forEach((engagement) => {
+    const date = String(engagement?.date || '').trim();
+    const engagementId = engagement?.engagement_id ?? null;
+    const dataPoints = Array.isArray(engagement?.data_points) ? engagement.data_points : [];
+
+    dataPoints.forEach((point) => {
+      const parameter = String(point?.parameter || '').trim();
+      const key = parameter.toLowerCase();
+      const value = Number(point?.value);
+      if (!key || !date || !Number.isFinite(value)) {
+        return;
+      }
+
+      if (!buckets.has(key)) {
+        buckets.set(key, {
+          parameter,
+          unit: '',
+          points: [],
+        });
+      }
+
+      const bucket = buckets.get(key);
+      const unit = String(point?.unit || '').trim();
+      if (!bucket.unit && unit) {
+        bucket.unit = unit;
+      }
+      bucket.points.push({
+        date,
+        value,
+        engagementId,
+      });
+    });
+  });
+
+  const indexed = {};
+  buckets.forEach((bucket, key) => {
+    bucket.points.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    indexed[key] = bucket;
+  });
+
+  Object.entries(HEALTHIANS_TO_METSIGHTS_PARAMETER_KEY).forEach(([healthiansKey, metsightsKey]) => {
+    const series = indexed[String(metsightsKey).toLowerCase()];
+    const aliasKey = String(healthiansKey).toLowerCase();
+    if (series && !indexed[aliasKey]) {
+      indexed[aliasKey] = series;
+    }
+  });
+
+  return indexed;
+};
+
+export const bloodParameterTrendSeries = (indexed, parameterKey) => {
+  const key = String(parameterKey || '').trim().toLowerCase();
+  if (!key || !indexed || typeof indexed !== 'object') {
+    return null;
+  }
+  return indexed[key] || null;
+};
+
 export const normalizeTrendsPayload = (payload, variant = 'blood') => {
   const root = payload?.data && typeof payload.data === 'object'
     ? payload.data
